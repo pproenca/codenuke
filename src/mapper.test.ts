@@ -11714,6 +11714,43 @@ let package = Package(
     );
   });
 
+  it("preserves SwiftPM target roles from mixed manifest declarations", async () => {
+    const root = await fixtureRoot("clawnuke-swift-mixed-target-roles-");
+    await writeFixture(
+      root,
+      "Package.swift",
+      `// swift-tools-version: 6.0
+import PackageDescription
+let package = Package(
+  name: "MixedTargets",
+  targets: [
+    .target(name: "Core", path: "Sources/Core"),
+    .executableTarget(name: "Tool", dependencies: ["Core"], path: "Tools/Tool"),
+    .testTarget(name: "CoreSpecs", dependencies: [.target(name: "Core")], path: "Specs/Core")
+  ]
+)
+`,
+    );
+    await writeFixture(root, "Sources/Core/Core.swift", "public struct Core {}\n");
+    await writeFixture(root, "Tools/Tool/main.swift", 'print("tool")\n');
+    await writeFixture(root, "Specs/Core/CoreSpecs.swift", "import Testing\n@Test func ok() {}\n");
+
+    const project = await detectProject(root);
+    const result = await mapFeatures(root, project, []);
+    const tool = result.features.find((feature) => feature.title === "Swift executable Tool");
+    const core = result.features.find((feature) => feature.title === "Swift target Core");
+    const specs = result.features.find((feature) => feature.title === "Swift test suite CoreSpecs");
+
+    expect(tool?.kind).toBe("cli-command");
+    expect(tool?.entrypoints[0]?.command).toBe("Tool");
+    expect(tool?.entrypoints[0]?.path).toBe("Tools/Tool/main.swift");
+    expect(core?.kind).toBe("library");
+    expect(core?.entrypoints[0]?.path).toBe("Sources/Core/Core.swift");
+    expect(core?.tests).toEqual([{ path: "Specs/Core/CoreSpecs.swift", command: "swift test" }]);
+    expect(specs?.kind).toBe("test-suite");
+    expect(specs?.entrypoints[0]?.path).toBe("Specs/Core/CoreSpecs.swift");
+  });
+
   it("ignores commented SwiftPM target declarations", async () => {
     const root = await fixtureRoot("clawnuke-swift-comments-");
     await writeFixture(

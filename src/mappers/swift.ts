@@ -232,9 +232,10 @@ async function swiftManifestTargets(root: string): Promise<{
   sourceDeclared: boolean;
 }> {
   const manifest = await readFile(join(root, "Package.swift"), "utf8");
-  const executables = targetEntries(manifest, "executableTarget");
-  const libraries = targetEntries(manifest, "target");
-  const tests = targetEntries(manifest, "testTarget");
+  const targets = targetEntries(manifest);
+  const executables = targets.filter((target) => target.kind === "executableTarget");
+  const libraries = targets.filter((target) => target.kind === "target");
+  const tests = targets.filter((target) => target.kind === "testTarget");
   const validExecutables = executables.filter((target) => target.valid);
   const validLibraries = libraries.filter((target) => target.valid);
   const validTests = tests.filter((target) => target.valid);
@@ -252,7 +253,10 @@ async function swiftManifestTargets(root: string): Promise<{
   };
 }
 
+type SwiftTargetKind = "executableTarget" | "target" | "testTarget";
+
 type SwiftTargetEntry = {
+  kind: SwiftTargetKind;
   name: string;
   path: string | null;
   valid: boolean;
@@ -266,7 +270,7 @@ type SwiftPathEntry = {
   sources: string[];
 };
 
-function targetEntries(manifest: string, kind: string): SwiftTargetEntry[] {
+function targetEntries(manifest: string): SwiftTargetEntry[] {
   const uncommentedManifest = stripSwiftComments(manifest);
   const entries: SwiftTargetEntry[] = [];
   let consumedUntil = -1;
@@ -282,7 +286,8 @@ function targetEntries(manifest: string, kind: string): SwiftTargetEntry[] {
       continue;
     }
     consumedUntil = closeIndex + 1;
-    if (match[1] !== kind) {
+    const kind = match[1] as SwiftTargetKind | undefined;
+    if (kind === undefined) {
       continue;
     }
     const block = uncommentedManifest.slice(match.index, closeIndex + 1);
@@ -297,10 +302,11 @@ function targetEntries(manifest: string, kind: string): SwiftTargetEntry[] {
       .map(normalizeManifestPath)
       .filter((source): source is string => source !== null);
     if (pathMatch !== null && path === null) {
-      entries.push({ name, path: null, valid: false, dependencies, sources });
+      entries.push({ kind, name, path: null, valid: false, dependencies, sources });
       continue;
     }
     entries.push({
+      kind,
       name,
       path,
       valid: true,
