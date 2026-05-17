@@ -21,6 +21,12 @@ import {
   SeedTestRef,
   suppressedTestCommandTag,
 } from "./types.js";
+import {
+  declaredWorkspacePatterns,
+  isExcludedWorkspace,
+  packageRootsForWorkspacePatterns,
+  workspacePatternExcludes,
+} from "./workspaces.js";
 import type { NodeProjectInfo } from "./projects.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 
@@ -31,6 +37,7 @@ type PackageJson = {
   peerDependencies?: unknown;
   optionalDependencies?: unknown;
   scripts?: unknown;
+  workspaces?: unknown;
 };
 
 type ReactPackage = {
@@ -266,12 +273,7 @@ async function hasPackageManagerMarker(root: string, packageRoot: string): Promi
 async function packageJsonPaths(root: string): Promise<string[]> {
   const paths = new Set<string>();
   const patterns = await workspacePatterns(root);
-  const excludes = patterns
-    .filter((pattern) => pattern.startsWith("!"))
-    .flatMap((pattern) => {
-      const normalized = normalizeWorkspacePattern(pattern.slice(1));
-      return normalized === null ? [] : [normalized];
-    });
+  const excludes = workspacePatternExcludes(patterns);
   for (const candidate of packageRootCandidates) {
     const packageJsonPath = candidate === "" ? "package.json" : `${candidate}/package.json`;
     if (
@@ -287,7 +289,7 @@ async function packageJsonPaths(root: string): Promise<string[]> {
       paths.add(path);
     }
   }
-  for (const path of await workspacePackageJsonPaths(root, patterns, excludes)) {
+  for (const path of await workspacePackageJsonPaths(root, patterns)) {
     paths.add(path);
   }
   return [...paths].toSorted();
@@ -322,179 +324,13 @@ async function collectPackageJsonPaths(
 }
 
 async function workspacePatterns(root: string): Promise<string[]> {
-  const patterns = new Set<string>();
-  const rootPackage = await readPackageJsonAt(root, "package.json");
-  if (rootPackage !== null) {
-    for (const pattern of packageWorkspacePatterns(rootPackage)) {
-      patterns.add(pattern);
-    }
-  }
-  if (await pathExists(join(root, "pnpm-workspace.yaml"))) {
-    for (const pattern of parsePnpmWorkspace(
-      await readFile(join(root, "pnpm-workspace.yaml"), "utf8"),
-    )) {
-      patterns.add(pattern);
-    }
-  }
-  return [...patterns];
+  return declaredWorkspacePatterns(root, await readPackageJsonAt(root, "package.json"));
 }
 
-async function workspacePackageJsonPaths(
-  root: string,
-  patterns: string[],
-  excludes: string[],
-): Promise<string[]> {
-  const paths: string[] = [];
-  for (const pattern of patterns.filter((entry) => !entry.startsWith("!"))) {
-    for (const packageRoot of await expandWorkspacePattern(root, pattern)) {
-      if (!isExcludedWorkspace(packageRoot, excludes)) {
-        paths.push(packageRelativePath(packageRoot, "package.json"));
-      }
-    }
-  }
-  return paths;
-}
-
-function packageWorkspacePatterns(pkg: PackageJson): string[] {
-  const workspaces = (pkg as { workspaces?: unknown }).workspaces;
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter((entry): entry is string => typeof entry === "string");
-  }
-  if (
-    typeof workspaces === "object" &&
-    workspaces !== null &&
-    Array.isArray((workspaces as { packages?: unknown }).packages)
-  ) {
-    return (workspaces as { packages: unknown[] }).packages.filter(
-      (entry): entry is string => typeof entry === "string",
-    );
-  }
-  return [];
-}
-
-function parsePnpmWorkspace(source: string): string[] {
-  const patterns: string[] = [];
-  let inPackages = false;
-  for (const rawLine of source.split("\n")) {
-    const line = rawLine.replace(/#.*/u, "");
-    if (/^\S/u.test(line)) {
-      inPackages = /^packages\s*:/u.test(line);
-    }
-    if (!inPackages) {
-      continue;
-    }
-    const match = /^\s*-\s*["']?([^"'\s]+)["']?\s*$/u.exec(line);
-    if (match?.[1] !== undefined) {
-      patterns.push(match[1]);
-    }
-  }
-  return patterns;
-}
-
-async function expandWorkspacePattern(root: string, pattern: string): Promise<string[]> {
-  const normalized = normalizeWorkspacePattern(pattern);
-  if (normalized === null) {
-    return [];
-  }
-  if (normalized === "." || normalized === "") {
-    return ["."];
-  }
-  if (normalized.endsWith("/*")) {
-    const parent = normalized.slice(0, -2);
-    if (hasWorkspaceGlob(parent)) {
-      return expandWorkspaceGlob(root, normalized);
-    }
-    const packageRoots = (await safeDirectoryEntries(root, parent)).map(
-      (entry) => `${parent}/${entry}`,
-    );
-    const existing: string[] = [];
-    for (const packageRoot of packageRoots) {
-      if (await pathExists(join(root, packageRoot, "package.json"))) {
-        existing.push(packageRoot);
-      }
-    }
-    return existing;
-  }
-  if (hasWorkspaceGlob(normalized)) {
-    return expandWorkspaceGlob(root, normalized);
-  }
-  return (await pathExists(join(root, normalized, "package.json"))) ? [normalized] : [];
-}
-
-function normalizeWorkspacePattern(pattern: string): string | null {
-  const normalized = normalize(pattern)
-    .replace(/^\.\//u, "")
-    .replace(/\/package\.json$/u, "")
-    .replace(/\/$/u, "");
-  if (normalized.startsWith("/") || normalized.split("/").includes("..")) {
-    return null;
-  }
-  return normalized;
-}
-
-function isExcludedWorkspace(packageRoot: string, excludes: string[]): boolean {
-  return excludes.some((pattern) => workspacePatternMatches(pattern, packageRoot));
-}
-
-function workspacePatternMatches(pattern: string, packageRoot: string): boolean {
-  if (pattern === packageRoot) {
-    return true;
-  }
-  if (hasWorkspaceGlob(pattern)) {
-    return workspaceGlobMatches(pattern, packageRoot);
-  }
-  if (pattern.endsWith("/**")) {
-    return pathMatchesPrefix(packageRoot, pattern.slice(0, -3));
-  }
-  if (pattern.endsWith("/*")) {
-    const parent = pattern.slice(0, -2);
-    if (!pathMatchesPrefix(packageRoot, parent)) {
-      return false;
-    }
-    return packageRoot.slice(parent.length + 1).split("/").length === 1;
-  }
-  return false;
-}
-
-async function expandWorkspaceGlob(root: string, pattern: string): Promise<string[]> {
-  const packages: string[] = [];
-
-  async function visit(base: string, remaining: string[]): Promise<void> {
-    if (shouldSkip(base)) {
-      return;
-    }
-    const [segment, ...rest] = remaining;
-    if (segment === undefined) {
-      if (base.length > 0 && (await pathExists(join(root, base, "package.json")))) {
-        packages.push(base);
-      }
-      return;
-    }
-    if (!hasWorkspaceGlob(segment)) {
-      await visit(base.length === 0 ? segment : `${base}/${segment}`, rest);
-      return;
-    }
-    if (segment === "**") {
-      await visit(base, rest);
-      for (const entry of await safeDirectoryEntries(root, base)) {
-        const child = base.length === 0 ? entry : `${base}/${entry}`;
-        if (!shouldSkip(child)) {
-          await visit(child, remaining);
-        }
-      }
-      return;
-    }
-    const matcher = globSegmentRegExp(segment);
-    for (const entry of await safeDirectoryEntries(root, base)) {
-      const child = base.length === 0 ? entry : `${base}/${entry}`;
-      if (matcher.test(entry) && !shouldSkip(child)) {
-        await visit(child, rest);
-      }
-    }
-  }
-
-  await visit("", pattern.split("/"));
-  return packages.toSorted();
+async function workspacePackageJsonPaths(root: string, patterns: string[]): Promise<string[]> {
+  return (await packageRootsForWorkspacePatterns(root, patterns)).map((packageRoot) =>
+    packageRelativePath(packageRoot, "package.json"),
+  );
 }
 
 async function safeDirectoryEntries(root: string, prefix: string): Promise<string[]> {
@@ -507,37 +343,6 @@ async function safeDirectoryEntries(root: string, prefix: string): Promise<strin
     .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
     .map((entry) => entry.name)
     .toSorted();
-}
-
-function hasWorkspaceGlob(pattern: string): boolean {
-  return /[*?]/u.test(pattern);
-}
-
-function workspaceGlobMatches(pattern: string, packageRoot: string): boolean {
-  return globSegmentsMatch(pattern.split("/"), packageRoot.split("/"));
-}
-
-function globSegmentsMatch(pattern: string[], candidate: string[]): boolean {
-  const [segment, ...remainingPattern] = pattern;
-  if (segment === undefined) {
-    return candidate.length === 0;
-  }
-  if (segment === "**") {
-    return (
-      globSegmentsMatch(remainingPattern, candidate) ||
-      (candidate.length > 0 && globSegmentsMatch(pattern, candidate.slice(1)))
-    );
-  }
-  const [candidateSegment, ...remainingCandidate] = candidate;
-  if (candidateSegment === undefined || !globSegmentRegExp(segment).test(candidateSegment)) {
-    return false;
-  }
-  return globSegmentsMatch(remainingPattern, remainingCandidate);
-}
-
-function globSegmentRegExp(segment: string): RegExp {
-  const escaped = segment.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/gu, "[^/]*").replace(/\?/gu, "[^/]")}$`, "u");
 }
 
 function hasReactDependency(pkg: PackageJson): boolean {
