@@ -318,13 +318,20 @@ export async function reviewCommand(
     await readFindings(loaded.paths),
     await readFeatures(loaded.paths),
   );
+  const reviewedFindings = await readFindings(loaded.paths);
+  const nextReviewedFinding = nextFinding(
+    reviewedFindings.filter((finding) => findingIds.includes(finding.findingId)),
+  );
   return {
     run: currentRunId,
     reviewed: features.length,
     findings: findingIds.length,
     jobs,
     report: reportPath,
-    next: findingIds.length > 0 ? `clawnuke fix --finding ${findingIds[0]}` : "clawnuke status",
+    next:
+      nextReviewedFinding === null
+        ? "clawnuke status"
+        : `clawnuke fix --finding ${nextReviewedFinding.findingId}`,
   };
 }
 

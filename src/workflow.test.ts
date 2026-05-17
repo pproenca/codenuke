@@ -718,6 +718,43 @@ describe("workflow", () => {
     delete process.env["CLAWNUKE_PROVIDER"];
   });
 
+  it("suggests simplification findings before bug findings after review", async () => {
+    const root = await fixtureRoot("clawnuke-refactor-next-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "refactor-next",
+        bin: {
+          buggy: "src/bug.ts",
+          simplify: "src/simplify.ts",
+        },
+        scripts: { test: "vitest run" },
+      }),
+    );
+    await writeFixture(root, "src/bug.ts", "export const problem = 'TODO_BUG';\n");
+    await writeFixture(root, "src/simplify.ts", "export const dead = 'TODO_SIMPLIFY';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "20", jobs: "1" })) as {
+      next: string;
+    };
+    const paths = statePaths(join(root, ".clawnuke"));
+    const findings = await readFindings(paths);
+    const reviewedNext = await readFinding(paths, reviewed.next.split(" ").at(-1) ?? "");
+    const queuedNext = (await nextCommand(context, {})) as { finding: string };
+    const queuedFinding = await readFinding(paths, queuedNext.finding);
+
+    expect(findings.some((finding) => finding.category === "bug")).toBe(true);
+    expect(findings.some((finding) => finding.category === "maintainability")).toBe(true);
+    expect(reviewedNext?.category).toBe("maintainability");
+    expect(queuedFinding?.category).toBe("maintainability");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
   it("revalidates filtered findings in bulk and records history", async () => {
     const root = await fixtureRoot("clawnuke-revalidate-all-");
     await writeFixture(
