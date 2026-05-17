@@ -560,6 +560,7 @@
 
       .section {
         padding: 92px 24px;
+        scroll-margin-top: 86px;
       }
 
       .section.band {
@@ -638,11 +639,10 @@
         display: grid;
         grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
         gap: 18px;
-        align-items: stretch;
+        align-items: start;
       }
 
       .terminal {
-        min-height: 480px;
         border-radius: var(--radius);
         background: var(--terminal);
         box-shadow: var(--shadow);
@@ -683,7 +683,7 @@
 
       .terminal-body {
         display: grid;
-        gap: 15px;
+        gap: 13px;
         padding: 22px;
         font-size: 14px;
       }
@@ -1084,6 +1084,7 @@
         .section,
         .final {
           padding: 48px 16px;
+          scroll-margin-top: 70px;
         }
 
         .terminal {
@@ -1091,13 +1092,14 @@
         }
 
         .terminal-body {
-          padding: 18px;
-          font-size: 13px;
+          gap: 10px;
+          padding: 16px;
+          font-size: 12px;
         }
 
         .terminal-row {
-          grid-template-columns: 1fr;
-          gap: 3px;
+          grid-template-columns: 76px minmax(0, 1fr);
+          gap: 10px;
         }
       }
     </style>
@@ -1264,9 +1266,8 @@
                 <h2>Four steps, no silent edits.</h2>
               </div>
               <p>
-                Codenuke keeps discovery, review, reporting, and patching separate. That makes
-                automation useful without giving it authority to change your repository behind your
-                back.
+                Codenuke separates discovery, review, reporting, and patching so automation can help
+                without silently changing files.
               </p>
             </div>
             <div class="steps">
@@ -1274,8 +1275,8 @@
                 <span class="step-index">01</span>
                 <h3>Initialize</h3>
                 <p>
-                  Detect the project root, validation commands, provider settings, and local state
-                  directory.
+                  Record project settings, provider choices, validation commands, and the local
+                  state directory.
                 </p>
                 <code>codenuke init</code>
               </article>
@@ -1283,8 +1284,8 @@
                 <span class="step-index">02</span>
                 <h3>Map</h3>
                 <p>
-                  Create feature records around routes, packages, modules, bins, tests, configs, and
-                  workspaces.
+                  Turn routes, packages, tests, configs, and workspaces into reviewable feature
+                  slices.
                 </p>
                 <code>codenuke map</code>
               </article>
@@ -1292,8 +1293,8 @@
                 <span class="step-index">03</span>
                 <h3>Review</h3>
                 <p>
-                  Send focused feature context to Codex, Grok, OpenCode, or ACPX and persist
-                  structured findings.
+                  Ask providers to inspect focused slices and save structured findings without
+                  editing files.
                 </p>
                 <code>codenuke review --limit 3</code>
               </article>
@@ -1301,8 +1302,8 @@
                 <span class="step-index">04</span>
                 <h3>Fix</h3>
                 <p>
-                  Run a finding-scoped patch loop, validate locally, and leave the final diff for
-                  human review.
+                  Apply one selected finding, run validation, and leave the diff ready for human
+                  review.
                 </p>
                 <code>codenuke fix --finding &lt;id&gt;</code>
               </article>
@@ -1347,6 +1348,12 @@
                     ><span
                       ><span class="token-amber">14 reviewed</span>,
                       <span class="token-red">3 findings</span>, 0 edits</span
+                    >
+                  </div>
+                  <div class="terminal-row">
+                    <span>finding</span
+                    ><span
+                      ><span class="token-red">fnd_sig-route-cache</span> high performance</span
                     >
                   </div>
                   <div class="terminal-row">
