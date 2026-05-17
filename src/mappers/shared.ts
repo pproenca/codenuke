@@ -9,6 +9,13 @@ export type TestRef = {
   command: string | null;
 };
 
+type WalkStart = {
+  canonicalStart: string;
+  info: Awaited<ReturnType<typeof lstat>>;
+  index: number;
+  rel: string;
+};
+
 export async function nearbyTests(
   root: string,
   entryPath: string,
@@ -87,7 +94,8 @@ export async function walk(
   const seen = new Set<string>();
   const seenRoots = new Set<string>();
   const realRoot = await realpath(root).catch(() => root);
-  for (const prefix of prefixes) {
+  const starts: WalkStart[] = [];
+  for (const [index, prefix] of prefixes.entries()) {
     const start = join(root, prefix);
     if (!(await pathExists(start))) {
       continue;
@@ -104,6 +112,9 @@ export async function walk(
       continue;
     }
     const rel = normalize(relative(realRoot, canonicalStart));
+    starts.push({ canonicalStart, info, index, rel });
+  }
+  for (const { canonicalStart, info, rel } of uncoveredWalkStarts(starts, skipPath)) {
     if (info.isFile()) {
       if (!seen.has(rel) && !skipPath(rel)) {
         seen.add(rel);
@@ -118,6 +129,46 @@ export async function walk(
     await walkDir(realRoot, canonicalStart, files, seen, skipPath);
   }
   return files.toSorted();
+}
+
+function uncoveredWalkStarts(
+  starts: WalkStart[],
+  skipPath: (path: string) => boolean,
+): WalkStart[] {
+  return starts.filter(
+    (start) =>
+      !start.info.isDirectory() ||
+      !starts.some(
+        (candidate) =>
+          candidate.info.isDirectory() &&
+          candidate.index !== start.index &&
+          (candidate.canonicalStart !== start.canonicalStart || candidate.index < start.index) &&
+          directoryStartCovers(candidate, start, skipPath),
+      ),
+  );
+}
+
+function directoryStartCovers(
+  candidate: WalkStart,
+  start: WalkStart,
+  skipPath: (path: string) => boolean,
+): boolean {
+  if (candidate.canonicalStart === start.canonicalStart) {
+    return true;
+  }
+  if (!pathInsideRoot(candidate.canonicalStart, start.canonicalStart) || skipPath(candidate.rel)) {
+    return false;
+  }
+  const relativePath = normalize(relative(candidate.canonicalStart, start.canonicalStart));
+  const parts = relativePath.split("/").filter((part) => part.length > 0);
+  let path = candidate.rel;
+  for (const part of parts.slice(0, -1)) {
+    path = path.length === 0 ? part : `${path}/${part}`;
+    if (skipPath(path)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 async function walkDir(
