@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "algorithmic-complexity-review": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/algorithmic-complexity-review/SKILL.md",
+      "computedHash": "93900de9df96cf818c01481e4692bd8ee984bf70c1e808df2f0752e0b5292fe1"
+    },
+    "complexity-optimizer": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/complexity-optimizer/SKILL.md",
+      "computedHash": "dd8ad128be5d084372ead92a9541172a41328094dc346f89f95f3db29b413799"
+    }
+  }
+}
