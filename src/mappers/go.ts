@@ -12,13 +12,29 @@ export async function goSeeds(root: string): Promise<FeatureSeed[]> {
   const modulePath = await goModulePath(root);
   const packages = await goPackages(root, modulePath);
   const packageByImport = new Map(packages.map((pkg) => [pkg.importPath, pkg]));
+  const packageFiles = new Map<string, Promise<GoPackageFiles>>();
+  const getPackageFiles = (dir: string): Promise<GoPackageFiles> => {
+    const cached = packageFiles.get(dir);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const files = goPackageFiles(root, dir);
+    packageFiles.set(dir, files);
+    return files;
+  };
   const seeds: FeatureSeed[] = [];
   for (const pkg of packages) {
-    const files = await goPackageFiles(root, pkg.dir);
+    const files = await getPackageFiles(pkg.dir);
     if (files.owned.length === 0) {
       continue;
     }
-    const importedContext = await goImportContext(root, modulePath, packageByImport, files.owned);
+    const importedContext = await goImportContext(
+      root,
+      modulePath,
+      packageByImport,
+      files.owned,
+      getPackageFiles,
+    );
     seeds.push(goPackageSeed(pkg, files, importedContext));
   }
   return seeds;
@@ -171,6 +187,7 @@ async function goImportContext(
   modulePath: string | null,
   packages: Map<string, GoPackage>,
   files: string[],
+  getPackageFiles: (dir: string) => Promise<GoPackageFiles>,
 ): Promise<SeedFileRef[]> {
   if (modulePath === null) {
     return [];
@@ -187,7 +204,7 @@ async function goImportContext(
       if (pkg === undefined) {
         continue;
       }
-      for (const contextFile of (await goPackageFiles(root, pkg.dir)).owned) {
+      for (const contextFile of (await getPackageFiles(pkg.dir)).owned) {
         if (seen.has(contextFile)) {
           continue;
         }
