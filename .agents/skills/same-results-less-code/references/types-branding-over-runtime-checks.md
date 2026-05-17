@@ -7,23 +7,23 @@ tags: types, branding, validation, nominal
 
 ## Brand a Validated Value So You Don't Validate It Twice
 
-A normalised email, a checked-out money amount, a user id pulled from a session — once you've validated them, the value is *not just a string*. But the type still says `string`, so every function downstream defensively re-validates. Branded (nominal) types let the type system carry the "this has been validated" guarantee: `Email`, `Money`, `UserId` are all `string` at runtime but distinct types at compile time. The validation happens once, in the function that produces the brand.
+A normalised email, a checked-out money amount, a user id pulled from a session — once you've validated them, the value is _not just a string_. But the type still says `string`, so every function downstream defensively re-validates. Branded (nominal) types let the type system carry the "this has been validated" guarantee: `Email`, `Money`, `UserId` are all `string` at runtime but distinct types at compile time. The validation happens once, in the function that produces the brand.
 
 **Incorrect (every layer re-validates because the type doesn't remember):**
 
 ```typescript
 function normaliseEmail(email: string): string {
-  if (!email.includes('@')) throw new Error('bad email');
+  if (!email.includes("@")) throw new Error("bad email");
   return email.trim().toLowerCase();
 }
 
 function sendWelcome(email: string): void {
-  if (!email.includes('@')) throw new Error('bad email');   // we already normalised — why again?
+  if (!email.includes("@")) throw new Error("bad email"); // we already normalised — why again?
   // ...
 }
 
 function recordSignup(email: string): void {
-  if (!email.includes('@')) throw new Error('bad email');   // and again
+  if (!email.includes("@")) throw new Error("bad email"); // and again
   // ...
 }
 // The type `string` lost the information that this is a *validated* email.
@@ -33,26 +33,28 @@ function recordSignup(email: string): void {
 **Correct (brand the validated value; downstream functions ask for the brand):**
 
 ```typescript
-type Email = string & { readonly __brand: 'Email' };
+type Email = string & { readonly __brand: "Email" };
 
 function parseEmail(raw: string): Email {
-  if (!raw.includes('@')) throw new Error('bad email');
+  if (!raw.includes("@")) throw new Error("bad email");
   return raw.trim().toLowerCase() as Email;
   // The cast happens once, inside the parser. The function's NAME and RETURN TYPE say "validated."
 }
 
-function sendWelcome(email: Email): void {                 // can't be called with a raw string
+function sendWelcome(email: Email): void {
+  // can't be called with a raw string
   // ... no re-check needed; the type carries the proof
 }
 
-function recordSignup(email: Email): void {                 // same
+function recordSignup(email: Email): void {
+  // same
   // ...
 }
 
 // At call sites:
-const email = parseEmail(req.body.email);                   // validation: once
-sendWelcome(email);                                          // type-checked
-recordSignup(email);                                         // type-checked
+const email = parseEmail(req.body.email); // validation: once
+sendWelcome(email); // type-checked
+recordSignup(email); // type-checked
 ```
 
 **Other useful brands:**
@@ -64,7 +66,7 @@ recordSignup(email);                                         // type-checked
 
 **Pattern with `parseFoo` over `validateFoo`:**
 
-`validateFoo(x: string): boolean` doesn't change the type — callers still hold a `string`. `parseFoo(x: string): Foo` returns the brand and *makes the validation visible in the type*. Strongly prefer the latter.
+`validateFoo(x: string): boolean` doesn't change the type — callers still hold a `string`. `parseFoo(x: string): Foo` returns the brand and _makes the validation visible in the type_. Strongly prefer the latter.
 
 **Symptoms that branding would help:**
 

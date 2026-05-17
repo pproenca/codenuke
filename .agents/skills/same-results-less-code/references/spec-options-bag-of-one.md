@@ -7,7 +7,7 @@ tags: spec, options, generality, yagni
 
 ## Avoid Options Bags Where Every Caller Passes the Same Values
 
-An options object is right when callers genuinely want to control different fields — some pass `{ retries: 3 }`, some pass `{ timeout: 5000 }`, some pass both. When *every* caller passes the same options (or the function has one caller and the bag has one field), the bag is a future-proofing tax. Each option is documented, defaulted, validated, and threaded through — for no live benefit. Add the option when a second caller actually needs to override.
+An options object is right when callers genuinely want to control different fields — some pass `{ retries: 3 }`, some pass `{ timeout: 5000 }`, some pass both. When _every_ caller passes the same options (or the function has one caller and the bag has one field), the bag is a future-proofing tax. Each option is documented, defaulted, validated, and threaded through — for no live benefit. Add the option when a second caller actually needs to override.
 
 **Incorrect (options bag where every option has one fixed value at every call site):**
 
@@ -15,14 +15,14 @@ An options object is right when callers genuinely want to control different fiel
 type FetchOptions = {
   timeout?: number;
   retries?: number;
-  cache?: 'no-store' | 'force-cache';
+  cache?: "no-store" | "force-cache";
   headers?: Record<string, string>;
 };
 
 async function fetchUser(id: string, options: FetchOptions = {}): Promise<User> {
   const timeout = options.timeout ?? 5000;
   const retries = options.retries ?? 3;
-  const cache   = options.cache ?? 'no-store';
+  const cache = options.cache ?? "no-store";
   const headers = { ...DEFAULT_HEADERS, ...options.headers };
   // ... uses all four
 }
@@ -40,7 +40,7 @@ await fetchUser(anotherId);
 async function fetchUser(id: string): Promise<User> {
   const timeout = 5000;
   const retries = 3;
-  const cache   = 'no-store';
+  const cache = "no-store";
   // ... uses constants
 }
 // When a real second caller wants a 30s timeout, add `timeout?: number` then.
@@ -67,8 +67,8 @@ You might. Adding a parameter is a 5-minute refactor when "later" arrives. The b
 
 **When NOT to use this pattern:**
 
-- The function is a public library API where the *promise* of options is part of the contract — keep them, but minimise.
-- Two callers exist today with different needs — the bag earns its keep. Make sure the *third* caller would, too.
+- The function is a public library API where the _promise_ of options is part of the contract — keep them, but minimise.
+- Two callers exist today with different needs — the bag earns its keep. Make sure the _third_ caller would, too.
 - The options control fundamentally different code paths (retries vs cache strategy) and you expect both to be used.
 
 Reference: [YAGNI](https://martinfowler.com/bliki/Yagni.html); [Premature generalisation](https://wiki.c2.com/?PrematureGeneralization)

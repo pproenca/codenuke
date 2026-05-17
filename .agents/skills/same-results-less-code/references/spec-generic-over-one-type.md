@@ -15,9 +15,15 @@ Generics earn their cost when at least two concrete types share the structure th
 class Repository<T extends { id: string }> {
   private items: Map<string, T> = new Map();
 
-  save(item: T): void           { this.items.set(item.id, item); }
-  findById(id: string): T | null { return this.items.get(id) ?? null; }
-  findAll(): T[]                 { return [...this.items.values()]; }
+  save(item: T): void {
+    this.items.set(item.id, item);
+  }
+  findById(id: string): T | null {
+    return this.items.get(id) ?? null;
+  }
+  findAll(): T[] {
+    return [...this.items.values()];
+  }
 }
 
 // The only place it's used:
@@ -32,12 +38,18 @@ const userRepo = new Repository<User>();
 class UserRepository {
   private users: Map<string, User> = new Map();
 
-  save(user: User): void          { this.users.set(user.id, user); }
-  findById(id: string): User | null { return this.users.get(id) ?? null; }
-  findByEmail(email: string): User | null {
-    return [...this.users.values()].find(u => u.email === email) ?? null;
+  save(user: User): void {
+    this.users.set(user.id, user);
   }
-  findAll(): User[]               { return [...this.users.values()]; }
+  findById(id: string): User | null {
+    return this.users.get(id) ?? null;
+  }
+  findByEmail(email: string): User | null {
+    return [...this.users.values()].find((u) => u.email === email) ?? null;
+  }
+  findAll(): User[] {
+    return [...this.users.values()];
+  }
 }
 // Smaller signature for the same operations.
 // Plus a `findByEmail` that the generic version couldn't express without making T more constrained.
@@ -47,7 +59,7 @@ class UserRepository {
 
 **The "duplicated code" objection:**
 
-Two repositories with identical operations *will* share lines if extracted to a generic. But: (a) they almost always need specialised methods that the generic can't carry; (b) two copies of five methods is rarely a problem worth the abstraction; (c) extract the generic *later* when the duplication has actually appeared three times. Rule of three applies.
+Two repositories with identical operations _will_ share lines if extracted to a generic. But: (a) they almost always need specialised methods that the generic can't carry; (b) two copies of five methods is rarely a problem worth the abstraction; (c) extract the generic _later_ when the duplication has actually appeared three times. Rule of three applies.
 
 **Symptoms:**
 
@@ -57,7 +69,7 @@ Two repositories with identical operations *will* share lines if extracted to a 
 
 **When NOT to use this pattern:**
 
-- The generic is part of a *library API* exposed to consumers who'll instantiate it with their own types — the parameter is the contract.
+- The generic is part of a _library API_ exposed to consumers who'll instantiate it with their own types — the parameter is the contract.
 - Two or more concrete instantiations exist today. The generic is real polymorphism.
 - The class implements a structural pattern (`Result<T, E>`, `Option<T>`, `Observable<T>`) where the type parameter is the whole point.
 

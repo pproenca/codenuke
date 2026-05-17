@@ -13,13 +13,13 @@ When code recursively walks a tree, a nested object, a directory, or an AST, the
 
 ```typescript
 function findAllUrls(obj: any, found: string[] = []): string[] {
-  if (typeof obj === 'string' && obj.startsWith('http')) {
+  if (typeof obj === "string" && obj.startsWith("http")) {
     found.push(obj);
   } else if (Array.isArray(obj)) {
     for (const item of obj) {
       findAllUrls(item, found);
     }
-  } else if (obj !== null && typeof obj === 'object') {
+  } else if (obj !== null && typeof obj === "object") {
     for (const key of Object.keys(obj)) {
       findAllUrls(obj[key], found);
     }
@@ -34,12 +34,12 @@ function findAllUrls(obj: any, found: string[] = []): string[] {
 **Correct (use a generic walk; the predicate and the accumulator stay tiny):**
 
 ```typescript
-import { traverse } from 'object-traversal'; // or equivalent
+import { traverse } from "object-traversal"; // or equivalent
 
 function findAllUrls(obj: unknown): string[] {
   const found: string[] = [];
   traverse(obj, ({ value }) => {
-    if (typeof value === 'string' && value.startsWith('http')) found.push(value);
+    if (typeof value === "string" && value.startsWith("http")) found.push(value);
   });
   return found;
 }
@@ -52,11 +52,11 @@ function findAllUrls(obj: unknown): string[] {
 function* walk(node: unknown): Generator<unknown> {
   yield node;
   if (Array.isArray(node)) for (const it of node) yield* walk(it);
-  else if (node && typeof node === 'object') for (const v of Object.values(node)) yield* walk(v);
+  else if (node && typeof node === "object") for (const v of Object.values(node)) yield* walk(v);
 }
 
 const findAllUrls = (obj: unknown) =>
-  [...walk(obj)].filter((v): v is string => typeof v === 'string' && v.startsWith('http'));
+  [...walk(obj)].filter((v): v is string => typeof v === "string" && v.startsWith("http"));
 // The walker is generic and reusable. The use-site has one job: filter.
 ```
 
@@ -69,7 +69,7 @@ const findAllUrls = (obj: unknown) =>
 
 **When NOT to use this pattern:**
 
-- The tree has a *very* specific shape and the walk semantics are domain-specific (e.g. "stop descending if you hit a `_hidden: true` node, but only on the third level") — the library may not parameterise that. Inline custom recursion is fine.
+- The tree has a _very_ specific shape and the walk semantics are domain-specific (e.g. "stop descending if you hit a `_hidden: true` node, but only on the third level") — the library may not parameterise that. Inline custom recursion is fine.
 - The walk is performance-critical and the library overhead is measurable — measure first.
 
 Reference: [MDN — Generators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)

@@ -42,14 +42,14 @@ const sorted = sortByPrice(cart.items);
 // Incorrect:
 type Config = { apiUrl: string; retries: number };
 function makeClient(config: Config): Client {
-  config.retries = config.retries ?? 3;                    // mutates caller's object!
+  config.retries = config.retries ?? 3; // mutates caller's object!
   // ... use config
 }
 
 // Correct:
 type Config = Readonly<{ apiUrl: string; retries: number }>;
 function makeClient(config: Config): Client {
-  const retries = config.retries ?? 3;                     // local; doesn't mutate
+  const retries = config.retries ?? 3; // local; doesn't mutate
   // ... use retries
 }
 ```

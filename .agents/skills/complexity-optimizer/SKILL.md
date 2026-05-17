@@ -10,12 +10,14 @@ Find algorithmic complexity hotspots in a codebase and produce a structured repo
 ## When to Apply
 
 Use this skill when the user asks to:
+
 - Analyze, audit, scan, or review a codebase for performance hotspots or algorithmic complexity
 - Find inefficient loops, nested iteration, N+1 queries, sort-in-loop, render-path recomputation
 - Reduce complexity (e.g. O(n^2) → O(n log n) or O(n))
 - "Give me a report" on a codebase's complexity profile
 
 Do not use this skill for:
+
 - Micro-optimizations on cold code paths
 - Memory tuning (this skill targets time complexity, not allocation profiles)
 - Code style refactoring unrelated to complexity
@@ -29,13 +31,13 @@ Baseline → Rank → Prove behavior → Optimize (opt-in) → Verify
  + manual  paths & large I/O       tests regress
 ```
 
-| Step | Action | Tool | Risk |
-|------|--------|------|------|
-| 1 | Establish baseline: detect stack, test command, hot paths | `scripts/analyze_complexity.py` + manual inspection | read-only |
-| 2 | Rank opportunities by impact, separating algorithmic wins from constant-factor cleanup | reasoning | read-only |
-| 3 | Locate or add tests covering the function/component | Read + test framework | read-only |
-| 4 | Apply optimization (ONLY when user explicitly requests) | Edit/Write | destructive |
-| 5 | Run tests, lint, type-check, and a benchmark when warranted; report before/after complexity | Bash test commands | read-only |
+| Step | Action                                                                                      | Tool                                                | Risk        |
+| ---- | ------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------- |
+| 1    | Establish baseline: detect stack, test command, hot paths                                   | `scripts/analyze_complexity.py` + manual inspection | read-only   |
+| 2    | Rank opportunities by impact, separating algorithmic wins from constant-factor cleanup      | reasoning                                           | read-only   |
+| 3    | Locate or add tests covering the function/component                                         | Read + test framework                               | read-only   |
+| 4    | Apply optimization (ONLY when user explicitly requests)                                     | Edit/Write                                          | destructive |
+| 5    | Run tests, lint, type-check, and a benchmark when warranted; report before/after complexity | Bash test commands                                  | read-only   |
 
 ## Core Rule
 
@@ -138,10 +140,12 @@ After editing:
 If the optimization breaks a test or changes observable behavior:
 
 1. **Revert the changed file(s) immediately:**
+
    ```bash
    git restore <file>           # restore a single file
    git restore -SW <file>       # restore both index and working tree
    ```
+
    If multiple files were modified: `git restore -SW .` (only within the affected directory).
 
 2. **Re-run the failing test** to confirm restoration.

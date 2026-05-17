@@ -7,7 +7,7 @@ tags: defense, exceptions, try-catch, error-handling
 
 ## Let Exceptions Propagate; Don't Catch What You Can't Handle
 
-A `try`/`catch` is a place where the program says, "I have a plan if this fails." When the `catch` block re-throws, logs and continues with `undefined`, returns `null`, or rewraps the error in a less informative one, the code is *pretending* to handle the error while actually swallowing or laundering it. The right form is to catch at the layer that can *do something* — typically the top of a request, a background job, or a UI boundary — and let everything below propagate.
+A `try`/`catch` is a place where the program says, "I have a plan if this fails." When the `catch` block re-throws, logs and continues with `undefined`, returns `null`, or rewraps the error in a less informative one, the code is _pretending_ to handle the error while actually swallowing or laundering it. The right form is to catch at the layer that can _do something_ — typically the top of a request, a background job, or a UI boundary — and let everything below propagate.
 
 **Incorrect (pass-through try/catch at every layer):**
 
@@ -17,7 +17,7 @@ async function getUser(id: string): Promise<User | null> {
     return await db.users.findUnique({ where: { id } });
   } catch (err) {
     console.error(err);
-    return null;                                          // caller can't tell "not found" from "DB down"
+    return null; // caller can't tell "not found" from "DB down"
   }
 }
 
@@ -26,7 +26,7 @@ async function getUserName(id: string): Promise<string | null> {
     const user = await getUser(id);
     return user?.name ?? null;
   } catch (err) {
-    console.error(err);                                   // catching what cannot throw — getUser already swallowed
+    console.error(err); // catching what cannot throw — getUser already swallowed
     return null;
   }
 }
@@ -34,10 +34,10 @@ async function getUserName(id: string): Promise<string | null> {
 async function renderUserPage(id: string): Promise<string> {
   try {
     const name = await getUserName(id);
-    return name ? `<h1>${name}</h1>` : '<h1>Not found</h1>';   // 'Not found' for DB outage too
+    return name ? `<h1>${name}</h1>` : "<h1>Not found</h1>"; // 'Not found' for DB outage too
   } catch (err) {
-    console.error(err);                                   // never runs — already swallowed twice
-    return '<h1>Error</h1>';
+    console.error(err); // never runs — already swallowed twice
+    return "<h1>Error</h1>";
   }
 }
 // Three try/catches. Two are no-ops. One conflates two different failures. The actual
@@ -61,11 +61,11 @@ async function getUserName(id: string): Promise<string | null> {
 async function renderUserPage(id: string): Promise<string> {
   try {
     const name = await getUserName(id);
-    return name ? `<h1>${name}</h1>` : '<h1>Not found</h1>';
+    return name ? `<h1>${name}</h1>` : "<h1>Not found</h1>";
   } catch (err) {
-    logger.error({ err, id }, 'render_user_page_failed');
-    metrics.increment('page_error');
-    return '<h1>Sorry, something went wrong.</h1>';
+    logger.error({ err, id }, "render_user_page_failed");
+    metrics.increment("page_error");
+    return "<h1>Sorry, something went wrong.</h1>";
   }
 }
 // One try/catch — at the boundary that can decide between "user not found" (a real outcome)
@@ -89,7 +89,7 @@ async function renderUserPage(id: string): Promise<string> {
 
 **When NOT to use this pattern:**
 
-- A function that promises a *value or `null`* (not an exception) — wrapping a throwing call in `try { … } catch { return null }` is fine; it's the contract.
-- Logging the error with full context *before* re-throwing is fine when the call site has information the boundary doesn't. But re-throw — don't swallow.
+- A function that promises a _value or `null`_ (not an exception) — wrapping a throwing call in `try { … } catch { return null }` is fine; it's the contract.
+- Logging the error with full context _before_ re-throwing is fine when the call site has information the boundary doesn't. But re-throw — don't swallow.
 
 Reference: [The Pragmatic Programmer — Crashing Early](https://pragprog.com/titles/tpp20/the-pragmatic-programmer-20th-anniversary-edition/) (Hunt & Thomas)

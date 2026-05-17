@@ -14,7 +14,7 @@ Hand-written deep-equality functions almost always miss at least one of: `NaN !=
 ```typescript
 function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object') return false;
+  if (typeof a !== "object" || typeof b !== "object") return false;
   if (a === null || b === null) return false;
   const ka = Object.keys(a as object);
   const kb = Object.keys(b as object);
@@ -31,7 +31,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 **Correct (lean on a library that has handled the edge cases for years):**
 
 ```typescript
-import { dequal } from 'dequal';
+import { dequal } from "dequal";
 
 const same = dequal(a, b);
 // Handles Date, Map, Set, RegExp, NaN, typed arrays, cycles.

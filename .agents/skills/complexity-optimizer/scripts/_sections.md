@@ -1,9 +1,9 @@
 # Scripts
 
-| Script | Purpose | Risk |
-|--------|---------|------|
-| `analyze_complexity.py` | Heuristic complexity-hotspot scanner. AST-based for Python; regex-based pattern matching for JS/TS/JSX/TSX/Java/Go/Ruby/PHP/C#/C/C++/Swift/Vue/Svelte/Kotlin/Rust/Dart/Scala. | read-only |
-| `test_analyze_complexity.py` | 13 regression tests pinning the scanner's false-positive fixes (nested-loop detection, cross-function isolation, SCREAMING_SNAKE handling, exit codes, `--changed-only`). | read-only |
+| Script                       | Purpose                                                                                                                                                                       | Risk      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `analyze_complexity.py`      | Heuristic complexity-hotspot scanner. AST-based for Python; regex-based pattern matching for JS/TS/JSX/TSX/Java/Go/Ruby/PHP/C#/C/C++/Swift/Vue/Svelte/Kotlin/Rust/Dart/Scala. | read-only |
+| `test_analyze_complexity.py` | 13 regression tests pinning the scanner's false-positive fixes (nested-loop detection, cross-function isolation, SCREAMING_SNAKE handling, exit codes, `--changed-only`).     | read-only |
 
 ## `analyze_complexity.py`
 
@@ -15,22 +15,22 @@ python3 scripts/analyze_complexity.py <repo-or-dir> [flags]
 
 **Flags:**
 
-| Flag | Default | Purpose |
-|------|---------|---------|
-| `--format markdown\|json` | markdown | Output format. JSON includes `files_scanned`, `files_failed`, `findings[]`. |
-| `--exclude DIR` | (repeatable) | Skip directories with this name anywhere in the tree. |
-| `--max-findings N` | 80 | Cap reported findings (sorted by severity then path). |
-| `--changed-only` | off | Scan only files changed vs `--base`. Requires a git repo at root. |
-| `--base REF` | `HEAD~1` | Git ref to diff against when `--changed-only` is set. Examples: `origin/main`, `HEAD`, `HEAD~5`. |
+| Flag                      | Default      | Purpose                                                                                          |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `--format markdown\|json` | markdown     | Output format. JSON includes `files_scanned`, `files_failed`, `findings[]`.                      |
+| `--exclude DIR`           | (repeatable) | Skip directories with this name anywhere in the tree.                                            |
+| `--max-findings N`        | 80           | Cap reported findings (sorted by severity then path).                                            |
+| `--changed-only`          | off          | Scan only files changed vs `--base`. Requires a git repo at root.                                |
+| `--base REF`              | `HEAD~1`     | Git ref to diff against when `--changed-only` is set. Examples: `origin/main`, `HEAD`, `HEAD~5`. |
 
 **Exit codes:**
 
-| Code | Meaning |
-|------|---------|
+| Code | Meaning                                                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------- |
 | 0    | Scan completed (zero or more findings reported; `--changed-only` with no matching files also returns 0) |
-| 2    | Bad input: path does not exist, path is a file (not directory), or `git diff` failed |
-| 3    | Scanned 0 files — check path / extensions / `--exclude` flags |
-| 130  | Interrupted (Ctrl-C) |
+| 2    | Bad input: path does not exist, path is a file (not directory), or `git diff` failed                    |
+| 3    | Scanned 0 files — check path / extensions / `--exclude` flags                                           |
+| 130  | Interrupted (Ctrl-C)                                                                                    |
 
 **Output:** markdown (default) or JSON. Markdown ends with `_Scanned N files (M skipped)._` JSON output shape:
 
@@ -38,7 +38,16 @@ python3 scripts/analyze_complexity.py <repo-or-dir> [flags]
 {
   "files_scanned": 42,
   "files_failed": 0,
-  "findings": [{ "path": "...", "line": 5, "severity": "high", "kind": "nested-loop", "message": "...", "suggestion": "..." }]
+  "findings": [
+    {
+      "path": "...",
+      "line": 5,
+      "severity": "high",
+      "kind": "nested-loop",
+      "message": "...",
+      "suggestion": "..."
+    }
+  ]
 }
 ```
 

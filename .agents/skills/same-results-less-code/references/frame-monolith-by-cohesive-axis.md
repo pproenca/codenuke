@@ -7,7 +7,7 @@ tags: frame, decomposition, cohesion, single-responsibility
 
 ## Split a God-Function Along Its Cohesive Axis, Not by Line Count
 
-A long function or class is not bad because it's long — it's bad because it *bundles unrelated changes*. The judgment skill is finding the *axis of cohesion*: the natural seams along which the work breaks into pieces that change for different reasons. Splitting by line count ("extract every 30 lines into a helper") makes things worse — you get small functions with long names that pass 15 variables around. Splitting by cohesion makes each piece smaller, named after what it owns, and independently changeable.
+A long function or class is not bad because it's long — it's bad because it _bundles unrelated changes_. The judgment skill is finding the _axis of cohesion_: the natural seams along which the work breaks into pieces that change for different reasons. Splitting by line count ("extract every 30 lines into a helper") makes things worse — you get small functions with long names that pass 15 variables around. Splitting by cohesion makes each piece smaller, named after what it owns, and independently changeable.
 
 **Incorrect (a "ProcessOrder" that mixes auth, pricing, fulfillment, and notification):**
 
@@ -21,19 +21,19 @@ async function processOrder(req: Request, db: DB): Promise<Response> {
 
   // Validate cart
   const cart = req.body.cart;
-  if (!cart.items?.length) return { status: 400, error: 'empty' };
+  if (!cart.items?.length) return { status: 400, error: "empty" };
   for (const item of cart.items) {
     const product = await db.products.find(item.id);
-    if (!product || product.stock < item.qty) return { status: 400, error: 'oos' };
+    if (!product || product.stock < item.qty) return { status: 400, error: "oos" };
   }
 
   // Price + tax
   let subtotal = 0;
   for (const item of cart.items) {
-    const product = await db.products.find(item.id);    // re-fetched — also a bug
+    const product = await db.products.find(item.id); // re-fetched — also a bug
     subtotal += product.price * item.qty;
   }
-  const tax = user.country === 'US' ? subtotal * 0.08 : subtotal * 0.20;
+  const tax = user.country === "US" ? subtotal * 0.08 : subtotal * 0.2;
   const total = subtotal + tax;
 
   // Charge
@@ -48,7 +48,7 @@ async function processOrder(req: Request, db: DB): Promise<Response> {
 
   // Notify
   await email.send(user.email, `Order #${order.id} confirmed`);
-  await analytics.track('order_placed', { userId: user.id, total });
+  await analytics.track("order_placed", { userId: user.id, total });
 
   return { status: 200, orderId: order.id };
   // 30+ lines mixing 5 unrelated concerns. Test it: every test needs the whole stack.
@@ -59,8 +59,10 @@ async function processOrder(req: Request, db: DB): Promise<Response> {
 
 ```typescript
 async function processOrder(req: Request, ctx: Context): Promise<Response> {
-  const user = await authenticate(req, ctx);                if (!user) return UNAUTHORIZED;
-  const cart = await validateCart(req.body.cart, ctx);      if ('error' in cart) return cart.error;
+  const user = await authenticate(req, ctx);
+  if (!user) return UNAUTHORIZED;
+  const cart = await validateCart(req.body.cart, ctx);
+  if ("error" in cart) return cart.error;
   const total = priceCart(cart, user.country);
   const charge = await ctx.payments.charge(user.cardId, total);
   if (!charge.success) return PAYMENT_FAILED;
@@ -87,7 +89,7 @@ Four different answers means four functions. Same answer means one function with
 
 **When NOT to use this pattern:**
 
-- The function is long but every block changes together for the same reason — keep it whole. Length alone is not the enemy; *bundled change* is.
+- The function is long but every block changes together for the same reason — keep it whole. Length alone is not the enemy; _bundled change_ is.
 - Premature splitting introduces parameter-passing chains worse than the original. If you're threading 8 variables to a helper, the helper isn't a clean piece.
 
 Reference: [A Philosophy of Software Design — Deep Modules](https://web.stanford.edu/~ouster/cgi-bin/aposd.php), and [On the Criteria To Be Used in Decomposing Systems into Modules](https://www.cs.umd.edu/class/spring2003/cmsc838p/Design/criteria.pdf) (Parnas)

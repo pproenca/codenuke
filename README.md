@@ -1,10 +1,11 @@
 # clawnuke
 
-Automated code review for safe simplification and complexity reduction.
+Automated code review for reliable, trusted refactoring.
 
 `clawnuke` maps a repo into semantic feature slices, reviews each slice with a
-provider for concrete reduction opportunities, persists findings, and can run an
-explicit fix loop for one finding at a time.
+provider for behavior-preserving simplification and complexity-reduction
+opportunities, persists findings, and can run an explicit fix loop for one
+finding at a time.
 
 Current status: early CLI. Review/report/state are implemented; patching exists
 behind `clawnuke fix --finding <id>` and still requires manual review of the
@@ -108,7 +109,7 @@ Supported provider names today:
 - `clawnuke init`: create `.clawnuke/`, detect project basics, write config
 - `clawnuke map`: write feature records
 - `clawnuke status`: show project, dirty state, feature/finding counts
-- `clawnuke review`: review pending or selected features
+- `clawnuke review`: review pending or selected features for refactoring opportunities
 - `clawnuke report`: print or write a Markdown findings report
 - `clawnuke next`: print the next actionable finding
 - `clawnuke show --finding <id>`: inspect one finding with evidence and suggested validation

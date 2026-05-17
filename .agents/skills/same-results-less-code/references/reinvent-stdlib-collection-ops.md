@@ -28,9 +28,7 @@ function getOrderTotals(orders: Order[]): number[] {
 
 ```typescript
 function getOrderTotals(orders: Order[]): number[] {
-  return orders.map(order =>
-    order.items.reduce((sum, it) => sum + it.price * it.qty, 0)
-  );
+  return orders.map((order) => order.items.reduce((sum, it) => sum + it.price * it.qty, 0));
   // The loop, the index, the mutable accumulator are all gone.
 }
 ```

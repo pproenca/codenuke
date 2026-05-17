@@ -7,7 +7,7 @@ tags: reinvent, state-machine, modelling, discriminated-union
 
 ## Surface an Explicit State Machine Instead of Boolean Flag Juggling
 
-When a component or service has more than two booleans tracking "lifecycle" — `isLoading`, `isReady`, `hasError`, `isSubmitting`, `isComplete` — they are *almost always* one variable in disguise. The flag form requires every reader to memorise the legal combinations and every writer to update multiple flags in lockstep. Modelling the same thing as a tagged union or state-machine library (XState, `useReducer`, a sealed Kotlin/Rust enum) replaces a thicket of `if`/`&&` with one switch.
+When a component or service has more than two booleans tracking "lifecycle" — `isLoading`, `isReady`, `hasError`, `isSubmitting`, `isComplete` — they are _almost always_ one variable in disguise. The flag form requires every reader to memorise the legal combinations and every writer to update multiple flags in lockstep. Modelling the same thing as a tagged union or state-machine library (XState, `useReducer`, a sealed Kotlin/Rust enum) replaces a thicket of `if`/`&&` with one switch.
 
 **Incorrect (a boolean cartesian product with most combinations illegal):**
 
@@ -19,9 +19,15 @@ function CheckoutButton() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Anywhere this state is read:
-  if (isLoading && !isError) { /* ... */ }
-  if (isSubmitting && isError) { /* huh, can this happen? */ }
-  if (isSuccess && isLoading) { /* surely not, but the type allows it */ }
+  if (isLoading && !isError) {
+    /* ... */
+  }
+  if (isSubmitting && isError) {
+    /* huh, can this happen? */
+  }
+  if (isSuccess && isLoading) {
+    /* surely not, but the type allows it */
+  }
   // 2^4 = 16 combinations. About 4 are valid. The rest are bugs waiting to happen.
 }
 ```

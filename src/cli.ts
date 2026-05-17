@@ -541,8 +541,7 @@ Flags:
 `);
     return;
   }
-  process.stdout
-    .write(`clawnuke: automated code review for safe simplification and complexity reduction
+  process.stdout.write(`clawnuke: automated code review for reliable, trusted refactoring
 
 Usage:
   clawnuke [global flags] <command> [flags]

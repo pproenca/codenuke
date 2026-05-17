@@ -7,17 +7,17 @@ tags: dup, branches, conditionals, refactor
 
 ## Lift Shared Lines Out of Mirrored Branches
 
-When the `if` and `else` branches of a conditional contain the same five lines plus one different line, the common lines are *not* about the condition — they always run. The condition is only deciding the differing line. Pulling shared lines out (above or below the conditional) shrinks the function, makes the actual decision visible, and prevents the common case where someone edits one branch and forgets the other.
+When the `if` and `else` branches of a conditional contain the same five lines plus one different line, the common lines are _not_ about the condition — they always run. The condition is only deciding the differing line. Pulling shared lines out (above or below the conditional) shrinks the function, makes the actual decision visible, and prevents the common case where someone edits one branch and forgets the other.
 
 **Incorrect (mirrored branches with one real difference):**
 
 ```typescript
 function recordPayment(payment: Payment, user: User): Receipt {
-  if (payment.method === 'card') {
+  if (payment.method === "card") {
     const receipt = createReceipt(payment);
     receipt.lineItems = payment.lineItems;
     receipt.timestamp = Date.now();
-    receipt.processor = 'stripe';
+    receipt.processor = "stripe";
     saveReceipt(receipt);
     notifyAccounting(receipt);
     return receipt;
@@ -25,7 +25,7 @@ function recordPayment(payment: Payment, user: User): Receipt {
     const receipt = createReceipt(payment);
     receipt.lineItems = payment.lineItems;
     receipt.timestamp = Date.now();
-    receipt.processor = 'ach';
+    receipt.processor = "ach";
     saveReceipt(receipt);
     notifyAccounting(receipt);
     return receipt;
@@ -41,7 +41,7 @@ function recordPayment(payment: Payment, user: User): Receipt {
   const receipt = createReceipt(payment);
   receipt.lineItems = payment.lineItems;
   receipt.timestamp = Date.now();
-  receipt.processor = payment.method === 'card' ? 'stripe' : 'ach';
+  receipt.processor = payment.method === "card" ? "stripe" : "ach";
   saveReceipt(receipt);
   notifyAccounting(receipt);
   return receipt;
@@ -53,23 +53,23 @@ function recordPayment(payment: Payment, user: User): Receipt {
 
 ```typescript
 // Incorrect:
-if (kind === 'export') {
+if (kind === "export") {
   validate(payload);
-  authorize(user, 'export');
-  log('export.start');
+  authorize(user, "export");
+  log("export.start");
   doExport(payload);
-  log('export.done');
+  log("export.done");
 } else {
   validate(payload);
-  authorize(user, 'import');
-  log('import.start');
+  authorize(user, "import");
+  log("import.start");
   doImport(payload);
-  log('import.done');
+  log("import.done");
 }
 
 // Correct (lift the structure, parameterize the inner action and labels):
-const action  = kind === 'export' ? doExport : doImport;
-const verb    = kind;
+const action = kind === "export" ? doExport : doImport;
+const verb = kind;
 validate(payload);
 authorize(user, verb);
 log(`${verb}.start`);

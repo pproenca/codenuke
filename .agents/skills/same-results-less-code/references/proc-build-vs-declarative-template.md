@@ -17,16 +17,16 @@ function UserCard({ user }: { user: User }) {
 
   useEffect(() => {
     const root = ref.current!;
-    root.innerHTML = '';
+    root.innerHTML = "";
 
-    const card = document.createElement('div');
-    card.className = 'user-card';
+    const card = document.createElement("div");
+    card.className = "user-card";
 
-    const name = document.createElement('h3');
+    const name = document.createElement("h3");
     name.textContent = user.name;
     card.appendChild(name);
 
-    const email = document.createElement('a');
+    const email = document.createElement("a");
     email.href = `mailto:${user.email}`;
     email.textContent = user.email;
     card.appendChild(email);
@@ -57,7 +57,7 @@ function UserCard({ user }: { user: User }) {
 
 **Same family across stacks:**
 
-- **SQL via concatenated strings.** Use a query builder or parameterised template literal — `db.query`'s `sql\`SELECT * FROM users WHERE id = ${id}\`` form. Concatenation is also a SQL injection risk.
+- **SQL via concatenated strings.** Use a query builder or parameterised template literal — `db.query`'s `sql\`SELECT \* FROM users WHERE id = ${id}\`` form. Concatenation is also a SQL injection risk.
 - **HTML emails via string concat.** Use a template (MJML, JSX-email, Handlebars) — concatenation breaks the moment you need encoding or i18n.
 - **Terraform via `local-exec` shell scripts** when a resource exists for the thing you want. The resource has lifecycle, plan, and rollback. The shell has none.
 - **Webpack/Vite config edited by JS code at build time** when a config object would do.

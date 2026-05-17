@@ -7,24 +7,28 @@ tags: derive, url, state, routing
 
 ## Let the URL or Route Be the State, Not a Mirror of It
 
-For things the URL already represents — current tab, search query, page number, selected entity id — the URL *is* the state, and the engineer's job is to read it. Mirroring it into local component state creates two truths: now any change must update both, and any external source (a deep link, a back button, a refresh) finds them out of sync. The judgment skill is recognising that browser routing already solves "what is the user looking at?" and not building a parallel system.
+For things the URL already represents — current tab, search query, page number, selected entity id — the URL _is_ the state, and the engineer's job is to read it. Mirroring it into local component state creates two truths: now any change must update both, and any external source (a deep link, a back button, a refresh) finds them out of sync. The judgment skill is recognising that browser routing already solves "what is the user looking at?" and not building a parallel system.
 
 **Incorrect (URL and local state both track the same fact):**
 
 ```tsx
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('q') ?? '');
-  const [page, setPage]   = useState(Number(searchParams.get('page') ?? '1'));
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [page, setPage] = useState(Number(searchParams.get("page") ?? "1"));
 
   // Keep local state in sync with URL:
-  useEffect(() => { setQuery(searchParams.get('q') ?? ''); }, [searchParams]);
-  useEffect(() => { setPage(Number(searchParams.get('page') ?? '1')); }, [searchParams]);
+  useEffect(() => {
+    setQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
+  useEffect(() => {
+    setPage(Number(searchParams.get("page") ?? "1"));
+  }, [searchParams]);
 
   const handleSearch = (q: string) => {
-    setQuery(q);                                          // local
-    setSearchParams({ q, page: '1' });                    // URL
-    setPage(1);                                           // local again
+    setQuery(q); // local
+    setSearchParams({ q, page: "1" }); // URL
+    setPage(1); // local again
     // Three updates for one user action. If you forget one, the bug is "page resets on type"
     // or "URL doesn't reflect query." Both have happened to everyone who wrote this code.
   };
@@ -37,11 +41,11 @@ function SearchPage() {
 ```tsx
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const query = searchParams.get('q') ?? '';
-  const page  = Number(searchParams.get('page') ?? '1');
+  const query = searchParams.get("q") ?? "";
+  const page = Number(searchParams.get("page") ?? "1");
 
   const handleSearch = (q: string) => {
-    setSearchParams({ q, page: '1' });
+    setSearchParams({ q, page: "1" });
   };
   // One source of truth. Refresh, back, deep link — all work without extra wiring.
 }
@@ -63,7 +67,7 @@ function SearchPage() {
 
 **When NOT to use this pattern:**
 
-- You need a debounced *staging* state before committing to the URL (don't push to URL on every keystroke). Then the local state has a real role: it holds the in-progress value. The committed state is still the URL.
+- You need a debounced _staging_ state before committing to the URL (don't push to URL on every keystroke). Then the local state has a real role: it holds the in-progress value. The committed state is still the URL.
 - The URL is shared and you don't want every transient UI change to appear in browser history — use `replace`, not `push`, but still keep the URL as the truth.
 
 Reference: [TkDodo — Don't over useState](https://tkdodo.eu/blog/dont-over-use-state), [Nuqs docs](https://nuqs.47ng.com/)

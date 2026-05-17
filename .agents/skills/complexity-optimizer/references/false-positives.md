@@ -7,9 +7,9 @@ Use this catalog to triage scanner output before recommending fixes. The scanner
 ### Single predicate call
 
 ```ts
-const selected = users.find(u => u.id === id);    // not a loop — one-pass O(n)
-const ok = items.some(i => i.valid);              // not a loop — short-circuits O(n)
-const total = nums.reduce((a, b) => a + b, 0);    // not a loop — single sweep O(n)
+const selected = users.find((u) => u.id === id); // not a loop — one-pass O(n)
+const ok = items.some((i) => i.valid); // not a loop — short-circuits O(n)
+const total = nums.reduce((a, b) => a + b, 0); // not a loop — single sweep O(n)
 ```
 
 These were removed from `LOOP_RE` in v0.3.0, but legacy reports may still mention them. A single call to `find`/`findIndex`/`some`/`every`/`reduce` is O(n) — the only concern is when it is wrapped inside another loop, which the scanner already catches via the `forEach`/`map`/`filter`/`for`/`while` parent.
@@ -18,7 +18,7 @@ These were removed from `LOOP_RE` in v0.3.0, but legacy reports may still mentio
 
 ```ts
 function normalizeIds(items: Item[]) {
-  return items.map(i => i.id);    // pure data transform — not a render hotspot
+  return items.map((i) => i.id); // pure data transform — not a render hotspot
 }
 ```
 
@@ -29,11 +29,11 @@ function normalizeIds(items: Item[]) {
 ### Constants adjacent to utility code
 
 ```ts
-const MAX_RETRIES = 5;            // SCREAMING_SNAKE — fixed in v0.2.0
-const HttpStatus = { OK: 200 };   // PascalCase namespace, not a component
+const MAX_RETRIES = 5; // SCREAMING_SNAKE — fixed in v0.2.0
+const HttpStatus = { OK: 200 }; // PascalCase namespace, not a component
 
 export function pickActive(items) {
-  return items.filter(i => i.active);
+  return items.filter((i) => i.active);
 }
 ```
 
@@ -43,7 +43,10 @@ export function pickActive(items) {
 
 ```ts
 type UserId = string;
-interface User { id: UserId; name: string }
+interface User {
+  id: UserId;
+  name: string;
+}
 
 export function pickFirst(users: User[]) {
   return users[0];
@@ -58,7 +61,7 @@ export function pickFirst(users: User[]) {
 
 ```ts
 const ids = useSelector(selectActiveIds);
-ids.map(id => useSelector(selectUserById, id));   // not a DB query — Redux selector
+ids.map((id) => useSelector(selectUserById, id)); // not a DB query — Redux selector
 ```
 
 Redux selectors are pure functions over the store; calling them in a loop is not N+1. The scanner no longer flags `select*` calls. If you see one, it's likely from `Array.prototype.find()` being conflated — check the actual call shape.
@@ -66,7 +69,7 @@ Redux selectors are pure functions over the store; calling them in a loop is not
 ### SQL builder DSLs
 
 ```ts
-const q = db.select('*').from('users').where('active', true);
+const q = db.select("*").from("users").where("active", true);
 ```
 
 Method-chain SQL builders use `select()` and `where()` as fluent-API methods, not as the actual query execution. These were removed from `QUERY_IN_LOOP_RE` in v0.3.0. The real cost lives on `.exec()`, `.execute()` (when terminal), or the framework-specific method (`prisma.user.findMany`, `knex(...).then(...)`).
@@ -74,7 +77,7 @@ Method-chain SQL builders use `select()` and `where()` as fluent-API methods, no
 ### React Testing Library
 
 ```tsx
-const items = await screen.findAllByRole('listitem');
+const items = await screen.findAllByRole("listitem");
 for (const item of items) {
   expect(item).toBeInTheDocument();
 }
@@ -93,7 +96,7 @@ for (const item of sorted) {
 }
 ```
 
-The sort happens once, before the loop. The scanner uses an indent + function-boundary heuristic; if a `sort()` call sits at the same indent as the surrounding `for`, but lexically *above* it, the scanner can mis-place it. Inspect the actual line numbers.
+The sort happens once, before the loop. The scanner uses an indent + function-boundary heuristic; if a `sort()` call sits at the same indent as the surrounding `for`, but lexically _above_ it, the scanner can mis-place it. Inspect the actual line numbers.
 
 ### Stable user-defined comparator
 
@@ -119,6 +122,7 @@ In a report, label dismissed findings as:
 
 ```markdown
 ## DISMISSED nested-or-callback-loop
+
 - Location: `Component.tsx:10`
 - Reason: `.map()` over a small static array (length ≤ 5). Not a hotspot.
 ```

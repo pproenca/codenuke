@@ -8,7 +8,7 @@ Symptom: for each item in A, scan all of B to find a match.
 
 Preferred fix: build a map from B once, then perform O(1) lookups.
 
-Complexity: O(a*b) to O(a+b).
+Complexity: O(a\*b) to O(a+b).
 
 Correctness checks:
 
@@ -23,7 +23,7 @@ Symptom: `items.includes(x)`, `x in list`, `array.indexOf(x)`, or equivalent ins
 
 Preferred fix: convert the membership collection to a set once.
 
-Complexity: O(n*m) to O(n+m).
+Complexity: O(n\*m) to O(n+m).
 
 Correctness checks:
 

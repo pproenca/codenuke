@@ -1,7 +1,7 @@
 {
   "name": "clawnuke",
   "version": "0.2.0",
-  "description": "Automated code review for safe simplification and complexity reduction.",
+  "description": "Automated code review for reliable, trusted refactoring.",
   "license": "MIT",
   "bin": {
     "clawnuke": "dist/cli.js"

@@ -13,11 +13,11 @@ When an `if`/`else if` chain (or a `switch`) does nothing but pattern-match an i
 
 ```typescript
 function ironLevel(level: string): number {
-  if (level === 'beginner') return 1;
-  else if (level === 'intermediate') return 3;
-  else if (level === 'advanced') return 7;
-  else if (level === 'expert') return 15;
-  else if (level === 'master') return 30;
+  if (level === "beginner") return 1;
+  else if (level === "intermediate") return 3;
+  else if (level === "advanced") return 7;
+  else if (level === "expert") return 15;
+  else if (level === "master") return 30;
   else throw new Error(`Unknown level: ${level}`);
 }
 // 6 lines of branching. Adding a new level → one new branch.
@@ -51,20 +51,20 @@ function ironLevel(level: Level): number {
 
 **When NOT to use this pattern:**
 
-- Each branch has *different control flow* (one returns, one throws, one logs) — that's real branching, not a table.
+- Each branch has _different control flow_ (one returns, one throws, one logs) — that's real branching, not a table.
 - Each branch's "constant" is actually computed from inputs not visible at table-build time — keep the function form, but consider making it a `Record<K, (input) => V>`.
 - The chain has only two cases — a ternary is fine. Tables shine at three or more.
 
 **Pair this with a discriminated union for exhaustiveness:**
 
 ```typescript
-type Status = 'pending' | 'active' | 'cancelled' | 'completed';
+type Status = "pending" | "active" | "cancelled" | "completed";
 
 const COLOR: Record<Status, string> = {
-  pending:   'gray',
-  active:    'green',
-  cancelled: 'red',
-  completed: 'blue',
+  pending: "gray",
+  active: "green",
+  cancelled: "red",
+  completed: "blue",
 };
 // If you add 'paused' to the Status union and forget the table, TypeScript errors.
 ```

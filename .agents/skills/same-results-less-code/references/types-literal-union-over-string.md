@@ -14,43 +14,50 @@ A parameter typed `status: string` accepts any string — `"active"`, `"actve"`,
 ```typescript
 function statusColor(status: string): string {
   switch (status) {
-    case 'active':   return 'green';
-    case 'inactive': return 'gray';
-    case 'banned':   return 'red';
-    default:         return 'black';                      // accepts 'actve' silently
+    case "active":
+      return "green";
+    case "inactive":
+      return "gray";
+    case "banned":
+      return "red";
+    default:
+      return "black"; // accepts 'actve' silently
   }
 }
 
 // Caller — no compile error:
-statusColor('actve');
+statusColor("actve");
 // Returns 'black'. The bug is never reported until a designer asks why some users are black.
 ```
 
 **Correct (the type is the set):**
 
 ```typescript
-type Status = 'active' | 'inactive' | 'banned';
+type Status = "active" | "inactive" | "banned";
 
 function statusColor(status: Status): string {
   switch (status) {
-    case 'active':   return 'green';
-    case 'inactive': return 'gray';
-    case 'banned':   return 'red';
+    case "active":
+      return "green";
+    case "inactive":
+      return "gray";
+    case "banned":
+      return "red";
   }
   // No default needed — the switch is exhaustive. TS will tell you if Status grows.
 }
 
 // Caller:
-statusColor('actve');
+statusColor("actve");
 // Compile error: Argument of type '"actve"' is not assignable to parameter of type 'Status'.
 ```
 
 **Lifting from API/DB strings into the union at the boundary:**
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
-const Status = z.enum(['active', 'inactive', 'banned']);
+const Status = z.enum(["active", "inactive", "banned"]);
 type Status = z.infer<typeof Status>;
 
 // Parse once at the boundary:

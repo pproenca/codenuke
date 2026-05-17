@@ -16,18 +16,24 @@ abstract class BaseEntity {
   id: string;
   createdAt: Date;
   updatedAt: Date;
-  protected log(message: string) { console.log(`[${this.id}] ${message}`); }
+  protected log(message: string) {
+    console.log(`[${this.id}] ${message}`);
+  }
   abstract validate(): void;
 }
 
 class User extends BaseEntity {
   email: string;
-  validate() { if (!this.email.includes('@')) throw new Error('bad email'); }
+  validate() {
+    if (!this.email.includes("@")) throw new Error("bad email");
+  }
 }
 
 class Order extends BaseEntity {
   total: number;
-  validate() { if (this.total < 0) throw new Error('negative'); }
+  validate() {
+    if (this.total < 0) throw new Error("negative");
+  }
 }
 
 // Three problems:
@@ -41,11 +47,15 @@ class Order extends BaseEntity {
 ```typescript
 type Identified = { id: string; createdAt: Date };
 
-type User  = Identified & { kind: 'user';  email: string };
-type Order = Identified & { kind: 'order'; total: number };
+type User = Identified & { kind: "user"; email: string };
+type Order = Identified & { kind: "order"; total: number };
 
-const validateUser  = (u: User)  => { if (!u.email.includes('@')) throw new Error('bad email'); };
-const validateOrder = (o: Order) => { if (o.total < 0)            throw new Error('negative'); };
+const validateUser = (u: User) => {
+  if (!u.email.includes("@")) throw new Error("bad email");
+};
+const validateOrder = (o: Order) => {
+  if (o.total < 0) throw new Error("negative");
+};
 
 const logFor = (e: Identified) => (msg: string) => console.log(`[${e.id}] ${msg}`);
 // Each type carries exactly the fields it needs.
@@ -55,7 +65,7 @@ const logFor = (e: Identified) => (msg: string) => console.log(`[${e.id}] ${msg}
 
 **Symptoms of inheritance-for-sharing:**
 
-- The base class has fields used by *every* subclass for *different* reasons.
+- The base class has fields used by _every_ subclass for _different_ reasons.
 - Subclasses override a base method with `super.foo()` plus a tweak (the "fragile base class" problem).
 - The hierarchy is two levels deep "because we needed to share with siblings."
 - The base class has both `abstract` methods and concrete helpers — the abstract part is the real polymorphism; the helpers are field-sharing wearing a hood.

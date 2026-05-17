@@ -4,7 +4,7 @@ A code-review and refactoring skill focused on the parts of code volume that com
 
 ## Overview
 
-This skill targets the *second-pass* refactoring work: what remains after `knip`, `eslint`, `ruff`, `tsc --noUnusedLocals`, and formatters have done their job. It is deliberately **not** a clone of those tools — every rule here requires *judgment* about intent, modelling, or framing.
+This skill targets the _second-pass_ refactoring work: what remains after `knip`, `eslint`, `ruff`, `tsc --noUnusedLocals`, and formatters have done their job. It is deliberately **not** a clone of those tools — every rule here requires _judgment_ about intent, modelling, or framing.
 
 Core principles:
 
@@ -53,7 +53,7 @@ pnpm validate  # Validate skill structure and content
 ## Creating a New Rule
 
 1. Confirm the rule **isn't** something a linter already catches (`knip`, `eslint`, `ruff`, `tsc`). If a linter handles it, the rule belongs in a different skill (e.g. `code-simplifier`).
-2. Confirm the fix requires *judgment* about intent, modelling, or framing — not just pattern matching.
+2. Confirm the fix requires _judgment_ about intent, modelling, or framing — not just pattern matching.
 3. Copy `assets/templates/_template.md` to `references/{prefix}-{slug}.md`.
 4. Fill in frontmatter: `title`, `impact`, `impactDescription`, `tags`.
 5. Write the WHY explanation (1-3 sentences explaining the cost of the anti-pattern).
@@ -104,14 +104,14 @@ Reference: [Source](https://example.com)
 
 ## Impact Levels
 
-| Level | Description | Used For |
-|-------|-------------|----------|
-| CRITICAL | Cascades into many downstream costs; large maintenance impact | Reinvention, Wrong Frame |
-| HIGH | Affects significant parts of the codebase; common refactor target | Hidden Duplication, Derived State |
-| MEDIUM-HIGH | Localised but high frequency; clear refactor wins | Procedural Rebuilds |
-| MEDIUM | Common but contained; judgment-dependent | Speculative Generality, Defensive Excess |
-| LOW-MEDIUM | Specific to type-system-aware languages; ergonomics-focused | Type System Underuse |
-| LOW | Edge cases, expert patterns | (none in this skill) |
+| Level       | Description                                                       | Used For                                 |
+| ----------- | ----------------------------------------------------------------- | ---------------------------------------- |
+| CRITICAL    | Cascades into many downstream costs; large maintenance impact     | Reinvention, Wrong Frame                 |
+| HIGH        | Affects significant parts of the codebase; common refactor target | Hidden Duplication, Derived State        |
+| MEDIUM-HIGH | Localised but high frequency; clear refactor wins                 | Procedural Rebuilds                      |
+| MEDIUM      | Common but contained; judgment-dependent                          | Speculative Generality, Defensive Excess |
+| LOW-MEDIUM  | Specific to type-system-aware languages; ergonomics-focused       | Type System Underuse                     |
+| LOW         | Edge cases, expert patterns                                       | (none in this skill)                     |
 
 ## Scripts
 
@@ -139,9 +139,9 @@ node ~/.claude/plugins/cache/dot-claude/dev-skill/*/scripts/build-agents-md.js .
 
 ## Related skills
 
-| Skill | Operates on | What it catches |
-|-------|-------------|-----------------|
-| `eslint` / `knip` / `ruff` / `tsc` | Syntax / types | Unused code, style, type errors |
-| [`code-simplifier`](../code-simplifier/) | Mechanical form | Naming, nesting, dead code, idioms |
-| [`complexity-optimizer`](../complexity-optimizer/) | Algorithms | O(n²) → O(n log n), N+1 queries |
-| **`same-results-less-code`** | **Mental model** | **Wrong frame, hidden duplication, derived state, speculative generality** |
+| Skill                                              | Operates on      | What it catches                                                            |
+| -------------------------------------------------- | ---------------- | -------------------------------------------------------------------------- |
+| `eslint` / `knip` / `ruff` / `tsc`                 | Syntax / types   | Unused code, style, type errors                                            |
+| [`code-simplifier`](../code-simplifier/)           | Mechanical form  | Naming, nesting, dead code, idioms                                         |
+| [`complexity-optimizer`](../complexity-optimizer/) | Algorithms       | O(n²) → O(n log n), N+1 queries                                            |
+| **`same-results-less-code`**                       | **Mental model** | **Wrong frame, hidden duplication, derived state, speculative generality** |

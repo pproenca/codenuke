@@ -7,7 +7,7 @@ tags: dup, layers, dto, mapping
 
 ## Collapse Identical DTOs, DB Rows, and Domain Objects
 
-The "clean architecture" instinct produces three types per entity: a database row type, a domain type, and a DTO for the API — plus the mappers between them. When the three types are *the same shape with the same field names and the same semantics*, the layers are decorative. Each new field requires editing three types and two mappers, and tests exist mainly to verify the mappers don't drop fields. Either keep three types because the shapes genuinely differ, or use one type and accept that the layers are conceptual, not physical.
+The "clean architecture" instinct produces three types per entity: a database row type, a domain type, and a DTO for the API — plus the mappers between them. When the three types are _the same shape with the same field names and the same semantics_, the layers are decorative. Each new field requires editing three types and two mappers, and tests exist mainly to verify the mappers don't drop fields. Either keep three types because the shapes genuinely differ, or use one type and accept that the layers are conceptual, not physical.
 
 **Incorrect (three identical types and two identity mappers per layer):**
 
@@ -22,12 +22,20 @@ export type User = { id: string; email: string; name: string; createdAt: Date };
 export type UserDto = { id: string; email: string; name: string; createdAt: Date };
 
 // db/mappers.ts
-export const rowToUser = (r: UserRow): User =>
-  ({ id: r.id, email: r.email, name: r.name, createdAt: r.createdAt });
+export const rowToUser = (r: UserRow): User => ({
+  id: r.id,
+  email: r.email,
+  name: r.name,
+  createdAt: r.createdAt,
+});
 
 // api/mappers.ts
-export const userToDto = (u: User): UserDto =>
-  ({ id: u.id, email: u.email, name: u.name, createdAt: u.createdAt });
+export const userToDto = (u: User): UserDto => ({
+  id: u.id,
+  email: u.email,
+  name: u.name,
+  createdAt: u.createdAt,
+});
 
 // Adding a field → 5 places to edit. Tests verify identity functions. No information added.
 ```
@@ -49,7 +57,7 @@ export type UserRow = { id: string; email: string; name: string; created_at: str
 export type User = { id: string; email: string; name: string; createdAt: Date };
 // Domain uses camelCase + Date.
 
-export type UserDto = Omit<User, 'email'>;
+export type UserDto = Omit<User, "email">;
 // API hides email from external consumers.
 
 // Mappers now have a real job: type-system-distinct names, format conversions, field hiding.
@@ -64,7 +72,7 @@ export type UserDto = Omit<User, 'email'>;
 
 **When NOT to use this pattern:**
 
-- The layers are different *today*, even if barely — e.g. the DB stores `email_normalized` and the domain uses `email`. Keep them separate; the separation has paid a cost.
+- The layers are different _today_, even if barely — e.g. the DB stores `email_normalized` and the domain uses `email`. Keep them separate; the separation has paid a cost.
 - You expect divergence soon for a known reason (API versioning, schema migration in flight). Time-bound the duplication.
 - The team's architectural standard requires the layering and the cost is accepted as documentation/discipline. Then the question becomes: what fields are different? Make those visible.
 

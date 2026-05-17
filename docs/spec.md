@@ -5,9 +5,9 @@ description: "Product goals, design, implementation details, and architecture"
 
 # clawnuke spec
 
-Automated code review for safe simplification and complexity reduction.
+Automated code review for reliable, trusted refactoring.
 
-`clawnuke` maps a repo into reviewable feature slices, reviews each slice for complexity and safe-reduction opportunities, revalidates findings, and turns confirmed issues into repair patches or PRs when explicitly asked.
+`clawnuke` maps a repo into reviewable feature slices, reviews each slice for trusted behavior-preserving refactoring opportunities, revalidates findings, and turns confirmed issues into repair patches or PRs when explicitly asked.
 
 ## Goals
 
@@ -752,9 +752,21 @@ Stages:
 9. Release locks.
 10. Write run summary.
 
+Review mission:
+
+- Prioritize reliable, trusted refactoring.
+- Prefer behavior-preserving simplification and algorithmic/render-path
+  complexity reduction.
+- Report bugs and safety issues only when concrete evidence shows material
+  risk.
+
 Review categories:
 
-- correctness bugs
+- algorithmic or render-path complexity
+- behavior-preserving simplification
+- trusted-refactor test gaps
+- build/release hazards that block validation
+- correctness bugs with concrete evidence
 - security issues
 - race/concurrency bugs
 - data loss/corruption
@@ -766,7 +778,7 @@ Review categories:
 - release/build hazards
 - maintainability risks with concrete impact
 
-Clawnuke emphasizes algorithmic/render-path complexity as `performance` and
+Clawnuke prioritizes algorithmic/render-path complexity as `performance` and
 specific behavior-preserving reductions as `maintainability`.
 
 Review output schema:
@@ -850,7 +862,8 @@ Stages:
 Patch principles:
 
 - Smallest correct change.
-- Prefer tests for bugs when feasible.
+- Prefer tests that prove behavior preservation for simplification and
+  complexity repairs.
 - Match repo style.
 - Do not add dependencies without explicit approval.
 - Do not silence errors without fixing root cause.

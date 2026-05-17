@@ -7,7 +7,7 @@ tags: spec, interface, generality, yagni
 
 ## Avoid Defining an Interface for a Single Implementation
 
-Interfaces (or abstract classes) earn their cost when at least two implementations exist or are *imminent*. An interface with one implementer adds an indirection — every reader must navigate from interface to impl to find the actual code — for no payoff. The reason it's so common is a half-remembered "code to interfaces, not implementations" maxim, applied without the precondition: *interfaces in service of polymorphism*. If there's no polymorphism, there's no interface.
+Interfaces (or abstract classes) earn their cost when at least two implementations exist or are _imminent_. An interface with one implementer adds an indirection — every reader must navigate from interface to impl to find the actual code — for no payoff. The reason it's so common is a half-remembered "code to interfaces, not implementations" maxim, applied without the precondition: _interfaces in service of polymorphism_. If there's no polymorphism, there's no interface.
 
 **Incorrect (an interface with exactly one implementer):**
 
@@ -23,10 +23,18 @@ export interface UserService {
 // users/PostgresUserService.ts
 export class PostgresUserService implements UserService {
   constructor(private readonly db: Database) {}
-  async findById(id: string)  { return this.db.users.findUnique({ where: { id } }); }
-  async create(input)         { return this.db.users.create({ data: input }); }
-  async update(id, input)     { return this.db.users.update({ where: { id }, data: input }); }
-  async delete(id)            { await this.db.users.delete({ where: { id } }); }
+  async findById(id: string) {
+    return this.db.users.findUnique({ where: { id } });
+  }
+  async create(input) {
+    return this.db.users.create({ data: input });
+  }
+  async update(id, input) {
+    return this.db.users.update({ where: { id }, data: input });
+  }
+  async delete(id) {
+    await this.db.users.delete({ where: { id } });
+  }
 }
 
 // Used at call sites as `UserService`. There is no `InMemoryUserService`, no `MockUserService`,
@@ -39,10 +47,18 @@ export class PostgresUserService implements UserService {
 // users/UserService.ts
 export class UserService {
   constructor(private readonly db: Database) {}
-  async findById(id: string)  { return this.db.users.findUnique({ where: { id } }); }
-  async create(input: CreateUserInput) { return this.db.users.create({ data: input }); }
-  async update(id: string, input: UpdateUserInput) { return this.db.users.update({ where: { id }, data: input }); }
-  async delete(id: string)    { await this.db.users.delete({ where: { id } }); }
+  async findById(id: string) {
+    return this.db.users.findUnique({ where: { id } });
+  }
+  async create(input: CreateUserInput) {
+    return this.db.users.create({ data: input });
+  }
+  async update(id: string, input: UpdateUserInput) {
+    return this.db.users.update({ where: { id }, data: input });
+  }
+  async delete(id: string) {
+    await this.db.users.delete({ where: { id } });
+  }
 }
 // The class's public methods ARE the interface. Tests can mock the class directly,
 // or use dependency injection at the call site.
@@ -63,7 +79,7 @@ Most test frameworks can mock concrete classes — `vi.mock`, `jest.mock`, manua
 **When NOT to use this pattern:**
 
 - A second implementation genuinely exists or is on the near roadmap (a test fake counts as an implementation only if it's a fundamentally different one, not a `vi.fn()` wrapper).
-- You're at an architectural boundary where the *promise* of multiple implementations is part of the contract — e.g. a public library exposing a `Storage` interface for users to implement. There, the interface is the surface.
+- You're at an architectural boundary where the _promise_ of multiple implementations is part of the contract — e.g. a public library exposing a `Storage` interface for users to implement. There, the interface is the surface.
 - The interface lets you write `accepts: UserService` in a function signature that needs to be open to extension by a client — but that's a real polymorphism need.
 
 Reference: [YAGNI — You Aren't Gonna Need It](https://martinfowler.com/bliki/Yagni.html) (Martin Fowler)

@@ -15,11 +15,21 @@ When a class's job is "store things by key and let me get them back," it's a `Ma
 class UserRegistry {
   private users: Map<string, User> = new Map();
 
-  register(id: string, user: User): void { this.users.set(id, user); }
-  get(id: string): User | undefined    { return this.users.get(id); }
-  has(id: string): boolean              { return this.users.has(id); }
-  remove(id: string): void              { this.users.delete(id); }
-  all(): User[]                         { return Array.from(this.users.values()); }
+  register(id: string, user: User): void {
+    this.users.set(id, user);
+  }
+  get(id: string): User | undefined {
+    return this.users.get(id);
+  }
+  has(id: string): boolean {
+    return this.users.has(id);
+  }
+  remove(id: string): void {
+    this.users.delete(id);
+  }
+  all(): User[] {
+    return Array.from(this.users.values());
+  }
   // The class is a no-op wrapper. Every method is a rename of the Map method.
 }
 ```
@@ -41,7 +51,10 @@ users.get(id);
 class UserRegistry extends Map<string, User> {
   registerIfAbsent(id: string, factory: () => User): User {
     let u = this.get(id);
-    if (!u) { u = factory(); this.set(id, u); }
+    if (!u) {
+      u = factory();
+      this.set(id, u);
+    }
     return u;
     // This method earns its place — it's not in Map. Everything else stayed Map's.
   }

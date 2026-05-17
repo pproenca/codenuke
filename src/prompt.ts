@@ -84,6 +84,14 @@ export async function buildReviewPrompt(
 
 Return strict JSON only. No markdown fences.
 
+Mission:
+- clawnuke's primary mission is reliable, trusted refactoring.
+- Find behavior-preserving opportunities to reduce algorithmic complexity, code volume, duplicated
+  structure, derived state, and accidental abstraction.
+- Report correctness, security, data-loss, or concurrency bugs only when they are directly
+  evidenced, material, and relevant to safely changing or trusting this feature.
+- Do not turn this review into a broad bug hunt or style review.
+
 Project:
 ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}
 
@@ -91,7 +99,11 @@ Feature:
 ${JSON.stringify(feature, null, 2)}
 
 Review categories:
-- correctness bugs
+- algorithmic or render-path complexity
+- behavior-preserving simplification
+- trusted-refactor test gaps
+- build/release hazards that block validation
+- correctness bugs with concrete evidence
 - security issues
 - race/concurrency bugs
 - data loss/corruption
@@ -104,7 +116,7 @@ Review categories:
 - maintainability risks with concrete impact
 
 Clawnuke focus:
-- Prefer concrete simplification and complexity-reduction findings over broad style refactors.
+- Prioritize concrete simplification and complexity-reduction findings over bugfixing.
 - Report algorithmic or render-path complexity under "performance". Strong examples include nested
   lookup loops, repeated membership checks inside loops, sorting inside loops, pairwise comparisons
   that can use sorting/sweep-line/indexing, N+1 database/API/file calls, and repeated expensive

@@ -20,7 +20,20 @@ function daysAgo(n: number): Date {
 }
 
 function formatDate(d: Date): string {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   // Locale-blind. Breaks for any non-en-US user.
 }
@@ -29,13 +42,13 @@ function formatDate(d: Date): string {
 **Correct (the library or platform already solved this):**
 
 ```typescript
-import { subDays, format } from 'date-fns';
+import { subDays, format } from "date-fns";
 
 const daysAgo = (n: number) => subDays(new Date(), n);
 // Handles DST. One line.
 
 const formatDate = (d: Date) =>
-  new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d);
+  new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(d);
 // Honors the user's locale. No month table to maintain.
 ```
 

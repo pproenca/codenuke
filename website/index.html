@@ -6,7 +6,7 @@
     <title>Clawnuke — Automated Code Review</title>
     <meta
       name="description"
-      content="Automated code review for safe simplification and complexity reduction. Maps codebases into semantic feature slices and records explicit fix attempts."
+      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic feature slices and records explicit fix attempts."
     />
 
     <!-- Favicon -->
@@ -15,10 +15,10 @@
     <!-- Open Graph / Social Card -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Clawnuke" />
-    <meta property="og:title" content="Clawnuke — Safe Simplification Review" />
+    <meta property="og:title" content="Clawnuke — Trusted Refactoring Review" />
     <meta
       property="og:description"
-      content="Automated code review for safe simplification and complexity reduction. Maps codebases into semantic features and records explicit fixes."
+      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
     />
     <meta property="og:url" content="https://clawnuke.ai" />
     <meta property="og:image" content="https://clawnuke.ai/social-card.png" />
@@ -27,10 +27,10 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Clawnuke — Safe Simplification Review" />
+    <meta name="twitter:title" content="Clawnuke — Trusted Refactoring Review" />
     <meta
       name="twitter:description"
-      content="Automated code review for safe simplification and complexity reduction. Maps codebases into semantic features and records explicit fixes."
+      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
     />
     <meta name="twitter:image" content="https://clawnuke.ai/social-card.png" />
 
@@ -1004,12 +1004,12 @@
       </aside>
       <main>
         <header class="home-hero">
-          <p class="eyebrow">Simplification Review · Explicit Fixes</p>
-          <h1>Code reduction with<br />explicit fixes</h1>
+          <p class="eyebrow">Trusted Refactoring · Explicit Fixes</p>
+          <h1>Reliable refactoring<br />with explicit fixes</h1>
           <p class="lede">
-            Clawnuke maps codebases into semantic feature slices, reviews them for safe
-            simplification and complexity reduction, and records explicit fix attempts with
-            validation.
+            Clawnuke maps codebases into semantic feature slices, reviews them for
+            behavior-preserving simplification and complexity reduction, and records explicit fix
+            attempts with validation.
           </p>
           <div class="home-cta">
             <a class="btn btn-primary" href="#quickstart">Quick Start</a>
@@ -1139,7 +1139,7 @@
             <li><code>clawnuke init</code> — Initialize project, detect config</li>
             <li><code>clawnuke map</code> — Build semantic feature map</li>
             <li><code>clawnuke status</code> — Show project/review state</li>
-            <li><code>clawnuke review</code> — Review features, find issues</li>
+            <li><code>clawnuke review</code> — Review features for refactoring opportunities</li>
             <li><code>clawnuke report</code> — Generate findings report</li>
             <li><code>clawnuke fix</code> — Apply repairs for findings</li>
             <li><code>clawnuke revalidate</code> — Verify fixes or findings</li>
@@ -1190,13 +1190,13 @@
           </p>
 
           <h2 id="code-review">Code Review</h2>
-          <p>The <code>review</code> command analyzes features for issues:</p>
+          <p>The <code>review</code> command analyzes features for refactoring opportunities:</p>
           <pre><code><span class="hl-cmd">clawnuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span></code></pre>
           <p>Reviews produce findings with:</p>
           <ul>
             <li>
-              <strong>Category</strong> — bug, security, performance, docs-gap, test-gap,
-              maintainability
+              <strong>Category</strong> — performance, maintainability, test-gap, bug, security,
+              docs-gap
             </li>
             <li><strong>Severity</strong> — critical, high, medium, low</li>
             <li><strong>Confidence</strong> — How certain the analysis is (high, medium, low)</li>

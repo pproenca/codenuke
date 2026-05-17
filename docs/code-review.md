@@ -56,6 +56,11 @@ count as `lockFiles`.
 
 There is no multi-provider panel yet.
 
+Clawnuke's review mission is reliable, trusted refactoring. Providers should
+first look for behavior-preserving simplification and complexity-reduction
+opportunities, then report material correctness or safety issues only when the
+evidence is concrete.
+
 Categories requested from the provider:
 
 - `bug`
@@ -69,9 +74,11 @@ Categories requested from the provider:
 - `build-release`
 - `maintainability`
 
-Within those categories, clawnuke emphasizes `performance` findings for
+Within those categories, clawnuke prioritizes `performance` findings for
 algorithmic/render-path complexity and `maintainability` findings for specific,
-behavior-preserving simplifications.
+behavior-preserving simplifications. The bug and safety categories remain
+available for serious evidence-backed issues, but reviews are not intended to
+be broad bug hunts.
 
 Review does not edit files. Use `clawnuke fix --finding <id>` for the explicit
 patch loop.

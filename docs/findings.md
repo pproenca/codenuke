@@ -56,8 +56,10 @@ clawnuke revalidate --finding <findingId>
 clawnuke revalidate --all --status open --limit 10
 ```
 
-`next` prioritizes open high/medium-confidence confirmed bugs first, then
-security, data-loss, and concurrency findings, then the remaining queue.
+`next` prioritizes open high/medium-confidence `performance` and
+`maintainability` findings first, then high/medium-confidence security,
+data-loss, and concurrency findings, then confirmed bugs and the remaining
+queue.
 
 `triage` keeps existing finding IDs stable and appends a history entry instead
 of replacing previous reasoning.

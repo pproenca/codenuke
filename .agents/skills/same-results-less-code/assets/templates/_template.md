@@ -66,8 +66,8 @@ This skill targets **judgment gaps**, not lint-able mechanical issues. When addi
 
 1. **Check it's not lint-able.** Could `knip`, `eslint`, `ruff`, `tsc`, or `prettier` catch this? If yes, the rule belongs in a different skill (e.g. `code-simplifier`).
 2. **Check it's not algorithmic.** Performance-complexity rules go in `complexity-optimizer`.
-3. **The fix should require *judgment* about intent, modelling, or framing** — not just pattern matching.
-4. **Show the cascade.** The strongest rules explain why this anti-pattern *multiplies* downstream cost.
+3. **The fix should require _judgment_ about intent, modelling, or framing** — not just pattern matching.
+4. **Show the cascade.** The strongest rules explain why this anti-pattern _multiplies_ downstream cost.
 5. **Include "When NOT to use this pattern."** Every rule has a legitimate exception. Naming it is what turns a rigid rule into transferable judgment.
 
 The eight category prefixes are fixed: `reinvent-`, `frame-`, `dup-`, `derive-`, `proc-`, `spec-`, `defense-`, `types-`. If a new rule doesn't fit one of these, the category structure may need to evolve before the rule lands — open a discussion before adding a ninth prefix.

@@ -34,16 +34,16 @@ Use this skill when:
 
 ## Rule Categories by Priority
 
-| # | Category | Prefix | Impact | Rules | Gist |
-|---|----------|--------|--------|-------|------|
-| 1 | Reinvention | `reinvent-` | CRITICAL | 5 | You wrote what the platform/stdlib already provides |
-| 2 | Wrong Frame | `frame-` | CRITICAL | 5 | Wrong abstraction shape — class where a function fits, manager nouns, OO over data |
-| 3 | Hidden Duplication | `dup-` | HIGH | 5 | Semantic copies hiding behind syntactic differences |
-| 4 | Derived State Stored | `derive-` | HIGH | 5 | Storing what should be computed |
-| 5 | Procedural Rebuilds | `proc-` | MEDIUM-HIGH | 5 | Imperative reimplementation of declarative concepts |
-| 6 | Speculative Generality | `spec-` | MEDIUM | 5 | Generality built for a second user who never arrived |
-| 7 | Defensive Excess | `defense-` | MEDIUM | 4 | Checks for states the type/flow already rules out |
-| 8 | Type System Underuse | `types-` | LOW-MEDIUM | 6 | Runtime guards that should be types |
+| #   | Category               | Prefix      | Impact      | Rules | Gist                                                                               |
+| --- | ---------------------- | ----------- | ----------- | ----- | ---------------------------------------------------------------------------------- |
+| 1   | Reinvention            | `reinvent-` | CRITICAL    | 5     | You wrote what the platform/stdlib already provides                                |
+| 2   | Wrong Frame            | `frame-`    | CRITICAL    | 5     | Wrong abstraction shape — class where a function fits, manager nouns, OO over data |
+| 3   | Hidden Duplication     | `dup-`      | HIGH        | 5     | Semantic copies hiding behind syntactic differences                                |
+| 4   | Derived State Stored   | `derive-`   | HIGH        | 5     | Storing what should be computed                                                    |
+| 5   | Procedural Rebuilds    | `proc-`     | MEDIUM-HIGH | 5     | Imperative reimplementation of declarative concepts                                |
+| 6   | Speculative Generality | `spec-`     | MEDIUM      | 5     | Generality built for a second user who never arrived                               |
+| 7   | Defensive Excess       | `defense-`  | MEDIUM      | 4     | Checks for states the type/flow already rules out                                  |
+| 8   | Type System Underuse   | `types-`    | LOW-MEDIUM  | 6     | Runtime guards that should be types                                                |
 
 ## Quick Reference
 
@@ -116,7 +116,7 @@ Use this skill when:
 When asked to review or refactor code with this skill:
 
 1. **Run the mechanical pass first.** `knip`/`eslint`/`ruff`/`tsc --noUnusedLocals` will catch dead code, unused imports, style. Don't duplicate that work here.
-2. **Read the file or PR for *intent*.** Ask: what is this code trying to do? The judgment skill is recognising when the implementation overshoots the intent.
+2. **Read the file or PR for _intent_.** Ask: what is this code trying to do? The judgment skill is recognising when the implementation overshoots the intent.
 3. **Walk the categories in priority order.**
    - Start with [Reinvention](references/reinvent-stdlib-collection-ops.md) and [Frame](references/frame-function-not-class.md) — the biggest wins live there.
    - Then [Duplication](references/dup-parallel-types-same-shape.md) and [Derived state](references/derive-dont-store-computed.md).
@@ -135,11 +135,11 @@ When asked to review or refactor code with this skill:
 
 ## Reference Files
 
-| File | Description |
-|------|-------------|
-| [references/_sections.md](references/_sections.md) | Category definitions and ordering |
-| [assets/templates/_template.md](assets/templates/_template.md) | Template for new rules |
-| [metadata.json](metadata.json) | Version and reference information |
+| File                                                            | Description                       |
+| --------------------------------------------------------------- | --------------------------------- |
+| [references/\_sections.md](references/_sections.md)             | Category definitions and ordering |
+| [assets/templates/\_template.md](assets/templates/_template.md) | Template for new rules            |
+| [metadata.json](metadata.json)                                  | Version and reference information |
 
 ## Related Skills
 

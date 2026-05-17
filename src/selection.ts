@@ -170,11 +170,14 @@ function findingRank(finding: FindingRecord): number {
   const confidenceRank = { high: 0, medium: 1, low: 2 }[finding.confidence];
   const severityRank = { critical: 0, high: 1, medium: 2, low: 3 }[finding.severity];
   const bucket =
-    finding.triage === "confirmed-bug" && finding.confidence !== "low"
+    ["performance", "maintainability"].includes(finding.category) && finding.confidence !== "low"
       ? 0
-      : ["security", "data-loss", "concurrency"].includes(finding.category)
+      : ["security", "data-loss", "concurrency"].includes(finding.category) &&
+          finding.confidence !== "low"
         ? 1
-        : 2;
+        : finding.triage === "confirmed-bug" && finding.confidence !== "low"
+          ? 2
+          : 3;
   return bucket * 1000 + confidenceRank * 100 + severityRank;
 }
 

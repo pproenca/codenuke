@@ -23,12 +23,14 @@ class Order {
   }
 
   removeItem(id: string) {
-    this.items = this.items.filter(i => i.id !== id);
+    this.items = this.items.filter((i) => i.id !== id);
     this._totalDirty = true;
   }
 
   applyDiscount(percent: number) {
-    this.items.forEach(i => { i.price *= (1 - percent / 100); });
+    this.items.forEach((i) => {
+      i.price *= 1 - percent / 100;
+    });
     this._totalDirty = true;
     // Did we remember to invalidate everywhere we mutate items? No — there's a mutation
     // in `bulkImport()` 200 lines below that forgets to set `_totalDirty = true`. Bug.
@@ -55,9 +57,17 @@ class Order {
     return this.items.reduce((s, i) => s + i.price * i.qty, 0);
   }
 
-  addItem(item: LineItem)         { this.items.push(item); }
-  removeItem(id: string)          { this.items = this.items.filter(i => i.id !== id); }
-  applyDiscount(percent: number)  { this.items.forEach(i => { i.price *= (1 - percent / 100); }); }
+  addItem(item: LineItem) {
+    this.items.push(item);
+  }
+  removeItem(id: string) {
+    this.items = this.items.filter((i) => i.id !== id);
+  }
+  applyDiscount(percent: number) {
+    this.items.forEach((i) => {
+      i.price *= 1 - percent / 100;
+    });
+  }
 }
 // The "cache invalidation" failure mode is gone because there is no cache.
 // If profiling later shows `total` is a hot path with thousands of items, add memoisation.
@@ -79,7 +89,7 @@ class Order {
 
 **When NOT to use this pattern:**
 
-- The derivation is *genuinely* expensive (a network call, a database query, a multi-second computation) — caching is the right answer; just use a proven pattern, not hand-rolled flags.
+- The derivation is _genuinely_ expensive (a network call, a database query, a multi-second computation) — caching is the right answer; just use a proven pattern, not hand-rolled flags.
 - The derivation produces a value used as a key in some collection where identity matters — then you need stable references and a careful cache.
 
 Reference: [Donald Knuth — Structured Programming with go to Statements (§1)](https://dl.acm.org/doi/10.1145/356635.356640) (the "premature optimization" essay)

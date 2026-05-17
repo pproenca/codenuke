@@ -12,14 +12,18 @@ A `default` branch in a `switch` over a discriminated union or literal union usu
 **Incorrect (silent default that handles future variants without you knowing):**
 
 ```typescript
-type PaymentMethod = 'card' | 'bank' | 'wallet';
+type PaymentMethod = "card" | "bank" | "wallet";
 
 function processingFee(method: PaymentMethod): number {
   switch (method) {
-    case 'card':   return 0.029;
-    case 'bank':   return 0.008;
-    case 'wallet': return 0.015;
-    default:       return 0;                              // silently returns 0 for any new variant
+    case "card":
+      return 0.029;
+    case "bank":
+      return 0.008;
+    case "wallet":
+      return 0.015;
+    default:
+      return 0; // silently returns 0 for any new variant
   }
 }
 
@@ -31,13 +35,16 @@ function processingFee(method: PaymentMethod): number {
 **Correct (exhaustiveness check turns the gap into a compile error):**
 
 ```typescript
-type PaymentMethod = 'card' | 'bank' | 'wallet';
+type PaymentMethod = "card" | "bank" | "wallet";
 
 function processingFee(method: PaymentMethod): number {
   switch (method) {
-    case 'card':   return 0.029;
-    case 'bank':   return 0.008;
-    case 'wallet': return 0.015;
+    case "card":
+      return 0.029;
+    case "bank":
+      return 0.008;
+    case "wallet":
+      return 0.015;
   }
   // No default — the switch covers all three cases. TS infers `never` after the switch.
 }
@@ -49,10 +56,14 @@ function assertNever(x: never): never {
 
 function processingFee(method: PaymentMethod): number {
   switch (method) {
-    case 'card':   return 0.029;
-    case 'bank':   return 0.008;
-    case 'wallet': return 0.015;
-    default:       return assertNever(method);            // compile error when PaymentMethod grows
+    case "card":
+      return 0.029;
+    case "bank":
+      return 0.008;
+    case "wallet":
+      return 0.015;
+    default:
+      return assertNever(method); // compile error when PaymentMethod grows
   }
 }
 // Adding 'crypto' → TypeScript errors at this line. No silent fall-through.
@@ -61,14 +72,14 @@ function processingFee(method: PaymentMethod): number {
 **The same trick for if-chains over discriminated unions:**
 
 ```typescript
-type Event = { kind: 'click' } | { kind: 'submit' } | { kind: 'change' };
+type Event = { kind: "click" } | { kind: "submit" } | { kind: "change" };
 
 function describe(e: Event): string {
-  if (e.kind === 'click')  return 'clicked';
-  if (e.kind === 'submit') return 'submitted';
-  if (e.kind === 'change') return 'changed';
+  if (e.kind === "click") return "clicked";
+  if (e.kind === "submit") return "submitted";
+  if (e.kind === "change") return "changed";
 
-  const _exhaustive: never = e;                            // compile error if a new kind appears
+  const _exhaustive: never = e; // compile error if a new kind appears
   return _exhaustive;
 }
 ```
