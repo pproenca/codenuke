@@ -556,7 +556,7 @@ function jekyllThemeGroups(files: string[]): SourceGroup[] {
   const groups = new Map<string, string[]>();
   for (const file of files) {
     const label = file.split("/")[0] ?? "assets";
-    groups.set(label, [...(groups.get(label) ?? []), file]);
+    pushGrouped(groups, label, file);
   }
   return [...groups.entries()]
     .toSorted(([left], [right]) => left.localeCompare(right))
@@ -596,7 +596,7 @@ function groupByPostYear(posts: string[]): Map<string, string[]> {
   const groups = new Map<string, string[]>();
   for (const post of posts) {
     const year = /^_posts\/(\d{4})-/u.exec(post)?.[1] ?? "unknown";
-    groups.set(year, [...(groups.get(year) ?? []), post]);
+    pushGrouped(groups, year, post);
   }
   return new Map([...groups.entries()].toSorted(([left], [right]) => left.localeCompare(right)));
 }
@@ -759,7 +759,7 @@ function standaloneTestSuites(
         : path.includes("/")
           ? dirname(path)
           : "root";
-    groups.set(root, [...(groups.get(root) ?? []), path]);
+    pushGrouped(groups, root, path);
   }
   return [...groups.entries()]
     .toSorted(([left], [right]) => left.localeCompare(right))
@@ -822,7 +822,7 @@ function partitionAt(
       directFiles.push(file);
       continue;
     }
-    buckets.set(segment, [...(buckets.get(segment) ?? []), file]);
+    pushGrouped(buckets, segment, file);
   }
   const groups = chunkFiles(currentLabel(sourceRoot, files, depth), directFiles, maxFiles);
   for (const [segment, bucketFiles] of [...buckets.entries()].toSorted(([left], [right]) =>
@@ -838,6 +838,15 @@ function partitionAt(
     }
   }
   return groups;
+}
+
+function pushGrouped<Key, Value>(groups: Map<Key, Value[]>, key: Key, value: Value): void {
+  const values = groups.get(key);
+  if (values === undefined) {
+    groups.set(key, [value]);
+  } else {
+    values.push(value);
+  }
 }
 
 function chunkFiles(label: string, files: string[], maxFiles: number): SourceGroup[] {
