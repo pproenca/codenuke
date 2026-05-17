@@ -358,7 +358,7 @@ async function packageSourceOverviewRefs(root: string, info: PackageInfo): Promi
     )
   )
     .flat()
-    .filter((path, index, all) => all.indexOf(path) === index)
+    .filter(uniqueInOrder())
     .slice(0, 24);
   return files.map((path) => ({ path, reason: "package source overview" }));
 }
@@ -685,4 +685,15 @@ function uniqueFileRefs(refs: SeedFileRef[]): SeedFileRef[] {
     output.push(ref);
   }
   return output;
+}
+
+function uniqueInOrder(): (path: string) => boolean {
+  const seen = new Set<string>();
+  return (path) => {
+    if (seen.has(path)) {
+      return false;
+    }
+    seen.add(path);
+    return true;
+  };
 }

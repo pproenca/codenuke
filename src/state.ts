@@ -196,14 +196,12 @@ async function readRecords<T>(dir: string, schema: z.ZodType<T>): Promise<T[]> {
     return [];
   }
   const names = await readdir(dir);
-  const records: T[] = [];
-  for (const name of names.toSorted()) {
-    if (!name.endsWith(".json")) {
-      continue;
-    }
-    records.push(await readJson(join(dir, name), schema));
-  }
-  return records;
+  return Promise.all(
+    names
+      .filter((name) => name.endsWith(".json"))
+      .toSorted()
+      .map((name) => readJson(join(dir, name), schema)),
+  );
 }
 
 function featurePath(paths: StatePaths, featureId: string): string {

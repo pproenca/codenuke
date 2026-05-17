@@ -372,10 +372,45 @@ async function repoInventory(root: string, features: FeatureRecord[]): Promise<R
     allFiles: new Set(files),
     manifests: files.filter((file) => manifestNames.has(file.split("/").at(-1) ?? "")),
     topLevelDirs: uniqueStrings(files.map((file) => file.split("/")[0] ?? "").filter(Boolean)),
-    fileSamples: files.slice(0, 400),
-    sourceFileSamples: sourceFiles.slice(0, 500),
-    testFileSamples: testFiles.slice(0, 200),
+    fileSamples: stratifiedPathSamples(files, 400),
+    sourceFileSamples: stratifiedPathSamples(sourceFiles, 500),
+    testFileSamples: stratifiedPathSamples(testFiles, 200),
   };
+}
+
+function stratifiedPathSamples(files: string[], limit: number): string[] {
+  if (files.length <= limit) {
+    return files;
+  }
+  const buckets = new Map<string, string[]>();
+  for (const file of files) {
+    const segment = file.split("/")[0] ?? "";
+    const bucket = buckets.get(segment) ?? [];
+    bucket.push(file);
+    buckets.set(segment, bucket);
+  }
+  const groups = [...buckets.entries()]
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([, paths]) => paths);
+  const output: string[] = [];
+  for (let offset = 0; output.length < limit; offset += 1) {
+    let added = false;
+    for (const group of groups) {
+      const path = group[offset];
+      if (path === undefined) {
+        continue;
+      }
+      output.push(path);
+      added = true;
+      if (output.length >= limit) {
+        break;
+      }
+    }
+    if (!added) {
+      break;
+    }
+  }
+  return output;
 }
 
 function weakMap(

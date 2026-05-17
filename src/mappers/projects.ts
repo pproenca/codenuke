@@ -12,6 +12,8 @@ export type NodePackageJson = {
   scripts?: unknown;
   dependencies?: unknown;
   devDependencies?: unknown;
+  peerDependencies?: unknown;
+  optionalDependencies?: unknown;
   bin?: unknown;
   exports?: unknown;
   main?: unknown;

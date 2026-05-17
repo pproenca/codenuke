@@ -1,5 +1,6 @@
 import { FeatureRecord, TrustBoundary } from "../types.js";
 import type { NodeProjectInfo } from "./projects.js";
+import type { RepoIndex } from "./repo-index.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 
 export type SeedFileRef = {
@@ -42,5 +43,6 @@ export type FeatureMapper = {
 
 export type MapperContext = {
   projects: NodeProjectInfo[];
+  repoIndex: RepoIndex;
   taskGraph: WorkspaceTaskGraph;
 };

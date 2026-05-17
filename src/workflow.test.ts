@@ -1164,6 +1164,23 @@ describe("workflow", () => {
     expect(agentFeature?.tests).toEqual([{ path: "agent/worker.test.custom", command: null }]);
   });
 
+  it("samples agent mapping inventory across top-level directories", async () => {
+    const root = await fixtureRoot("codenuke-agent-map-stratified-");
+    for (let index = 0; index < 450; index += 1) {
+      await writeFixture(root, `aaa/file-${String(index).padStart(3, "0")}.custom`, "noise\n");
+    }
+    await writeFixture(root, "zzz/agent/worker.custom", "worker source\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const mapped = await mapCommand(context, { source: "agent", provider: "mock" });
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
+    const agentFeature = features.find((feature) => feature.source === "agent-mapper");
+
+    expect(mapped).toMatchObject({ source: "agent", usedAgent: true });
+    expect(agentFeature?.ownedFiles.map((file) => file.path)).toContain("zzz/agent/worker.custom");
+  });
+
   it("fails forced agent mapping when the provider returns no valid features", async () => {
     const root = await fixtureRoot("codenuke-empty-agent-map-");
     await writeFixture(

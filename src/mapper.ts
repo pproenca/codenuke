@@ -11,7 +11,20 @@ import { nextSeeds } from "./mappers/next.js";
 import { nodeSeeds } from "./mappers/node.js";
 import { pythonSeeds } from "./mappers/python.js";
 import { reactSeeds } from "./mappers/react.js";
-import { discoverNodeProjects } from "./mappers/projects.js";
+import {
+  dependencyFieldHas,
+  discoverNodeProjects,
+  packageRelativePath,
+} from "./mappers/projects.js";
+import {
+  buildRepoIndex,
+  repoHasAnyBasename,
+  repoHasAnyExtension,
+  repoHasAnyPath,
+  repoHasBasenameEnding,
+  repoHasDirectory,
+  repoHasDirectoryEnding,
+} from "./mappers/repo-index.js";
 import { rubySeeds } from "./mappers/ruby.js";
 import { rustSeeds } from "./mappers/rust.js";
 import { nearbyTests } from "./mappers/shared.js";
@@ -38,21 +51,163 @@ export type MapOptions = {
   onProgress?: (event: MapProgressEvent) => void;
 };
 
-const featureMappers: FeatureMapper[] = [
-  { name: "node", map: nodeSeeds },
-  { name: "next", map: nextSeeds },
-  { name: "react", map: reactSeeds },
-  { name: "go", map: goSeeds },
-  { name: "python", map: pythonSeeds },
-  { name: "ruby", map: rubySeeds },
-  { name: "rust", map: rustSeeds },
-  { name: "c-cpp", map: cCppSeeds },
-  { name: "swift", map: swiftSeeds },
-  { name: "apple", map: appleSeeds },
-  { name: "gradle", map: gradleSeeds },
-  { name: "laravel", map: laravelSeeds },
-  { name: "config", map: configSeeds },
+type GatedFeatureMapper = FeatureMapper & {
+  shouldRun?: (context: MapperContext) => boolean;
+};
+
+const configSeedFiles = [
+  "package.json",
+  "tsconfig.json",
+  "turbo.json",
+  "oxlint.json",
+  "vitest.config.ts",
+  "go.mod",
+  "Cargo.toml",
+  "Cargo.lock",
+  "rust-toolchain.toml",
+  "Package.swift",
+  "composer.json",
+  "composer.lock",
+  "phpunit.xml",
+  "Makefile",
+] as const;
+
+const featureMappers: GatedFeatureMapper[] = [
+  { name: "node", map: nodeSeeds, shouldRun: hasNodeSignal },
+  { name: "next", map: nextSeeds, shouldRun: hasNextSignal },
+  { name: "react", map: reactSeeds, shouldRun: hasReactSignal },
+  {
+    name: "go",
+    map: goSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["go.mod"]) || repoHasAnyExtension(repoIndex, [".go"]),
+  },
+  {
+    name: "python",
+    map: pythonSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"]) ||
+      repoHasAnyExtension(repoIndex, [".py"]),
+  },
+  {
+    name: "ruby",
+    map: rubySeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["Gemfile", "gems.rb", "Rakefile", "config.ru"]) ||
+      repoHasAnyExtension(repoIndex, [".rb", ".gemspec"]),
+  },
+  {
+    name: "rust",
+    map: rustSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["Cargo.toml"]) || repoHasAnyExtension(repoIndex, [".rs"]),
+  },
+  {
+    name: "c-cpp",
+    map: cCppSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyBasename(repoIndex, ["CMakeLists.txt", "Makefile", "Makefile.am", "Makefile.in"]) ||
+      repoHasAnyExtension(repoIndex, [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"]),
+  },
+  {
+    name: "swift",
+    map: swiftSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["Package.swift"]) || repoHasAnyExtension(repoIndex, [".swift"]),
+  },
+  {
+    name: "apple",
+    map: appleSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyBasename(repoIndex, ["project.yml"]) ||
+      repoHasBasenameEnding(repoIndex, ".xcodeproj") ||
+      repoHasBasenameEnding(repoIndex, ".xcworkspace") ||
+      repoHasDirectoryEnding(repoIndex, ".xcodeproj") ||
+      repoHasDirectoryEnding(repoIndex, ".xcworkspace"),
+  },
+  {
+    name: "gradle",
+    map: gradleSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyBasename(repoIndex, [
+        "settings.gradle",
+        "settings.gradle.kts",
+        "build.gradle",
+        "build.gradle.kts",
+      ]) || repoHasAnyExtension(repoIndex, [".java", ".kt", ".kts"]),
+  },
+  {
+    name: "laravel",
+    map: laravelSeeds,
+    shouldRun: ({ repoIndex }) =>
+      repoHasAnyPath(repoIndex, ["composer.json", "artisan"]) ||
+      repoHasAnyExtension(repoIndex, [".php"]),
+  },
+  {
+    name: "config",
+    map: configSeeds,
+    shouldRun: ({ repoIndex }) => repoHasAnyPath(repoIndex, configSeedFiles),
+  },
 ];
+
+function hasNodeSignal(context: MapperContext): boolean {
+  return context.projects.some((project) => project.packageJsonPath !== null);
+}
+
+function hasNextSignal(context: MapperContext): boolean {
+  return context.projects.some(
+    (project) =>
+      dependencyFieldHas(project.packageJson?.dependencies, "next") ||
+      dependencyFieldHas(project.packageJson?.devDependencies, "next") ||
+      ["next.config.js", "next.config.mjs", "next.config.ts"].some((file) =>
+        context.repoIndex.fileSet.has(packageRelativePath(project.root, file)),
+      ) ||
+      nextRoutePrefixes(project.root, project.sourceRoot).some((prefix) =>
+        repoHasDirectory(context.repoIndex, prefix),
+      ),
+  );
+}
+
+function hasReactSignal(context: MapperContext): boolean {
+  return (
+    context.projects.some(
+      (project) =>
+        dependencyFieldHas(project.packageJson?.dependencies, "react") ||
+        dependencyFieldHas(project.packageJson?.devDependencies, "react") ||
+        dependencyFieldHas(project.packageJson?.peerDependencies, "react") ||
+        dependencyFieldHas(project.packageJson?.optionalDependencies, "react"),
+    ) ||
+    (repoHasAnyBasename(context.repoIndex, ["package.json"]) &&
+      repoHasAnyExtension(context.repoIndex, [".tsx", ".jsx"]))
+  );
+}
+
+function nextRoutePrefixes(projectRoot: string, sourceRoot: string | null): string[] {
+  const prefixes = new Set(
+    ["app", "pages", "src/app", "src/pages"].map((path) => packageRelativePath(projectRoot, path)),
+  );
+  if (sourceRoot !== null) {
+    const relativeSourceRoot =
+      projectRoot === "."
+        ? sourceRoot
+        : sourceRoot === projectRoot
+          ? ""
+          : sourceRoot.startsWith(`${projectRoot}/`)
+            ? sourceRoot.slice(projectRoot.length + 1)
+            : null;
+    if (relativeSourceRoot !== null) {
+      for (const routeRoot of ["app", "pages"]) {
+        prefixes.add(
+          packageRelativePath(
+            projectRoot,
+            relativeSourceRoot.length === 0 ? routeRoot : `${relativeSourceRoot}/${routeRoot}`,
+          ),
+        );
+      }
+    }
+  }
+  return [...prefixes];
+}
 
 export async function mapFeatures(
   root: string,
@@ -224,13 +379,16 @@ function uniqueTests(tests: Array<{ path: string; command: string | null }>): Ar
 }
 
 async function collectSeeds(root: string, options: MapOptions): Promise<FeatureSeed[]> {
+  const repoIndex = await buildRepoIndex(root);
   const projects = await discoverNodeProjects(root);
   const context: MapperContext = {
     projects,
+    repoIndex,
     taskGraph: await turboTaskGraph(root, projects),
   };
+  const activeMappers = featureMappers.filter((mapper) => mapper.shouldRun?.(context) ?? true);
   const groups = await Promise.all(
-    featureMappers.map(async (mapper) => {
+    activeMappers.map(async (mapper) => {
       const started = Date.now();
       options.onProgress?.({ event: "mapper-start", mapper: mapper.name });
       const seeds = await mapper.map(root, context);

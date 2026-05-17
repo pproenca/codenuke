@@ -27,6 +27,8 @@ export type WorkspaceTaskGraph = {
 
 export const validationTaskNames = ["test", "build", "lint", "typecheck", "format"] as const;
 
+const commandIndexes = new WeakMap<WorkspaceTaskGraph, Map<string, string | null>>();
+
 export function emptyTaskGraph(): WorkspaceTaskGraph {
   return { runner: null, globalDependencies: [], globalEnv: [], commands: [] };
 }
@@ -36,9 +38,27 @@ export function taskGraphCommand(
   project: NodeProjectInfo,
   task: string,
 ): string | null | undefined {
-  return graph.commands.find(
-    (command) => command.projectRoot === project.root && command.task === task,
-  )?.command;
+  return taskGraphCommandIndex(graph).get(taskGraphCommandKey(project.root, task));
+}
+
+function taskGraphCommandIndex(graph: WorkspaceTaskGraph): Map<string, string | null> {
+  const cached = commandIndexes.get(graph);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const index = new Map<string, string | null>();
+  for (const command of graph.commands) {
+    const key = taskGraphCommandKey(command.projectRoot, command.task);
+    if (!index.has(key)) {
+      index.set(key, command.command);
+    }
+  }
+  commandIndexes.set(graph, index);
+  return index;
+}
+
+function taskGraphCommandKey(projectRoot: string, task: string): string {
+  return `${projectRoot}\0${task}`;
 }
 
 export function taskGraphProjectCommands(
