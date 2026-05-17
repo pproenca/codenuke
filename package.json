@@ -1,0 +1,39 @@
+{
+  "name": "clawnuke",
+  "version": "0.2.0",
+  "description": "Automated code review for safe simplification and complexity reduction.",
+  "license": "MIT",
+  "bin": {
+    "clawnuke": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint . --config oxlint.json",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "test": "vitest run",
+    "pack:smoke": "node scripts/package-smoke.mjs"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "oxfmt": "^0.50.0",
+    "oxlint": "^1.64.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.1.2"
+}

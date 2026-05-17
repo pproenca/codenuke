@@ -1,0 +1,14 @@
+title: clawnuke
+description: Automated code review for safe simplification and complexity reduction
+url: https://clawnuke.dev
+theme: minima
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md

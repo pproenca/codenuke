@@ -1,0 +1,2261 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  access,
+  chmod,
+  mkdir,
+  open,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  unlink,
+} from "node:fs/promises";
+import { delimiter, join } from "node:path";
+import {
+  fixCommand,
+  cleanLocksCommand,
+  doctorCommand,
+  initCommand,
+  makeContext,
+  mapCommand,
+  nextCommand,
+  reportCommand,
+  revalidateCommand,
+  reviewCommand,
+  showCommand,
+  statusCommand,
+  triageCommand,
+} from "./app.js";
+import { main as cliMain, packageVersion, parseArgs } from "./cli.js";
+import { defaultConfig, loadConfig } from "./config.js";
+import { runCommand } from "./exec.js";
+import { changedFilesSince } from "./git.js";
+import { mapWithSource } from "./agent-mapper.js";
+import { mapFeatures } from "./mapper.js";
+import {
+  claimFeature,
+  releaseFeatureLock,
+  readFeatures,
+  readFinding,
+  readFindings,
+  readProject,
+  readPatchAttempts,
+  readRuns,
+  statePaths,
+  writeFeature,
+  writeFinding,
+} from "./state.js";
+import { buildFixPrompt, buildReviewPrompt } from "./prompt.js";
+import type { Provider } from "./provider.js";
+import { fixtureRoot, testOptions, writeFixture } from "./test-helpers.js";
+import { findingRecordSchema } from "./types.js";
+import type { FeatureRecord } from "./types.js";
+
+async function sinceFixture(prefix: string): Promise<string> {
+  const root = await fixtureRoot(prefix);
+  await writeFixture(
+    root,
+    "package.json",
+    JSON.stringify({
+      name: "since",
+      bin: {
+        one: "src/one.ts",
+        two: "src/two.ts",
+        three: "src/three.ts",
+      },
+      scripts: { test: "vitest run" },
+    }),
+  );
+  await writeFixture(root, "src/one.ts", "export const one = 'TODO_BUG';\n");
+  await writeFixture(root, "src/two.ts", "export const two = 'TODO_BUG';\n");
+  await writeFixture(root, "src/three.ts", "export const three = 'TODO_BUG';\n");
+  await writeFixture(root, "tests/one.test.ts", "expect('one').toBe('one');\n");
+  await initGit(root);
+  await commitAll(root, "base");
+  await checkCommand(root, "git tag --no-sign base");
+  return root;
+}
+
+function agentMapProvider(title: () => string): Provider {
+  const feature = () => ({
+    title: title(),
+    summary: "Provider grouped custom agent files.",
+    kind: "library" as const,
+    confidence: "medium" as const,
+    entrypoints: [{ path: "agent/worker.custom", symbol: null, route: null, command: null }],
+    ownedFiles: [
+      { path: "agent/worker.custom", reason: "worker" },
+      { path: "agent/scheduler.custom", reason: "scheduler" },
+    ],
+    contextFiles: [],
+    tests: [],
+    tags: ["agent"],
+    trustBoundaries: [],
+    reason: "custom provider fixture",
+  });
+  return {
+    name: "test-agent-map",
+    async check() {
+      return "test-agent-map";
+    },
+    async map() {
+      return { features: [feature(), feature()], notes: [] };
+    },
+    async review() {
+      throw new Error("unused");
+    },
+    async fix() {
+      throw new Error("unused");
+    },
+    async revalidate() {
+      throw new Error("unused");
+    },
+  };
+}
+
+async function initGit(root: string): Promise<void> {
+  await checkCommand(root, "git init -q");
+  await checkCommand(root, "git config user.email test@example.com");
+  await checkCommand(root, "git config user.name Test");
+  await checkCommand(root, "git config commit.gpgsign false");
+  await checkCommand(root, "git config tag.gpgSign false");
+}
+
+async function commitAll(root: string, message: string): Promise<void> {
+  await checkCommand(root, "git add package.json src tests");
+  await checkCommand(root, `git -c commit.gpgsign=false commit -q -m "${message}"`);
+}
+
+async function checkCommand(root: string, command: string): Promise<void> {
+  const result = await runCommand(command, root);
+  if (result.exitCode !== 0) {
+    throw new Error(`${command} failed: ${result.stderr || result.stdout}`);
+  }
+}
+
+async function runCli(argv: string[]): Promise<{ stdout: string; stderr: string }> {
+  let stdout = "";
+  let stderr = "";
+  const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write);
+  const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write);
+  try {
+    await cliMain(argv);
+    return { stdout, stderr };
+  } finally {
+    stdoutSpy.mockRestore();
+    stderrSpy.mockRestore();
+  }
+}
+
+function expectedFeatureIds(
+  features: FeatureRecord[],
+  changed: Set<string>,
+  includeContext: boolean,
+): string[] {
+  return features
+    .filter((feature) => ["pending", "error"].includes(feature.status))
+    .filter((feature) => featureTouches(feature, changed, includeContext))
+    .map((feature) => feature.featureId);
+}
+
+function featureTouches(
+  feature: FeatureRecord,
+  changed: Set<string>,
+  includeContext: boolean,
+): boolean {
+  const featureFiles = new Set([
+    ...feature.ownedFiles.map((file) => file.path),
+    ...(includeContext ? feature.contextFiles.map((file) => file.path) : []),
+  ]);
+  for (const file of changed) {
+    if (featureFiles.has(file)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+describe("workflow", () => {
+  it("rejects unknown long flags", () => {
+    expect(() => parseArgs(["fix", "--finding", "f", "--dryrun"])).toThrow("unknown arg");
+  });
+
+  it("rejects unknown commands and missing required flags before context setup", () => {
+    expect(() => parseArgs(["nope"])).toThrow("unknown command: nope");
+    expect(() => parseArgs(["constructor"])).toThrow("unknown command: constructor");
+    expect(parseArgs(["revie", "--help"])).toMatchObject({ command: "revie", help: true });
+    expect(() => parseArgs(["show"])).toThrow("missing --finding");
+    expect(() => parseArgs(["triage", "--status", "fixed"])).toThrow("missing --finding");
+    expect(() => parseArgs(["revalidate"])).toThrow("missing --finding or --all");
+    expect(parseArgs(["revalidate", "--all"]).flags).toMatchObject({ all: true });
+  });
+
+  it("rejects value flags followed by another option token", () => {
+    expect(() => parseArgs(["show", "--finding", "--json"])).toThrow("missing value for --finding");
+    expect(() => parseArgs(["show", "--finding", "--bogus"])).toThrow(
+      "missing value for --finding",
+    );
+    expect(() => parseArgs(["report", "-o", "--json"])).toThrow("missing value for -o");
+    expect(() => parseArgs(["report", "-o", "-q"])).toThrow("missing value for -o");
+  });
+
+  it("prints package metadata version", async () => {
+    const pkg = JSON.parse(await readFile(join(process.cwd(), "package.json"), "utf8")) as {
+      version: string;
+    };
+
+    expect(packageVersion()).toBe(pkg.version);
+  });
+
+  it("rejects unsupported command flags instead of ignoring them", () => {
+    expect(() => parseArgs(["clean-locks", "--dry-run"])).toThrow(
+      "unsupported flag for clean-locks: --dry-run",
+    );
+    expect(() => parseArgs(["--dry-run", "clean-locks"])).toThrow(
+      "unsupported flag for clean-locks: --dry-run",
+    );
+    expect(parseArgs(["map", "--dry-run"]).flags).toMatchObject({ dryRun: true });
+    expect(parseArgs(["map", "--source", "auto", "--provider", "mock"]).flags).toMatchObject({
+      source: "auto",
+      provider: "mock",
+    });
+    expect(parseArgs(["review", "--reasoning-effort", "xhigh", "--dry-run"]).flags).toMatchObject({
+      dryRun: true,
+      reasoningEffort: "xhigh",
+    });
+    expect(parseArgs(["fix", "--finding", "f", "--dry-run"]).flags).toMatchObject({
+      dryRun: true,
+      finding: "f",
+    });
+  });
+
+  it("parses review jobs and report filters", () => {
+    expect(
+      parseArgs(["review", "--limit", "4", "--jobs", "3", "--project", "apps/web"]).flags,
+    ).toMatchObject({
+      limit: "4",
+      jobs: "3",
+      project: "apps/web",
+    });
+    expect(parseArgs(["review", "--since", "HEAD~5"]).flags).toMatchObject({
+      since: "HEAD~5",
+    });
+    expect(parseArgs(["revalidate", "--since", "origin/main"]).flags).toMatchObject({
+      since: "origin/main",
+    });
+    expect(
+      parseArgs(["report", "--status", "open", "--severity", "high", "--project", "web"]).flags,
+    ).toMatchObject({
+      status: "open",
+      severity: "high",
+      project: "web",
+    });
+    expect(
+      parseArgs(["triage", "--finding", "f", "--status", "wont-fix", "--note", "ok"]).flags,
+    ).toMatchObject({
+      finding: "f",
+      status: "wont-fix",
+      note: "ok",
+    });
+  });
+
+  it("derives triage for legacy findings without triage fields", () => {
+    const parsed = findingRecordSchema.parse({
+      schemaVersion: 1,
+      findingId: "fnd_legacy",
+      featureId: "feat_legacy",
+      title: "Missing test",
+      category: "test-gap",
+      severity: "medium",
+      confidence: "high",
+      evidence: [],
+      reasoning: "legacy",
+      reproduction: null,
+      recommendation: "Add a test.",
+      status: "open",
+      signature: "sig_legacy",
+      linkedPatchAttemptIds: [],
+      createdByRunId: "run",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    expect(parsed.triage).toBe("test-gap");
+  });
+
+  it("rejects nonexistent explicit roots before init", async () => {
+    const root = join(await fixtureRoot("clawnuke-missing-root-parent-"), "missing");
+
+    await expect(makeContext(testOptions(root))).rejects.toMatchObject({ exitCode: 2 });
+  });
+
+  it("initializes, maps, reviews, and reports findings", async () => {
+    const root = await fixtureRoot("clawnuke-flow-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "buggy-cli",
+          bin: { buggy: "src/index.ts" },
+          scripts: { test: "vitest run", typecheck: "tsc --noEmit" },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(root, "tsconfig.json", "{}");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const mapped = await mapCommand(context);
+    const reviewed = await reviewCommand(context, { limit: "1" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const finding = (await readFindings(paths))[0];
+    expect(finding).toBeDefined();
+    await writeFinding(paths, {
+      ...finding!,
+      evidence: [{ ...finding!.evidence[0]!, startLine: 1, endLine: 1 }],
+    });
+    const status = await statusCommand(context);
+    const report = await reportCommand(context, {});
+    const jsonReport = await reportCommand(
+      { ...context, options: { ...context.options, json: true } },
+      { status: "open", severity: "medium" },
+    );
+
+    expect(mapped).toMatchObject({ new: expect.any(Number) });
+    expect(reviewed).toMatchObject({ findings: 1, jobs: 1 });
+    expect(status).toMatchObject({ openFindings: 1 });
+    expect(report).toMatchObject({ findings: 1 });
+    expect(report).toMatchObject({ markdown: expect.stringContaining("src/index.ts:1") });
+    expect(report).toMatchObject({ markdown: expect.stringContaining("test analysis:") });
+    expect(jsonReport).toMatchObject({
+      findings: 1,
+      items: [
+        {
+          id: expect.stringMatching(/^fnd_/u),
+          severity: "medium",
+          status: "open",
+          evidence: [{ path: "src/index.ts", startLine: 1 }],
+          whyTestsDoNotAlreadyCoverThis: expect.any(String),
+          suggestedRegressionTest: expect.any(String),
+          minimumFixScope: expect.any(String),
+        },
+      ],
+    });
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "reviews end-to-end when codex writes fenced JSON with trailing prose",
+    async () => {
+      const root = await fixtureRoot("clawnuke-codex-fenced-e2e-");
+      await writeFixture(
+        root,
+        "package.json",
+        JSON.stringify({
+          name: "codex-fenced",
+          bin: { app: "src/index.ts" },
+          scripts: { test: "vitest run" },
+        }),
+      );
+      await writeFixture(root, "src/index.ts", "export const value = 'ok';\n");
+      const binDir = join(root, "bin");
+      const codexShim = join(binDir, "codex");
+      await writeFixture(
+        root,
+        "bin/codex",
+        [
+          "#!/usr/bin/env node",
+          'const { writeFileSync } = require("node:fs");',
+          "const args = process.argv.slice(2);",
+          'if (args.includes("--version")) { console.log("codex fake 0.130.0"); process.exit(0); }',
+          'const outputIndex = args.indexOf("--output-last-message");',
+          "if (outputIndex === -1 || outputIndex + 1 >= args.length) {",
+          '  console.error("missing --output-last-message");',
+          "  process.exit(2);",
+          "}",
+          "const payload = {",
+          "  findings: [],",
+          '  inspected: { files: ["src/index.ts"], symbols: [], notes: ["fake codex"] },',
+          "};",
+          "writeFileSync(",
+          "  args[outputIndex + 1],",
+          '  ["```json", JSON.stringify(payload), "```", "Now I have a complete picture."].join("\\n"),',
+          ");",
+          "",
+        ].join("\n"),
+      );
+      await chmod(codexShim, 0o755);
+      const previousProvider = process.env["CLAWNUKE_PROVIDER"];
+      const previousPath = process.env["PATH"];
+      process.env["CLAWNUKE_PROVIDER"] = "codex";
+      process.env["PATH"] = `${binDir}${delimiter}${previousPath ?? ""}`;
+      try {
+        const context = await makeContext(testOptions(root));
+
+        await initCommand(context, {});
+        await mapCommand(context);
+        const reviewed = await reviewCommand(context, { limit: "1" });
+        const paths = statePaths(join(root, ".clawnuke"));
+        const [features, findings, runs] = await Promise.all([
+          readFeatures(paths),
+          readFindings(paths),
+          readRuns(paths),
+        ]);
+
+        expect(reviewed).toMatchObject({ reviewed: 1, findings: 0 });
+        expect(findings).toHaveLength(0);
+        expect(runs.at(-1)).toMatchObject({ status: "completed", errors: [] });
+        expect(features.some((feature) => feature.status === "reviewed")).toBe(true);
+        expect(
+          features.some((feature) =>
+            feature.analysisHistory.some((entry) => entry.provider === "codex"),
+          ),
+        ).toBe(true);
+      } finally {
+        if (previousProvider === undefined) {
+          delete process.env["CLAWNUKE_PROVIDER"];
+        } else {
+          process.env["CLAWNUKE_PROVIDER"] = previousProvider;
+        }
+        if (previousPath === undefined) {
+          delete process.env["PATH"];
+        } else {
+          process.env["PATH"] = previousPath;
+        }
+      }
+    },
+  );
+
+  it("selects review features whose owned files overlap the diff range", async () => {
+    const root = await sinceFixture("clawnuke-since-owned-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
+    await commitAll(root, "change two");
+    const paths = statePaths(join(root, ".clawnuke"));
+    const features = await readFeatures(paths);
+    const reviewed = await reviewCommand(context, { since: "base", limit: "20", dryRun: true });
+
+    expect(reviewed).toMatchObject({
+      dryRun: true,
+      featureIds: expectedFeatureIds(features, new Set(["src/two.ts"]), true),
+    });
+  });
+
+  it("selects review features whose context files overlap the diff range", async () => {
+    const root = await sinceFixture("clawnuke-since-context-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(root, "tests/one.test.ts", "expect('changed').toBe('changed');\n");
+    await commitAll(root, "change test");
+    const paths = statePaths(join(root, ".clawnuke"));
+    const features = await readFeatures(paths);
+    const reviewed = await reviewCommand(context, { since: "base", limit: "20", dryRun: true });
+    const selectedIds = (reviewed as { featureIds: string[] }).featureIds;
+
+    expect(selectedIds).toEqual(expectedFeatureIds(features, new Set(["tests/one.test.ts"]), true));
+    expect(selectedIds.length).toBeGreaterThan(0);
+    expect(
+      selectedIds.every((id) =>
+        features
+          .find((feature) => feature.featureId === id)
+          ?.contextFiles.some((file) => file.path === "tests/one.test.ts"),
+      ),
+    ).toBe(true);
+  });
+
+  it("returns cleanly when --since touches no review features", async () => {
+    const root = await sinceFixture("clawnuke-since-empty-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = await reviewCommand(context, { since: "HEAD", dryRun: true });
+
+    expect(reviewed).toMatchObject({ next: "no features touched by diff" });
+  });
+
+  it("rejects invalid --since refs before running git diff", async () => {
+    const root = await sinceFixture("clawnuke-since-invalid-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+
+    await expect(reviewCommand(context, { since: "bad ref with spaces" })).rejects.toMatchObject({
+      code: "invalid-input",
+      exitCode: 2,
+    });
+  });
+
+  it("applies --since before --limit for review selection", async () => {
+    const root = await sinceFixture("clawnuke-since-limit-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
+    await writeFixture(root, "src/three.ts", "export const three = 'changed';\n");
+    await commitAll(root, "change two and three");
+    const paths = statePaths(join(root, ".clawnuke"));
+    const features = await readFeatures(paths);
+    const reviewed = await reviewCommand(context, { since: "base", limit: "2", dryRun: true });
+
+    expect(reviewed).toMatchObject({
+      dryRun: true,
+      featureIds: expectedFeatureIds(features, new Set(["src/two.ts", "src/three.ts"]), true).slice(
+        0,
+        2,
+      ),
+    });
+  });
+
+  it("runs review --since through the CLI entrypoint", async () => {
+    const root = await sinceFixture("clawnuke-since-cli-");
+    await runCli(["--root", root, "--json", "--quiet", "init"]);
+    await runCli(["--root", root, "--json", "--quiet", "map"]);
+    await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
+    await commitAll(root, "change two");
+    const paths = statePaths(join(root, ".clawnuke"));
+    const features = await readFeatures(paths);
+
+    const reviewed = await runCli([
+      "--root",
+      root,
+      "--json",
+      "--quiet",
+      "review",
+      "--since",
+      "base",
+      "--limit",
+      "20",
+      "--dry-run",
+    ]);
+
+    expect(JSON.parse(reviewed.stdout)).toMatchObject({
+      dryRun: true,
+      featureIds: expectedFeatureIds(features, new Set(["src/two.ts"]), true),
+    });
+    expect(reviewed.stderr).toBe("");
+  });
+
+  it("keeps the full changed file list for large --since diffs", async () => {
+    const root = await fixtureRoot("clawnuke-since-large-");
+    const files = Array.from(
+      { length: 220 },
+      (_value, index) =>
+        `src/file-${String(index + 1).padStart(3, "0")}-abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz.ts`,
+    );
+    const targetPath = files[109]!;
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "since-large",
+        bin: { target: targetPath },
+        scripts: { test: "vitest run" },
+      }),
+    );
+    for (const file of files) {
+      await writeFixture(root, file, "export const value = 'base';\n");
+    }
+    await writeFixture(root, "tests/target.test.ts", "expect('target').toBe('target');\n");
+    await initGit(root);
+    await commitAll(root, "base");
+    await checkCommand(root, "git tag --no-sign base");
+    for (const file of files) {
+      await writeFixture(root, file, "export const value = 'changed';\n");
+    }
+    await commitAll(root, "change many files");
+    const changed = await changedFilesSince(root, "base");
+
+    const context = await makeContext(testOptions(root));
+    await initCommand(context, {});
+    await mapCommand(context);
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const targetFeature = features.find((feature) =>
+      feature.ownedFiles.some((file) => file.path === targetPath),
+    );
+    const reviewed = (await reviewCommand(context, {
+      since: "base",
+      limit: "250",
+      dryRun: true,
+    })) as { featureIds: string[] };
+
+    expect(changed.size).toBe(files.length);
+    expect(changed).toContain(targetPath);
+    expect(targetFeature).toBeDefined();
+    expect(reviewed.featureIds).toContain(targetFeature!.featureId);
+  });
+
+  it("matches --since paths relative to an explicit subdirectory root", async () => {
+    const repoRoot = await fixtureRoot("clawnuke-since-subdir-repo-");
+    const root = join(repoRoot, "packages", "app");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "subdir", bin: { app: "src/app.ts" } }),
+    );
+    await writeFixture(root, "src/app.ts", "export const value = 'base';\n");
+    await initGit(repoRoot);
+    await checkCommand(repoRoot, "git add packages");
+    await checkCommand(repoRoot, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await checkCommand(repoRoot, "git tag --no-sign base");
+    const context = await makeContext(testOptions(root));
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(root, "src/app.ts", "export const value = 'changed';\n");
+    await checkCommand(repoRoot, "git add packages/app/src/app.ts");
+    await checkCommand(repoRoot, 'git -c commit.gpgsign=false commit -q -m "change app"');
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const targetFeature = features.find((feature) =>
+      feature.ownedFiles.some((file) => file.path === "src/app.ts"),
+    );
+    const reviewed = (await reviewCommand(context, {
+      since: "base",
+      limit: "20",
+      dryRun: true,
+    })) as { featureIds: string[] };
+
+    expect(targetFeature).toBeDefined();
+    expect(reviewed.featureIds).toContain(targetFeature!.featureId);
+  });
+
+  it("revalidates only findings whose feature owned files overlap --since", async () => {
+    const root = await sinceFixture("clawnuke-since-revalidate-");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "20", jobs: "2" });
+    await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
+    await commitAll(root, "change two");
+    const paths = statePaths(join(root, ".clawnuke"));
+    const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
+    const touchedFeatureIds = new Set(
+      features
+        .filter((feature) => featureTouches(feature, new Set(["src/two.ts"]), false))
+        .map((feature) => feature.featureId),
+    );
+    const expected = findings.filter((finding) => touchedFeatureIds.has(finding.featureId));
+    const result = await revalidateCommand(context, { since: "base" });
+
+    expect(result).toMatchObject({ revalidated: expected.length });
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("shows, prioritizes, and triages findings with history", async () => {
+    const root = await fixtureRoot("clawnuke-finding-lifecycle-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "life",
+        bin: { life: "src/index.ts" },
+        scripts: { test: "vitest run" },
+      }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "1" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const finding = (await readFindings(paths))[0];
+    expect(finding).toBeDefined();
+
+    const next = await nextCommand(context, {});
+    const shown = await showCommand(context, { finding: finding!.findingId });
+    const report = await reportCommand(context, { status: "open" });
+    const triaged = await triageCommand(context, {
+      finding: finding!.findingId,
+      status: "false-positive",
+      note: "tests cover intended contract",
+    });
+    const updated = await readFinding(paths, finding!.findingId);
+
+    expect(next).toMatchObject({ finding: finding!.findingId });
+    expect(shown).toMatchObject({
+      markdown: expect.stringContaining(`next: clawnuke triage --finding ${finding!.findingId}`),
+    });
+    expect(report).toMatchObject({
+      markdown: expect.stringContaining(`next: clawnuke show --finding ${finding!.findingId}`),
+    });
+    expect(triaged).toMatchObject({ status: "false-positive" });
+    expect(updated?.status).toBe("false-positive");
+    expect(updated?.history.at(-1)).toMatchObject({
+      kind: "triage",
+      status: "false-positive",
+      note: "tests cover intended contract",
+    });
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("revalidates filtered findings in bulk and records history", async () => {
+    const root = await fixtureRoot("clawnuke-revalidate-all-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "reval",
+        bin: {
+          fixed: "src/fixed.ts",
+          open: "src/open.ts",
+          falsey: "src/falsey.ts",
+          uncertain: "src/uncertain.ts",
+        },
+      }),
+    );
+    await writeFixture(root, "src/fixed.ts", "export const fixed = 'TODO_BUG';\n");
+    await writeFixture(root, "src/open.ts", "export const open = 'TODO_BUG';\n");
+    await writeFixture(root, "src/falsey.ts", "export const falsey = 'TODO_BUG';\n");
+    await writeFixture(root, "src/uncertain.ts", "export const uncertain = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "4", jobs: "2" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const findings = await readFindings(paths);
+    expect(findings).toHaveLength(4);
+    const markers = [
+      "REVALIDATE_FIXED",
+      "REVALIDATE_OPEN",
+      "REVALIDATE_FALSE_POSITIVE",
+      "REVALIDATE_UNCERTAIN",
+    ];
+    for (const [index, finding] of findings.entries()) {
+      await writeFinding(paths, { ...finding, reasoning: markers[index] ?? "" });
+    }
+
+    let progress = "";
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      progress += String(chunk);
+      return true;
+    });
+    const result = await revalidateCommand(context, { all: true, status: "open", limit: "4" });
+    stderr.mockRestore();
+    const updated = await readFindings(paths);
+    const features = await readFeatures(paths);
+
+    expect(result).toMatchObject({
+      revalidated: 4,
+      fixed: 1,
+      open: 1,
+      falsePositive: 1,
+      uncertain: 1,
+    });
+    expect(updated.map((finding) => finding.status).toSorted()).toEqual([
+      "false-positive",
+      "fixed",
+      "open",
+      "uncertain",
+    ]);
+    expect(updated.every((finding) => finding.history.at(-1)?.kind === "revalidate")).toBe(true);
+    expect(progress).toContain("clawnuke revalidate start");
+    expect(progress).toContain("clawnuke revalidate finding-start");
+    expect(progress).toContain("clawnuke revalidate finding-done");
+    expect(progress).toContain("clawnuke revalidate done");
+    const uncertain = updated.find((finding) => finding.status === "uncertain");
+    const uncertainFeature = features.find((feature) => feature.featureId === uncertain?.featureId);
+    expect(uncertainFeature?.status).toBe("needs-fix");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("preserves selected finding ids when revalidation fails", async () => {
+    const root = await fixtureRoot("clawnuke-revalidate-fail-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "reval-fail", bin: { fail: "src/fail.ts" } }),
+    );
+    await writeFixture(root, "src/fail.ts", "export const fail = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "1" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const finding = (await readFindings(paths))[0];
+    expect(finding).toBeDefined();
+
+    await expect(
+      revalidateCommand(context, { finding: finding!.findingId, provider: "mock-fail" }),
+    ).rejects.toThrow("mock revalidate failure");
+    const runs = await readRuns(paths);
+    const failed = runs.find((run) => run.command === "revalidate");
+
+    expect(failed).toMatchObject({
+      status: "failed",
+      findingIds: [finding!.findingId],
+    });
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("reviews features concurrently without corrupting findings or locks", async () => {
+    const root = await fixtureRoot("clawnuke-parallel-review-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "parallel", bin: { one: "src/one.ts", two: "src/two.ts" } }),
+    );
+    await writeFixture(root, "src/one.ts", "export const one = 'TODO_BUG';\n");
+    await writeFixture(root, "src/two.ts", "export const two = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = await reviewCommand(context, { limit: "2", jobs: "2" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
+
+    expect(reviewed).toMatchObject({ reviewed: 2, findings: 2, jobs: 2 });
+    expect(findings).toHaveLength(2);
+    expect(features.every((feature) => feature.lock === null)).toBe(true);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("claims feature locks atomically", async () => {
+    const root = await fixtureRoot("clawnuke-atomic-lock-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "atomic-lock", bin: { atomic: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths)).find((candidate) =>
+      candidate.title.includes("CLI command"),
+    );
+    expect(feature).toBeDefined();
+
+    const first = {
+      lockedByRunId: "run-one",
+      lockedAt: new Date().toISOString(),
+      hostname: "test",
+      pid: 1,
+    };
+    const second = {
+      lockedByRunId: "run-two",
+      lockedAt: new Date().toISOString(),
+      hostname: "test",
+      pid: 2,
+    };
+    const results = await Promise.allSettled([
+      claimFeature(paths, feature!.featureId, first),
+      claimFeature(paths, feature!.featureId, second),
+    ]);
+    const fulfilled = results.filter((result) => result.status === "fulfilled");
+    const rejected = results.filter((result) => result.status === "rejected");
+
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
+      reason: { code: "lock-conflict" },
+    });
+    expect(await readdir(paths.locks)).toEqual([`${feature!.featureId}.json`]);
+
+    await releaseFeatureLock(paths, feature!.featureId);
+    expect(await readdir(paths.locks)).toEqual([]);
+  });
+
+  it("cleans up lock files when claim lock payload writes fail", async () => {
+    const root = await fixtureRoot("clawnuke-lock-write-fail-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "lock-write-fail", bin: { lock: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths)).find((candidate) =>
+      candidate.title.includes("CLI command"),
+    );
+    expect(feature).toBeDefined();
+    const probe = await open(join(paths.locks, "probe.json"), "w");
+    const writeFileSpy = vi
+      .spyOn(Object.getPrototypeOf(probe) as { writeFile: typeof probe.writeFile }, "writeFile")
+      .mockRejectedValueOnce(new Error("simulated lock write failure"));
+    await probe.close();
+    await unlink(join(paths.locks, "probe.json"));
+
+    await expect(
+      claimFeature(paths, feature!.featureId, {
+        lockedByRunId: "run",
+        lockedAt: new Date().toISOString(),
+        hostname: "test",
+        pid: 1,
+      }),
+    ).rejects.toThrow("simulated lock write failure");
+    expect(await readdir(paths.locks)).toEqual([]);
+
+    writeFileSpy.mockRestore();
+  });
+
+  it("does not claim a stale feature after another run finishes it", async () => {
+    const root = await fixtureRoot("clawnuke-stale-lock-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "stale-lock", bin: { stale: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths)).find((candidate) =>
+      candidate.title.includes("CLI command"),
+    );
+    expect(feature).toBeDefined();
+    await writeFeature(paths, {
+      ...feature!,
+      status: "reviewed",
+      lock: null,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await expect(
+      claimFeature(paths, feature!.featureId, {
+        lockedByRunId: "run",
+        lockedAt: new Date().toISOString(),
+        hostname: "test",
+        pid: 1,
+      }),
+    ).rejects.toMatchObject({ code: "lock-conflict" });
+    expect(await readdir(paths.locks)).toEqual([]);
+  });
+
+  it("does not consume features on dry-run review", async () => {
+    const root = await fixtureRoot("clawnuke-dry-run-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "dry-run-cli", bin: { dry: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { dryRun: true });
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(features[0]?.status).toBe("pending");
+  });
+
+  it("filters review dry-runs by project name or root", async () => {
+    const root = await fixtureRoot("clawnuke-project-filter-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "workspace-root", workspaces: ["apps/*"] }, null, 2),
+    );
+    await writeFixture(
+      root,
+      "apps/web/package.json",
+      JSON.stringify({ name: "web", dependencies: { next: "1.0.0" } }, null, 2),
+    );
+    await writeFixture(
+      root,
+      "apps/web/project.json",
+      JSON.stringify({ name: "web", targets: { test: {} } }, null, 2),
+    );
+    await writeFixture(
+      root,
+      "apps/web/src/app/dashboard/page.tsx",
+      "export default function Page() { return null; }\n",
+    );
+    await writeFixture(
+      root,
+      "apps/admin/package.json",
+      JSON.stringify({ name: "admin", dependencies: { next: "1.0.0" } }, null, 2),
+    );
+    await writeFixture(
+      root,
+      "apps/admin/project.json",
+      JSON.stringify({ name: "admin", targets: { test: {} } }, null, 2),
+    );
+    await writeFixture(
+      root,
+      "apps/admin/src/app/dashboard/page.tsx",
+      "export default function Page() { return null; }\n",
+    );
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const byRoot = (await reviewCommand(context, {
+      dryRun: true,
+      project: "apps/web",
+      limit: "20",
+    })) as { featureIds: string[]; wouldReview: number };
+    const byName = (await reviewCommand(context, {
+      dryRun: true,
+      project: "web",
+      limit: "20",
+    })) as { featureIds: string[]; wouldReview: number };
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const titleById = new Map(features.map((feature) => [feature.featureId, feature.title]));
+
+    expect(byRoot.wouldReview).toBeGreaterThan(0);
+    expect(byRoot.featureIds).toEqual(byName.featureIds);
+    expect(byRoot.featureIds.map((id) => titleById.get(id))).toEqual(
+      expect.arrayContaining(["Node package web", "web route /dashboard"]),
+    );
+    expect(byRoot.featureIds.map((id) => titleById.get(id))).not.toContain("Node package admin");
+    expect(byRoot.featureIds.map((id) => titleById.get(id))).not.toContain(
+      "admin route /dashboard",
+    );
+  });
+
+  it("does not mutate features on dry-run map", async () => {
+    const root = await fixtureRoot("clawnuke-map-dry-run-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "map-dry-run-cli", bin: { dry: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(root, "package.json", JSON.stringify({ name: "map-dry-run-cli" }));
+    const preview = await mapCommand(context, { dryRun: true });
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(preview).toMatchObject({ dryRun: true, stale: 1 });
+    expect(features.some((feature) => feature.status === "skipped")).toBe(false);
+  });
+
+  it("emits map progress to stderr while preserving JSON stdout", async () => {
+    const root = await fixtureRoot("clawnuke-map-progress-");
+    await writeFixture(root, "Cargo.toml", '[package]\nname = "map-progress"\nversion = "0.1.0"\n');
+    await writeFixture(root, "src/lib.rs", "pub fn run() {}\n");
+
+    await runCli(["--root", root, "--json", "--quiet", "init"]);
+    const mapped = await runCli(["--root", root, "--json", "map"]);
+
+    expect(JSON.parse(mapped.stdout)).toMatchObject({ features: expect.any(Number) });
+    expect(mapped.stderr).toContain("clawnuke map start");
+    expect(mapped.stderr).toContain("clawnuke map mapper-start mapper=rust");
+    expect(mapped.stderr).toContain("clawnuke map mapper-done mapper=rust");
+    expect(mapped.stderr).toContain("clawnuke map done");
+  });
+
+  it("suppresses map progress when quiet", async () => {
+    const root = await fixtureRoot("clawnuke-map-progress-quiet-");
+    await writeFixture(
+      root,
+      "Cargo.toml",
+      '[package]\nname = "map-progress-quiet"\nversion = "0.1.0"\n',
+    );
+    await writeFixture(root, "src/lib.rs", "pub fn run() {}\n");
+
+    await runCli(["--root", root, "--json", "--quiet", "init"]);
+    const mapped = await runCli(["--root", root, "--json", "--quiet", "map"]);
+
+    expect(JSON.parse(mapped.stdout)).toMatchObject({ features: expect.any(Number) });
+    expect(mapped.stderr).toBe("");
+  });
+
+  it("can use the configured provider as an agent mapper source", async () => {
+    const root = await fixtureRoot("clawnuke-agent-map-");
+    await writeFixture(root, "agent/worker.custom", "worker source\n");
+    await writeFixture(root, "agent/scheduler.custom", "scheduler source\n");
+    await writeFixture(root, "agent/worker.test.custom", "worker test\n");
+    await writeFixture(root, "dist/agent/generated.custom", "generated source\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const mapped = await mapCommand(context, { source: "auto", provider: "mock" });
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const agentFeature = features.find((feature) => feature.source === "agent-mapper");
+
+    expect(mapped).toMatchObject({
+      source: "auto",
+      usedAgent: true,
+      reason: "heuristic mapper produced no features",
+    });
+    expect(agentFeature?.ownedFiles.map((file) => file.path).toSorted()).toEqual([
+      "agent/scheduler.custom",
+      "agent/worker.custom",
+    ]);
+    expect(agentFeature?.ownedFiles.map((file) => file.path)).not.toContain(
+      "dist/agent/generated.custom",
+    );
+    expect(agentFeature?.tests).toEqual([{ path: "agent/worker.test.custom", command: null }]);
+  });
+
+  it("fails forced agent mapping when the provider returns no valid features", async () => {
+    const root = await fixtureRoot("clawnuke-empty-agent-map-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "fallback-cli", bin: { fallback: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await expect(mapCommand(context, { source: "agent", provider: "mock" })).rejects.toThrow(
+      "agent mapper returned no valid features",
+    );
+  });
+
+  it("keeps agent feature ids stable across title changes and drops duplicates", async () => {
+    const root = await fixtureRoot("clawnuke-agent-map-stable-");
+    await writeFixture(root, "agent/worker.custom", "worker source\n");
+    await writeFixture(root, "agent/scheduler.custom", "scheduler source\n");
+    const context = await makeContext(testOptions(root));
+    await initCommand(context, {});
+    const paths = statePaths(join(root, ".clawnuke"));
+    const project = await readProject(paths);
+    if (project === null) {
+      throw new Error("missing project");
+    }
+    const heuristic = await mapFeatures(root, project, []);
+    let title = "Agent worker group";
+    const provider = agentMapProvider(() => title);
+
+    const first = await mapWithSource(root, project, [], heuristic, {
+      source: "agent",
+      provider,
+      providerOptions: { model: null, reasoningEffort: null },
+    });
+    title = "Background worker package";
+    const second = await mapWithSource(root, project, first.features, heuristic, {
+      source: "agent",
+      provider,
+      providerOptions: { model: null, reasoningEffort: null },
+    });
+
+    expect(first.features).toHaveLength(1);
+    expect(second.features).toHaveLength(1);
+    expect(second.features[0]?.featureId).toBe(first.features[0]?.featureId);
+    expect(second.stale).toBe(0);
+  });
+
+  it("augments deterministic features when forced agent mapping returns partial coverage", async () => {
+    const root = await fixtureRoot("clawnuke-agent-map-merge-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "merge-cli", bin: { merge: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    await writeFixture(root, "agent/worker.custom", "worker source\n");
+    await writeFixture(root, "agent/scheduler.custom", "scheduler source\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const mapped = await mapCommand(context, { source: "agent", provider: "mock" });
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(mapped).toMatchObject({ source: "agent", usedAgent: true, stale: 0 });
+    expect(features.some((feature) => feature.source === "package-json-bin")).toBe(true);
+    expect(features.some((feature) => feature.source === "agent-mapper")).toBe(true);
+    expect(features.some((feature) => feature.status === "skipped")).toBe(false);
+  });
+
+  it("rejects invalid map source values", async () => {
+    const root = await fixtureRoot("clawnuke-agent-map-bad-source-");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await expect(mapCommand(context, { source: "magic", provider: "mock" })).rejects.toThrow(
+      "invalid --source",
+    );
+  });
+
+  it("does not recurse through symlinked mapper directories", async () => {
+    const root = await fixtureRoot("clawnuke-map-symlink-root-");
+    const external = await fixtureRoot("clawnuke-map-symlink-external-");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "map-symlink" }));
+    await writeFixture(external, "page.tsx", "export default function Page() { return null; }\n");
+    await symlink(external, join(root, "app"), "dir");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(features.some((feature) => feature.source === "next-app-route")).toBe(false);
+  });
+
+  it("seeds config commands from detected package scripts and package manager", async () => {
+    const root = await fixtureRoot("clawnuke-config-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "npm-cli",
+        scripts: { typecheck: "tsc --noEmit", test: "node --test" },
+      }),
+    );
+    await writeFixture(root, "package-lock.json", "{}");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const config = JSON.parse(await readFile(join(root, ".clawnuke/config.json"), "utf8")) as {
+      commands: { typecheck: string; test: string };
+    };
+
+    expect(config.commands.typecheck).toBe("npm run typecheck");
+    expect(config.commands.test).toBe("npm run test");
+  });
+
+  it("honors CLAWNUKE_STATE_DIR during init", async () => {
+    const root = await fixtureRoot("clawnuke-env-state-root-");
+    const stateDir = await fixtureRoot("clawnuke-env-state-");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "env-state" }));
+    process.env["CLAWNUKE_STATE_DIR"] = stateDir;
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const project = await readProject(statePaths(stateDir));
+
+    expect(project?.name).toBe("env-state");
+    await expect(access(join(root, ".clawnuke"))).rejects.toThrow();
+    delete process.env["CLAWNUKE_STATE_DIR"];
+  });
+
+  it("loads and reports Codex reasoning effort overrides", async () => {
+    const root = await fixtureRoot("clawnuke-reasoning-effort-");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "reasoning-effort" }));
+    const previousProvider = process.env["CLAWNUKE_PROVIDER"];
+    const previousReasoning = process.env["CLAWNUKE_REASONING_EFFORT"];
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CLAWNUKE_REASONING_EFFORT"] = "xhigh";
+    try {
+      const context = await makeContext(testOptions(root));
+
+      await initCommand(context, {});
+      const config = await loadConfig(root, testOptions(root));
+      const doctor = await doctorCommand(context, {});
+
+      expect(config.provider.reasoningEffort).toBe("xhigh");
+      expect(doctor).toMatchObject({ provider: "mock", reasoningEffort: "xhigh" });
+    } finally {
+      if (previousProvider === undefined) {
+        delete process.env["CLAWNUKE_PROVIDER"];
+      } else {
+        process.env["CLAWNUKE_PROVIDER"] = previousProvider;
+      }
+      if (previousReasoning === undefined) {
+        delete process.env["CLAWNUKE_REASONING_EFFORT"];
+      } else {
+        process.env["CLAWNUKE_REASONING_EFFORT"] = previousReasoning;
+      }
+    }
+  });
+
+  it("allows fix dry-run when only the default state dir is dirty", async () => {
+    const root = await fixtureRoot("clawnuke-state-dirty-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding, dryRun: true });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ dryRun: true });
+    expect(patches).toEqual([]);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("retires stale features when seeds disappear", async () => {
+    const root = await fixtureRoot("clawnuke-stale-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "stale-cli", bin: { stale: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await unlink(join(root, "src/index.ts"));
+    await writeFixture(root, "package.json", JSON.stringify({ name: "stale-cli" }));
+    await mapCommand(context);
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(features.some((feature) => feature.status === "skipped")).toBe(true);
+  });
+
+  it("counts stale features by missing ids", async () => {
+    const root = await fixtureRoot("clawnuke-stale-count-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "stale-count", bin: { old: "src/old.ts" } }),
+    );
+    await writeFixture(root, "src/old.ts", "export const oldValue = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "stale-count", bin: { next: "src/next.ts" } }),
+    );
+    await writeFixture(root, "src/next.ts", "export const nextValue = 1;\n");
+    const mapped = await mapCommand(context);
+
+    expect(mapped).toMatchObject({ stale: 1 });
+  });
+
+  it("requeues restored skipped features", async () => {
+    const root = await fixtureRoot("clawnuke-restore-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "restore-cli", bin: { restore: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await unlink(join(root, "src/index.ts"));
+    await writeFixture(root, "package.json", JSON.stringify({ name: "restore-cli" }));
+    await mapCommand(context);
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "restore-cli", bin: { restore: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    await mapCommand(context);
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const restored = features.find((feature) => feature.title === "CLI command restore");
+
+    expect(restored?.status).toBe("pending");
+  });
+
+  it("releases feature locks on provider review failure", async () => {
+    const root = await fixtureRoot("clawnuke-lock-fail-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "lock-cli", bin: { lock: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await expect(reviewCommand(context, { provider: "mock-fail" })).rejects.toThrow(
+      "mock review failure",
+    );
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+
+    expect(features[0]?.status).toBe("error");
+    expect(features[0]?.lock).toBeNull();
+    expect(await readdir(join(root, ".clawnuke/locks"))).toEqual([]);
+    await rm(join(root, ".clawnuke"), { recursive: true, force: true });
+  });
+
+  it("does not create state directories for status before init", async () => {
+    const root = await fixtureRoot("clawnuke-readonly-");
+    const context = await makeContext(testOptions(root));
+
+    await expect(statusCommand(context)).rejects.toThrow("not initialized");
+    await expect(access(join(root, ".clawnuke"))).rejects.toThrow();
+  });
+
+  it("loads config from custom state directories", async () => {
+    const root = await fixtureRoot("clawnuke-custom-state-root-");
+    const stateDir = await fixtureRoot("clawnuke-custom-state-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "custom-state",
+        scripts: { test: "node --test" },
+      }),
+    );
+    await writeFixture(root, "package-lock.json", "{}");
+    const options = { ...testOptions(root), stateDir };
+    const context = await makeContext(options);
+
+    await initCommand(context, {});
+    const config = await loadConfig(root, options);
+
+    expect(config.commands.test).toBe("npm run test");
+  });
+
+  it("clean-locks requeues claimed features", async () => {
+    const root = await fixtureRoot("clawnuke-clean-locks-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "clean-locks", bin: { clean: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths))[0];
+    expect(feature).toBeDefined();
+    await claimFeature(paths, feature!.featureId, {
+      lockedByRunId: "run",
+      lockedAt: new Date().toISOString(),
+      hostname: "test",
+      pid: 1,
+    });
+    expect(await readdir(paths.locks)).toEqual([`${feature!.featureId}.json`]);
+    await cleanLocksCommand(context);
+    const cleaned = (await readFeatures(paths))[0];
+
+    expect(cleaned?.status).toBe("pending");
+    expect(cleaned?.lock).toBeNull();
+    expect(await readdir(paths.locks)).toEqual([]);
+  });
+
+  it("surfaces crash-window lock files in status", async () => {
+    const root = await fixtureRoot("clawnuke-file-lock-status-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "file-lock-status", bin: { clean: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths))[0];
+    expect(feature).toBeDefined();
+    await writeFixture(
+      root,
+      `.clawnuke/locks/${feature!.featureId}.json`,
+      `${JSON.stringify({
+        lockedByRunId: "interrupted",
+        lockedAt: new Date().toISOString(),
+        hostname: "test",
+        pid: 1,
+      })}\n`,
+    );
+
+    expect(await statusCommand(context)).toMatchObject({ activeLocks: 1, lockFiles: 1 });
+  });
+
+  it("cleans interrupted review locks through the CLI entrypoint", async () => {
+    const root = await fixtureRoot("clawnuke-clean-locks-cli-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "clean-locks-cli", bin: { clean: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+
+    await runCli(["--root", root, "init", "--json"]);
+    await runCli(["--root", root, "map", "--json"]);
+
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0];
+    expect(feature).toBeDefined();
+    await claimFeature(paths, feature!.featureId, {
+      lockedByRunId: "interrupted",
+      lockedAt: new Date().toISOString(),
+      hostname: "test",
+      pid: 1,
+    });
+
+    const output = await runCli(["--root", root, "clean-locks", "--json"]);
+    const cleaned = (await readFeatures(paths))[0];
+
+    expect(JSON.parse(output.stdout)).toMatchObject({ cleared: 1, lockFilesCleared: 1 });
+    expect(cleaned?.status).toBe("pending");
+    expect(cleaned?.lock).toBeNull();
+    expect(await readdir(paths.locks)).toEqual([]);
+  });
+
+  it("filters state files from successful fix results", async () => {
+    const root = await fixtureRoot("clawnuke-filter-state-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
+    expect(patches[0]?.filesChanged).toEqual([]);
+    await expect(access(join(root, "SHOULD_NOT_RUN_PROVIDER_COMMANDS"))).rejects.toThrow();
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("includes feature-specific validation in fix dry-run output", async () => {
+    const root = await fixtureRoot("clawnuke-feature-validation-dry-run-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0];
+    const featureCommand = 'node -e "process.exit(0)"';
+    await writeFeature(paths, {
+      ...feature!,
+      tests: [{ path: "src/index.test.ts", command: featureCommand }],
+    });
+    const fixed = await fixCommand(context, { finding, dryRun: true });
+    const patches = await readPatchAttempts(paths);
+
+    expect(fixed).toMatchObject({ dryRun: true, validation: featureCommand });
+    expect(patches).toEqual([]);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("includes evidence, context, and tests in fix prompts", async () => {
+    const root = await fixtureRoot("clawnuke-fix-prompt-context-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/helper.ts", "export const helper = true;\n");
+    await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
+    await writeFixture(root, ".env", "SECRET=do-not-send\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const findingId = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0]!;
+    const featureWithContext: FeatureRecord = {
+      ...feature,
+      ownedFiles: [{ path: "src/helper.ts", reason: "first capped file" }, ...feature.ownedFiles],
+      contextFiles: [{ path: "src/helper.ts", reason: "helper context" }],
+      tests: [{ path: "src/index.test.ts", command: "npm test" }],
+    };
+    const finding = (await readFinding(paths, findingId))!;
+    const findingWithUnownedEvidence = {
+      ...finding,
+      evidence: [
+        { path: ".env", startLine: 1, endLine: 1, symbol: null, quote: "SECRET" },
+        ...finding.evidence,
+      ],
+    };
+    const promptConfig = await loadConfig(root, testOptions(root));
+    const prompt = await buildFixPrompt(root, findingWithUnownedEvidence, featureWithContext, {
+      ...promptConfig,
+      review: {
+        ...promptConfig.review,
+        maxOwnedFiles: 1,
+      },
+    });
+
+    expect(prompt).toContain("--- src/index.ts");
+    expect(prompt).toContain("--- src/helper.ts");
+    expect(prompt).toContain("--- src/index.test.ts");
+    expect(prompt).not.toContain("SECRET=do-not-send");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("records already-dirty files changed during fix validation", async () => {
+    const root = await fixtureRoot("clawnuke-fix-dirty-snapshot-");
+    await initGit(root);
+    const config = defaultConfig();
+    await writeFixture(
+      root,
+      "clawnuke.config.json",
+      JSON.stringify(
+        {
+          ...config,
+          provider: { name: "mock", model: null },
+          commands: {
+            ...config.commands,
+            format:
+              "node -e \"require('node:fs').appendFileSync('src/index.ts','// validation touch\\n')\"",
+          },
+          git: { ...config.git, requireCleanWorktreeForFix: false },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "buggy",
+        bin: { buggy: "src/index.ts" },
+        scripts: {},
+      }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await writeFixture(
+      root,
+      "src/index.ts",
+      "export const value = 'TODO_BUG';\n// pre-existing user change\n",
+    );
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.filesChanged).toEqual(["src/index.ts"]);
+  });
+
+  it("records dirty files removed during fix validation", async () => {
+    const root = await fixtureRoot("clawnuke-fix-dirty-delete-");
+    await initGit(root);
+    const config = defaultConfig();
+    await writeFixture(
+      root,
+      "clawnuke.config.json",
+      JSON.stringify(
+        {
+          ...config,
+          provider: { name: "mock", model: null },
+          commands: {
+            ...config.commands,
+            format: "node -e \"require('node:fs').unlinkSync('src/scratch.txt')\"",
+          },
+          git: { ...config.git, requireCleanWorktreeForFix: false },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await writeFixture(root, "src/scratch.txt", "temporary user work\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.filesChanged).toEqual(["src/scratch.txt"]);
+  });
+
+  it("records changes inside pre-existing untracked directories", async () => {
+    const root = await fixtureRoot("clawnuke-fix-dirty-untracked-dir-");
+    await initGit(root);
+    const config = defaultConfig();
+    await writeFixture(
+      root,
+      "clawnuke.config.json",
+      JSON.stringify(
+        {
+          ...config,
+          provider: { name: "mock", model: null },
+          commands: {
+            ...config.commands,
+            format:
+              "node -e \"require('node:fs').appendFileSync('scratch/note.txt','validation touch\\n')\"",
+          },
+          git: { ...config.git, requireCleanWorktreeForFix: false },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await writeFixture(root, "scratch/note.txt", "pre-existing user work\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.filesChanged).toEqual(["scratch/note.txt"]);
+  });
+
+  it("records mode-only changes to already-dirty files", async () => {
+    const root = await fixtureRoot("clawnuke-fix-dirty-mode-");
+    await initGit(root);
+    await checkCommand(root, "git config core.filemode true");
+    const config = defaultConfig();
+    await writeFixture(
+      root,
+      "clawnuke.config.json",
+      JSON.stringify(
+        {
+          ...config,
+          provider: { name: "mock", model: null },
+          commands: {
+            ...config.commands,
+            format: "chmod +x script.sh",
+          },
+          git: { ...config.git, requireCleanWorktreeForFix: false },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "script.sh", "#!/bin/sh\necho before\n");
+    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts script.sh");
+    await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await writeFixture(root, "script.sh", "#!/bin/sh\necho before\necho dirty\n");
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.filesChanged).toEqual(["script.sh"]);
+  });
+
+  it("fingerprints dirty symlinks without reading external targets", async () => {
+    const root = await fixtureRoot("clawnuke-fix-dirty-symlink-");
+    const external = await fixtureRoot("clawnuke-fix-dirty-symlink-external-");
+    const externalPath = join(external, "target.txt");
+    await initGit(root);
+    await writeFixture(external, "target.txt", "secret\n");
+    const config = defaultConfig();
+    const externalMutation = `require('node:fs').appendFileSync(${JSON.stringify(
+      externalPath,
+    )}, 'changed\\n')`;
+    await writeFixture(
+      root,
+      "clawnuke.config.json",
+      JSON.stringify(
+        {
+          ...config,
+          provider: { name: "mock", model: null },
+          commands: {
+            ...config.commands,
+            format: `node -e ${JSON.stringify(externalMutation)}`,
+          },
+          git: { ...config.git, requireCleanWorktreeForFix: false },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
+    await symlink(externalPath, join(root, "src/link.txt"));
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
+    expect(patches[0]?.filesChanged).toEqual([]);
+    expect(await readFile(externalPath, "utf8")).toContain("changed");
+  });
+
+  it("suppresses configured test validation for persistent feature tests", async () => {
+    const root = await fixtureRoot("clawnuke-feature-validation-suppressed-test-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "buggy",
+        bin: { buggy: "src/index.ts" },
+        scripts: {
+          format: 'node -e "process.exit(0)"',
+          test: 'node -e "process.exit(9)"',
+        },
+      }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0];
+    await writeFeature(paths, {
+      ...feature!,
+      tests: [{ path: "src/index.test.ts", command: null }],
+      tags: [...feature!.tags, "validation:test-suppressed"],
+    });
+    const fixed = await fixCommand(context, { finding, dryRun: true });
+
+    expect(fixed).toMatchObject({ dryRun: true, validation: "npm run format" });
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("fails fix when feature-specific validation fails", async () => {
+    const root = await fixtureRoot("clawnuke-feature-validation-fail-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0];
+    const featureCommand = 'node -e "process.exit(7)"';
+    await writeFeature(paths, {
+      ...feature!,
+      tests: [{ path: "src/index.test.ts", command: featureCommand }],
+    });
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({ exitCode: 6 });
+    const [patches, updatedFinding] = await Promise.all([
+      readPatchAttempts(paths),
+      readFinding(paths, finding),
+    ]);
+
+    expect(patches[0]?.status).toBe("failed");
+    expect(patches[0]?.commandsRun).toHaveLength(1);
+    expect(patches[0]?.commandsRun[0]).toMatchObject({ command: featureCommand, exitCode: 7 });
+    expect(updatedFinding?.status).toBe("open");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("deduplicates feature-specific and configured fix validation commands", async () => {
+    const root = await fixtureRoot("clawnuke-feature-validation-dedupe-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "buggy",
+        bin: { buggy: "src/index.ts" },
+        scripts: {
+          format: 'node -e "process.exit(0)"',
+          test: 'node -e "process.exit(0)"',
+        },
+      }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".clawnuke"));
+    const feature = (await readFeatures(paths))[0];
+    const featureCommand = 'node -e "process.exit(0)"';
+    await writeFeature(paths, {
+      ...feature!,
+      tests: [
+        { path: "src/index.test.ts", command: "" },
+        { path: "src/index.test.ts", command: featureCommand },
+        { path: "src/index.test.ts", command: "npm run test" },
+      ],
+    });
+    const fixed = await fixCommand(context, { finding });
+    const patches = await readPatchAttempts(paths);
+
+    expect(fixed).toMatchObject({ status: "applied", commands: 3 });
+    expect(patches[0]?.commandsRun.map((result) => result.command)).toEqual([
+      "npm run format",
+      featureCommand,
+      "npm run test",
+    ]);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("blocks fix when git cleanliness cannot be verified", async () => {
+    const root = await fixtureRoot("clawnuke-non-git-fix-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({
+      code: "dirty-worktree",
+    });
+
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("fails fix when configured validation fails", async () => {
+    const root = await fixtureRoot("clawnuke-validation-fail-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "buggy",
+        bin: { buggy: "src/index.ts" },
+        scripts: { test: "exit 1" },
+      }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({ exitCode: 6 });
+    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+
+    expect(patches[0]?.status).toBe("failed");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("marks review runs failed on lock conflicts", async () => {
+    const root = await fixtureRoot("clawnuke-lock-conflict-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "lock-conflict", bin: { lock: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 1;\n");
+    const context = await makeContext(testOptions(root));
+    const paths = statePaths(join(root, ".clawnuke"));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const feature = (await readFeatures(paths))[0];
+    expect(feature).toBeDefined();
+    await writeFeature(paths, {
+      ...feature!,
+      lock: {
+        lockedByRunId: "existing",
+        lockedAt: new Date().toISOString(),
+        hostname: "test",
+        pid: 1,
+      },
+    });
+
+    await expect(reviewCommand(context, { feature: feature!.featureId })).rejects.toThrow(
+      "feature locked",
+    );
+    const runs = await readRuns(paths);
+
+    expect(runs[0]?.status).toBe("failed");
+  });
+
+  it("requeues changed reviewed features after remapping", async () => {
+    const root = await fixtureRoot("clawnuke-requeue-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "requeue", scripts: { test: "echo old" } }),
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "2" });
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "requeue", scripts: { test: "echo new" } }),
+    );
+    await mapCommand(context);
+    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const testFeature = features.find((feature) => feature.title === "Package script test");
+
+    expect(testFeature?.summary).toContain("echo new");
+    expect(testFeature?.status).toBe("pending");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("preserves finding status and patch links on repeated review", async () => {
+    const root = await fixtureRoot("clawnuke-merge-finding-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "merge-finding", bin: { merge: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    await reviewCommand(context, { limit: "1" });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const finding = (await readFindings(paths))[0];
+    expect(finding).toBeDefined();
+    await writeFinding(paths, {
+      ...finding!,
+      status: "fixed",
+      linkedPatchAttemptIds: ["pat_existing"],
+    });
+    await reviewCommand(context, { feature: finding!.featureId });
+    const reviewedAgain = (await readFindings(paths))[0];
+
+    expect(reviewedAgain?.status).toBe("fixed");
+    expect(reviewedAgain?.linkedPatchAttemptIds).toEqual(["pat_existing"]);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("does not include escaped feature paths in prompts", async () => {
+    const root = await fixtureRoot("clawnuke-path-escape-");
+    const siblingSecret = join(root, "..", "secret.txt");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "path-escape" }));
+    await writeFixture(root, "../secret.txt", "do-not-read\n");
+    await mkdir(join(root, "src"), { recursive: true });
+    await symlink(siblingSecret, join(root, "src/index.ts"));
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    const project = await readProject(statePaths(join(root, ".clawnuke")));
+    expect(project).toBeDefined();
+    const prompt = await buildReviewPrompt(
+      root,
+      project!,
+      {
+        schemaVersion: 1,
+        featureId: "feat_escape",
+        title: "escape",
+        summary: siblingSecret,
+        kind: "config",
+        source: "test",
+        confidence: "high",
+        entrypoints: [{ path: "../secret.txt", symbol: null, route: null, command: null }],
+        ownedFiles: [{ path: "../secret.txt", reason: "test" }],
+        contextFiles: [],
+        tests: [],
+        tags: [],
+        trustBoundaries: [],
+        status: "pending",
+        lock: null,
+        findingIds: [],
+        patchAttemptIds: [],
+        analysisHistory: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      await loadConfig(root, testOptions(root)),
+    );
+
+    expect(prompt).toContain("[skipped: path escapes repository root]");
+    expect(prompt).not.toContain("do-not-read");
+
+    const symlinkPrompt = await buildReviewPrompt(
+      root,
+      project!,
+      {
+        schemaVersion: 1,
+        featureId: "feat_symlink",
+        title: "symlink",
+        summary: "symlink",
+        kind: "config",
+        source: "test",
+        confidence: "high",
+        entrypoints: [{ path: "src/index.ts", symbol: null, route: null, command: null }],
+        ownedFiles: [{ path: "src/index.ts", reason: "test" }],
+        contextFiles: [],
+        tests: [],
+        tags: [],
+        trustBoundaries: [],
+        status: "pending",
+        lock: null,
+        findingIds: [],
+        patchAttemptIds: [],
+        analysisHistory: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      await loadConfig(root, testOptions(root)),
+    );
+
+    expect(symlinkPrompt).toContain("[skipped: path escapes repository root]");
+    expect(symlinkPrompt).not.toContain("do-not-read");
+  });
+
+  it("persists failed patch attempts when provider fix throws", async () => {
+    const root = await fixtureRoot("clawnuke-fix-fail-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    await expect(fixCommand(context, { finding, provider: "mock-fail" })).rejects.toThrow(
+      "mock fix failure",
+    );
+    const paths = statePaths(join(root, ".clawnuke"));
+    const patches = await readPatchAttempts(paths);
+    const findings = await readFindings(paths);
+
+    expect(patches[0]?.status).toBe("failed");
+    expect(findings[0]?.linkedPatchAttemptIds).toContain(patches[0]?.patchAttemptId);
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+});
