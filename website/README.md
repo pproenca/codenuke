@@ -1,6 +1,6 @@
 # codenuke Website
 
-Static single-page site for the early `codenuke` CLI.
+Static single-page site for the published `codenuke` CLI.
 
 Files:
 
@@ -18,8 +18,9 @@ python3 -m http.server 8000
 
 Keep copy aligned with the implemented CLI:
 
-- provider: local Codex CLI, plus test mocks
-- review: sequential feature review
+- package: `codenuke` on npm
+- provider: Codex, OpenCode, ACPX, Grok, plus test mocks
+- review: feature review with `--jobs`
 - fix: `codenuke fix --finding <id>`
 - no auto-commit, PR creation, or landing yet
 - no direct OpenAI provider yet

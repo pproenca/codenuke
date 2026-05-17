@@ -3,1407 +3,1560 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Codenuke — Automated Code Review</title>
+    <title>Codenuke - Automated Code Review</title>
     <meta
       name="description"
-      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic feature slices and records explicit fix attempts."
+      content="Codenuke maps repositories into semantic feature slices, reviews them with AI providers, and applies explicit validated fixes."
     />
-
-    <!-- Favicon -->
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-
-    <!-- Open Graph / Social Card -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Codenuke" />
-    <meta property="og:title" content="Codenuke — Trusted Refactoring Review" />
+    <meta property="og:title" content="Codenuke - Automated Code Review" />
     <meta
       property="og:description"
-      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
+      content="Semantic feature mapping, AI review, reportable findings, and explicit validated fixes from one CLI."
     />
     <meta property="og:url" content="https://codenuke.ai" />
     <meta property="og:image" content="https://codenuke.ai/social-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Codenuke — Trusted Refactoring Review" />
+    <meta name="twitter:title" content="Codenuke - Automated Code Review" />
     <meta
       name="twitter:description"
-      content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
+      content="Map codebases into features, review them with AI, and fix findings only when you ask."
     />
     <meta name="twitter:image" content="https://codenuke.ai/social-card.png" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
     <style>
-      :root {
-        /* Crustacean color palette */
-        --coral-primary: #ff6b4a;
-        --coral-dark: #e85535;
-        --coral-light: #ff8a6d;
-        --ocean-blue: #2a9d8f;
-        --ocean-deep: #1a7f73;
-        --ocean-light: #46b5a6;
-        --sand-light: #fef5ed;
-        --sand: #f4e8db;
-        --shell-pink: #ffb4a2;
-        --reef-purple: #6b4e8f;
-        --kelp-green: #52b788;
-
-        /* Core colors */
-        --ink: #0a1628;
-        --text: #2c3e50;
-        --muted: #6c7a89;
-        --subtle: #95a5a6;
-        --bg: #fef9f5;
-        --paper: #ffffff;
-        --accent: var(--coral-primary);
-        --accent-soft: rgba(255, 107, 74, 0.1);
-        --accent-strong: var(--coral-dark);
-        --secondary: var(--ocean-blue);
-        --line: #e8dfd6;
-        --line-soft: #f5ede4;
-        --code-bg: #0f1d2f;
-        --code-fg: #e6f1f5;
-        --code-inline-fg: #1c2128;
-        --code-border: #1f2937;
-        --shadow-card: 0 4px 16px rgba(255, 107, 74, 0.12);
-        --shadow-float: 0 8px 24px rgba(42, 157, 143, 0.18);
-
-        /* Syntax highlighting */
-        --hl-keyword: #6bb6ff;
-        --hl-string: #52b788;
-        --hl-number: #ffb86c;
-        --hl-comment: #7c8597;
-        --hl-flag: #c084fc;
-        --hl-meta: #ff6b9d;
-        --hl-prompt: #6c7a89;
+      @font-face {
+        font-family: InterVariable;
+        src: url("https://rsms.me/inter/font-files/InterVariable.woff2?v=4.1") format("woff2");
+        font-display: swap;
+        font-weight: 100 900;
       }
 
-      :root[data-theme="dark"] {
-        --ink: #f3f5f9;
-        --text: #cbd2dc;
-        --muted: #8d96a4;
-        --subtle: #5d6371;
-        --bg: #0a1018;
-        --paper: #141b28;
-        --accent: #ff8a6d;
-        --accent-soft: rgba(255, 138, 109, 0.18);
-        --accent-strong: #ffb4a2;
-        --secondary: #46b5a6;
-        --line: #1f2937;
-        --line-soft: #151e2d;
-        --code-bg: #050a12;
-        --code-fg: #e6f1f5;
-        --code-inline-fg: #e6f1f5;
-        --code-border: #1a2333;
-        --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.5);
-        --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.6);
-        --sand-light: #1a2333;
-        --sand: #151e2d;
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f4;
+        --ink: #101212;
+        --text: #343837;
+        --muted: #68706d;
+        --paper: #ffffff;
+        --wash: #edf1ec;
+        --line: #dce3dc;
+        --line-strong: #bac6be;
+        --black: #111616;
+        --terminal: #0b1012;
+        --terminal-soft: #182124;
+        --cream: #fff8e8;
+        --red: #df3e37;
+        --red-soft: #fff0ed;
+        --teal: #16877f;
+        --teal-soft: #e3f5f1;
+        --blue: #2866b8;
+        --blue-soft: #e7f0ff;
+        --amber: #ad6b08;
+        --amber-soft: #fff4da;
+        --violet: #6b53b8;
+        --shadow: 0 26px 80px rgb(16 18 18 / 0.14);
+        --shadow-small: 0 12px 34px rgb(16 18 18 / 0.1);
+        --radius: 8px;
+        --content: 1184px;
       }
 
       * {
         box-sizing: border-box;
       }
+
       html {
         scroll-behavior: smooth;
-        scroll-padding-top: 24px;
+        scroll-padding-top: 86px;
       }
+
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
         font-family:
-          "Inter",
+          InterVariable,
+          Inter,
           ui-sans-serif,
           system-ui,
           -apple-system,
-          Segoe UI,
+          BlinkMacSystemFont,
+          "Segoe UI",
           sans-serif;
-        line-height: 1.65;
-        overflow-x: hidden;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
+        line-height: 1.6;
+        text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
-        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-        transition:
-          background-color 0.3s,
-          color 0.3s;
-      }
-
-      ::selection {
-        background: var(--accent);
-        color: #fff;
       }
 
       a {
-        color: var(--accent);
+        color: inherit;
         text-decoration: none;
-        transition: color 0.15s;
       }
 
       a:hover {
         text-decoration: underline;
-        text-underline-offset: 0.2em;
+        text-underline-offset: 0.18em;
       }
 
-      /* Layout */
-      .shell {
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        min-height: 100vh;
+      code,
+      pre,
+      .mono {
+        font-family:
+          "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
       }
 
-      /* Sidebar */
-      .sidebar {
+      button,
+      input {
+        font: inherit;
+      }
+
+      .site {
+        isolation: isolate;
+        min-height: 100svh;
+        overflow: clip;
+      }
+
+      .skip {
+        position: absolute;
+        top: 12px;
+        left: 14px;
+        z-index: 100;
+        padding: 9px 12px;
+        border-radius: 6px;
+        background: var(--ink);
+        color: white;
+        transform: translateY(-150%);
+      }
+
+      .skip:focus {
+        transform: translateY(0);
+      }
+
+      .nav {
         position: sticky;
         top: 0;
-        height: 100vh;
-        overflow: auto;
-        padding: 28px 24px;
-        background: var(--paper);
-        border-right: 2px solid var(--line);
-        scrollbar-width: thin;
-        scrollbar-color: var(--line) transparent;
-        transition:
-          background-color 0.3s,
-          border-color 0.3s;
+        z-index: 50;
+        border-bottom: 1px solid rgb(16 18 18 / 0.08);
+        background: rgb(246 247 244 / 0.88);
+        backdrop-filter: blur(18px);
       }
 
-      .sidebar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .sidebar::-webkit-scrollbar-thumb {
-        background: var(--line);
-        border-radius: 6px;
-      }
-
-      .sidebar-head {
+      .nav-inner {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 28px;
+        justify-content: space-between;
+        gap: 18px;
+        max-width: var(--content);
+        min-height: 68px;
+        margin: 0 auto;
+        padding: 0 24px;
       }
 
       .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--ink);
-        text-decoration: none;
-        flex: 1;
-        min-width: 0;
-      }
-
-      .brand:hover {
-        text-decoration: none;
-      }
-
-      /* Claw icon */
-      .brand .mark {
-        position: relative;
-        width: 36px;
-        height: 36px;
-        flex: 0 0 36px;
-      }
-
-      .claw-icon {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
-
-      .claw-icon {
-        transition: transform 0.3s ease;
-      }
-
-      .brand:hover .claw-icon {
-        transform: rotate(-5deg) scale(1.05);
-      }
-
-      .brand strong {
-        display: block;
-        font-size: 1.1rem;
-        line-height: 1.1;
-        font-weight: 700;
-        letter-spacing: -0.01em;
-        color: var(--ink);
-      }
-
-      .brand small {
-        display: block;
-        color: var(--muted);
-        font-size: 0.75rem;
-        margin-top: 3px;
-        font-weight: 400;
-      }
-
-      /* Theme toggle - ocean tide switch */
-      .theme-toggle {
-        position: relative;
         display: inline-flex;
         align-items: center;
-        justify-content: flex-start;
-        flex: 0 0 auto;
-        width: 64px;
-        height: 32px;
-        border-radius: 16px;
-        border: none;
-        background: linear-gradient(135deg, #ffd89b 0%, #ffb86c 100%);
-        cursor: pointer;
-        padding: 3px;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow:
-          inset 0 2px 6px rgba(0, 0, 0, 0.15),
-          0 2px 8px rgba(255, 107, 74, 0.2);
+        gap: 10px;
+        color: var(--ink);
+        font-weight: 700;
+        letter-spacing: 0;
       }
 
-      /* Ocean waves background pattern */
-      .theme-toggle::before {
+      .brand-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--black);
+        color: var(--cream);
+        font-size: 13px;
+        font-weight: 760;
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .nav-links a {
+        white-space: nowrap;
+      }
+
+      .nav-install {
+        display: inline-flex;
+        min-height: 34px;
+        align-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        padding: 6px 11px;
+        color: var(--ink);
+        background: rgb(255 255 255 / 0.62);
+      }
+
+      .menu-button {
+        display: none;
+        min-height: 36px;
+        align-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        padding: 7px 11px;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .mobile-panel {
+        display: none;
+        border-top: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .mobile-panel[data-open="true"] {
+        display: block;
+      }
+
+      .mobile-panel a {
+        display: block;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text);
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        padding: 10px 15px;
+        font-size: 15px;
+        font-weight: 650;
+        text-decoration: none;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease,
+          background 160ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+      }
+
+      .button-primary {
+        border: 1px solid var(--red);
+        background: var(--red);
+        color: white;
+        box-shadow: 0 12px 28px rgb(223 62 55 / 0.22);
+      }
+
+      .button-primary:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+
+      .button-secondary {
+        border: 1px solid var(--line-strong);
+        background: rgb(255 255 255 / 0.72);
+        color: var(--ink);
+      }
+
+      .button-secondary:hover {
+        background: var(--paper);
+        box-shadow: var(--shadow-small);
+      }
+
+      .hero {
+        position: relative;
+        min-height: min(860px, calc(100svh - 30px));
+        padding: 0 24px 28px;
+        overflow: clip;
+        background: var(--bg);
+      }
+
+      .hero::before {
         content: "";
         position: absolute;
         inset: 0;
-        border-radius: 16px;
+        z-index: -2;
         background:
-          linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%),
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 3px,
-            rgba(255, 255, 255, 0.1) 3px,
-            rgba(255, 255, 255, 0.1) 6px
-          );
-        animation: waves 3s linear infinite;
+          linear-gradient(rgb(16 18 18 / 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(16 18 18 / 0.05) 1px, transparent 1px);
+        background-size: 56px 56px;
+      }
+
+      .hero-stage {
+        position: absolute;
+        inset: 86px max(-180px, -12vw) 0 62%;
+        z-index: 0;
+        opacity: 0.94;
         pointer-events: none;
       }
 
-      @keyframes waves {
-        0% {
-          background-position:
-            0 0,
-            0 0;
-        }
-        100% {
-          background-position:
-            0 0,
-            12px 0;
-        }
-      }
-
-      /* Dark mode track color */
-      :root[data-theme="dark"] .theme-toggle {
-        background: linear-gradient(135deg, #1a3a52 0%, #2a4a62 100%);
-        box-shadow:
-          inset 0 2px 6px rgba(0, 0, 0, 0.4),
-          0 2px 8px rgba(42, 157, 143, 0.3);
-      }
-
-      /* Claw indicator */
-      .theme-toggle-indicator {
-        position: absolute;
-        left: 3px;
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--coral-primary) 0%, var(--coral-dark) 100%);
-        box-shadow:
-          0 2px 4px rgba(0, 0, 0, 0.2),
-          inset 0 1px 2px rgba(255, 255, 255, 0.3),
-          0 0 0 1px rgba(255, 255, 255, 0.2);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      :root[data-theme="dark"] .theme-toggle-indicator {
-        left: calc(100% - 29px);
-        background: linear-gradient(135deg, var(--ocean-light) 0%, var(--ocean-blue) 100%);
-      }
-
-      /* Icon inside indicator */
-      .theme-toggle svg {
-        width: 14px;
-        height: 14px;
-        display: block;
-        color: white;
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
-        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      }
-
-      /* Hover effects */
-      .theme-toggle:hover .theme-toggle-indicator {
-        transform: scale(1.1);
-        box-shadow:
-          0 3px 8px rgba(0, 0, 0, 0.25),
-          inset 0 1px 2px rgba(255, 255, 255, 0.4),
-          0 0 0 2px rgba(255, 255, 255, 0.3);
-      }
-
-      .theme-toggle:hover svg {
-        transform: rotate(15deg) scale(1.15);
-      }
-
-      .theme-toggle:active .theme-toggle-indicator {
-        transform: scale(0.95);
-      }
-
-      /* Icon display control */
-      .theme-icon-moon {
-        display: block !important;
-      }
-
-      .theme-icon-sun {
-        display: none !important;
-      }
-
-      :root[data-theme="dark"] .theme-icon-moon {
-        display: none !important;
-      }
-
-      :root[data-theme="dark"] .theme-icon-sun {
-        display: block !important;
-      }
-
-      /* Navigation */
-      .search {
-        display: block;
-        margin: 0 0 24px;
-      }
-
-      .search span {
-        display: block;
-        color: var(--muted);
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 8px;
-      }
-
-      .search input {
-        width: 100%;
-        border: 2px solid var(--line);
-        background: var(--paper);
-        border-radius: 10px;
-        padding: 10px 14px;
-        font: inherit;
-        font-size: 0.9rem;
-        color: var(--text);
-        outline: none;
-        transition:
-          border-color 0.2s,
-          box-shadow 0.2s,
-          background-color 0.3s;
-      }
-
-      .search input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 4px var(--accent-soft);
-      }
-
-      nav section {
-        margin: 0 0 22px;
-      }
-
-      nav h2 {
-        font-size: 0.68rem;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin: 0 0 8px;
-        font-weight: 600;
-      }
-
-      .nav-link {
-        display: block;
-        color: var(--text);
-        text-decoration: none;
-        border-radius: 8px;
-        padding: 7px 12px;
-        margin: 2px 0;
-        font-size: 0.9rem;
-        line-height: 1.4;
-        transition:
-          background 0.15s,
-          color 0.15s;
-      }
-
-      .nav-link:hover {
-        background: var(--accent-soft);
-        color: var(--accent);
-        text-decoration: none;
-      }
-
-      .nav-link.active {
-        background: var(--accent-soft);
-        color: var(--accent);
-        font-weight: 600;
-      }
-
-      /* Main content */
-      main {
-        min-width: 0;
-        padding: 40px clamp(24px, 5vw, 64px) 100px;
-        max-width: 1240px;
-        margin: 0 auto;
-        width: 100%;
-      }
-
-      /* Home hero with ocean gradient */
-      .home-hero {
+      .workspace {
         position: relative;
-        padding: 24px 0 40px;
-        margin-bottom: 12px;
-        border-bottom: 2px solid var(--line);
+        height: 650px;
+      }
+
+      .panel {
+        position: absolute;
+        border: 1px solid rgb(255 255 255 / 0.12);
+        border-radius: var(--radius);
+        background: var(--terminal);
+        box-shadow: var(--shadow);
+        color: #dae7e6;
         overflow: hidden;
       }
 
-      .home-hero::before {
+      .panel::before {
         content: "";
+        display: block;
+        height: 36px;
+        border-bottom: 1px solid rgb(255 255 255 / 0.08);
+        background: var(--terminal-soft);
+      }
+
+      .panel-label {
         position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 60%;
-        height: 200%;
-        background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
-        opacity: 0.4;
-        pointer-events: none;
-        animation: float 20s ease-in-out infinite;
+        top: 10px;
+        left: 16px;
+        color: #92a09e;
+        font-size: 12px;
       }
 
-      @keyframes float {
-        0%,
-        100% {
-          transform: translateY(0) rotate(0deg);
-        }
-        50% {
-          transform: translateY(-20px) rotate(5deg);
-        }
+      .panel-body {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+        font-size: 13px;
+        line-height: 1.45;
       }
 
-      .eyebrow {
-        margin: 0 0 10px;
-        color: var(--ocean-blue);
+      .panel-line {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: 12px;
+      }
+
+      .panel-line span:first-child {
+        color: #667371;
+        text-align: right;
+        user-select: none;
+      }
+
+      .panel-main {
+        top: 80px;
+        left: 0;
+        width: min(500px, 46vw);
+        min-height: 340px;
+        transform: rotate(-2deg);
+      }
+
+      .panel-side {
+        top: 280px;
+        left: 340px;
+        width: min(410px, 38vw);
+        min-height: 250px;
+        transform: rotate(2deg);
+      }
+
+      .panel-small {
+        top: 24px;
+        left: 430px;
+        width: 300px;
+        min-height: 190px;
+        transform: rotate(4deg);
+      }
+
+      .token-red {
+        color: #ff8177;
+      }
+
+      .token-teal {
+        color: #62d7ce;
+      }
+
+      .token-amber {
+        color: #f7c66b;
+      }
+
+      .token-violet {
+        color: #c8b9ff;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        min-height: inherit;
+        max-width: var(--content);
+        margin: 0 auto;
+        align-items: center;
+        padding: 64px 0 76px;
+      }
+
+      .hero-copy {
+        max-width: 720px;
+        padding-top: 14px;
+      }
+
+      .eyebrow,
+      .kicker {
+        margin: 0 0 13px;
+        color: var(--red);
+        font-family:
+          "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+        font-size: 13px;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.08em;
-        font-size: 0.72rem;
+        text-transform: uppercase;
       }
 
-      .home-hero h1 {
-        font-size: 3.5rem;
-        line-height: 1.05;
-        letter-spacing: -0.02em;
-        margin: 0 0 0.35em;
-        font-weight: 800;
+      h1,
+      h2,
+      h3 {
+        margin: 0;
         color: var(--ink);
-        background: linear-gradient(135deg, var(--coral-primary) 0%, var(--ocean-blue) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        font-weight: 650;
+        letter-spacing: 0;
+        text-wrap: balance;
       }
 
-      .home-hero .lede {
-        font-size: 1.25rem;
-        line-height: 1.6;
+      h1 {
+        max-width: 11ch;
+        font-size: clamp(72px, 13vw, 170px);
+        line-height: 0.92;
+      }
+
+      h2 {
+        max-width: 12ch;
+        font-size: clamp(38px, 5vw, 68px);
+        line-height: 1;
+      }
+
+      h3 {
+        font-size: 19px;
+      }
+
+      p {
+        text-wrap: pretty;
+      }
+
+      .hero-lede {
+        max-width: 58ch;
+        margin: 28px 0 0;
         color: var(--text);
-        margin: 0 0 1.4em;
-        max-width: 65ch;
+        font-size: 22px;
+        line-height: 1.45;
       }
 
-      .home-cta {
+      .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        align-items: center;
-        margin: 0 0 24px;
+        margin-top: 34px;
       }
 
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border-radius: 10px;
-        padding: 12px 20px;
-        font-weight: 600;
-        font-size: 0.95rem;
-        text-decoration: none;
-        transition: all 0.2s;
-        box-shadow: var(--shadow-card);
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, var(--coral-primary) 0%, var(--coral-dark) 100%);
-        color: #fff;
-        border: 2px solid var(--coral-primary);
-      }
-
-      .btn-primary:hover {
-        background: var(--coral-dark);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-float);
-        text-decoration: none;
-      }
-
-      .btn-ghost {
-        background: var(--paper);
-        color: var(--text);
-        border: 2px solid var(--line);
-      }
-
-      .btn-ghost:hover {
-        border-color: var(--ocean-blue);
-        color: var(--ocean-blue);
-        text-decoration: none;
-      }
-
-      .home-install {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        background: var(--code-bg);
-        color: var(--code-fg);
-        border-radius: 10px;
-        padding: 12px 12px 12px 18px;
-        font:
-          500 0.9rem/1.3 "JetBrains Mono",
-          "SF Mono",
-          ui-monospace,
-          monospace;
-        max-width: 36em;
-        border: 2px solid var(--code-border);
-        box-shadow: var(--shadow-card);
-      }
-
-      .home-install .prompt {
-        color: var(--hl-prompt);
-        user-select: none;
-        flex: 0 0 auto;
-      }
-
-      .home-install code {
-        flex: 1;
-        background: transparent;
-        border: 0;
-        color: var(--code-fg);
-        font: inherit;
-        padding: 0;
-        white-space: pre;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .features-grid {
+      .install-command {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        margin: 28px 0;
-      }
-
-      .feature-card {
-        background: var(--paper);
-        border: 2px solid var(--line);
-        border-radius: 12px;
-        padding: 24px;
-        transition: all 0.25s;
-        box-shadow: var(--shadow-card);
-      }
-
-      .feature-card:hover {
-        border-color: var(--accent);
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-float);
-      }
-
-      .feature-icon {
-        width: 48px;
-        height: 48px;
-        background: var(--accent-soft);
-        border-radius: 10px;
-        display: flex;
+        max-width: 560px;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        justify-content: center;
-        margin-bottom: 16px;
-        font-size: 1.5rem;
+        gap: 10px;
+        margin-top: 20px;
+        border: 1px solid rgb(255 255 255 / 0.14);
+        border-radius: var(--radius);
+        background: var(--terminal);
+        box-shadow: var(--shadow-small);
+        color: #d9e7e4;
       }
 
-      .feature-card h3 {
-        font-size: 1.1rem;
-        margin: 0 0 8px;
+      .install-command code {
+        min-width: 0;
+        overflow: auto;
+        padding: 16px 18px;
+        white-space: nowrap;
+        font-size: 15px;
+      }
+
+      .copy-button {
+        min-height: 36px;
+        margin-right: 8px;
+        border: 1px solid rgb(255 255 255 / 0.16);
+        border-radius: 6px;
+        padding: 7px 11px;
+        background: rgb(255 255 255 / 0.08);
+        color: #f4f8f7;
+        cursor: pointer;
+      }
+
+      .hero-stats {
+        display: grid;
+        max-width: 760px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 48px;
+      }
+
+      .stat {
+        border-top: 1px solid var(--line-strong);
+        padding-top: 15px;
+      }
+
+      .stat strong {
+        display: block;
         color: var(--ink);
-        font-weight: 600;
+        font-size: 28px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
       }
 
-      .feature-card p {
+      .stat span {
+        display: block;
+        max-width: 18ch;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .section {
+        padding: 92px 24px;
+      }
+
+      .section.band {
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .section-inner {
+        max-width: var(--content);
+        margin: 0 auto;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(280px, 0.62fr);
+        gap: 64px;
+        align-items: end;
+        margin-bottom: 42px;
+      }
+
+      .section-head p:not(.kicker) {
+        max-width: 50ch;
         margin: 0;
         color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.5;
+        font-size: 18px;
+        line-height: 1.55;
       }
 
-      /* Code blocks */
-      .doc pre {
-        position: relative;
-        overflow: auto;
-        background: var(--code-bg);
-        color: var(--code-fg);
-        border-radius: 10px;
-        padding: 18px 20px;
-        margin: 1.5em 0;
-        font-size: 0.88em;
-        line-height: 1.65;
-        scrollbar-width: thin;
-        scrollbar-color: #334155 transparent;
-        border: 2px solid var(--code-border);
-        box-shadow: var(--shadow-card);
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
       }
 
-      .doc pre code {
-        display: block;
-        background: transparent;
-        border: 0;
-        color: inherit;
-        padding: 0;
-        font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-        font-size: 1em;
-        white-space: pre;
-      }
-
-      /* Syntax highlighting */
-      .doc pre .hl-c {
-        color: var(--hl-comment);
-        font-style: italic;
-      }
-
-      .doc pre .hl-cmd {
-        color: var(--hl-keyword);
-        font-weight: 600;
-      }
-
-      .doc pre .hl-f {
-        color: var(--hl-flag);
-      }
-
-      .doc pre .hl-s {
-        color: var(--hl-string);
-      }
-
-      .doc pre .hl-n {
-        color: var(--hl-number);
-      }
-
-      .doc pre .hl-k {
-        color: var(--hl-keyword);
-        font-weight: 600;
-      }
-
-      .doc pre .hl-m {
-        color: var(--hl-meta);
-        font-weight: 600;
-      }
-
-      .doc pre .hl-p {
-        color: var(--hl-prompt);
-        user-select: none;
-      }
-
-      .doc {
-        min-width: 0;
-        max-width: 75ch;
-        overflow-wrap: break-word;
-      }
-
-      .doc h2 {
-        font-size: 1.6rem;
-        line-height: 1.2;
-        margin: 2.2em 0 0.6em;
-        font-weight: 700;
-        color: var(--ink);
-      }
-
-      .doc h3 {
-        font-size: 1.2rem;
-        margin: 1.8em 0 0.4em;
-        font-weight: 600;
-        color: var(--ink);
-      }
-
-      .doc p {
-        margin: 0 0 1.15em;
-        line-height: 1.7;
-      }
-
-      .doc code {
-        font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-        font-size: 0.87em;
-        background: var(--accent-soft);
+      .step,
+      .feature,
+      .doc-link,
+      .safety-item {
         border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 0.1em 0.4em;
-        color: var(--coral-dark);
-        font-weight: 500;
+        border-radius: var(--radius);
+        background: var(--paper);
       }
 
-      :root[data-theme="dark"] .doc code {
-        color: var(--shell-pink);
+      .step {
+        min-height: 260px;
+        padding: 20px;
       }
 
-      .doc ul {
-        padding-left: 1.4rem;
-        margin: 0 0 1.2em;
+      .step-index {
+        display: block;
+        margin-bottom: 34px;
+        color: var(--teal);
+        font-family:
+          "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+        font-size: 14px;
       }
 
-      .doc li {
-        margin: 0.3em 0;
-        line-height: 1.7;
-      }
-
-      .muted {
+      .step p,
+      .feature p,
+      .safety-item p,
+      .doc-link span {
         color: var(--muted);
-        font-size: 0.92rem;
+        font-size: 15px;
+        line-height: 1.55;
       }
 
-      /* Mobile responsive */
-      @media (max-width: 900px) {
-        .shell {
-          display: block;
+      .step code {
+        display: block;
+        margin-top: 18px;
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .review-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .terminal {
+        min-height: 480px;
+        border-radius: var(--radius);
+        background: var(--terminal);
+        box-shadow: var(--shadow);
+        color: #dce9e7;
+        overflow: hidden;
+      }
+
+      .terminal-bar {
+        display: flex;
+        min-height: 42px;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid rgb(255 255 255 / 0.08);
+        padding: 0 16px;
+        background: var(--terminal-soft);
+        color: #98a6a3;
+        font-size: 13px;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+      }
+
+      .dot.red {
+        background: var(--red);
+      }
+
+      .dot.amber {
+        background: #f0b54c;
+      }
+
+      .dot.teal {
+        background: #35b8ad;
+        margin-right: 8px;
+      }
+
+      .terminal-body {
+        display: grid;
+        gap: 15px;
+        padding: 22px;
+        font-size: 14px;
+      }
+
+      .terminal-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .terminal-row span:first-child {
+        color: #71807d;
+      }
+
+      .finding-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .finding {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper);
+        padding: 18px;
+        box-shadow: 0 1px 0 rgb(16 18 18 / 0.03);
+      }
+
+      .finding-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      .badge {
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-family:
+          "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .badge.high {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .badge.medium {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .badge.safe {
+        background: var(--teal-soft);
+        color: var(--teal);
+      }
+
+      .finding strong {
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 650;
+      }
+
+      .finding p {
+        margin: 10px 0 0;
+        color: var(--muted);
+      }
+
+      .finding code {
+        display: block;
+        margin-top: 16px;
+        border-top: 1px solid var(--line);
+        padding-top: 13px;
+        color: var(--blue);
+        font-size: 13px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .feature {
+        min-height: 238px;
+        padding: 20px;
+      }
+
+      .feature-mark {
+        display: inline-flex;
+        margin-bottom: 42px;
+        color: var(--violet);
+        font-family:
+          "SFMono-Regular", "Cascadia Code", "Liberation Mono", Menlo, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .feature h3,
+      .safety-item h3 {
+        margin-bottom: 10px;
+      }
+
+      .safety {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .safety-statement {
+        border-radius: var(--radius);
+        background: var(--black);
+        color: #f0f5f3;
+        padding: 28px;
+      }
+
+      .safety-statement h2 {
+        color: #f6fbf9;
+      }
+
+      .safety-statement p {
+        max-width: 46ch;
+        margin: 24px 0 0;
+        color: #b9c6c3;
+        font-size: 18px;
+      }
+
+      .safety-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .safety-item {
+        padding: 20px;
+      }
+
+      .docs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .doc-link {
+        padding: 18px;
+      }
+
+      .doc-link strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-weight: 650;
+      }
+
+      .final {
+        padding: 96px 24px;
+        background:
+          linear-gradient(90deg, rgb(16 18 18 / 0.05) 1px, transparent 1px),
+          linear-gradient(rgb(16 18 18 / 0.05) 1px, transparent 1px), var(--wash);
+        background-size: 48px 48px;
+      }
+
+      .final-inner {
+        display: grid;
+        max-width: var(--content);
+        grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.72fr);
+        gap: 52px;
+        align-items: center;
+        margin: 0 auto;
+      }
+
+      .final h2 {
+        max-width: 13ch;
+      }
+
+      .final p {
+        max-width: 50ch;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .release-panel {
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        background: var(--paper);
+        box-shadow: var(--shadow-small);
+        overflow: hidden;
+      }
+
+      .release-preview {
+        width: 100%;
+        aspect-ratio: 1200 / 630;
+        object-fit: cover;
+        outline: 1px solid rgb(16 18 18 / 0.08);
+        outline-offset: -1px;
+      }
+
+      .release-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        border-top: 1px solid var(--line);
+        padding: 16px 18px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .release-row:first-child {
+        border-top: 0;
+      }
+
+      .release-row strong {
+        color: var(--ink);
+        font-weight: 650;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 28px 24px;
+        background: var(--paper);
+      }
+
+      .footer-inner {
+        display: flex;
+        max-width: var(--content);
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 auto;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+
+      @media (max-width: 1040px) {
+        .hero-stage {
+          inset: 260px -260px auto 12%;
+          opacity: 0.42;
         }
 
-        .sidebar {
-          position: static;
-          max-width: none;
-          height: auto;
-          transform: none;
-          box-shadow: none;
+        .panel-main {
+          width: 600px;
         }
 
-        main {
-          padding: 32px 20px 60px;
+        .panel-side {
+          left: 300px;
         }
 
-        .home-hero h1 {
-          font-size: 2.5rem;
+        .steps,
+        .feature-grid,
+        .docs {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .features-grid {
+        .review-grid,
+        .safety,
+        .final-inner,
+        .section-head {
+          grid-template-columns: 1fr;
+          gap: 34px;
+        }
+
+        .section-head p:not(.kicker) {
+          max-width: 62ch;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .nav-inner {
+          min-height: 62px;
+          padding: 0 16px;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .menu-button {
+          display: inline-flex;
+        }
+
+        .hero {
+          min-height: auto;
+          padding: 0 16px 24px;
+        }
+
+        .hero-stage {
+          display: none;
+        }
+
+        .hero-inner {
+          padding: 66px 0 50px;
+        }
+
+        h1 {
+          font-size: clamp(54px, 18vw, 72px);
+        }
+
+        h2 {
+          font-size: clamp(36px, 12vw, 54px);
+        }
+
+        .hero-lede {
+          font-size: 19px;
+        }
+
+        .hero-actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .install-command {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+
+        .install-command code {
+          padding-bottom: 8px;
+        }
+
+        .copy-button {
+          width: calc(100% - 16px);
+          margin: 0 8px 8px;
+        }
+
+        .hero-stats,
+        .steps,
+        .feature-grid,
+        .safety-list,
+        .docs {
           grid-template-columns: 1fr;
         }
-      }
 
-      @media (max-width: 520px) {
-        .home-hero h1 {
-          font-size: 2rem;
+        .section,
+        .final {
+          padding: 70px 16px;
         }
 
-        .home-install {
-          flex-wrap: wrap;
+        .terminal {
+          min-height: auto;
+        }
+
+        .terminal-body {
+          padding: 18px;
+          font-size: 13px;
+        }
+
+        .terminal-row {
+          grid-template-columns: 1fr;
+          gap: 3px;
         }
       }
     </style>
   </head>
-  <body class="home">
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="sidebar-head">
-          <a class="brand" href="/" aria-label="Codenuke docs home">
-            <span class="mark" aria-hidden="true">
-              <svg class="claw-icon" viewBox="0 0 100 100" aria-hidden="true">
-                <defs>
-                  <linearGradient id="clawGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color: #ff8a6d; stop-opacity: 1" />
-                    <stop offset="50%" style="stop-color: #ff6b4a; stop-opacity: 1" />
-                    <stop offset="100%" style="stop-color: #e85535; stop-opacity: 1" />
-                  </linearGradient>
-                  <linearGradient id="clawGradBottom" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color: #2a9d8f; stop-opacity: 1" />
-                    <stop offset="50%" style="stop-color: #46b5a6; stop-opacity: 1" />
-                    <stop offset="100%" style="stop-color: #52b788; stop-opacity: 1" />
-                  </linearGradient>
-                  <radialGradient id="jointGrad" cx="50%" cy="50%">
-                    <stop offset="0%" style="stop-color: #ffb4a2; stop-opacity: 1" />
-                    <stop offset="60%" style="stop-color: #ff8a6d; stop-opacity: 1" />
-                    <stop offset="100%" style="stop-color: #ff6b4a; stop-opacity: 1" />
-                  </radialGradient>
-                  <filter id="shadow">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3" />
-                  </filter>
-                </defs>
-
-                <!-- Main claw body (shell) -->
-                <ellipse
-                  cx="50"
-                  cy="50"
-                  rx="22"
-                  ry="18"
-                  fill="url(#jointGrad)"
-                  filter="url(#shadow)"
-                />
-
-                <!-- Top pincer (upper claw) -->
-                <g filter="url(#shadow)">
-                  <path
-                    d="M 50 32 Q 45 28, 40 22 Q 38 19, 36 15 Q 35 12, 36 10 Q 37 8, 40 9 Q 42 10, 43 13 Q 45 18, 47 23 Q 48 26, 50 30 Z"
-                    fill="url(#clawGradTop)"
-                    stroke="#e85535"
-                    stroke-width="0.5"
-                  />
-                  <path
-                    d="M 50 32 Q 55 28, 60 22 Q 62 19, 64 15 Q 65 12, 64 10 Q 63 8, 60 9 Q 58 10, 57 13 Q 55 18, 53 23 Q 52 26, 50 30 Z"
-                    fill="url(#clawGradTop)"
-                    stroke="#e85535"
-                    stroke-width="0.5"
-                    opacity="0.95"
-                  />
-                  <!-- Pincer tip -->
-                  <path d="M 36 15 Q 34 13, 35 11 Q 36 9, 38 10 Q 39 11, 38 13 Z" fill="#e85535" />
-                  <path d="M 64 15 Q 66 13, 65 11 Q 64 9, 62 10 Q 61 11, 62 13 Z" fill="#e85535" />
-                  <!-- Highlight on pincer -->
-                  <ellipse
-                    cx="48"
-                    cy="24"
-                    rx="3"
-                    ry="5"
-                    fill="rgba(255,255,255,0.35)"
-                    opacity="0.8"
-                  />
-                </g>
-
-                <!-- Bottom pincer (lower claw) -->
-                <g filter="url(#shadow)">
-                  <path
-                    d="M 50 68 Q 45 72, 40 78 Q 38 81, 36 85 Q 35 88, 36 90 Q 37 92, 40 91 Q 42 90, 43 87 Q 45 82, 47 77 Q 48 74, 50 70 Z"
-                    fill="url(#clawGradBottom)"
-                    stroke="#1a7f73"
-                    stroke-width="0.5"
-                  />
-                  <path
-                    d="M 50 68 Q 55 72, 60 78 Q 62 81, 64 85 Q 65 88, 64 90 Q 63 92, 60 91 Q 58 90, 57 87 Q 55 82, 53 77 Q 52 74, 50 70 Z"
-                    fill="url(#clawGradBottom)"
-                    stroke="#1a7f73"
-                    stroke-width="0.5"
-                    opacity="0.95"
-                  />
-                  <!-- Pincer tip -->
-                  <path d="M 36 85 Q 34 87, 35 89 Q 36 91, 38 90 Q 39 89, 38 87 Z" fill="#1a7f73" />
-                  <path d="M 64 85 Q 66 87, 65 89 Q 64 91, 62 90 Q 61 89, 62 87 Z" fill="#1a7f73" />
-                  <!-- Highlight on pincer -->
-                  <ellipse
-                    cx="48"
-                    cy="76"
-                    rx="3"
-                    ry="5"
-                    fill="rgba(255,255,255,0.25)"
-                    opacity="0.8"
-                  />
-                </g>
-
-                <!-- Joint details (shell segments) -->
-                <ellipse
-                  cx="50"
-                  cy="50"
-                  rx="18"
-                  ry="14"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.25)"
-                  stroke-width="1"
-                />
-                <ellipse
-                  cx="50"
-                  cy="50"
-                  rx="14"
-                  ry="11"
-                  fill="none"
-                  stroke="rgba(0,0,0,0.1)"
-                  stroke-width="0.5"
-                />
-
-                <!-- Center highlight (main shine) -->
-                <ellipse cx="46" cy="46" rx="8" ry="6" fill="rgba(255,255,255,0.4)" opacity="0.9" />
-                <ellipse cx="44" cy="44" rx="4" ry="3" fill="rgba(255,255,255,0.6)" />
-
-                <!-- Small detail dots (texture) -->
-                <circle cx="42" cy="52" r="1" fill="rgba(0,0,0,0.15)" />
-                <circle cx="58" cy="52" r="1" fill="rgba(0,0,0,0.15)" />
-                <circle cx="50" cy="56" r="0.8" fill="rgba(0,0,0,0.1)" />
-              </svg>
-            </span>
-            <span>
-              <strong>codenuke</strong>
-              <small>Automated code review</small>
-            </span>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="site">
+      <header class="nav" aria-label="Site navigation">
+        <div class="nav-inner">
+          <a class="brand" href="#top" aria-label="Homepage">
+            <span class="brand-mark" aria-hidden="true">CN</span>
+            <span>codenuke</span>
           </a>
+          <nav class="nav-links" aria-label="Primary navigation">
+            <a href="#workflow">Workflow</a>
+            <a href="#review">Review</a>
+            <a href="#coverage">Coverage</a>
+            <a href="#safety">Safety</a>
+            <a href="#docs">Docs</a>
+            <a href="https://github.com/pproenca/codenuke">GitHub</a>
+            <a class="nav-install" href="#install">Install</a>
+          </nav>
           <button
-            class="theme-toggle"
+            class="menu-button"
             type="button"
-            aria-label="Toggle dark mode"
-            aria-pressed="false"
-            data-theme-toggle
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+            data-menu-button
           >
-            <span class="theme-toggle-indicator">
-              <svg class="theme-icon-moon" viewBox="0 0 20 20" aria-hidden="true">
-                <path
-                  d="M14.6 12.1A6.5 6.5 0 0 1 7.4 2.7a6.5 6.5 0 1 0 7.2 9.4z"
-                  fill="currentColor"
-                />
-              </svg>
-              <svg class="theme-icon-sun" viewBox="0 0 20 20" aria-hidden="true">
-                <circle cx="10" cy="10" r="3.4" fill="currentColor" />
-                <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                  <line x1="10" y1="2" x2="10" y2="4" />
-                  <line x1="10" y1="16" x2="10" y2="18" />
-                  <line x1="2" y1="10" x2="4" y2="10" />
-                  <line x1="16" y1="10" x2="18" y2="10" />
-                  <line x1="4.2" y1="4.2" x2="5.6" y2="5.6" />
-                  <line x1="14.4" y1="14.4" x2="15.8" y2="15.8" />
-                  <line x1="4.2" y1="15.8" x2="5.6" y2="14.4" />
-                  <line x1="14.4" y1="5.6" x2="15.8" y2="4.2" />
-                </g>
-              </svg>
-            </span>
+            Menu
           </button>
         </div>
-        <label class="search">
-          <span>Search</span>
-          <input id="doc-search" type="search" placeholder="init, review, fix" />
-        </label>
-        <nav>
-          <section>
-            <h2>Getting Started</h2>
-            <a class="nav-link active" href="#overview">Overview</a>
-            <a class="nav-link" href="#quickstart">Quick Start</a>
-            <a class="nav-link" href="#installation">Installation</a>
-          </section>
-          <section>
-            <h2>Core Features</h2>
-            <a class="nav-link" href="#initialization">Initialization</a>
-            <a class="nav-link" href="#feature-mapping">Feature Mapping</a>
-            <a class="nav-link" href="#code-review">Code Review</a>
-            <a class="nav-link" href="#findings">Findings</a>
-            <a class="nav-link" href="#patching">Patching</a>
-            <a class="nav-link" href="#validation">Validation</a>
-          </section>
-          <section>
-            <h2>Configuration</h2>
-            <a class="nav-link" href="#config">Settings</a>
-            <a class="nav-link" href="#providers">AI Providers</a>
-            <a class="nav-link" href="#safety">Safety Features</a>
-          </section>
-          <section>
-            <h2>Reference</h2>
-            <a class="nav-link" href="https://github.com/pproenca/codenuke">GitHub</a>
-            <a class="nav-link" href="https://github.com/pproenca/codenuke/tree/main/docs"
-              >Documentation</a
-            >
-          </section>
-        </nav>
-      </aside>
-      <main>
-        <header class="home-hero">
-          <p class="eyebrow">Trusted Refactoring · Explicit Fixes</p>
-          <h1>Reliable refactoring<br />with explicit fixes</h1>
-          <p class="lede">
-            Codenuke maps codebases into semantic feature slices, reviews them for
-            behavior-preserving simplification and complexity reduction, and records explicit fix
-            attempts with validation.
-          </p>
-          <div class="home-cta">
-            <a class="btn btn-primary" href="#quickstart">Quick Start</a>
-            <a class="btn btn-ghost" href="https://github.com/pproenca/codenuke" rel="noopener"
-              >GitHub</a
-            >
-            <div class="home-install" aria-label="Install with npm">
-              <span class="prompt" aria-hidden="true">$</span>
-              <code>npm install -g codenuke</code>
+        <div class="mobile-panel" id="mobile-menu" data-menu-panel>
+          <a href="#workflow">Workflow</a>
+          <a href="#review">Review</a>
+          <a href="#coverage">Coverage</a>
+          <a href="#safety">Safety</a>
+          <a href="#docs">Docs</a>
+          <a href="https://github.com/pproenca/codenuke">GitHub</a>
+          <a href="#install">Install</a>
+        </div>
+      </header>
+
+      <main id="main">
+        <section class="hero" id="top" aria-labelledby="hero-title">
+          <div class="hero-stage" aria-hidden="true">
+            <div class="workspace">
+              <div class="panel panel-small">
+                <span class="panel-label mono">features/auth-route.json</span>
+                <div class="panel-body mono">
+                  <div class="panel-line">
+                    <span>12</span><span><span class="token-teal">source</span>: "next-route"</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>18</span><span><span class="token-amber">owned</span>: ["app/auth"]</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>22</span><span><span class="token-violet">tests</span>: "pnpm test"</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel panel-main">
+                <span class="panel-label mono">codenuke review --json</span>
+                <div class="panel-body mono">
+                  <div class="panel-line">
+                    <span>01</span
+                    ><span><span class="token-teal">map</span> semantic feature slices</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>02</span
+                    ><span
+                      ><span class="token-amber">review</span> complexity, duplication, safety</span
+                    >
+                  </div>
+                  <div class="panel-line">
+                    <span>03</span
+                    ><span
+                      ><span class="token-violet">persist</span> evidence and validation notes</span
+                    >
+                  </div>
+                  <div class="panel-line">
+                    <span>04</span
+                    ><span><span class="token-red">fix</span> one finding only when asked</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>05</span
+                    ><span><span class="token-teal">validate</span> with project commands</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel panel-side">
+                <span class="panel-label mono">findings/fnd_cache.json</span>
+                <div class="panel-body mono">
+                  <div class="panel-line">
+                    <span>07</span><span><span class="token-red">severity</span>: "high"</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>08</span
+                    ><span><span class="token-teal">category</span>: "performance"</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>12</span
+                    ><span><span class="token-amber">next</span>: "codenuke show"</span>
+                  </div>
+                  <div class="panel-line">
+                    <span>16</span><span><span class="token-violet">status</span>: "open"</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <p class="muted">Node.js 22+ • Git 2.x • local Codex CLI</p>
-        </header>
 
-        <div class="doc">
-          <h2 id="overview">Overview</h2>
-          <p>
-            Codenuke is an automated code review tool that goes beyond traditional linters. It maps
-            a repo into semantic work units, asks a provider to review bounded context, and persists
-            findings for audit and follow-up.
-          </p>
-          <p>
-            Unlike file-only scanners, codenuke reviews feature records with entrypoints, owned
-            files, nearby tests, and trust boundaries. Every finding includes severity, confidence,
-            evidence, and a recommendation.
-          </p>
-        </div>
-
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">🦀</div>
-            <h3>Semantic Analysis</h3>
-            <p>
-              Reviews by feature records such as package bins, scripts, routes, Go/Rust/Swift
-              commands, and config.
-            </p>
+          <div class="hero-inner">
+            <div class="hero-copy">
+              <p class="eyebrow">Published on npm as codenuke</p>
+              <h1 id="hero-title">codenuke</h1>
+              <p class="hero-lede">
+                Automated code review for reliable, trusted refactoring. Codenuke maps repositories
+                into semantic features, asks AI providers to review those slices, and applies fixes
+                only when you explicitly choose a finding.
+              </p>
+              <div class="hero-actions">
+                <a class="button button-primary" href="#install">Install codenuke</a>
+                <a class="button button-secondary" href="https://github.com/pproenca/codenuke"
+                  >View GitHub</a
+                >
+              </div>
+              <div class="install-command" id="install" data-copy-group>
+                <code>npm install -g codenuke</code>
+                <button class="copy-button" type="button" data-copy="npm install -g codenuke">
+                  Copy
+                </button>
+              </div>
+              <div class="hero-stats" aria-label="Release facts">
+                <div class="stat">
+                  <strong>0.2.0</strong>
+                  <span>latest npm release</span>
+                </div>
+                <div class="stat">
+                  <strong>449</strong>
+                  <span>tests passing in the repo</span>
+                </div>
+                <div class="stat">
+                  <strong>11+</strong>
+                  <span>mapper families for mixed stacks</span>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div class="feature-card">
-            <div class="feature-icon">🔧</div>
-            <h3>Automated Patching</h3>
-            <p>
-              Runs an explicit <code>fix --finding</code> loop and records validation command
-              results.
-            </p>
+        <section class="section band" id="workflow">
+          <div class="section-inner">
+            <div class="section-head">
+              <div>
+                <p class="kicker">Workflow</p>
+                <h2>Four steps, no silent edits.</h2>
+              </div>
+              <p>
+                Codenuke keeps discovery, review, reporting, and patching separate. That makes
+                automation useful without giving it authority to change your repository behind your
+                back.
+              </p>
+            </div>
+            <div class="steps">
+              <article class="step">
+                <span class="step-index">01</span>
+                <h3>Initialize</h3>
+                <p>
+                  Detect the project root, validation commands, provider settings, and local state
+                  directory.
+                </p>
+                <code>codenuke init</code>
+              </article>
+              <article class="step">
+                <span class="step-index">02</span>
+                <h3>Map</h3>
+                <p>
+                  Create feature records around routes, packages, modules, bins, tests, configs, and
+                  workspaces.
+                </p>
+                <code>codenuke map</code>
+              </article>
+              <article class="step">
+                <span class="step-index">03</span>
+                <h3>Review</h3>
+                <p>
+                  Send focused feature context to Codex, Grok, OpenCode, or ACPX and persist
+                  structured findings.
+                </p>
+                <code>codenuke review --limit 3</code>
+              </article>
+              <article class="step">
+                <span class="step-index">04</span>
+                <h3>Fix</h3>
+                <p>
+                  Run a finding-scoped patch loop, validate locally, and leave the final diff for
+                  human review.
+                </p>
+                <code>codenuke fix --finding &lt;id&gt;</code>
+              </article>
+            </div>
           </div>
+        </section>
 
-          <div class="feature-card">
-            <div class="feature-icon">🛡️</div>
-            <h3>Safety First</h3>
-            <p>
-              Clean worktree checks, no implicit commits, audit trail. Your code stays under your
-              control.
-            </p>
+        <section class="section" id="review">
+          <div class="section-inner">
+            <div class="section-head">
+              <div>
+                <p class="kicker">Review Surface</p>
+                <h2>Findings with evidence.</h2>
+              </div>
+              <p>
+                Output is designed for triage: severity, category, confidence, affected files,
+                reasoning, validation commands, status history, and the next safe command to run.
+              </p>
+            </div>
+            <div class="review-grid">
+              <div class="terminal" aria-label="Codenuke terminal example">
+                <div class="terminal-bar">
+                  <span class="dot red"></span>
+                  <span class="dot amber"></span>
+                  <span class="dot teal"></span>
+                  <span class="mono">terminal</span>
+                </div>
+                <div class="terminal-body mono">
+                  <div class="terminal-row"><span>$</span><span>codenuke map --json</span></div>
+                  <div class="terminal-row">
+                    <span>features</span
+                    ><span
+                      ><span class="token-teal">127 mapped</span> across packages, routes,
+                      tests</span
+                    >
+                  </div>
+                  <div class="terminal-row">
+                    <span>$</span><span>codenuke review --since origin/master --jobs 4</span>
+                  </div>
+                  <div class="terminal-row">
+                    <span>review</span
+                    ><span
+                      ><span class="token-amber">14 reviewed</span>,
+                      <span class="token-red">3 findings</span>, 0 edits</span
+                    >
+                  </div>
+                  <div class="terminal-row">
+                    <span>$</span><span>codenuke report --status open</span>
+                  </div>
+                  <div class="terminal-row">
+                    <span>next</span><span>codenuke show --finding fnd_sig-route-cache</span>
+                  </div>
+                  <div class="terminal-row">
+                    <span>$</span><span>codenuke fix --finding fnd_sig-route-cache</span>
+                  </div>
+                  <div class="terminal-row">
+                    <span>validation</span
+                    ><span><span class="token-teal">pnpm test</span> passed, patch recorded</span>
+                  </div>
+                </div>
+              </div>
+              <div class="finding-stack">
+                <article class="finding">
+                  <div class="finding-top">
+                    <span class="badge high">high</span>
+                    <span class="badge safe">open</span>
+                  </div>
+                  <strong>Repeated workspace scans in route mapping</strong>
+                  <p>
+                    Evidence points to a shared mapper path, validation command, and an expected
+                    behavior-preserving fix.
+                  </p>
+                  <code>next: codenuke show --finding fnd_sig-route-cache</code>
+                </article>
+                <article class="finding">
+                  <div class="finding-top">
+                    <span class="badge medium">medium</span>
+                    <span class="badge safe">reviewed</span>
+                  </div>
+                  <strong>Duplicated provider command construction</strong>
+                  <p>
+                    Provider context is small enough to review, with known output schema and failure
+                    behavior attached.
+                  </p>
+                  <code>validation: pnpm typecheck && pnpm test</code>
+                </article>
+                <article class="finding">
+                  <div class="finding-top">
+                    <span class="badge safe">patch</span>
+                    <span class="badge medium">audit</span>
+                  </div>
+                  <strong>Patch attempt stored under .codenuke</strong>
+                  <p>
+                    Changed files, command output, and status history remain inspectable after the
+                    run completes.
+                  </p>
+                  <code>next: review git diff</code>
+                </article>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <h3>Resume Support</h3>
-            <p>
-              Persists runs, feature state, findings, and patch attempts in
-              <code>.codenuke/</code>.
-            </p>
+        <section class="section band" id="coverage">
+          <div class="section-inner">
+            <div class="section-head">
+              <div>
+                <p class="kicker">Coverage</p>
+                <h2>Maps the shapes teams ship.</h2>
+              </div>
+              <p>
+                Feature records group files by product behavior and validation surface, so providers
+                see useful context without needing the entire repository.
+              </p>
+            </div>
+            <div class="feature-grid">
+              <article class="feature">
+                <span class="feature-mark">JS</span>
+                <h3>Node, Next.js, React</h3>
+                <p>
+                  Package bins, workspace packages, Next routes, React Router routes, app tests, and
+                  script commands.
+                </p>
+              </article>
+              <article class="feature">
+                <span class="feature-mark">PY</span>
+                <h3>Python apps</h3>
+                <p>
+                  Project metadata, packages, FastAPI and Flask routes, pytest discovery, and
+                  colocated tests.
+                </p>
+              </article>
+              <article class="feature">
+                <span class="feature-mark">RB</span>
+                <h3>Ruby and Rails</h3>
+                <p>
+                  Gems, Rails surfaces, Rake and Minitest conventions, plus generated-file
+                  avoidance.
+                </p>
+              </article>
+              <article class="feature">
+                <span class="feature-mark">GO</span>
+                <h3>Go modules</h3>
+                <p>
+                  Module packages, command entrypoints, cached test discovery, and package-specific
+                  validation.
+                </p>
+              </article>
+              <article class="feature">
+                <span class="feature-mark">APP</span>
+                <h3>Apple, Swift, Gradle</h3>
+                <p>
+                  Xcode and Swift target mapping, Gradle modules, Android surfaces, and task graph
+                  context.
+                </p>
+              </article>
+              <article class="feature">
+                <span class="feature-mark">CFG</span>
+                <h3>Config and project state</h3>
+                <p>
+                  Stable JSON state, project filters, lock recovery, reports, and provider
+                  configuration.
+                </p>
+              </article>
+            </div>
           </div>
+        </section>
 
-          <div class="feature-card">
-            <div class="feature-icon">📊</div>
-            <h3>Rich Reports</h3>
-            <p>
-              Markdown reports and JSON state with severity levels, categories, and confidence
-              scores.
-            </p>
+        <section class="section" id="safety">
+          <div class="section-inner">
+            <div class="safety">
+              <div class="safety-statement">
+                <p class="kicker">Safety Model</p>
+                <h2>Automation stays scoped.</h2>
+                <p>
+                  Codenuke is built for teams that want AI review without handing over commits,
+                  branches, or unrelated files. It records state locally and makes every fix
+                  explicit.
+                </p>
+              </div>
+              <div class="safety-list">
+                <article class="safety-item">
+                  <h3>No edits during review</h3>
+                  <p>
+                    Review commands persist findings only. Patch generation is a separate,
+                    finding-scoped command.
+                  </p>
+                </article>
+                <article class="safety-item">
+                  <h3>Dirty worktree protection</h3>
+                  <p>
+                    Fixes refuse unexpected source changes by default so provider output cannot mix
+                    with local work.
+                  </p>
+                </article>
+                <article class="safety-item">
+                  <h3>Schema-checked providers</h3>
+                  <p>
+                    Provider responses are parsed through strict schemas before findings or patch
+                    attempts are accepted.
+                  </p>
+                </article>
+                <article class="safety-item">
+                  <h3>No automatic landing</h3>
+                  <p>
+                    Codenuke does not commit, push, open pull requests, or land changes without a
+                    future explicit workflow.
+                  </p>
+                </article>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div class="feature-card">
-            <div class="feature-icon">🤖</div>
-            <h3>Codex Provider</h3>
-            <p>
-              Uses the local Codex CLI today, with strict JSON schemas around every provider result.
-            </p>
+        <section class="section band" id="docs">
+          <div class="section-inner">
+            <div class="section-head">
+              <div>
+                <p class="kicker">Docs</p>
+                <h2>Start where your repo is.</h2>
+              </div>
+              <p>
+                The docs cover installation, provider setup, feature mapping, review runs, reports,
+                and the explicit fix workflow.
+              </p>
+            </div>
+            <div class="docs">
+              <a
+                class="doc-link"
+                href="https://github.com/pproenca/codenuke/blob/master/docs/install.md"
+              >
+                <strong>Installation</strong>
+                <span>npm, source installs, and provider prerequisites.</span>
+              </a>
+              <a
+                class="doc-link"
+                href="https://github.com/pproenca/codenuke/blob/master/docs/feature-mapping.md"
+              >
+                <strong>Feature mapping</strong>
+                <span>How repo files become reviewable feature records.</span>
+              </a>
+              <a
+                class="doc-link"
+                href="https://github.com/pproenca/codenuke/blob/master/docs/code-review.md"
+              >
+                <strong>Code review</strong>
+                <span>Provider configuration, limits, jobs, and review scope.</span>
+              </a>
+              <a
+                class="doc-link"
+                href="https://github.com/pproenca/codenuke/blob/master/docs/patching.md"
+              >
+                <strong>Patching</strong>
+                <span>Finding-scoped fixes, validation, and audit records.</span>
+              </a>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="doc">
-          <h2 id="quickstart">Quick Start</h2>
-          <pre><code><span class="hl-c"># 1. Initialize project</span>
-<span class="hl-cmd">codenuke</span> init
-
-<span class="hl-c"># 2. Map semantic features</span>
-<span class="hl-cmd">codenuke</span> map
-
-<span class="hl-c"># 3. Review code for issues</span>
-<span class="hl-cmd">codenuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span>
-
-<span class="hl-c"># 4. Generate findings report</span>
-<span class="hl-cmd">codenuke</span> report
-
-<span class="hl-c"># 5. Apply one explicit fix (optional)</span>
-<span class="hl-cmd">codenuke</span> fix <span class="hl-f">--finding</span> abc123
-
-<span class="hl-c"># 6. Revalidate and review changes</span>
-<span class="hl-cmd">codenuke</span> revalidate <span class="hl-f">--finding</span> abc123
-<span class="hl-cmd">git</span> diff</code></pre>
-
-          <h2 id="installation">Installation</h2>
-          <pre><code><span class="hl-c"># npm</span>
-<span class="hl-cmd">npm</span> install <span class="hl-f">-g</span> codenuke
-
-<span class="hl-c"># pnpm</span>
-<span class="hl-cmd">pnpm</span> add <span class="hl-f">-g</span> codenuke
-
-<span class="hl-c"># From source</span>
-<span class="hl-cmd">git</span> clone https://github.com/pproenca/codenuke.git
-<span class="hl-cmd">cd</span> codenuke
-<span class="hl-cmd">pnpm</span> install
-<span class="hl-cmd">pnpm</span> run build
-<span class="hl-cmd">pnpm</span> link <span class="hl-f">--global</span></code></pre>
-
-          <h2 id="providers">AI Providers</h2>
-          <p>The default provider shells out to the local Codex CLI:</p>
-          <pre><code><span class="hl-c"># Test connection</span>
-<span class="hl-cmd">codex</span> <span class="hl-f">--version</span>
-<span class="hl-cmd">codenuke</span> doctor</code></pre>
-
-          <h2>Commands</h2>
-          <ul>
-            <li><code>codenuke init</code> — Initialize project, detect config</li>
-            <li><code>codenuke map</code> — Build semantic feature map</li>
-            <li><code>codenuke status</code> — Show project/review state</li>
-            <li><code>codenuke review</code> — Review features for refactoring opportunities</li>
-            <li><code>codenuke report</code> — Generate findings report</li>
-            <li><code>codenuke fix</code> — Apply repairs for findings</li>
-            <li><code>codenuke revalidate</code> — Verify fixes or findings</li>
-            <li><code>codenuke doctor</code> — Check environment setup</li>
-          </ul>
-
-          <h2 id="initialization">Initialization</h2>
-          <p>
-            The <code>init</code> command detects your project type and creates initial
-            configuration:
-          </p>
-          <pre><code><span class="hl-cmd">codenuke</span> init</code></pre>
-          <p>This creates <code>.codenuke/</code> directory with:</p>
-          <ul>
-            <li><code>config.json</code> — User settings and preferences</li>
-            <li>
-              <code>project.json</code> — Detected project metadata (package manager, build tools,
-              test commands)
-            </li>
-          </ul>
-          <p>
-            Codenuke auto-detects Node.js, TypeScript, Next.js, Python, Flask, FastAPI, Go,
-            Rust/Cargo, SwiftPM, and common build tools. You can customize settings after
-            initialization.
-          </p>
-
-          <h2 id="feature-mapping">Feature Mapping</h2>
-          <p>The <code>map</code> command builds a semantic map of your codebase:</p>
-          <pre><code><span class="hl-cmd">codenuke</span> map</code></pre>
-          <p>Features are semantic units like:</p>
-          <ul>
-            <li>
-              <strong>Routes</strong> — Next.js app/pages routes plus Flask and FastAPI routes
-            </li>
-            <li>
-              <strong>Commands</strong> — npm package bins plus Python, Go, Rust, and SwiftPM
-              commands
-            </li>
-            <li>
-              <strong>Packages</strong> — Go internal packages, Rust libraries, and Swift targets
-            </li>
-            <li><strong>CLI scripts</strong> — Bin scripts and npm script handlers</li>
-            <li><strong>Tests</strong> — Test suites linked to their subjects</li>
-          </ul>
-          <p>
-            Each feature includes entrypoints, owned files, context files, and associated
-            tests—giving AI reviewers the right context to understand your code.
-          </p>
-
-          <h2 id="code-review">Code Review</h2>
-          <p>The <code>review</code> command analyzes features for refactoring opportunities:</p>
-          <pre><code><span class="hl-cmd">codenuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span></code></pre>
-          <p>Reviews produce findings with:</p>
-          <ul>
-            <li>
-              <strong>Category</strong> — performance, maintainability, test-gap, bug, security,
-              docs-gap
-            </li>
-            <li><strong>Severity</strong> — critical, high, medium, low</li>
-            <li><strong>Confidence</strong> — How certain the analysis is (high, medium, low)</li>
-            <li><strong>Evidence</strong> — Code snippets, file locations, and reasoning</li>
-          </ul>
-          <p>
-            Use <code>--limit</code> to review in batches. State is persisted so you can resume
-            anytime.
-          </p>
-
-          <h2 id="findings">Findings</h2>
-          <p>All findings are tracked in <code>.codenuke/findings/</code> with:</p>
-          <ul>
-            <li><strong>Status</strong> — open, fixed, wont-fix, false-positive, uncertain</li>
-            <li><strong>Metadata</strong> — Severity, category, confidence, timestamps</li>
-            <li><strong>Context</strong> — Feature info, affected files, evidence</li>
-            <li><strong>Patches</strong> — Associated fix attempts and validation results</li>
-          </ul>
-          <p>
-            Use <code>codenuke report</code> to generate a Markdown report, or
-            <code>--json</code> for structured output.
-          </p>
-
-          <h2 id="patching">Patching</h2>
-          <p>The <code>fix</code> command runs the explicit repair loop for one finding:</p>
-          <pre><code><span class="hl-cmd">codenuke</span> fix <span class="hl-f">--finding</span> abc123</code></pre>
-          <p>Each patch goes through validation:</p>
-          <ul>
-            <li><strong>Format check</strong> — Prettier/dprint/etc if configured</li>
-            <li>
-              <strong>Type check</strong> — TypeScript <code>tsc --noEmit</code> if applicable
-            </li>
-            <li><strong>Lint check</strong> — ESLint/oxlint if configured</li>
-            <li><strong>Test check</strong> — Runs the configured test command</li>
-          </ul>
-          <p>
-            Validation results are recorded in a patch attempt. You review any worktree changes
-            manually.
-          </p>
-
-          <h2 id="validation">Validation</h2>
-          <p>The <code>revalidate</code> command re-checks a finding with the provider:</p>
-          <pre><code><span class="hl-cmd">codenuke</span> revalidate <span class="hl-f">--finding</span> <span class="hl-s">abc123</span></code></pre>
-          <p>Use this to:</p>
-          <ul>
-            <li>Verify a finding is still valid after manual fixes</li>
-            <li>Check if upstream changes resolved issues</li>
-          </ul>
-
-          <h2 id="config">Settings</h2>
-          <p><code>codenuke init</code> writes a complete <code>.codenuke/config.json</code>:</p>
-          <pre><code>{
-  <span class="hl-s">"schemaVersion"</span>: <span class="hl-n">1</span>,
-  <span class="hl-s">"stateDir"</span>: <span class="hl-s">".codenuke"</span>,
-  <span class="hl-s">"include"</span>: [<span class="hl-s">"**/*"</span>],
-  <span class="hl-s">"exclude"</span>: [
-    <span class="hl-s">"node_modules/**"</span>,
-    <span class="hl-s">"dist/**"</span>,
-    <span class="hl-s">"build/**"</span>,
-    <span class="hl-s">"target/**"</span>,
-    <span class="hl-s">".build/**"</span>,
-    <span class="hl-s">".git/**"</span>,
-    <span class="hl-s">".codenuke/**"</span>
-  ],
-  <span class="hl-s">"provider"</span>: {
-    <span class="hl-s">"name"</span>: <span class="hl-s">"codex"</span>,
-    <span class="hl-s">"model"</span>: null
-  },
-  <span class="hl-s">"commands"</span>: {
-    <span class="hl-s">"typecheck"</span>: null,
-    <span class="hl-s">"lint"</span>: null,
-    <span class="hl-s">"format"</span>: null,
-    <span class="hl-s">"test"</span>: null
-  },
-  <span class="hl-s">"review"</span>: {
-    <span class="hl-s">"maxContextFiles"</span>: <span class="hl-n">24</span>,
-    <span class="hl-s">"maxOwnedFiles"</span>: <span class="hl-n">12</span>,
-    <span class="hl-s">"maxFindingsPerFeature"</span>: <span class="hl-n">10</span>,
-    <span class="hl-s">"minConfidenceToFix"</span>: <span class="hl-s">"medium"</span>
-  },
-  <span class="hl-s">"git"</span>: {
-    <span class="hl-s">"requireCleanWorktreeForFix"</span>: true,
-    <span class="hl-s">"commit"</span>: false,
-    <span class="hl-s">"openPr"</span>: false
-  }
-}</code></pre>
-          <p>
-            See the
-            <a href="https://github.com/pproenca/codenuke/blob/main/docs/configuration.md"
-              >full configuration reference</a
-            >
-            for all options.
-          </p>
-
-          <h2 id="safety">Safety Features</h2>
-          <p>Codenuke is designed with strict safety guarantees:</p>
-          <ul>
-            <li>
-              <strong>No implicit changes</strong> — Never modifies code without explicit
-              <code>fix</code> command
-            </li>
-            <li>
-              <strong>No implicit commits</strong> — Does not commit, push, open PRs, or land
-              changes today
-            </li>
-            <li>
-              <strong>Clean worktree by default</strong> — Blocks fixes on dirty worktree
-              (configurable)
-            </li>
-            <li>
-              <strong>No destructive git ops</strong> — Never runs <code>reset --hard</code>,
-              <code>clean</code>, etc.
-            </li>
-            <li>
-              <strong>Audit trail</strong> — Review runs, findings, and patch attempts are persisted
-              in <code>.codenuke/</code>
-            </li>
-            <li>
-              <strong>Schema validation</strong> — All provider responses validated before use
-            </li>
-            <li>
-              <strong>Feature locks</strong> — Claimed feature records are unlocked after each run
-            </li>
-          </ul>
-          <p>
-            All fixes are applied to your working directory for manual review. You maintain full
-            control over what gets committed.
-          </p>
-
-          <h2>Next Steps</h2>
-          <p>Explore the full documentation to learn about:</p>
-          <ul>
-            <li><strong>CI/CD Integration</strong> — Run review and reporting in GitHub Actions</li>
-            <li><strong>Custom Mappers</strong> — Support additional frameworks and languages</li>
-            <li><strong>Finding Templates</strong> — Create custom review rules</li>
-            <li><strong>Provider API</strong> — Implement custom AI providers</li>
-          </ul>
-
-          <p class="muted">Made with care by the OpenClaw team. Released under MIT license.</p>
-        </div>
+        <section class="final" aria-labelledby="final-title">
+          <div class="final-inner">
+            <div>
+              <p class="kicker">Install</p>
+              <h2 id="final-title">Run it in the repo you want reviewed.</h2>
+              <p>
+                Codenuke is published on npm and runs as a Node 22+ CLI. Start with `doctor`, then
+                map and review a small slice before broadening the run.
+              </p>
+            </div>
+            <div class="release-panel">
+              <img class="release-preview" src="social-card.png" alt="" />
+              <div class="release-row">
+                <strong>Package</strong>
+                <span>codenuke</span>
+              </div>
+              <div class="release-row">
+                <strong>Version</strong>
+                <span>0.2.0</span>
+              </div>
+              <div class="release-row">
+                <strong>Runtime</strong>
+                <span>Node 22+</span>
+              </div>
+              <div class="release-row">
+                <strong>Command</strong>
+                <span class="mono">npm install -g codenuke</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer>
+        <div class="footer-inner">
+          <span>codenuke - MIT licensed automated code review.</span>
+          <div class="footer-links">
+            <a href="https://www.npmjs.com/package/codenuke">npm</a>
+            <a href="https://github.com/pproenca/codenuke">GitHub</a>
+            <a href="https://github.com/pproenca/codenuke/blob/master/CHANGELOG.md">Changelog</a>
+            <a href="#top">Back to top</a>
+          </div>
+        </div>
+      </footer>
     </div>
 
     <script>
-      // Theme toggle
-      const themeRoot = document.documentElement;
+      const menuButton = document.querySelector("[data-menu-button]");
+      const menuPanel = document.querySelector("[data-menu-panel]");
 
-      function applyTheme(mode) {
-        themeRoot.dataset.theme = mode;
-        document
-          .querySelectorAll("[data-theme-toggle]")
-          .forEach((b) => b.setAttribute("aria-pressed", mode === "dark" ? "true" : "false"));
-      }
+      menuButton?.addEventListener("click", () => {
+        const isOpen = menuPanel?.getAttribute("data-open") === "true";
+        menuPanel?.setAttribute("data-open", String(!isOpen));
+        menuButton.setAttribute("aria-expanded", String(!isOpen));
+      });
 
-      function storedTheme() {
-        try {
-          return localStorage.getItem("theme");
-        } catch (e) {
-          return null;
-        }
-      }
-
-      function persistTheme(mode) {
-        try {
-          localStorage.setItem("theme", mode);
-        } catch (e) {}
-      }
-
-      // Initialize theme
-      (function () {
-        const stored = storedTheme();
-        const systemDark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
-        applyTheme(stored || (systemDark ? "dark" : "light"));
-      })();
-
-      // Theme toggle button
-      document.querySelectorAll("[data-theme-toggle]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const next = themeRoot.dataset.theme === "dark" ? "light" : "dark";
-          applyTheme(next);
-          persistTheme(next);
+      menuPanel?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          menuPanel.setAttribute("data-open", "false");
+          menuButton?.setAttribute("aria-expanded", "false");
         });
       });
 
-      // System theme changes
-      const systemDark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
-      function onSystemChange(e) {
-        if (storedTheme()) return;
-        applyTheme(e.matches ? "dark" : "light");
-      }
-      if (systemDark) {
-        if (systemDark.addEventListener) systemDark.addEventListener("change", onSystemChange);
-        else if (systemDark.addListener) systemDark.addListener(onSystemChange);
-      }
-
-      // Search functionality
-      const input = document.getElementById("doc-search");
-      input?.addEventListener("input", () => {
-        const q = input.value.trim().toLowerCase();
-        document.querySelectorAll("nav section").forEach((sec) => {
-          let any = false;
-          sec.querySelectorAll(".nav-link").forEach((a) => {
-            const m = !q || a.textContent.toLowerCase().includes(q);
-            a.style.display = m ? "block" : "none";
-            if (m) any = true;
-          });
-          sec.style.display = any ? "block" : "none";
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const text = button.getAttribute("data-copy") ?? "";
+          try {
+            await navigator.clipboard.writeText(text);
+            button.textContent = "Copied";
+            window.setTimeout(() => {
+              button.textContent = "Copy";
+            }, 1400);
+          } catch {
+            button.textContent = "Select";
+          }
         });
       });
     </script>

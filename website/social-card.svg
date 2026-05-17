@@ -1,105 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Codenuke automated code review">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#fef9f5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f4e8db;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#ff6b4a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2a9d8f;stop-opacity:1" />
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="50%">
-      <stop offset="0%" style="stop-color:#ff6b4a;stop-opacity:0.2" />
-      <stop offset="100%" style="stop-color:#ff6b4a;stop-opacity:0" />
-    </radialGradient>
-    <linearGradient id="clawGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff8a6d;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#ff6b4a;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#e85535;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="clawGradBottom" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#2a9d8f;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#46b5a6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#52b788;stop-opacity:1" />
-    </linearGradient>
-    <radialGradient id="jointGrad" cx="50%" cy="50%">
-      <stop offset="0%" style="stop-color:#ffb4a2;stop-opacity:1" />
-      <stop offset="60%" style="stop-color:#ff8a6d;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ff6b4a;stop-opacity:1" />
-    </radialGradient>
-    <filter id="clawShadow">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#1a1410" flood-opacity="0.18"/>
     </filter>
   </defs>
-
-  <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bg)"/>
-
-  <!-- Decorative glow -->
-  <circle cx="900" cy="150" r="300" fill="url(#glow)"/>
-
-  <!-- Large claw icon -->
-  <g transform="translate(170, 265) scale(2.5)">
-    <!-- Main claw body (shell) -->
-    <ellipse cx="50" cy="50" rx="22" ry="18" fill="url(#jointGrad)" filter="url(#clawShadow)"/>
-
-    <!-- Top pincer (upper claw) -->
-    <g filter="url(#clawShadow)">
-      <path d="M 50 32 Q 45 28, 40 22 Q 38 19, 36 15 Q 35 12, 36 10 Q 37 8, 40 9 Q 42 10, 43 13 Q 45 18, 47 23 Q 48 26, 50 30 Z"
-            fill="url(#clawGradTop)" stroke="#e85535" stroke-width="0.5"/>
-      <path d="M 50 32 Q 55 28, 60 22 Q 62 19, 64 15 Q 65 12, 64 10 Q 63 8, 60 9 Q 58 10, 57 13 Q 55 18, 53 23 Q 52 26, 50 30 Z"
-            fill="url(#clawGradTop)" stroke="#e85535" stroke-width="0.5" opacity="0.95"/>
-      <path d="M 36 15 Q 34 13, 35 11 Q 36 9, 38 10 Q 39 11, 38 13 Z" fill="#e85535"/>
-      <path d="M 64 15 Q 66 13, 65 11 Q 64 9, 62 10 Q 61 11, 62 13 Z" fill="#e85535"/>
-      <ellipse cx="48" cy="24" rx="3" ry="5" fill="rgba(255,255,255,0.35)" opacity="0.8"/>
-    </g>
-
-    <!-- Bottom pincer (lower claw) -->
-    <g filter="url(#clawShadow)">
-      <path d="M 50 68 Q 45 72, 40 78 Q 38 81, 36 85 Q 35 88, 36 90 Q 37 92, 40 91 Q 42 90, 43 87 Q 45 82, 47 77 Q 48 74, 50 70 Z"
-            fill="url(#clawGradBottom)" stroke="#1a7f73" stroke-width="0.5"/>
-      <path d="M 50 68 Q 55 72, 60 78 Q 62 81, 64 85 Q 65 88, 64 90 Q 63 92, 60 91 Q 58 90, 57 87 Q 55 82, 53 77 Q 52 74, 50 70 Z"
-            fill="url(#clawGradBottom)" stroke="#1a7f73" stroke-width="0.5" opacity="0.95"/>
-      <path d="M 36 85 Q 34 87, 35 89 Q 36 91, 38 90 Q 39 89, 38 87 Z" fill="#1a7f73"/>
-      <path d="M 64 85 Q 66 87, 65 89 Q 64 91, 62 90 Q 61 89, 62 87 Z" fill="#1a7f73"/>
-      <ellipse cx="48" cy="76" rx="3" ry="5" fill="rgba(255,255,255,0.25)" opacity="0.8"/>
-    </g>
-
-    <!-- Joint details (shell segments) -->
-    <ellipse cx="50" cy="50" rx="18" ry="14" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
-    <ellipse cx="50" cy="50" rx="14" ry="11" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/>
-
-    <!-- Center highlight (main shine) -->
-    <ellipse cx="46" cy="46" rx="8" ry="6" fill="rgba(255,255,255,0.4)" opacity="0.9"/>
-    <ellipse cx="44" cy="44" rx="4" ry="3" fill="rgba(255,255,255,0.6)"/>
-
-    <!-- Small detail dots (texture) -->
-    <circle cx="42" cy="52" r="1" fill="rgba(0,0,0,0.15)"/>
-    <circle cx="58" cy="52" r="1" fill="rgba(0,0,0,0.15)"/>
-    <circle cx="50" cy="56" r="0.8" fill="rgba(0,0,0,0.1)"/>
+  <rect width="1200" height="630" fill="#f7f5ef"/>
+  <path d="M0 520h1200v110H0z" fill="#fffdf8"/>
+  <g opacity="0.32" stroke="#ded7c9" stroke-width="1">
+    <path d="M0 90h1200M0 180h1200M0 270h1200M0 360h1200M0 450h1200"/>
+    <path d="M120 0v630M240 0v630M360 0v630M480 0v630M600 0v630M720 0v630M840 0v630M960 0v630M1080 0v630"/>
   </g>
-
-  <!-- Text content -->
-  <text x="350" y="235" font-family="Inter, sans-serif" font-size="72" font-weight="800" fill="url(#textGrad)">
-    codenuke
-  </text>
-  <text x="350" y="300" font-family="Inter, sans-serif" font-size="36" font-weight="600" fill="#2c3e50">
-    Trusted refactoring review
-  </text>
-  <text x="350" y="370" font-family="Inter, sans-serif" font-size="26" fill="#6c7a89">
-    Complexity reduction • Explicit patching • Safety first
-  </text>
-
-  <!-- Bottom badge -->
-  <g transform="translate(350, 450)">
-    <rect width="460" height="60" rx="30" fill="#ff6b4a" opacity="0.1"/>
-    <text x="230" y="40" font-family="JetBrains Mono, monospace" font-size="22" font-weight="500" fill="#ff6b4a" text-anchor="middle">
-      npm install codenuke
-    </text>
+  <g transform="translate(710 92) rotate(-6)" filter="url(#shadow)">
+    <rect width="390" height="310" rx="10" fill="#111820"/>
+    <rect width="390" height="42" rx="10" fill="#1b2530"/>
+    <circle cx="26" cy="21" r="6" fill="#f0644c"/>
+    <circle cx="46" cy="21" r="6" fill="#f0a84b"/>
+    <circle cx="66" cy="21" r="6" fill="#43b6aa"/>
+    <g font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+      <text x="28" y="88" fill="#6f7e8d">01</text>
+      <text x="78" y="88" fill="#dfe8ef"><tspan fill="#64d5cb">map</tspan> semantic features</text>
+      <text x="28" y="132" fill="#6f7e8d">02</text>
+      <text x="78" y="132" fill="#dfe8ef"><tspan fill="#f6bd60">review</tspan> trusted refactors</text>
+      <text x="28" y="176" fill="#6f7e8d">03</text>
+      <text x="78" y="176" fill="#dfe8ef"><tspan fill="#c4b5fd">persist</tspan> evidence</text>
+      <text x="28" y="220" fill="#6f7e8d">04</text>
+      <text x="78" y="220" fill="#dfe8ef"><tspan fill="#ff7b72">fix</tspan> only on request</text>
+      <text x="28" y="264" fill="#6f7e8d">05</text>
+      <text x="78" y="264" fill="#dfe8ef"><tspan fill="#64d5cb">validate</tspan> locally</text>
+    </g>
   </g>
-
-  <!-- Decorative elements -->
-  <circle cx="1050" cy="500" r="40" fill="#ff6b4a" opacity="0.15"/>
-  <circle cx="950" cy="550" r="25" fill="#2a9d8f" opacity="0.15"/>
-  <circle cx="1100" cy="480" r="30" fill="#52b788" opacity="0.15"/>
+  <g transform="translate(86 92)">
+    <rect width="74" height="74" rx="14" fill="#111820"/>
+    <path d="M22 28 11 37l11 9" fill="none" stroke="#43b6aa" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M52 28 63 37 52 46" fill="none" stroke="#f0644c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M43 17 31 57" fill="none" stroke="#f0a84b" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="86" y="248" font-family="Inter, Arial, sans-serif" font-size="94" font-weight="850" fill="#101418">codenuke</text>
+  <text x="92" y="318" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="650" fill="#303941">Automated code review for trusted refactoring.</text>
+  <text x="92" y="382" font-family="Inter, Arial, sans-serif" font-size="26" fill="#65717d">Semantic feature mapping. AI review. Explicit validated fixes.</text>
+  <g transform="translate(92 450)">
+    <rect width="380" height="58" rx="8" fill="#111820"/>
+    <text x="28" y="38" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="21" fill="#dfe8ef">npm install -g codenuke</text>
+  </g>
+  <g transform="translate(505 450)">
+    <rect width="162" height="58" rx="8" fill="#d8442f"/>
+    <text x="81" y="38" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="750" fill="#fff7f2">v0.2.0</text>
+  </g>
 </svg>
