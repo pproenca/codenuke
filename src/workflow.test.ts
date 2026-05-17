@@ -192,8 +192,17 @@ describe("workflow", () => {
     expect(parseArgs(["revie", "--help"])).toMatchObject({ command: "revie", help: true });
     expect(() => parseArgs(["show"])).toThrow("missing --finding");
     expect(() => parseArgs(["triage", "--status", "fixed"])).toThrow("missing --finding");
-    expect(() => parseArgs(["revalidate"])).toThrow("missing --finding or --all");
+    expect(() => parseArgs(["revalidate"])).toThrow("missing --finding, --all, or --since");
     expect(parseArgs(["revalidate", "--all"]).flags).toMatchObject({ all: true });
+  });
+
+  it("lists every revalidate selector in errors and help", async () => {
+    expect(() => parseArgs(["revalidate"])).toThrow("--since");
+
+    const { stdout } = await runCli(["revalidate", "--help"]);
+    expect(stdout).toContain("clawnuke revalidate --finding <id> [flags]");
+    expect(stdout).toContain("clawnuke revalidate --all [flags]");
+    expect(stdout).toContain("clawnuke revalidate --since <ref> [flags]");
   });
 
   it("rejects value flags followed by another option token", () => {

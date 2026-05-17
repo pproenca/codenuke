@@ -265,7 +265,7 @@ function validateCommandRequirements(
     flags["all"] !== true &&
     typeof flags["since"] !== "string"
   ) {
-    throw new ClawnukeError("missing --finding or --all", 2, "invalid-usage");
+    throw new ClawnukeError("missing --finding, --all, or --since", 2, "invalid-usage");
   }
 }
 
@@ -485,6 +485,7 @@ Flags:
 
 Usage:
   clawnuke revalidate --finding <id> [flags]
+  clawnuke revalidate --all [flags]
   clawnuke revalidate --since <ref> [flags]
 
 Flags:
