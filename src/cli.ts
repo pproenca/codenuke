@@ -42,34 +42,10 @@ async function dispatch(
   command: string,
   flags: Record<string, string | boolean>,
 ): Promise<unknown> {
-  switch (command) {
-    case "init":
-      return initCommand(context, flags);
-    case "map":
-      return mapCommand(context, flags);
-    case "status":
-      return statusCommand(context);
-    case "review":
-      return reviewCommand(context, flags);
-    case "report":
-      return reportCommand(context, flags);
-    case "show":
-      return showCommand(context, flags);
-    case "next":
-      return nextCommand(context, flags);
-    case "triage":
-      return triageCommand(context, flags);
-    case "fix":
-      return fixCommand(context, flags);
-    case "revalidate":
-      return revalidateCommand(context, flags);
-    case "doctor":
-      return doctorCommand(context, flags);
-    case "clean-locks":
-      return cleanLocksCommand(context);
-    default:
-      throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
+  if (!isKnownCommand(command)) {
+    throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
+  return commandRegistry[command].handler(context, flags);
 }
 
 type ParsedArgs = {
@@ -110,13 +86,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       return { command, flags, global, help: false, version: true };
     }
     const valueName = arg.replace(/^--/u, "");
-    if (valueFlagNames.has(valueName)) {
+    const flagDefinition = flagDefinitionFor(valueName);
+    if (flagDefinition?.kind === "value") {
       const next = readFlagValue(argv, index, arg);
       index += 1;
       setFlag(target, camel(valueName), next);
       continue;
     }
-    if (arg.startsWith("--") && isBooleanFlag(valueName)) {
+    if (arg.startsWith("--") && flagDefinition?.kind === "boolean") {
       setFlag(target, camel(valueName), true);
       continue;
     }
@@ -144,84 +121,174 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return { command, flags, global, help: false, version: false };
 }
 
-const commandFlags = {
-  init: new Set(["force"]),
-  map: new Set(["dryRun", "source", "provider", "model", "reasoningEffort"]),
-  status: new Set<string>(),
-  review: new Set([
-    "feature",
-    "project",
-    "limit",
-    "since",
-    "jobs",
-    "provider",
-    "model",
-    "reasoningEffort",
-    "dryRun",
-  ]),
-  report: new Set(["status", "severity", "feature", "project", "category", "triage", "output"]),
-  show: new Set(["finding"]),
-  next: new Set(["status", "project"]),
-  triage: new Set(["finding", "status", "note"]),
-  fix: new Set(["finding", "provider", "model", "reasoningEffort", "dryRun"]),
-  revalidate: new Set([
-    "finding",
-    "all",
-    "status",
-    "severity",
-    "feature",
-    "category",
-    "triage",
-    "limit",
-    "since",
-    "provider",
-    "model",
-    "reasoningEffort",
-  ]),
-  doctor: new Set(["provider", "model", "reasoningEffort"]),
-  "clean-locks": new Set<string>(),
-} satisfies Record<string, Set<string>>;
-
-const requiredCommandFlags: Partial<Record<keyof typeof commandFlags, string[]>> = {
-  show: ["finding"],
-  triage: ["finding", "status"],
-  fix: ["finding"],
+type FlagDefinition = {
+  kind: "boolean" | "value";
+  help: string;
+  global?: boolean;
 };
 
-const valueFlagNames = new Set([
-  "root",
-  "state-dir",
-  "config",
-  "feature",
-  "finding",
-  "limit",
-  "since",
-  "jobs",
-  "source",
-  "provider",
-  "model",
-  "reasoning-effort",
-  "output",
-  "status",
-  "severity",
-  "category",
-  "triage",
-  "project",
-  "note",
-]);
+const flagDefinitions = {
+  root: { kind: "value", help: "--root <path>", global: true },
+  stateDir: { kind: "value", help: "--state-dir <path>", global: true },
+  config: { kind: "value", help: "--config <path>", global: true },
+  json: { kind: "boolean", help: "--json", global: true },
+  plain: { kind: "boolean", help: "--plain", global: true },
+  quiet: { kind: "boolean", help: "-q, --quiet", global: true },
+  verbose: { kind: "boolean", help: "-v, --verbose", global: true },
+  debug: { kind: "boolean", help: "--debug", global: true },
+  noColor: { kind: "boolean", help: "--no-color", global: true },
+  noInput: { kind: "boolean", help: "--no-input", global: true },
+  feature: { kind: "value", help: "--feature <id>" },
+  finding: { kind: "value", help: "--finding <id>" },
+  limit: { kind: "value", help: "--limit <n>" },
+  since: { kind: "value", help: "--since <ref>" },
+  jobs: { kind: "value", help: "--jobs <n>        default: 10" },
+  source: { kind: "value", help: "--source <heuristic|auto|agent>" },
+  provider: { kind: "value", help: "--provider <name>" },
+  model: { kind: "value", help: "--model <name>" },
+  reasoningEffort: {
+    kind: "value",
+    help: "--reasoning-effort <none|minimal|low|medium|high|xhigh>",
+  },
+  output: { kind: "value", help: "--output <path>" },
+  status: { kind: "value", help: "--status <status>" },
+  severity: { kind: "value", help: "--severity <severity>" },
+  category: { kind: "value", help: "--category <category>" },
+  triage: { kind: "value", help: "--triage <triage>" },
+  project: { kind: "value", help: "--project <name-or-root>" },
+  note: { kind: "value", help: "--note <text>" },
+  dryRun: { kind: "boolean", help: "--dry-run" },
+  force: { kind: "boolean", help: "--force" },
+  all: { kind: "boolean", help: "--all" },
+} satisfies Record<string, FlagDefinition>;
 
-const booleanFlagNames = new Set([
-  "json",
-  "plain",
-  "quiet",
-  "verbose",
-  "debug",
-  "no-color",
-  "no-input",
-  "dry-run",
-  "force",
-  "all",
-]);
+type FlagName = keyof typeof flagDefinitions;
+type CommandContext = Awaited<ReturnType<typeof makeContext>>;
+type CommandHandler = (
+  context: CommandContext,
+  flags: Record<string, string | boolean>,
+) => Promise<unknown>;
+type CommandFlag = FlagName | { name: FlagName; help: string };
+type CommandSpec = {
+  handler: CommandHandler;
+  flags: readonly CommandFlag[];
+  usage: readonly string[];
+  required?: readonly FlagName[];
+  oneOf?: readonly FlagName[];
+  oneOfError?: string;
+  globalHelpFlags?: readonly FlagName[];
+};
+
+const commandRegistry = {
+  init: {
+    handler: initCommand,
+    flags: ["force"],
+    usage: ["clawnuke init [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  map: {
+    handler: mapCommand,
+    flags: ["source", "provider", "model", "reasoningEffort", "dryRun"],
+    usage: ["clawnuke map [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  status: {
+    handler: statusCommand,
+    flags: [],
+    usage: ["clawnuke status [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  review: {
+    handler: reviewCommand,
+    flags: [
+      "feature",
+      "project",
+      "limit",
+      "since",
+      "jobs",
+      "provider",
+      "model",
+      "reasoningEffort",
+      "dryRun",
+    ],
+    usage: ["clawnuke review [flags]"],
+    globalHelpFlags: ["json", "quiet"],
+  },
+  report: {
+    handler: reportCommand,
+    flags: ["status", "severity", "feature", "project", "category", "triage", "output"],
+    usage: ["clawnuke report [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  show: {
+    handler: showCommand,
+    flags: ["finding"],
+    usage: ["clawnuke show --finding <id> [flags]"],
+    required: ["finding"],
+    globalHelpFlags: ["json"],
+  },
+  next: {
+    handler: nextCommand,
+    flags: [{ name: "status", help: "--status <status>  default: open" }, "project"],
+    usage: ["clawnuke next [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  triage: {
+    handler: triageCommand,
+    flags: [
+      "finding",
+      { name: "status", help: "--status <open|false-positive|fixed|wont-fix|uncertain>" },
+      "note",
+    ],
+    usage: ["clawnuke triage --finding <id> --status <status> [flags]"],
+    required: ["finding", "status"],
+    globalHelpFlags: ["json"],
+  },
+  fix: {
+    handler: fixCommand,
+    flags: ["finding", "provider", "model", "reasoningEffort", "dryRun"],
+    usage: ["clawnuke fix --finding <id> [flags]"],
+    required: ["finding"],
+    globalHelpFlags: ["json"],
+  },
+  revalidate: {
+    handler: revalidateCommand,
+    flags: [
+      "finding",
+      "all",
+      "status",
+      "severity",
+      "feature",
+      "category",
+      "triage",
+      "limit",
+      "since",
+      "provider",
+      "model",
+      "reasoningEffort",
+    ],
+    usage: [
+      "clawnuke revalidate --finding <id> [flags]",
+      "clawnuke revalidate --all [flags]",
+      "clawnuke revalidate --since <ref> [flags]",
+    ],
+    oneOf: ["finding", "all", "since"],
+    oneOfError: "missing --finding, --all, or --since",
+    globalHelpFlags: ["json"],
+  },
+  doctor: {
+    handler: doctorCommand,
+    flags: ["provider", "model", "reasoningEffort"],
+    usage: ["clawnuke doctor [flags]"],
+    globalHelpFlags: ["json"],
+  },
+  "clean-locks": {
+    handler: cleanLocksCommand,
+    flags: [],
+    usage: ["clawnuke clean-locks [flags]"],
+    globalHelpFlags: ["json"],
+  },
+} satisfies Record<string, CommandSpec>;
 
 const shortFlagNames = new Set(["-h", "-q", "-v", "-o"]);
 
@@ -234,9 +301,9 @@ function validateCommandFlags(command: string, flags: Record<string, string | bo
   if (!isKnownCommand(command)) {
     throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
-  const allowed = commandFlags[command];
+  const allowed = commandRegistry[command].flags.map(flagName);
   for (const flag of Object.keys(flags)) {
-    if (!allowed.has(flag)) {
+    if (!allowed.includes(flag as FlagName)) {
       throw new ClawnukeError(
         `unsupported flag for ${command}: --${kebab(flag)}`,
         2,
@@ -253,28 +320,46 @@ function validateCommandRequirements(
   if (!isKnownCommand(command)) {
     throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
-  const required = requiredCommandFlags[command] ?? [];
+  const spec = commandRegistry[command];
+  const required = "required" in spec ? spec.required : [];
   for (const flag of required) {
     if (typeof flags[flag] !== "string" || flags[flag].length === 0) {
       throw new ClawnukeError(`missing --${kebab(flag)}`, 2, "invalid-usage");
     }
   }
-  if (
-    command === "revalidate" &&
-    typeof flags["finding"] !== "string" &&
-    flags["all"] !== true &&
-    typeof flags["since"] !== "string"
-  ) {
-    throw new ClawnukeError("missing --finding, --all, or --since", 2, "invalid-usage");
+  if ("oneOf" in spec && !spec.oneOf.some((flag: FlagName) => hasFlagValue(flag, flags))) {
+    const oneOfError = "oneOfError" in spec ? spec.oneOfError : "missing required flag";
+    throw new ClawnukeError(oneOfError, 2, "invalid-usage");
   }
 }
 
-function isKnownCommand(command: string): command is keyof typeof commandFlags {
-  return Object.hasOwn(commandFlags, command);
+function isKnownCommand(command: string): command is keyof typeof commandRegistry {
+  return Object.hasOwn(commandRegistry, command);
 }
 
-function isBooleanFlag(name: string): boolean {
-  return booleanFlagNames.has(name);
+function flagName(flag: CommandFlag): FlagName {
+  return typeof flag === "string" ? flag : flag.name;
+}
+
+function flagHelp(flag: CommandFlag): string {
+  return typeof flag === "string" ? flagDefinitions[flag].help : flag.help;
+}
+
+function flagDefinitionFor(name: string): FlagDefinition | undefined {
+  const flag = camel(name);
+  return isFlagName(flag) ? flagDefinitions[flag] : undefined;
+}
+
+function isFlagName(name: string): name is FlagName {
+  return Object.hasOwn(flagDefinitions, name);
+}
+
+function hasFlagValue(flag: FlagName, flags: Record<string, string | boolean>): boolean {
+  const value = flags[flag];
+  if (flagDefinitions[flag].kind === "boolean") {
+    return value === true;
+  }
+  return typeof value === "string";
 }
 
 function readFlagValue(argv: string[], index: number, flag: string): string {
@@ -301,18 +386,9 @@ function setFlag(
 }
 
 function isGlobalFlag(name: string): name is keyof GlobalOptions {
-  return [
-    "root",
-    "stateDir",
-    "config",
-    "json",
-    "plain",
-    "quiet",
-    "verbose",
-    "debug",
-    "noColor",
-    "noInput",
-  ].includes(name);
+  return (
+    isFlagName(name) && "global" in flagDefinitions[name] && flagDefinitions[name].global === true
+  );
 }
 
 function camel(value: string): string {
@@ -358,219 +434,44 @@ function writeResult(result: unknown, options: GlobalOptions): void {
 }
 
 function printHelp(command = ""): void {
-  if (command === "review") {
-    process.stdout.write(`clawnuke review
+  if (isKnownCommand(command)) {
+    const spec = commandRegistry[command];
+    const flags = [
+      ...spec.flags.map(flagHelp),
+      ...(spec.globalHelpFlags ?? []).map((flag) => flagDefinitions[flag].help),
+    ];
+    process.stdout.write(`clawnuke ${command}
 
 Usage:
-  clawnuke review [flags]
+${spec.usage.map((line) => `  ${line}`).join("\n")}
 
 Flags:
-  --feature <id>
-  --project <name-or-root>
-  --limit <n>
-  --since <ref>
-  --jobs <n>        default: 10
-  --provider <name>
-  --model <name>
-  --reasoning-effort <none|minimal|low|medium|high|xhigh>
-  --dry-run
-  --json
-  -q, --quiet
+${flags.map((line) => `  ${line}`).join("\n")}
 `);
     return;
   }
-  if (command === "report") {
-    process.stdout.write(`clawnuke report
-
-Usage:
-  clawnuke report [flags]
-
-Flags:
-  --status <status>
-  --severity <severity>
-  --feature <id>
-  --project <name-or-root>
-  --category <category>
-  --triage <triage>
-  --output <path>
-  --json
-`);
-    return;
-  }
-  if (command === "show") {
-    process.stdout.write(`clawnuke show
-
-Usage:
-  clawnuke show --finding <id> [flags]
-
-Flags:
-  --finding <id>
-  --json
-`);
-    return;
-  }
-  if (command === "next") {
-    process.stdout.write(`clawnuke next
-
-Usage:
-  clawnuke next [flags]
-
-Flags:
-  --status <status>  default: open
-  --project <name-or-root>
-  --json
-`);
-    return;
-  }
-  if (command === "triage") {
-    process.stdout.write(`clawnuke triage
-
-Usage:
-  clawnuke triage --finding <id> --status <status> [flags]
-
-Flags:
-  --finding <id>
-  --status <open|false-positive|fixed|wont-fix|uncertain>
-  --note <text>
-  --json
-`);
-    return;
-  }
-  if (command === "fix") {
-    process.stdout.write(`clawnuke fix
-
-Usage:
-  clawnuke fix --finding <id> [flags]
-
-Flags:
-  --finding <id>
-  --provider <name>
-  --model <name>
-  --reasoning-effort <none|minimal|low|medium|high|xhigh>
-  --dry-run
-  --json
-`);
-    return;
-  }
-  if (command === "init") {
-    process.stdout.write(`clawnuke init
-
-Usage:
-  clawnuke init [flags]
-
-Flags:
-  --force
-  --json
-`);
-    return;
-  }
-  if (command === "map") {
-    process.stdout.write(`clawnuke map
-
-Usage:
-  clawnuke map [flags]
-
-Flags:
-  --source <heuristic|auto|agent>
-  --provider <name>
-  --model <name>
-  --reasoning-effort <none|minimal|low|medium|high|xhigh>
-  --dry-run
-  --json
-`);
-    return;
-  }
-  if (command === "revalidate") {
-    process.stdout.write(`clawnuke revalidate
-
-Usage:
-  clawnuke revalidate --finding <id> [flags]
-  clawnuke revalidate --all [flags]
-  clawnuke revalidate --since <ref> [flags]
-
-Flags:
-  --finding <id>
-  --all
-  --status <status>
-  --severity <severity>
-  --feature <id>
-  --category <category>
-  --triage <triage>
-  --limit <n>
-  --since <ref>
-  --provider <name>
-  --model <name>
-  --reasoning-effort <none|minimal|low|medium|high|xhigh>
-  --json
-`);
-    return;
-  }
-  if (command === "status") {
-    process.stdout.write(`clawnuke status
-
-Usage:
-  clawnuke status [flags]
-
-Flags:
-  --json
-`);
-    return;
-  }
-  if (command === "doctor") {
-    process.stdout.write(`clawnuke doctor
-
-Usage:
-  clawnuke doctor [flags]
-
-Flags:
-  --provider <name>
-  --model <name>
-  --reasoning-effort <none|minimal|low|medium|high|xhigh>
-  --json
-`);
-    return;
-  }
-  if (command === "clean-locks") {
-    process.stdout.write(`clawnuke clean-locks
-
-Usage:
-  clawnuke clean-locks [flags]
-
-Flags:
-  --json
-`);
-    return;
-  }
+  const commands = Object.keys(commandRegistry)
+    .map((name) => `  ${name}`)
+    .join("\n");
   process.stdout.write(`clawnuke: automated code review for reliable, trusted refactoring
 
 Usage:
   clawnuke [global flags] <command> [flags]
 
 Commands:
-  init
-  map
-  status
-  review
-  report
-  show
-  next
-  triage
-  fix
-  revalidate
-  doctor
-  clean-locks
+${commands}
 
 Global flags:
-  --root <path>
-  --state-dir <path>
-  --config <path>
-  --json
-  --plain
-  -q, --quiet
-  -v, --verbose
-  --debug
-  --no-color
-  --no-input
+  ${flagDefinitions.root.help}
+  ${flagDefinitions.stateDir.help}
+  ${flagDefinitions.config.help}
+  ${flagDefinitions.json.help}
+  ${flagDefinitions.plain.help}
+  ${flagDefinitions.quiet.help}
+  ${flagDefinitions.verbose.help}
+  ${flagDefinitions.debug.help}
+  ${flagDefinitions.noColor.help}
+  ${flagDefinitions.noInput.help}
   -h, --help
   --version
 `);
