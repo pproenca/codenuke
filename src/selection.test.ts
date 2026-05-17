@@ -133,4 +133,19 @@ describe("nextFinding", () => {
 
     expect(next?.findingId).toBe("security");
   });
+
+  it("keeps the first equal-rank finding without sorting the full list", () => {
+    const findings = [
+      finding("first", "performance", "medium", "high"),
+      finding("second", "performance", "medium", "high"),
+      finding("lower-priority", "bug", "critical", "high", "confirmed-bug"),
+    ];
+    Object.defineProperty(findings, "toSorted", {
+      value: () => {
+        throw new Error("nextFinding should not sort to choose one item");
+      },
+    });
+
+    expect(nextFinding(findings)?.findingId).toBe("first");
+  });
 });

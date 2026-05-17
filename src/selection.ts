@@ -78,8 +78,16 @@ export function filterFindings(findings: FindingRecord[], flags: Flags): Finding
 }
 
 export function nextFinding(findings: FindingRecord[]): FindingRecord | null {
-  const ranked = findings.toSorted((a, b) => findingRank(a) - findingRank(b));
-  return ranked[0] ?? null;
+  let best: FindingRecord | null = null;
+  let bestRank = Number.POSITIVE_INFINITY;
+  for (const finding of findings) {
+    const rank = findingRank(finding);
+    if (rank < bestRank) {
+      best = finding;
+      bestRank = rank;
+    }
+  }
+  return best;
 }
 
 function featureTouchesFiles(
