@@ -352,6 +352,14 @@ type KotlinFileInfo = {
   declarations: KotlinDeclaration[];
   functionReturnTypes: Set<string>;
 };
+type GradleModuleSourceInventory = {
+  moduleRoot: string;
+  buildFile: string;
+  sourceRoot: string;
+  sourceFiles: string[];
+  testFiles: string[];
+};
+type ParsedJavaFile = { filePath: string; info: JavaFileInfo };
 type ParsedKotlinFile = { filePath: string; info: KotlinFileInfo };
 type KotlinProjectIndex = {
   files: ParsedKotlinFile[];
@@ -370,21 +378,19 @@ export async function gradleSeeds(root: string): Promise<FeatureSeed[]> {
 
 async function gradleProjectSeeds(root: string, gradleRoot: string): Promise<FeatureSeed[]> {
   const moduleRoots = await gradleModuleRoots(root, gradleRoot);
-  const projectSourceFiles = await gradleMainSourceFiles(root, moduleRoots);
-  const kotlinProjectIndex = await gradleKotlinProjectIndex(root, projectSourceFiles);
+  const inventories = await gradleModuleSourceInventories(root, moduleRoots);
+  const projectSourceFiles = unique(
+    inventories.flatMap(({ sourceFiles }) => sourceFiles),
+  ).toSorted();
+  const projectJavaFiles = await gradleJavaFiles(root, projectSourceFiles);
+  const projectJavaFileByPath = new Map(projectJavaFiles.map((file) => [file.filePath, file]));
+  const kotlinProjectIndex = await gradleKotlinProjectIndex(
+    root,
+    projectSourceFiles,
+    projectJavaFiles,
+  );
   const seeds: FeatureSeed[] = [];
-  for (const moduleRoot of moduleRoots) {
-    const buildFile = await gradleBuildFile(root, moduleRoot);
-    if (buildFile === null) {
-      continue;
-    }
-    const sourceRoot = moduleRoot === "." ? "src" : `${moduleRoot}/src`;
-    const sourceFiles = (await walk(root, [sourceRoot]))
-      .filter(isGradleSourceFile)
-      .filter((file) => !isGradleTestFile(moduleRoot, file));
-    const testFiles = (await walk(root, [sourceRoot]))
-      .filter(isGradleSourceFile)
-      .filter((file) => isGradleTestFile(moduleRoot, file));
+  for (const { buildFile, moduleRoot, sourceFiles, sourceRoot, testFiles } of inventories) {
     const tags = await gradleTags(root, gradleRoot, buildFile, sourceFiles);
 
     seeds.push({
@@ -428,7 +434,9 @@ async function gradleProjectSeeds(root: string, gradleRoot: string): Promise<Fea
       });
     }
 
-    seeds.push(...(await jvmRoleSeeds(root, buildFile, sourceRoot, sourceFiles, testFiles, tags)));
+    seeds.push(
+      ...jvmRoleSeeds(buildFile, sourceRoot, sourceFiles, testFiles, tags, projectJavaFileByPath),
+    );
     seeds.push(
       ...(await kotlinRoleSeeds(
         root,
@@ -467,35 +475,45 @@ async function gradleProjectSeeds(root: string, gradleRoot: string): Promise<Fea
   return seeds;
 }
 
+async function gradleModuleSourceInventories(
+  root: string,
+  moduleRoots: string[],
+): Promise<GradleModuleSourceInventory[]> {
+  const inventories: GradleModuleSourceInventory[] = [];
+  for (const moduleRoot of moduleRoots) {
+    const buildFile = await gradleBuildFile(root, moduleRoot);
+    if (buildFile === null) {
+      continue;
+    }
+    const sourceRoot = moduleRoot === "." ? "src" : `${moduleRoot}/src`;
+    const sourceFiles: string[] = [];
+    const testFiles: string[] = [];
+    for (const file of (await walk(root, [sourceRoot])).filter(isGradleSourceFile)) {
+      if (isGradleTestFile(moduleRoot, file)) {
+        testFiles.push(file);
+      } else {
+        sourceFiles.push(file);
+      }
+    }
+    inventories.push({ buildFile, moduleRoot, sourceFiles, sourceRoot, testFiles });
+  }
+  return inventories;
+}
+
 async function gradleKotlinProjectIndex(
   root: string,
   projectSourceFiles: string[],
+  javaFiles: ParsedJavaFile[],
 ): Promise<KotlinProjectIndex | null> {
-  const files = await gradleKotlinFiles(root, projectSourceFiles, []);
+  const files = await gradleKotlinFiles(root, projectSourceFiles);
   if (files.length === 0) {
     return null;
   }
   return {
     files,
-    packages: await gradleProjectPackages(root, projectSourceFiles, files),
-    packageTypes: await kotlinPackageDeclarations(root, projectSourceFiles, files),
+    packages: gradleProjectPackages(javaFiles, files),
+    packageTypes: kotlinPackageDeclarations(javaFiles, files),
   };
-}
-
-async function gradleMainSourceFiles(root: string, moduleRoots: string[]): Promise<string[]> {
-  const files = new Set<string>();
-  for (const moduleRoot of moduleRoots) {
-    if ((await gradleBuildFile(root, moduleRoot)) === null) {
-      continue;
-    }
-    const sourceRoot = moduleRoot === "." ? "src" : `${moduleRoot}/src`;
-    for (const file of (await walk(root, [sourceRoot]))
-      .filter(isGradleSourceFile)
-      .filter((path) => !isGradleTestFile(moduleRoot, path))) {
-      files.add(file);
-    }
-  }
-  return [...files].toSorted();
 }
 
 async function kotlinRoleSeeds(
@@ -605,19 +623,22 @@ async function kotlinRoleSeeds(
   return seeds;
 }
 
-async function gradleKotlinFiles(
-  root: string,
-  sourceFiles: string[],
-  parsedFiles: ParsedKotlinFile[],
-): Promise<ParsedKotlinFile[]> {
-  const byPath = new Map(parsedFiles.map((file) => [file.filePath, file]));
+async function gradleKotlinFiles(root: string, sourceFiles: string[]): Promise<ParsedKotlinFile[]> {
+  const files: ParsedKotlinFile[] = [];
   for (const filePath of sourceFiles.filter((file) => file.endsWith(".kt"))) {
-    if (!byPath.has(filePath)) {
-      const source = await readFile(join(root, filePath), "utf8");
-      byPath.set(filePath, { filePath, info: parseKotlinFile(source) });
-    }
+    const source = await readFile(join(root, filePath), "utf8");
+    files.push({ filePath, info: parseKotlinFile(source) });
   }
-  return [...byPath.values()];
+  return files;
+}
+
+async function gradleJavaFiles(root: string, sourceFiles: string[]): Promise<ParsedJavaFile[]> {
+  const files: ParsedJavaFile[] = [];
+  for (const filePath of sourceFiles.filter((file) => file.endsWith(".java"))) {
+    const source = await readFile(join(root, filePath), "utf8");
+    files.push({ filePath, info: parseJavaFile(source) });
+  }
+  return files;
 }
 
 function kotlinRoleGroups(
@@ -656,29 +677,25 @@ function kotlinRoleSource(role: KotlinRoleKey): string {
   return `kotlin-server-role-${role.slice("server-".length)}`;
 }
 
-async function gradleProjectPackages(
-  root: string,
-  sourceFiles: string[],
+function gradleProjectPackages(
+  javaFiles: ParsedJavaFile[],
   kotlinFiles: ParsedKotlinFile[],
-): Promise<Set<string>> {
+): Set<string> {
   const packages = new Set(
     kotlinFiles.flatMap(({ info }) => (info.packageName === null ? [] : [info.packageName])),
   );
-  for (const filePath of sourceFiles.filter((file) => file.endsWith(".java"))) {
-    const source = await readFile(join(root, filePath), "utf8");
-    const packageName = parseJavaFile(source).packageName;
-    if (packageName !== null) {
-      packages.add(packageName);
+  for (const { info } of javaFiles) {
+    if (info.packageName !== null) {
+      packages.add(info.packageName);
     }
   }
   return packages;
 }
 
-async function kotlinPackageDeclarations(
-  root: string,
-  sourceFiles: string[],
+function kotlinPackageDeclarations(
+  javaFiles: ParsedJavaFile[],
   kotlinFiles: ParsedKotlinFile[],
-): Promise<Map<string, Set<string>>> {
+): Map<string, Set<string>> {
   const declarations = new Map<string, Set<string>>();
   for (const { info } of kotlinFiles) {
     const packageName = info.packageName ?? "";
@@ -688,9 +705,7 @@ async function kotlinPackageDeclarations(
     }
     declarations.set(packageName, packageTypes);
   }
-  for (const filePath of sourceFiles.filter((file) => file.endsWith(".java"))) {
-    const source = await readFile(join(root, filePath), "utf8");
-    const info = parseJavaFile(source);
+  for (const { info } of javaFiles) {
     const packageName = info.packageName ?? "";
     const packageTypes = declarations.get(packageName) ?? new Set<string>();
     for (const declaration of info.declarations) {
@@ -701,20 +716,16 @@ async function kotlinPackageDeclarations(
   return declarations;
 }
 
-async function jvmRoleSeeds(
-  root: string,
+function jvmRoleSeeds(
   buildFile: string,
   sourceRoot: string,
   sourceFiles: string[],
   testFiles: string[],
   tags: string[],
-): Promise<FeatureSeed[]> {
+  projectJavaFileByPath: ReadonlyMap<string, ParsedJavaFile>,
+): FeatureSeed[] {
   const matches = new Map<JvmRoleKey, Map<string, string[]>>();
-  const javaFiles: Array<{ filePath: string; info: JavaFileInfo }> = [];
-  for (const filePath of sourceFiles.filter((file) => file.endsWith(".java"))) {
-    const source = await readFile(join(root, filePath), "utf8");
-    javaFiles.push({ filePath, info: parseJavaFile(source) });
-  }
+  const javaFiles = sourceFiles.flatMap((filePath) => projectJavaFileByPath.get(filePath) ?? []);
   const projectPackages = new Set(
     javaFiles.flatMap(({ info }) => (info.packageName === null ? [] : [info.packageName])),
   );
