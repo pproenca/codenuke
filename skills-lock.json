@@ -7,11 +7,23 @@
       "skillPath": "skills/.experimental/algorithmic-complexity-review/SKILL.md",
       "computedHash": "93900de9df96cf818c01481e4692bd8ee984bf70c1e808df2f0752e0b5292fe1"
     },
+    "codebase-comprehension-algorithms": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/codebase-comprehension-algorithms/SKILL.md",
+      "computedHash": "082a4f429cf1ec430ea83474e6de4689c627a347646eea5a515d38362da0361b"
+    },
     "complexity-optimizer": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",
       "skillPath": "skills/.experimental/complexity-optimizer/SKILL.md",
       "computedHash": "dd8ad128be5d084372ead92a9541172a41328094dc346f89f95f3db29b413799"
+    },
+    "computer-science-algorithms": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/computer-science-algorithms/SKILL.md",
+      "computedHash": "b4619f6d9c5ac19460dff820a29b1f955f1371f22828aef983cf1bad2012be51"
     },
     "same-results-less-code": {
       "source": "pproenca/dot-skills",
