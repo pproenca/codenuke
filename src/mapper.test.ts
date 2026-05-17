@@ -198,6 +198,11 @@ describe("mapFeatures", () => {
     );
     await writeFixture(
       root,
+      "apps/web/src/app/(.)photo/[id]/page.tsx",
+      "export default function PhotoPage() { return null; }\n",
+    );
+    await writeFixture(
+      root,
       "apps/web/src/app/api/things/route.ts",
       "export function GET() { return new Response('ok'); }\n",
     );
@@ -221,13 +226,18 @@ describe("mapFeatures", () => {
     const result = await mapFeatures(root, project, []);
     const titles = result.features.map((feature) => feature.title);
     const webRoute = result.features.find((feature) => feature.title === "web route /users/:id");
+    const photoRoute = result.features.find((feature) => feature.title === "web route /photo/:id");
     const adminRoute = result.features.find((feature) => feature.title === "admin route /settings");
 
     expect(titles).toContain("web route /users/:id");
+    expect(titles).toContain("web route /photo/:id");
+    expect(titles).not.toContain("web route /(.)photo/:id");
     expect(titles).toContain("web route /api/things");
     expect(titles).toContain("admin route /settings");
     expect(webRoute?.entrypoints[0]?.path).toBe("apps/web/src/app/(dashboard)/users/[id]/page.tsx");
     expect(webRoute?.entrypoints[0]?.route).toBe("/users/:id");
+    expect(photoRoute?.entrypoints[0]?.path).toBe("apps/web/src/app/(.)photo/[id]/page.tsx");
+    expect(photoRoute?.entrypoints[0]?.route).toBe("/photo/:id");
     expect(webRoute?.tags).toEqual(
       expect.arrayContaining(["project:web", "project-root:apps/web", "project-type:application"]),
     );

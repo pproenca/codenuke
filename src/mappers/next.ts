@@ -179,12 +179,18 @@ function normalizeRouteSegments(route: string): string {
     .filter((segment) => segment.length > 0)
     .filter((segment) => !isRouteGroupSegment(segment))
     .filter((segment) => !segment.startsWith("@"))
+    .map(stripInterceptingRouteMarker)
+    .filter((segment) => segment.length > 0)
     .map(dynamicSegment);
   return `/${segments.join("/")}`.replace(/\/$/u, "");
 }
 
 function isRouteGroupSegment(segment: string): boolean {
   return segment.startsWith("(") && segment.endsWith(")") && !segment.startsWith("(.");
+}
+
+function stripInterceptingRouteMarker(segment: string): string {
+  return segment.replace(/^(?:\(\.\)|\(\.\.\)|\(\.\.\.\))+/u, "");
 }
 
 function dynamicSegment(segment: string): string {
