@@ -12,6 +12,12 @@
       "sourceType": "github",
       "skillPath": "skills/.experimental/complexity-optimizer/SKILL.md",
       "computedHash": "dd8ad128be5d084372ead92a9541172a41328094dc346f89f95f3db29b413799"
+    },
+    "same-results-less-code": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/same-results-less-code/SKILL.md",
+      "computedHash": "1bb4043686ffff2764a7dedd9d5c75525d1a1c6f1316468b56a124c598d7c365"
     }
   }
 }
