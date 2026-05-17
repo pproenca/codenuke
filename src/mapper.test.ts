@@ -1,5 +1,5 @@
 import { mkdir, symlink } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { detectProject } from "./detect.js";
 import { mapFeatures } from "./mapper.js";
@@ -585,6 +585,36 @@ describe("mapFeatures", () => {
     expect(
       result.features.flatMap((feature) => feature.ownedFiles.map((file) => file.path)),
     ).not.toContain("dist/cli.js");
+  });
+
+  it("rejects package bin and export paths that escape the repository", async () => {
+    const root = await fixtureRoot("clawnuke-map-unsafe-package-entry-");
+    const outside = `${basename(root)}-outside.js`;
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "unsafe-package-entry",
+          bin: { unsafe: `../${outside}` },
+          exports: { ".": `../${outside}` },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(root, `../${outside}`, "export const outside = true;\n");
+
+    const project = await detectProject(root);
+    const result = await mapFeatures(root, project, []);
+    const paths = result.features.flatMap((feature) => [
+      ...feature.entrypoints.map((entrypoint) => entrypoint.path),
+      ...feature.ownedFiles.map((file) => file.path),
+      ...feature.contextFiles.map((file) => file.path),
+    ]);
+
+    expect(paths.some((path) => path.includes(".."))).toBe(false);
+    expect(paths).not.toContain(`../${outside}`);
   });
 
   it("maps generated module and declaration entries back to source files", async () => {

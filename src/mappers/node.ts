@@ -128,11 +128,12 @@ async function packageSeeds(
   };
 
   for (const [command, path] of Object.entries(packageBins(info.packageJson))) {
+    const normalized = normalizePackagePath(path);
     const bin = await resolvePackageBinEntry(root, info, path);
     seeds.push({
       title: `CLI command ${command}`,
       summary:
-        bin.entryPath === packageRelativePath(info.root, normalizePackagePath(path))
+        normalized !== null && bin.entryPath === packageRelativePath(info.root, normalized)
           ? `Package bin '${command}' at ${path}.`
           : `Package bin '${command}' at ${path}, source ${bin.entryPath}.`,
       kind: "cli-command",
@@ -288,6 +289,9 @@ async function packageEntryContextFiles(root: string, info: PackageInfo): Promis
   const entries = new Set<string>();
   for (const path of Object.values(packageBins(info.packageJson))) {
     const normalized = normalizePackagePath(path);
+    if (normalized === null) {
+      continue;
+    }
     const sourceCandidates = sourceCandidatesForGeneratedOutput(normalized);
     for (const candidate of sourceCandidates) {
       entries.add(packageRelativePath(info.root, candidate));
@@ -298,6 +302,9 @@ async function packageEntryContextFiles(root: string, info: PackageInfo): Promis
   }
   for (const path of packageExportPaths(info.packageJson)) {
     const normalized = normalizePackagePath(path);
+    if (normalized === null) {
+      continue;
+    }
     const sourceCandidates = sourceCandidatesForGeneratedOutput(normalized);
     for (const candidate of sourceCandidates) {
       entries.add(packageRelativePath(info.root, candidate));
@@ -452,6 +459,14 @@ async function resolvePackageBinEntry(
   confidence: FeatureSeed["confidence"];
 }> {
   const normalized = normalizePackagePath(path);
+  if (normalized === null) {
+    return {
+      entryPath: info.packageJsonPath,
+      ownedFiles: [{ path: info.packageJsonPath, reason: "package manifest declaring unsafe bin" }],
+      contextFiles: [],
+      confidence: "low",
+    };
+  }
   const sourceCandidates = sourceCandidatesForGeneratedOutput(normalized);
   if (sourceCandidates.length === 0) {
     const candidate = packageRelativePath(info.root, normalized);
@@ -530,8 +545,16 @@ function sourceCandidatesForGeneratedOutput(path: string): string[] {
   return [];
 }
 
-function normalizePackagePath(path: string): string {
-  return normalize(path).replace(/^\.\//u, "");
+function normalizePackagePath(path: string): string | null {
+  const normalized = normalize(path).replace(/\\/gu, "/").replace(/^\.\//u, "");
+  if (
+    normalized.startsWith("/") ||
+    /^[A-Za-z]:(?:\/|$)/u.test(normalized) ||
+    normalized.split("/").includes("..")
+  ) {
+    return null;
+  }
+  return normalized;
 }
 
 function isReviewableNodeSourceFile(path: string): boolean {
