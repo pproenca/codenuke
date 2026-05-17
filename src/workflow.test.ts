@@ -49,7 +49,7 @@ import { buildFixPrompt, buildReviewPrompt } from "./prompt.js";
 import type { Provider } from "./provider.js";
 import { fixtureRoot, testOptions, writeFixture } from "./test-helpers.js";
 import { findingRecordSchema } from "./types.js";
-import type { FeatureRecord } from "./types.js";
+import type { FeatureRecord, ProjectRecord } from "./types.js";
 
 async function sinceFixture(prefix: string): Promise<string> {
   const root = await fixtureRoot(prefix);
@@ -1645,6 +1645,63 @@ describe("workflow", () => {
     expect(prompt).toContain("--- src/index.test.ts");
     expect(prompt).not.toContain("SECRET=do-not-send");
     delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
+  it("includes linked tests in review prompts once", async () => {
+    const root = await fixtureRoot("clawnuke-review-prompt-tests-");
+    await writeFixture(root, "src/index.ts", "export const value = helper;\n");
+    await writeFixture(root, "src/helper.ts", "export const helper = true;\n");
+    await writeFixture(root, "src/index.test.ts", "expect(value).toBe(true);\n");
+    const now = new Date().toISOString();
+    const project: ProjectRecord = {
+      schemaVersion: 1,
+      projectId: "proj_test",
+      name: "review-prompt-tests",
+      rootPath: root,
+      git: { remoteUrl: null, defaultBranch: null, currentBranch: null, headSha: null },
+      detected: {
+        languages: ["typescript"],
+        frameworks: [],
+        packageManagers: [],
+        commands: { typecheck: null, lint: null, format: null, test: null },
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    const feature: FeatureRecord = {
+      schemaVersion: 1,
+      featureId: "feat_test",
+      title: "test feature",
+      summary: "test feature",
+      kind: "library",
+      source: "test",
+      confidence: "high",
+      entrypoints: [{ path: "src/index.ts", symbol: null, route: null, command: null }],
+      ownedFiles: [{ path: "src/index.ts", reason: "source" }],
+      contextFiles: [{ path: "src/helper.ts", reason: "helper" }],
+      tests: [
+        { path: "src/helper.ts", command: "pnpm test" },
+        { path: "src/index.test.ts", command: "pnpm test" },
+      ],
+      tags: [],
+      trustBoundaries: [],
+      status: "pending",
+      lock: null,
+      findingIds: [],
+      patchAttemptIds: [],
+      analysisHistory: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const promptConfig = defaultConfig();
+    const prompt = await buildReviewPrompt(root, project, feature, {
+      ...promptConfig,
+      review: { ...promptConfig.review, maxContextFiles: 10 },
+    });
+
+    expect(prompt).toContain("expect(value).toBe(true);");
+    expect(prompt.match(/^--- src\/index\.test\.ts$/gmu) ?? []).toHaveLength(1);
+    expect(prompt.match(/^--- src\/helper\.ts$/gmu) ?? []).toHaveLength(1);
   });
 
   it("records already-dirty files changed during fix validation", async () => {

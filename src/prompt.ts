@@ -60,9 +60,25 @@ export async function buildReviewPrompt(
 ): Promise<string> {
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);
   const context = feature.contextFiles.slice(0, config.review.maxContextFiles);
+  const tests = feature.tests.slice(0, config.review.maxContextFiles);
+  const paths: string[] = [];
+  const push = (path: string): void => {
+    if (!paths.includes(path)) {
+      paths.push(path);
+    }
+  };
+  for (const ref of owned) {
+    push(ref.path);
+  }
+  for (const ref of context) {
+    push(ref.path);
+  }
+  for (const test of tests) {
+    push(test.path);
+  }
   const fileBlocks: string[] = [];
-  for (const ref of [...owned, ...context]) {
-    fileBlocks.push(await fileBlock(root, ref.path));
+  for (const path of paths) {
+    fileBlocks.push(await fileBlock(root, path));
   }
   return `You are reviewing one semantic feature for clawnuke.
 
