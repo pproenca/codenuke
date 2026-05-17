@@ -87,13 +87,16 @@ function featureTouchesFiles(
   changed: Set<string>,
   includeContext: boolean,
 ): boolean {
-  const featureFiles = new Set([
-    ...feature.ownedFiles.map((file) => file.path),
-    ...(includeContext ? feature.contextFiles.map((file) => file.path) : []),
-  ]);
-  for (const file of changed) {
-    if (featureFiles.has(file)) {
+  for (const file of feature.ownedFiles) {
+    if (changed.has(file.path)) {
       return true;
+    }
+  }
+  if (includeContext) {
+    for (const file of feature.contextFiles) {
+      if (changed.has(file.path)) {
+        return true;
+      }
     }
   }
   return false;
