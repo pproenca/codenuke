@@ -141,13 +141,12 @@ export async function mapFeatureSeeds(
     }
     features.push(feature);
   }
+  const mappedFeatureIds = new Set(features.map((feature) => feature.featureId));
   return {
     features,
     created,
     changed,
-    stale: existing.filter(
-      (feature) => !features.some((mapped) => mapped.featureId === feature.featureId),
-    ).length,
+    stale: existing.filter((feature) => !mappedFeatureIds.has(feature.featureId)).length,
   };
 }
 

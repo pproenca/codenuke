@@ -2,12 +2,52 @@ import { mkdir, symlink } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { detectProject } from "./detect.js";
-import { mapFeatures } from "./mapper.js";
+import { mapFeatureSeeds, mapFeatures } from "./mapper.js";
 import { discoverNodeProjects } from "./mappers/projects.js";
 import { turboTaskGraph } from "./mappers/turbo.js";
 import { fixtureRoot, writeFixture } from "./test-helpers.js";
+import type { FeatureSeed } from "./mappers/types.js";
 
 describe("mapFeatures", () => {
+  it("counts stale existing features when mapped feature ids are duplicated", async () => {
+    const root = await fixtureRoot("clawnuke-map-stale-duplicate-ids-");
+    const project = await detectProject(root);
+    const retainedSeed: FeatureSeed = {
+      title: "Retained feature",
+      summary: "Retained feature summary.",
+      kind: "library",
+      source: "test-seed",
+      confidence: "medium",
+      entryPath: "src/retained.ts",
+      identityKey: "retained",
+      symbol: null,
+      route: null,
+      command: null,
+      tags: ["test"],
+      trustBoundaries: [],
+      skipNearbyTests: true,
+    };
+    const first = await mapFeatureSeeds(root, project, [], [retainedSeed]);
+    const retained = first.features[0];
+    if (retained === undefined) {
+      throw new Error("expected retained feature");
+    }
+    const stale = { ...retained, featureId: "feat_stale", title: "Stale feature" };
+
+    const second = await mapFeatureSeeds(
+      root,
+      project,
+      [retained, stale],
+      [retainedSeed, retainedSeed],
+    );
+
+    expect(second.features.map((feature) => feature.featureId)).toEqual([
+      retained.featureId,
+      retained.featureId,
+    ]);
+    expect(second.stale).toBe(1);
+  });
+
   it("maps package bins, scripts, configs, and Next routes", async () => {
     const root = await fixtureRoot("clawnuke-map-");
     await writeFixture(
