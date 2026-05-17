@@ -1,4 +1,5 @@
 import { nowIso } from "./fs.js";
+import { stableFeatureJson } from "./feature-equivalence.js";
 import { stableId } from "./id.js";
 import { cCppSeeds } from "./mappers/c-cpp.js";
 import { configSeeds } from "./mappers/config.js";
@@ -127,8 +128,7 @@ export async function mapFeatureSeeds(
       updatedAt: now,
     };
     const featureChanged =
-      previous !== undefined &&
-      JSON.stringify(stripVolatile(previous)) !== JSON.stringify(stripVolatile(feature));
+      previous !== undefined && stableFeatureJson(previous) !== stableFeatureJson(feature);
     if (featureChanged) {
       feature.status = statusForChangedFeature(previous.status);
     } else if (previous?.status === "skipped") {
@@ -258,19 +258,6 @@ function dedupeSeeds(seeds: FeatureSeed[]): FeatureSeed[] {
     output.push(seed);
   }
   return output;
-}
-
-function stripVolatile(
-  feature: FeatureRecord,
-): Omit<FeatureRecord, "createdAt" | "updatedAt" | "lock" | "analysisHistory"> {
-  const {
-    createdAt: _createdAt,
-    updatedAt: _updatedAt,
-    lock: _lock,
-    analysisHistory: _analysisHistory,
-    ...stable
-  } = feature;
-  return stable;
 }
 
 function statusForChangedFeature(status: FeatureRecord["status"]): FeatureRecord["status"] {

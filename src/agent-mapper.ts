@@ -1,6 +1,7 @@
 import { isAbsolute, join } from "node:path";
 import { buildAgentMapPrompt } from "./prompt.js";
 import { ClawnukeError } from "./errors.js";
+import { stableFeatureJson } from "./feature-equivalence.js";
 import { Provider, ProviderOptions } from "./provider.js";
 import { AgentMapOutput, FeatureRecord, ProjectRecord } from "./types.js";
 import { mapFeatureSeeds, MapResult } from "./mapper.js";
@@ -288,17 +289,6 @@ function mergeMapResults(
     }).length,
     stale: existing.filter((feature) => !byId.has(feature.featureId)).length,
   };
-}
-
-function stableFeatureJson(feature: FeatureRecord): string {
-  const {
-    createdAt: _createdAt,
-    updatedAt: _updatedAt,
-    lock: _lock,
-    analysisHistory: _analysisHistory,
-    ...stable
-  } = feature;
-  return JSON.stringify(stable);
 }
 
 async function validFileRefs(
