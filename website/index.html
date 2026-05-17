@@ -136,6 +136,16 @@
         transform: translateY(0);
       }
 
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
       .nav {
         position: sticky;
         top: 0;
@@ -487,6 +497,7 @@
       }
 
       .copy-button {
+        min-width: 74px;
         min-height: 36px;
         margin-right: 8px;
         border: 1px solid rgb(255 255 255 / 0.16);
@@ -495,6 +506,24 @@
         background: rgb(255 255 255 / 0.08);
         color: #f4f8f7;
         cursor: pointer;
+      }
+
+      .copy-button:hover {
+        background: rgb(255 255 255 / 0.14);
+      }
+
+      .copy-button:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+
+      .copy-button[data-state="success"] {
+        border-color: rgb(255 255 255 / 0.28);
+        background: rgb(22 135 127 / 0.42);
+      }
+
+      .copy-button[data-state="fallback"] {
+        background: rgb(173 107 8 / 0.36);
       }
 
       .hero-stats {
@@ -1050,6 +1079,7 @@
           <button
             class="menu-button"
             type="button"
+            aria-label="Open menu"
             aria-expanded="false"
             aria-controls="mobile-menu"
             data-menu-button
@@ -1057,7 +1087,7 @@
             Menu
           </button>
         </div>
-        <div class="mobile-panel" id="mobile-menu" data-menu-panel>
+        <div class="mobile-panel" id="mobile-menu" data-menu-panel hidden>
           <a href="#workflow">Workflow</a>
           <a href="#review">Review</a>
           <a href="#coverage">Coverage</a>
@@ -1154,9 +1184,15 @@
               </div>
               <div class="install-command" id="install" data-copy-group>
                 <code>npm install -g codenuke</code>
-                <button class="copy-button" type="button" data-copy="npm install -g codenuke">
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="npm install -g codenuke"
+                  aria-label="Copy install command"
+                >
                   Copy
                 </button>
+                <span class="visually-hidden" data-copy-status aria-live="polite"></span>
               </div>
               <div class="hero-stats" aria-label="Release facts">
                 <div class="stat">
@@ -1531,34 +1567,122 @@
     <script>
       const menuButton = document.querySelector("[data-menu-button]");
       const menuPanel = document.querySelector("[data-menu-panel]");
+      const desktopMenu = window.matchMedia("(min-width: 761px)");
+
+      const setMenuOpen = (isOpen) => {
+        if (!menuButton || !menuPanel) return;
+
+        menuPanel.hidden = !isOpen;
+        menuPanel.setAttribute("data-open", String(isOpen));
+        menuButton.setAttribute("aria-expanded", String(isOpen));
+        menuButton.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+      };
 
       menuButton?.addEventListener("click", () => {
         const isOpen = menuPanel?.getAttribute("data-open") === "true";
-        menuPanel?.setAttribute("data-open", String(!isOpen));
-        menuButton.setAttribute("aria-expanded", String(!isOpen));
+        setMenuOpen(!isOpen);
       });
 
       menuPanel?.querySelectorAll("a").forEach((link) => {
         link.addEventListener("click", () => {
-          menuPanel.setAttribute("data-open", "false");
-          menuButton?.setAttribute("aria-expanded", "false");
+          setMenuOpen(false);
         });
       });
 
-      document.querySelectorAll("[data-copy]").forEach((button) => {
-        button.addEventListener("click", async () => {
-          const text = button.getAttribute("data-copy") ?? "";
+      document.addEventListener("click", (event) => {
+        if (!menuPanel || !menuButton || menuPanel.hidden) return;
+        const target = event.target;
+        if (!(target instanceof Node)) return;
+        if (menuPanel.contains(target) || menuButton.contains(target)) return;
+
+        setMenuOpen(false);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !menuPanel || menuPanel.hidden) return;
+
+        setMenuOpen(false);
+        menuButton?.focus();
+      });
+
+      const closeMenuOnDesktop = (event) => {
+        if (event.matches) setMenuOpen(false);
+      };
+
+      if (desktopMenu.addEventListener) {
+        desktopMenu.addEventListener("change", closeMenuOnDesktop);
+      } else {
+        desktopMenu.addListener(closeMenuOnDesktop);
+      }
+
+      const copyWithFallback = async (text) => {
+        if (navigator.clipboard?.writeText) {
           try {
             await navigator.clipboard.writeText(text);
+            return true;
+          } catch {}
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.inset = "0 auto auto 0";
+        textarea.style.opacity = "0";
+        document.body.append(textarea);
+        textarea.select();
+
+        try {
+          return document.execCommand?.("copy") ?? false;
+        } catch {
+          return false;
+        } finally {
+          textarea.remove();
+        }
+      };
+
+      const selectCopyText = (button) => {
+        const copyGroup = button.closest("[data-copy-group]");
+        const code = copyGroup?.querySelector("code");
+        if (!code) return;
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      };
+
+      document.querySelectorAll("[data-copy]").forEach((button) => {
+        let resetTimer;
+
+        button.addEventListener("click", async () => {
+          const text = button.getAttribute("data-copy") ?? "";
+          const status = button.closest("[data-copy-group]")?.querySelector("[data-copy-status]");
+          window.clearTimeout(resetTimer);
+
+          if (!text) return;
+
+          if (await copyWithFallback(text)) {
             button.textContent = "Copied";
-            window.setTimeout(() => {
-              button.textContent = "Copy";
-            }, 1400);
-          } catch {
-            button.textContent = "Select";
+            button.setAttribute("data-state", "success");
+            if (status) status.textContent = "Install command copied.";
+          } else {
+            selectCopyText(button);
+            button.textContent = "Selected";
+            button.setAttribute("data-state", "fallback");
+            if (status) status.textContent = "Install command selected.";
           }
+
+          resetTimer = window.setTimeout(() => {
+            button.textContent = "Copy";
+            button.removeAttribute("data-state");
+            if (status) status.textContent = "";
+          }, 1600);
         });
       });
+
+      setMenuOpen(false);
     </script>
   </body>
 </html>
