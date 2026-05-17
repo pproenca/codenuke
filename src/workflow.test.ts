@@ -1634,6 +1634,44 @@ describe("workflow", () => {
     delete process.env["CLAWNUKE_PROVIDER"];
   });
 
+  it("fails trusted-refactor fixes without linked tests or changed test files", async () => {
+    const root = await fixtureRoot("clawnuke-refactor-test-coverage-");
+    await runCommand(
+      "git init -q && git config user.email test@example.com && git config user.name Test",
+      root,
+    );
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({ name: "simplify", bin: { simplify: "src/index.ts" } }),
+    );
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_SIMPLIFY';\n");
+    await runCommand(
+      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      root,
+    );
+    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const context = await makeContext(testOptions(root));
+
+    await initCommand(context, {});
+    await mapCommand(context);
+    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
+    const finding = reviewed.next.split(" ").at(-1) ?? "";
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({
+      code: "missing-test-coverage",
+    });
+    const paths = statePaths(join(root, ".clawnuke"));
+    const [patches, updatedFinding] = await Promise.all([
+      readPatchAttempts(paths),
+      readFinding(paths, finding),
+    ]);
+
+    expect(patches[0]?.status).toBe("failed");
+    expect(patches[0]?.plan).toContain("Provider did not add or update a test file");
+    expect(updatedFinding?.status).toBe("open");
+    delete process.env["CLAWNUKE_PROVIDER"];
+  });
+
   it("includes evidence, context, and tests in fix prompts", async () => {
     const root = await fixtureRoot("clawnuke-fix-prompt-context-");
     await writeFixture(

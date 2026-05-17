@@ -1,5 +1,6 @@
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
+import { requiresChangedTestForFix } from "./test-coverage.js";
 import { ClawnukeConfig, FeatureRecord, FindingRecord, ProjectRecord } from "./types.js";
 
 export function buildAgentMapPrompt(project: ProjectRecord, inventory: unknown): string {
@@ -189,11 +190,16 @@ export async function buildFixPrompt(
   for (const path of fixPromptPaths(finding, feature, config)) {
     fileBlocks.push(await fileBlock(root, path));
   }
+  const testRequirement = requiresChangedTestForFix(finding, feature)
+    ? `\nTDD requirement:\n- This is a trusted-refactor finding with no linked feature tests.\n- Add or update a focused behavior test before changing production code.\n- The fix will be rejected unless the patch changes at least one test file.\n`
+    : "";
   return `You are clawnuke applying one small simplification or complexity repair in the current repository.
 
 Fix only the finding below. Keep the patch minimal and behavior-preserving. Prefer removing code,
 collapsing duplication, simplifying data flow, or improving algorithmic complexity over broad
 rewrites. Add or update focused tests when feasible.
+Use a red-green-refactor loop for behavior-preserving refactors: prove the intended behavior with
+the smallest focused test, make the minimal production change, then run validation.
 Do not commit, push, switch branches, or run destructive git commands.
 After editing, return strict JSON only:
 {
@@ -205,6 +211,7 @@ After editing, return strict JSON only:
   "validationCommands": ["string"]
 }
 
+${testRequirement}
 Finding:
 ${JSON.stringify(finding, null, 2)}
 

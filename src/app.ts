@@ -70,6 +70,7 @@ import {
   reasoningEffortSchema,
   reasoningEfforts,
 } from "./types.js";
+import { missingChangedTestMessage } from "./test-coverage.js";
 import { validationCommandsForFeature } from "./validation.js";
 
 export type AppContext = {
@@ -807,11 +808,13 @@ export async function fixCommand(
   const afterChanged =
     (await sourceChangedSnapshots(loaded.root, loaded.paths.stateDir)) ?? new Map();
   const filesChanged = changedPathsBetweenSnapshots(beforeChanged, afterChanged);
-  const failed = commandsRun.some((result) => result.exitCode !== 0);
+  const missingTestCoverage = missingChangedTestMessage(finding, feature, filesChanged);
+  const validationFailed = commandsRun.some((result) => result.exitCode !== 0);
+  const failed = validationFailed || missingTestCoverage !== null;
   const patch: PatchAttempt = {
     ...initialPatch,
     status: failed ? "failed" : "applied",
-    plan: plan.summary,
+    plan: missingTestCoverage === null ? plan.summary : `${plan.summary}\n\n${missingTestCoverage}`,
     filesChanged,
     commandsRun,
     testResults: commandsRun,
@@ -834,7 +837,11 @@ export async function fixCommand(
   };
   await writeFinding(loaded.paths, updatedFinding);
   if (failed) {
-    throw new ClawnukeError("validation failed after applying fix", 6, "validation-failed");
+    throw new ClawnukeError(
+      missingTestCoverage ?? "validation failed after applying fix",
+      6,
+      missingTestCoverage === null ? "validation-failed" : "missing-test-coverage",
+    );
   }
   return {
     finding: finding.findingId,
