@@ -1,10 +1,10 @@
 {
-  "name": "clawnuke",
+  "name": "codenuke",
   "version": "0.2.0",
   "description": "Automated code review for reliable, trusted refactoring.",
   "license": "MIT",
   "bin": {
-    "clawnuke": "dist/cli.js"
+    "codenuke": "dist/cli.js"
   },
   "files": [
     "dist",

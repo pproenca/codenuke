@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: "Configure clawnuke behavior, providers, and validation commands"
+description: "Configure codenuke behavior, providers, and validation commands"
 ---
 
 # Configuration
@@ -8,10 +8,10 @@ description: "Configure clawnuke behavior, providers, and validation commands"
 Config is loaded from:
 
 - `--config <path>`
-- `$CLAWNUKE_CONFIG`
-- `$CLAWNUKE_STATE_DIR/config.json`
-- `clawnuke.config.json`
-- `.clawnuke/config.json`
+- `$CODENUKE_CONFIG`
+- `$CODENUKE_STATE_DIR/config.json`
+- `codenuke.config.json`
+- `.codenuke/config.json`
 - built-in defaults
 
 Default shape:
@@ -19,7 +19,7 @@ Default shape:
 ```json
 {
   "schemaVersion": 1,
-  "stateDir": ".clawnuke",
+  "stateDir": ".codenuke",
   "include": ["**/*"],
   "exclude": [
     "node_modules/**",
@@ -28,7 +28,7 @@ Default shape:
     "target/**",
     ".build/**",
     ".git/**",
-    ".clawnuke/**"
+    ".codenuke/**"
   ],
   "provider": {
     "name": "codex",
@@ -57,10 +57,10 @@ Default shape:
 
 Environment overrides:
 
-- `CLAWNUKE_STATE_DIR`
-- `CLAWNUKE_PROVIDER`
-- `CLAWNUKE_MODEL`
-- `CLAWNUKE_REASONING_EFFORT`
+- `CODENUKE_STATE_DIR`
+- `CODENUKE_PROVIDER`
+- `CODENUKE_MODEL`
+- `CODENUKE_REASONING_EFFORT`
 
 `git.commit` and `git.openPr` are reserved config fields. The current CLI does
 not commit or open PRs.

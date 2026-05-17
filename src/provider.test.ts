@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import { __testing, extractJson, providerByName } from "./provider.js";
 import {
   agentMapJsonSchema,
@@ -51,9 +51,9 @@ function expectMalformed(fn: () => unknown, message: RegExp): void {
   try {
     fn();
   } catch (err) {
-    expect(err).toBeInstanceOf(ClawnukeError);
-    expect((err as ClawnukeError).code).toBe("malformed-output");
-    expect((err as ClawnukeError).exitCode).toBe(8);
+    expect(err).toBeInstanceOf(CodenukeError);
+    expect((err as CodenukeError).code).toBe("malformed-output");
+    expect((err as CodenukeError).exitCode).toBe(8);
     expect((err as Error).message).toMatch(message);
     return;
   }
@@ -472,8 +472,8 @@ describe("extractOpencodeJson", () => {
     try {
       extractOpencodeJson(stdout);
     } catch (err) {
-      expect(err).toBeInstanceOf(ClawnukeError);
-      expect((err as ClawnukeError).exitCode).toBe(4);
+      expect(err).toBeInstanceOf(CodenukeError);
+      expect((err as CodenukeError).exitCode).toBe(4);
       return;
     }
     throw new Error("expected provider auth failure");

@@ -5,7 +5,7 @@ const gemspecSearchSkipEntries = new Set([
   ".bundle",
   ".build",
   ".git",
-  ".clawnuke",
+  ".codenuke",
   ".worktrees",
   ".swiftpm",
   "build",

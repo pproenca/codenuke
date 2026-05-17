@@ -28,7 +28,7 @@ export function renderReport(
   features: FeatureRecord[] = [],
   options: { includeNext?: boolean } = {},
 ): string {
-  const lines = ["# clawnuke report", "", `findings: ${findings.length}`, ""];
+  const lines = ["# codenuke report", "", `findings: ${findings.length}`, ""];
   const featureById = new Map(features.map((feature) => [feature.featureId, feature]));
   for (const finding of findings) {
     lines.push(`## ${finding.severity}: ${finding.title}`);
@@ -40,7 +40,7 @@ export function renderReport(
     lines.push(`status: ${finding.status}`);
     lines.push(`feature: ${featureLabel(finding.featureId, featureById.get(finding.featureId))}`);
     if (options.includeNext === true) {
-      lines.push(`next: clawnuke show --finding ${finding.findingId}`);
+      lines.push(`next: codenuke show --finding ${finding.findingId}`);
     }
     if (finding.evidence.length > 0) {
       lines.push("");
@@ -163,7 +163,7 @@ export function renderFindingDetail(
     lines.push("- none");
   }
   lines.push("");
-  lines.push(`next: clawnuke triage --finding ${finding.findingId} --status <status>`);
+  lines.push(`next: codenuke triage --finding ${finding.findingId} --status <status>`);
   return `${lines.join("\n")}\n`;
 }
 
@@ -204,7 +204,7 @@ export function findingSummary(
     whyTestsDoNotAlreadyCoverThis: finding.whyTestsDoNotAlreadyCoverThis,
     suggestedRegressionTest: finding.suggestedRegressionTest,
     minimumFixScope: finding.minimumFixScope,
-    next: `clawnuke show --finding ${finding.findingId}`,
+    next: `codenuke show --finding ${finding.findingId}`,
   };
 }
 

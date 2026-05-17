@@ -5,7 +5,7 @@ description: "Validation commands during fix workflow and revalidation process"
 
 # Validation and Revalidation
 
-Validation happens during `clawnuke fix`.
+Validation happens during `codenuke fix`.
 
 Configured commands run in order:
 
@@ -14,8 +14,8 @@ Configured commands run in order:
 - lint
 - test
 
-Commands are detected during `clawnuke init` or configured in
-`.clawnuke/config.json`.
+Commands are detected during `codenuke init` or configured in
+`.codenuke/config.json`.
 
 Example:
 
@@ -30,8 +30,8 @@ Example:
 }
 ```
 
-`clawnuke revalidate --finding <id>` runs a separate provider pass and updates
-the finding status based on that result. `clawnuke revalidate --all` rechecks a
+`codenuke revalidate --finding <id>` runs a separate provider pass and updates
+the finding status based on that result. `codenuke revalidate --all` rechecks a
 filtered queue and records one history entry per finding.
 
 Current limitations:

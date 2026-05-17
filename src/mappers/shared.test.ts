@@ -4,7 +4,7 @@ import { walk } from "./shared.js";
 
 describe("walk", () => {
   it("returns the same sorted files for overlapping directory prefixes", async () => {
-    const root = await fixtureRoot("clawnuke-walk-overlap-");
+    const root = await fixtureRoot("codenuke-walk-overlap-");
     await writeFixture(root, "src/foo/a.test.ts", "test('a', () => {});\n");
     await writeFixture(root, "src/foo/nested/c.test.ts", "test('c', () => {});\n");
     await writeFixture(root, "src/bar/b.test.ts", "test('b', () => {});\n");
@@ -17,7 +17,7 @@ describe("walk", () => {
   });
 
   it("keeps child prefixes when skipped ancestors prevent parent coverage", async () => {
-    const root = await fixtureRoot("clawnuke-walk-skipped-overlap-");
+    const root = await fixtureRoot("codenuke-walk-skipped-overlap-");
     await writeFixture(root, "src/generated/foo/a.test.ts", "test('a', () => {});\n");
     await writeFixture(root, "src/other.test.ts", "test('other', () => {});\n");
 

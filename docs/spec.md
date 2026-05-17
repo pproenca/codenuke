@@ -3,11 +3,11 @@ title: Specification
 description: "Product goals, design, implementation details, and architecture"
 ---
 
-# clawnuke spec
+# codenuke spec
 
 Automated code review for reliable, trusted refactoring.
 
-`clawnuke` maps a repo into reviewable feature slices, reviews each slice for trusted behavior-preserving refactoring opportunities, revalidates findings, and turns confirmed issues into repair patches or PRs when explicitly asked.
+`codenuke` maps a repo into reviewable feature slices, reviews each slice for trusted behavior-preserving refactoring opportunities, revalidates findings, and turns confirmed issues into repair patches or PRs when explicitly asked.
 
 ## Goals
 
@@ -31,9 +31,9 @@ Automated code review for reliable, trusted refactoring.
 
 ## Package
 
-- repo: `openclaw/clawnuke`
-- npm package: `clawnuke`
-- CLI bin: `clawnuke`
+- repo: `pproenca/codenuke`
+- npm package: `codenuke`
+- CLI bin: `codenuke`
 - runtime: Node.js
 - language: strict TypeScript
 - formatter: `oxfmt`
@@ -79,7 +79,7 @@ Suggested scripts:
 Global usage:
 
 ```bash
-clawnuke [global flags] <command> [command flags]
+codenuke [global flags] <command> [command flags]
 ```
 
 Global flags:
@@ -87,7 +87,7 @@ Global flags:
 - `-h, --help`: show help, ignore other args.
 - `--version`: print version to stdout.
 - `--root <path>`: repo root. Default: nearest git root, else cwd.
-- `--state-dir <path>`: state directory. Default: `<root>/.clawnuke`.
+- `--state-dir <path>`: state directory. Default: `<root>/.codenuke`.
 - `--config <path>`: config path. Default discovery below.
 - `--json`: structured JSON to stdout.
 - `--plain`: stable line-oriented output to stdout.
@@ -133,25 +133,25 @@ Interactivity:
 
 ## Commands
 
-### `clawnuke init`
+### `codenuke init`
 
 Create project state and detected config.
 
 Usage:
 
 ```bash
-clawnuke init [--force] [--no-input]
+codenuke init [--force] [--no-input]
 ```
 
 Behavior:
 
 - Finds repo root.
-- Creates `.clawnuke/`.
+- Creates `.codenuke/`.
 - Detects git remote/default branch.
 - Detects languages/frameworks/package manager.
 - Detects likely build/test/lint/format commands.
-- Writes `.clawnuke/project.json`.
-- Writes `.clawnuke/config.json` if missing.
+- Writes `.codenuke/project.json`.
+- Writes `.codenuke/config.json` if missing.
 - Does not run model calls.
 - Idempotent unless `--force`.
 
@@ -160,21 +160,21 @@ Output:
 - Human: created/updated paths and next command.
 - JSON: `ProjectRecord`.
 
-### `clawnuke map`
+### `codenuke map`
 
 Build or update semantic feature records.
 
 Usage:
 
 ```bash
-clawnuke map [--dry-run] [--force] [--include <glob>] [--exclude <glob>] [--max-features <n>]
+codenuke map [--dry-run] [--force] [--include <glob>] [--exclude <glob>] [--max-features <n>]
 ```
 
 Behavior:
 
 - Runs deterministic mappers.
 - Expands context via imports/references/tests/docs where cheap.
-- Creates/updates `.clawnuke/features/<featureId>.json`.
+- Creates/updates `.codenuke/features/<featureId>.json`.
 - Marks removed feature seeds as stale, not deleted.
 - Does not call a model in v0 by default.
 - Later: `--enrich` may use an agent to improve summaries/tags.
@@ -184,14 +184,14 @@ Output:
 - Human: feature count, new/changed/stale counts.
 - JSON: `MapRunResult`.
 
-### `clawnuke status`
+### `codenuke status`
 
 Show current project/review state.
 
 Usage:
 
 ```bash
-clawnuke status [--json]
+codenuke status [--json]
 ```
 
 Behavior:
@@ -199,14 +199,14 @@ Behavior:
 - Reads state only.
 - Shows project, current git branch, dirty status, feature/finding counts, active locks, last run.
 
-### `clawnuke review`
+### `codenuke review`
 
 Review feature slices and persist findings.
 
 Usage:
 
 ```bash
-clawnuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
+codenuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
 ```
 
 Behavior:
@@ -227,14 +227,14 @@ Selection:
 - Else pending/errored features, filtered by `--kind`.
 - `--limit` caps claimed features.
 
-### `clawnuke report`
+### `codenuke report`
 
 Print or write a findings report.
 
 Usage:
 
 ```bash
-clawnuke report [--run <runId>] [--severity <level>] [--format markdown|json] [-o <path>]
+codenuke report [--run <runId>] [--severity <level>] [--format markdown|json] [-o <path>]
 ```
 
 Behavior:
@@ -245,21 +245,21 @@ Behavior:
 - Markdown default for humans.
 - JSON default under `--json`.
 
-### `clawnuke fix`
+### `codenuke fix`
 
 Apply repairs for selected findings.
 
 Usage:
 
 ```bash
-clawnuke fix --finding <id> [--finding <id> ...] [--dry-run] [--yes] [--provider <name>] [--model <name>] [--reasoning-effort <level>]
-clawnuke fix --feature <id> [--severity high] [--dry-run] [--yes]
+codenuke fix --finding <id> [--finding <id> ...] [--dry-run] [--yes] [--provider <name>] [--model <name>] [--reasoning-effort <level>]
+codenuke fix --feature <id> [--severity high] [--dry-run] [--yes]
 ```
 
 Behavior:
 
 - Starts with `git status -sb`.
-- Refuses dirty worktree unless changes are only prior clawnuke patch files for the same attempt, or future config allows unsafe mode.
+- Refuses dirty worktree unless changes are only prior codenuke patch files for the same attempt, or future config allows unsafe mode.
 - Claims a `PatchAttempt`.
 - Builds fix prompt from selected finding cluster and feature context.
 - Applies edits only in current worktree.
@@ -275,14 +275,14 @@ Safety:
 - No overwrite of unrecognized user changes.
 - `--dry-run` produces a patch plan only.
 
-### `clawnuke revalidate`
+### `codenuke revalidate`
 
 Verify findings or patch attempts.
 
 Usage:
 
 ```bash
-clawnuke revalidate [--finding <id>] [--patch <id>] [--feature <id>] [--provider <name>] [--model <name>] [--reasoning-effort <level>]
+codenuke revalidate [--finding <id>] [--patch <id>] [--feature <id>] [--provider <name>] [--model <name>] [--reasoning-effort <level>]
 ```
 
 Behavior:
@@ -296,14 +296,14 @@ Behavior:
   - `uncertain`
 - Records test/lint/build output summaries.
 
-### `clawnuke triage`
+### `codenuke triage`
 
 Deduplicate and prioritize findings.
 
 Usage:
 
 ```bash
-clawnuke triage [--run <runId>] [--dry-run]
+codenuke triage [--run <runId>] [--dry-run]
 ```
 
 Behavior:
@@ -315,14 +315,14 @@ Behavior:
 
 May be post-v0 if review output is already clean enough.
 
-### `clawnuke open-pr`
+### `codenuke open-pr`
 
 Create or update a repair PR.
 
 Usage:
 
 ```bash
-clawnuke open-pr --patch <id> [--draft] [--base <branch>]
+codenuke open-pr --patch <id> [--draft] [--base <branch>]
 ```
 
 Behavior:
@@ -335,14 +335,14 @@ Behavior:
 
 Post-v0.
 
-### `clawnuke land`
+### `codenuke land`
 
-Land an existing clawnuke PR.
+Land an existing codenuke PR.
 
 Usage:
 
 ```bash
-clawnuke land --pr <number>
+codenuke land --pr <number>
 ```
 
 Behavior:
@@ -353,14 +353,14 @@ Behavior:
 
 Post-v0.
 
-### `clawnuke doctor`
+### `codenuke doctor`
 
 Check environment.
 
 Usage:
 
 ```bash
-clawnuke doctor [--json]
+codenuke doctor [--json]
 ```
 
 Behavior:
@@ -369,14 +369,14 @@ Behavior:
 - Checks exact provider env names only.
 - Never prints secret values.
 
-### `clawnuke clean-locks`
+### `codenuke clean-locks`
 
 Clear stale locks.
 
 Usage:
 
 ```bash
-clawnuke clean-locks [--older-than <duration>] [--dry-run] [--yes]
+codenuke clean-locks [--older-than <duration>] [--dry-run] [--yes]
 ```
 
 Behavior:
@@ -390,8 +390,8 @@ Behavior:
 Discovery order:
 
 - `--config <path>`
-- `<root>/clawnuke.config.json`
-- `<root>/.clawnuke/config.json`
+- `<root>/codenuke.config.json`
+- `<root>/.codenuke/config.json`
 - future: user config under XDG
 
 Precedence:
@@ -406,7 +406,7 @@ Initial config:
 ```json
 {
   "schemaVersion": 1,
-  "stateDir": ".clawnuke",
+  "stateDir": ".codenuke",
   "include": ["**/*"],
   "exclude": [
     "node_modules/**",
@@ -415,7 +415,7 @@ Initial config:
     "target/**",
     ".build/**",
     ".git/**",
-    ".clawnuke/**"
+    ".codenuke/**"
   ],
   "provider": {
     "name": "openai",
@@ -443,11 +443,11 @@ Initial config:
 
 Env:
 
-- `CLAWNUKE_CONFIG`
-- `CLAWNUKE_STATE_DIR`
-- `CLAWNUKE_PROVIDER`
-- `CLAWNUKE_MODEL`
-- `CLAWNUKE_REASONING_EFFORT`
+- `CODENUKE_CONFIG`
+- `CODENUKE_STATE_DIR`
+- `CODENUKE_PROVIDER`
+- `CODENUKE_MODEL`
+- `CODENUKE_REASONING_EFFORT`
 - provider-specific exact env names, checked by provider adapters
 
 Secrets:
@@ -461,7 +461,7 @@ Secrets:
 Initial project-local layout:
 
 ```text
-.clawnuke/
+.codenuke/
   config.json
   project.json
   features/
@@ -481,16 +481,16 @@ Initial project-local layout:
 Recommended `.gitignore` entry:
 
 ```gitignore
-.clawnuke/runs/
-.clawnuke/findings/
-.clawnuke/patches/
-.clawnuke/reports/
-.clawnuke/locks/
+.codenuke/runs/
+.codenuke/findings/
+.codenuke/patches/
+.codenuke/reports/
+.codenuke/locks/
 ```
 
 Open question:
 
-- Whether `.clawnuke/project.json` and `.clawnuke/features/*.json` should be checked in by default. v0 should not force either.
+- Whether `.codenuke/project.json` and `.codenuke/features/*.json` should be checked in by default. v0 should not force either.
 
 ## Record IDs
 
@@ -778,7 +778,7 @@ Review categories:
 - release/build hazards
 - maintainability risks with concrete impact
 
-Clawnuke prioritizes algorithmic/render-path complexity as `performance` and
+Codenuke prioritizes algorithmic/render-path complexity as `performance` and
 specific behavior-preserving reductions as `maintainability`.
 
 Review output schema:
@@ -1029,10 +1029,10 @@ Report findings include:
 Init:
 
 ```text
-created: .clawnuke/project.json
-created: .clawnuke/config.json
+created: .codenuke/project.json
+created: .codenuke/config.json
 detected: typescript, node, pnpm
-next: clawnuke map
+next: codenuke map
 ```
 
 Map:
@@ -1042,7 +1042,7 @@ features: 18
 new: 18
 changed: 0
 stale: 0
-next: clawnuke review --limit 3
+next: codenuke review --limit 3
 ```
 
 Review:
@@ -1054,8 +1054,8 @@ findings: 5
 high: 1
 medium: 3
 low: 1
-report: .clawnuke/reports/20260515-104455-a13f.md
-next: clawnuke fix --finding fnd_abc123
+report: .codenuke/reports/20260515-104455-a13f.md
+next: codenuke fix --finding fnd_abc123
 ```
 
 ## Testing requirements
@@ -1126,11 +1126,11 @@ fixtures/
 
 ## Release criteria for v0.1
 
-- npm package installs and exposes `clawnuke`.
-- `clawnuke init` writes valid state.
-- `clawnuke map` finds features in fixture repos and clawnuke itself.
-- `clawnuke status --json` stable and tested.
-- `clawnuke report` works with sample findings.
+- npm package installs and exposes `codenuke`.
+- `codenuke init` writes valid state.
+- `codenuke map` finds features in fixture repos and codenuke itself.
+- `codenuke status --json` stable and tested.
+- `codenuke report` works with sample findings.
 - Strict TypeScript passes.
 - `oxlint` passes.
 - `oxfmt --check .` passes.

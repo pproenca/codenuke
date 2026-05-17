@@ -1,7 +1,7 @@
 ---
 title: Overview
 permalink: /
-description: "clawnuke maps repos into semantic feature slices, reviews each with AI providers for trusted simplification and complexity-reduction findings, and can apply explicit fixes."
+description: "codenuke maps repos into semantic feature slices, reviews each with AI providers for trusted simplification and complexity-reduction findings, and can apply explicit fixes."
 ---
 
 ## Try it
@@ -10,37 +10,37 @@ After installation and project initialization ([Quickstart](quickstart.md)), eve
 
 ```bash
 # Map repo into reviewable features
-clawnuke map
+codenuke map
 
 # Review features in parallel
-clawnuke review --limit 3 --jobs 3
+codenuke review --limit 3 --jobs 3
 
 # Generate findings report
-clawnuke report
+codenuke report
 
 # Fix a specific finding
-clawnuke fix --finding <id>
+codenuke fix --finding <id>
 
 # Re-validate after manual edits
-clawnuke revalidate --finding <id>
+codenuke revalidate --finding <id>
 ```
 
 `--json` produces stable JSON on stdout. Human progress and warnings go to
 stderr so pipes stay parseable.
 
-## What clawnuke does
+## What codenuke does
 
 - **Semantic feature mapping.** Detects npm bins, Next.js routes, React Router routes, Python packages and Flask/FastAPI routes, Ruby/Rails slices, Laravel/PHP slices, Java/Kotlin Gradle modules, Go packages, Rust crates, C/C++ build targets, SwiftPM targets, and common config files as reviewable units.
 - **Trusted refactoring review.** Reviews features with AI providers (Codex CLI today), persists behavior-preserving simplification and complexity-reduction findings with severity, category, and line locations.
-- **Explicit fix workflow.** `clawnuke fix` runs validated patches for one finding at a time, never commits or pushes automatically.
-- **Stable state model.** All features, findings, patches live in `.clawnuke/` as JSON, resumable across runs.
+- **Explicit fix workflow.** `codenuke fix` runs validated patches for one finding at a time, never commits or pushes automatically.
+- **Stable state model.** All features, findings, patches live in `.codenuke/` as JSON, resumable across runs.
 - **Safety first.** Review is read-only, fix refuses dirty worktrees, never auto-commits, validates before accepting patches.
 - **Multi-language.** JavaScript/TypeScript, Python, Ruby, PHP/Laravel, Java/Kotlin, Go, Rust, C/C++, and Swift today; more mappers planned.
 
 ## Pick your path
 
 - **Trying it.** [Install](install.md) → [Quickstart](quickstart.md). Five minutes from `pnpm add` to your first review.
-- **Understanding features.** [Feature Mapping](feature-mapping.md) explains how clawnuke slices repos into reviewable units.
+- **Understanding features.** [Feature Mapping](feature-mapping.md) explains how codenuke slices repos into reviewable units.
 - **Running reviews.** [Code Review](code-review.md) covers provider integration, parallel execution, and finding categories.
 - **Fixing findings.** [Patching](patching.md) documents the explicit fix workflow and validation steps.
 - **Reading reports.** [Reporting](reporting.md) shows how to generate Markdown reports and filter by severity.
@@ -64,4 +64,4 @@ stderr so pipes stay parseable.
 
 ## Project
 
-Active development; the [changelog](https://github.com/openclaw/clawnuke/blob/main/CHANGELOG.md) tracks recent releases. Goals and implementation details in [spec.md](spec.md). Released under the [MIT license](https://github.com/openclaw/clawnuke/blob/main/LICENSE).
+Active development; the [changelog](https://github.com/pproenca/codenuke/blob/main/CHANGELOG.md) tracks recent releases. Goals and implementation details in [spec.md](spec.md). Released under the [MIT license](https://github.com/pproenca/codenuke/blob/main/LICENSE).

@@ -5,14 +5,14 @@ description: "Generate and filter finding reports in Markdown or JSON"
 
 # Reporting
 
-`clawnuke report` renders current findings.
+`codenuke report` renders current findings.
 
 ```bash
-clawnuke report
-clawnuke report -o report.md
-clawnuke report --json
-clawnuke report --status open --severity high
-clawnuke report --feature <featureId>
+codenuke report
+codenuke report -o report.md
+codenuke report --json
+codenuke report --status open --severity high
+codenuke report --feature <featureId>
 ```
 
 Markdown output includes:
@@ -30,7 +30,7 @@ Markdown output includes:
 `review` also writes a Markdown report for each run under:
 
 ```text
-.clawnuke/reports/<runId>.md
+.codenuke/reports/<runId>.md
 ```
 
 Filters:

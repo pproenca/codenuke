@@ -1,4 +1,4 @@
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 
 export function extractJson(text: string): unknown | null {
   try {
@@ -55,7 +55,7 @@ export function parseCodexJson(raw: string): unknown {
     return parsed;
   }
   const preview = safeProviderPreview(raw);
-  throw new ClawnukeError(
+  throw new CodenukeError(
     `codex provider produced unparseable JSON output (preview: ${preview})`,
     8,
     "malformed-output",

@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCommandArgs } from "./exec.js";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import {
   agentMapJsonSchema,
   fixPlanJsonSchema,
@@ -161,7 +161,7 @@ export function providerByName(name: string): Provider {
   if (name === "mock-fail") {
     return mockFailProvider;
   }
-  throw new ClawnukeError(`unsupported provider: ${name}`, 2, "unsupported-provider");
+  throw new CodenukeError(`unsupported provider: ${name}`, 2, "unsupported-provider");
 }
 
 const codexProvider: Provider = withProviderOperations(
@@ -170,7 +170,7 @@ const codexProvider: Provider = withProviderOperations(
     async check(root: string): Promise<string> {
       const result = await runCommandArgs("codex", ["--version"], root);
       if (result.exitCode !== 0) {
-        throw new ClawnukeError("codex CLI not available", 4, "provider-auth");
+        throw new CodenukeError("codex CLI not available", 4, "provider-auth");
       }
       return result.stdout.trim();
     },
@@ -185,7 +185,7 @@ const opencodeProvider: Provider = withProviderOperations(
     async check(root: string): Promise<string> {
       const result = await runCommandArgs("opencode", ["--version"], root);
       if (result.exitCode !== 0) {
-        throw new ClawnukeError("opencode CLI not available", 4, "provider-auth");
+        throw new CodenukeError("opencode CLI not available", 4, "provider-auth");
       }
       return result.stdout.trim();
     },
@@ -204,7 +204,7 @@ const acpxProvider: Provider = withProviderOperations<"read" | "approve">(
     async check(root: string): Promise<string> {
       const result = await runCommandArgs("acpx", ["--version"], root);
       if (result.exitCode !== 0) {
-        throw new ClawnukeError(
+        throw new CodenukeError(
           "acpx CLI not available. Install: npm install -g acpx@latest",
           4,
           "provider-auth",
@@ -225,7 +225,7 @@ const grokProvider: Provider = withProviderOperations(
     async check(root: string): Promise<string> {
       const result = await runCommandArgs("grok", ["--version"], root);
       if (result.exitCode !== 0) {
-        throw new ClawnukeError("grok CLI not available", 4, "provider-auth");
+        throw new CodenukeError("grok CLI not available", 4, "provider-auth");
       }
       return result.stdout.trim();
     },
@@ -363,16 +363,16 @@ const mockFailProvider: Provider = {
     return "mock-fail";
   },
   async map(): Promise<AgentMapOutput> {
-    throw new ClawnukeError("mock map failure", 1, "mock-failure");
+    throw new CodenukeError("mock map failure", 1, "mock-failure");
   },
   async review(): Promise<ReviewOutput> {
-    throw new ClawnukeError("mock review failure", 1, "mock-failure");
+    throw new CodenukeError("mock review failure", 1, "mock-failure");
   },
   async fix(): Promise<FixPlanOutput> {
-    throw new ClawnukeError("mock fix failure", 1, "mock-failure");
+    throw new CodenukeError("mock fix failure", 1, "mock-failure");
   },
   async revalidate(): Promise<RevalidateOutput> {
-    throw new ClawnukeError("mock revalidate failure", 1, "mock-failure");
+    throw new CodenukeError("mock revalidate failure", 1, "mock-failure");
   },
 };
 
@@ -383,7 +383,7 @@ async function runCodexJson(
   schema: object,
   sandbox = "read-only",
 ): Promise<unknown> {
-  const dir = await mkdtemp(join(tmpdir(), "clawnuke-codex-"));
+  const dir = await mkdtemp(join(tmpdir(), "codenuke-codex-"));
   const schemaPath = join(dir, "schema.json");
   const outputPath = join(dir, "output.json");
   await writeFile(schemaPath, JSON.stringify(schema), "utf8");
@@ -403,7 +403,7 @@ async function runCodexJson(
     args.push("-");
     const result = await runCommandArgs("codex", args, root, prompt);
     if (result.exitCode !== 0) {
-      throw new ClawnukeError(
+      throw new CodenukeError(
         `codex provider failed: ${result.stderr || result.stdout}`,
         providerExitCode(result.stderr),
         "provider-failure",
@@ -411,7 +411,7 @@ async function runCodexJson(
     }
     const raw = await readFile(outputPath, "utf8").catch(() => "");
     if (raw.trim().length === 0) {
-      throw new ClawnukeError("codex provider produced no JSON output", 8, "malformed-output");
+      throw new CodenukeError("codex provider produced no JSON output", 8, "malformed-output");
     }
     return parseCodexJson(raw);
   } finally {
@@ -443,14 +443,14 @@ async function runOpencodeJson(
   schema: object,
   readOnly: boolean,
 ): Promise<unknown> {
-  const dir = await mkdtemp(join(tmpdir(), "clawnuke-opencode-"));
+  const dir = await mkdtemp(join(tmpdir(), "codenuke-opencode-"));
   const promptPath = join(dir, "prompt.txt");
   await writeFile(promptPath, opencodePrompt(prompt, schema, readOnly), "utf8");
 
   try {
     const args = [
       "run",
-      "Follow the attached clawnuke prompt. Return only the requested JSON object.",
+      "Follow the attached codenuke prompt. Return only the requested JSON object.",
       "--format",
       "json",
       "--dir",
@@ -473,7 +473,7 @@ async function runOpencodeJson(
         : { trimOutput: false },
     );
     if (result.exitCode !== 0) {
-      throw new ClawnukeError(
+      throw new CodenukeError(
         opencodeFailureMessage(result.stdout, result.stderr),
         providerExitCode(result.stderr),
         "provider-failure",
@@ -533,7 +533,7 @@ export function extractOpencodeJson(stdout: string): unknown {
             : typeof event.error?.name === "string"
               ? event.error.name
               : "unknown";
-      throw new ClawnukeError(
+      throw new CodenukeError(
         `opencode provider error: ${message}`,
         providerExitCode(message),
         "provider-failure",
@@ -542,7 +542,7 @@ export function extractOpencodeJson(stdout: string): unknown {
   }
   const combined = textParts.join("").trim();
   if (combined.length === 0) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       `opencode provider produced no extractable text. Observed event kinds: ` +
         `[${[...observedKinds].join(", ")}].`,
       8,
@@ -551,7 +551,7 @@ export function extractOpencodeJson(stdout: string): unknown {
   }
   const parsed = extractJson(combined);
   if (parsed === null) {
-    throw new ClawnukeError("opencode provider produced unparsable JSON", 8, "malformed-output");
+    throw new CodenukeError("opencode provider produced unparsable JSON", 8, "malformed-output");
   }
   return parsed;
 }
@@ -602,7 +602,7 @@ async function runAcpxJson(
     { trimOutput: false, timeoutMs: acpxTimeoutMs() },
   );
   if (result.exitCode !== 0) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       acpxFailureMessage(result.stdout, result.stderr, result.exitCode),
       acpxExitCode(result.stdout, result.stderr, result.exitCode),
       "provider-failure",
@@ -684,10 +684,10 @@ export function extractAcpxJson(stdout: string): unknown {
     ...(thoughtChunks.length > 0 ? [thoughtChunks.join("")] : []),
   ];
   if (candidates.length === 0) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       `acpx provider produced no extractable text. Observed envelope kinds: ` +
         `[${[...observedKinds].join(", ")}]. ` +
-        `acpx envelope shape may have changed since clawnuke was tested ` +
+        `acpx envelope shape may have changed since codenuke was tested ` +
         `against ${ACPX_TESTED_VERSIONS}. Check the installed acpx version.`,
       8,
       "malformed-output",
@@ -707,10 +707,10 @@ export function extractAcpxJson(stdout: string): unknown {
       lastErr = err;
     }
   }
-  throw new ClawnukeError(
+  throw new CodenukeError(
     `acpx provider produced unparseable JSON: ${(lastErr as Error).message}. ` +
       `Observed envelope kinds: [${[...observedKinds].join(", ")}]. ` +
-      `acpx envelope shape may have changed since clawnuke was tested ` +
+      `acpx envelope shape may have changed since codenuke was tested ` +
       `against ${ACPX_TESTED_VERSIONS}. Check the installed acpx version.`,
     8,
     "malformed-output",
@@ -724,7 +724,7 @@ async function runGrokJson(
   schema: object,
   readOnly: boolean,
 ): Promise<unknown> {
-  const dir = await mkdtemp(join(tmpdir(), "clawnuke-grok-"));
+  const dir = await mkdtemp(join(tmpdir(), "codenuke-grok-"));
   const promptPath = join(dir, "prompt.txt");
   await writeFile(promptPath, grokPrompt(prompt, schema), "utf8");
 
@@ -747,7 +747,7 @@ async function runGrokJson(
     }
     const result = await runCommandArgs("grok", args, root, undefined, { trimOutput: false });
     if (result.exitCode !== 0) {
-      throw new ClawnukeError(
+      throw new CodenukeError(
         `grok provider failed: ${result.stderr || result.stdout}`,
         providerExitCode(result.stderr),
         "provider-failure",
@@ -758,7 +758,7 @@ async function runGrokJson(
       envelope = JSON.parse(result.stdout) as unknown;
     } catch {
       const preview = result.stdout.slice(0, 200).replace(/\s+/gu, " ");
-      throw new ClawnukeError(
+      throw new CodenukeError(
         `grok provider produced no JSON envelope (stdout preview: ${preview})`,
         8,
         "malformed-output",
@@ -767,7 +767,7 @@ async function runGrokJson(
     const text = grokEnvelopeText(envelope);
     const parsed = text === null ? envelope : extractJson(text);
     if (parsed === null) {
-      throw new ClawnukeError("grok provider produced unparsable JSON", 8, "malformed-output");
+      throw new CodenukeError("grok provider produced unparsable JSON", 8, "malformed-output");
     }
     return parsed;
   } finally {
@@ -899,7 +899,7 @@ function acpxExitCode(stdout: string, stderr: string, exitCode: number | null): 
 
 function acpxTimeoutMs(): number {
   const raw =
-    process.env["CLAWNUKE_ACPX_TIMEOUT_MS"] ?? process.env["CLAWNUKE_PROVIDER_TIMEOUT_MS"];
+    process.env["CODENUKE_ACPX_TIMEOUT_MS"] ?? process.env["CODENUKE_PROVIDER_TIMEOUT_MS"];
   if (raw === undefined) {
     return ACPX_DEFAULT_TIMEOUT_MS;
   }

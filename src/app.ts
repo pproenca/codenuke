@@ -8,7 +8,7 @@ import {
 } from "./change-audit.js";
 import { loadConfig, resolveStateDir, GlobalOptions } from "./config.js";
 import { detectProject } from "./detect.js";
-import { ClawnukeError, assertDefined } from "./errors.js";
+import { CodenukeError, assertDefined } from "./errors.js";
 import { runCommand } from "./exec.js";
 import {
   appendFindingHistory,
@@ -94,7 +94,7 @@ export async function initCommand(
   const detectedConfig = { ...config, commands: project.detected.commands };
   const previous = await readProject(paths);
   if (previous !== null && flags["force"] !== true) {
-    throw new ClawnukeError("project already initialized; use --force", 2, "already-initialized");
+    throw new CodenukeError("project already initialized; use --force", 2, "already-initialized");
   }
   await writeProject(paths, { ...project, createdAt: previous?.createdAt ?? project.createdAt });
   if (previous === null || flags["force"] === true) {
@@ -104,7 +104,7 @@ export async function initCommand(
     created: previous === null,
     project,
     paths: [paths.project, paths.config],
-    next: "clawnuke map",
+    next: "codenuke map",
   };
 }
 
@@ -193,7 +193,7 @@ export async function mapCommand(
     source: result.decision.source,
     usedAgent: result.decision.usedAgent,
     reason: result.decision.reason,
-    next: "clawnuke review --limit 3",
+    next: "codenuke review --limit 3",
   };
 }
 
@@ -283,7 +283,7 @@ export async function reviewCommand(
         } catch (error: unknown) {
           errors.push({
             message: error instanceof Error ? error.message : String(error),
-            code: error instanceof ClawnukeError ? error.code : null,
+            code: error instanceof CodenukeError ? error.code : null,
             error,
           });
         }
@@ -299,7 +299,7 @@ export async function reviewCommand(
       errors: errors.map(({ message, code }) => ({ message, code })),
     });
     emitProgress(context, "review", "failed", { run: currentRunId, errors: errors.length });
-    throw errors[0]?.error ?? new ClawnukeError("review failed", 1, "review-failed");
+    throw errors[0]?.error ?? new CodenukeError("review failed", 1, "review-failed");
   }
   const finished: RunRecord = {
     ...run,
@@ -331,8 +331,8 @@ export async function reviewCommand(
     report: reportPath,
     next:
       nextReviewedFinding === null
-        ? "clawnuke status"
-        : `clawnuke fix --finding ${nextReviewedFinding.findingId}`,
+        ? "codenuke status"
+        : `codenuke fix --finding ${nextReviewedFinding.findingId}`,
   };
 }
 
@@ -394,7 +394,7 @@ export async function showCommand(
       feature,
       validation,
       patchAttempts: linkedPatches,
-      next: `clawnuke triage --finding ${record.findingId} --status <status>`,
+      next: `codenuke triage --finding ${record.findingId} --status <status>`,
     };
   }
   return {
@@ -423,13 +423,13 @@ export async function nextCommand(
     ),
   );
   if (selected === null) {
-    return { finding: null, status, next: "clawnuke report --status open" };
+    return { finding: null, status, next: "codenuke report --status open" };
   }
   const feature = features.find((candidate) => candidate.featureId === selected.featureId) ?? null;
   if (context.options.json) {
     return {
       finding: findingSummary(selected, feature),
-      next: `clawnuke show --finding ${selected.findingId}`,
+      next: `codenuke show --finding ${selected.findingId}`,
     };
   }
   return {
@@ -440,7 +440,7 @@ export async function nextCommand(
     triage: selected.triage,
     feature: feature?.title ?? selected.featureId,
     evidence: selected.evidence.map(evidenceLabel).join(", ") || "none",
-    next: `clawnuke show --finding ${selected.findingId}`,
+    next: `codenuke show --finding ${selected.findingId}`,
   };
 }
 
@@ -478,7 +478,7 @@ export async function triageCommand(
     finding: findingId,
     status,
     note,
-    next: "clawnuke next",
+    next: "codenuke next",
   };
 }
 
@@ -687,7 +687,7 @@ export async function revalidateCommand(
       status: "failed",
       finishedAt: nowIso(),
       findingIds: run.findingIds,
-      errors: [{ message, code: error instanceof ClawnukeError ? error.code : null }],
+      errors: [{ message, code: error instanceof CodenukeError ? error.code : null }],
     });
     emitProgress(context, "revalidate", "failed", {
       run: currentRunId,
@@ -702,7 +702,7 @@ export async function revalidateCommand(
       fixed: results.filter((result) => result.outcome === "fixed").length,
       falsePositive: results.filter((result) => result.outcome === "false-positive").length,
       uncertain: results.filter((result) => result.outcome === "uncertain").length,
-      next: "clawnuke next",
+      next: "codenuke next",
     };
   }
   const first = assertDefined(results[0], "missing revalidation result");
@@ -719,7 +719,7 @@ export async function fixCommand(
   const git = await discoverGit(loaded.root);
   const dirty = await hasSourceDirtyWorktree(loaded.root, loaded.paths.stateDir);
   if (config.git.requireCleanWorktreeForFix && dirty && flags["dryRun"] !== true) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       "dirty worktree blocks fix; commit/stash first or use --dry-run",
       3,
       "dirty-worktree",
@@ -837,7 +837,7 @@ export async function fixCommand(
   };
   await writeFinding(loaded.paths, updatedFinding);
   if (failed) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       missingTestCoverage ?? "validation failed after applying fix",
       6,
       missingTestCoverage === null ? "validation-failed" : "missing-test-coverage",
@@ -859,7 +859,7 @@ export async function fixCommand(
             .join("; "),
     next: failed
       ? `inspect ${patchAttemptId}`
-      : `clawnuke revalidate --finding ${finding.findingId}`,
+      : `codenuke revalidate --finding ${finding.findingId}`,
   };
 }
 
@@ -871,17 +871,17 @@ export async function doctorCommand(
   const root = loaded?.root ?? context.root;
   const providerName =
     stringFlag(flags, "provider") ??
-    process.env["CLAWNUKE_PROVIDER"] ??
+    process.env["CODENUKE_PROVIDER"] ??
     loaded?.config.provider.name ??
     "codex";
   const model =
     stringFlag(flags, "model") ??
-    process.env["CLAWNUKE_MODEL"] ??
+    process.env["CODENUKE_MODEL"] ??
     loaded?.config.provider.model ??
     null;
   const reasoningEffort =
     parseReasoningEffort(stringFlag(flags, "reasoningEffort")) ??
-    parseReasoningEffort(process.env["CLAWNUKE_REASONING_EFFORT"]) ??
+    parseReasoningEffort(process.env["CODENUKE_REASONING_EFFORT"]) ??
     loaded?.config.provider.reasoningEffort ??
     null;
   const provider = providerByName(providerName);
@@ -922,7 +922,7 @@ async function loadProjectState(context: AppContext) {
   const paths = statePaths(resolveStateDir(context.root, config));
   const project = await readProject(paths);
   if (project === null) {
-    throw new ClawnukeError("not initialized; run clawnuke init", 2, "not-initialized");
+    throw new CodenukeError("not initialized; run codenuke init", 2, "not-initialized");
   }
   await ensureStateDirs(paths);
   return { root: context.root, config, paths, project };
@@ -961,7 +961,7 @@ function parseReasoningEffort(value: string | undefined) {
   if (parsed.success) {
     return parsed.data;
   }
-  throw new ClawnukeError(
+  throw new CodenukeError(
     `invalid reasoning effort: ${value}; expected ${reasoningEfforts.join(", ")}`,
     2,
     "invalid-usage",
@@ -973,7 +973,7 @@ function parseMapSource(flags: Record<string, string | boolean>): "heuristic" | 
   if (source === "heuristic" || source === "auto" || source === "agent") {
     return source;
   }
-  throw new ClawnukeError(
+  throw new CodenukeError(
     "invalid --source; expected heuristic, auto, or agent",
     2,
     "invalid-usage",

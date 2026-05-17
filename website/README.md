@@ -1,6 +1,6 @@
-# clawnuke Website
+# codenuke Website
 
-Static single-page site for the early `clawnuke` CLI.
+Static single-page site for the early `codenuke` CLI.
 
 Files:
 
@@ -20,6 +20,6 @@ Keep copy aligned with the implemented CLI:
 
 - provider: local Codex CLI, plus test mocks
 - review: sequential feature review
-- fix: `clawnuke fix --finding <id>`
+- fix: `codenuke fix --finding <id>`
 - no auto-commit, PR creation, or landing yet
 - no direct OpenAI provider yet

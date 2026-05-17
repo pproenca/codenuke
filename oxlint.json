@@ -5,5 +5,5 @@
     "suspicious": "error",
     "perf": "off"
   },
-  "ignorePatterns": ["dist/**", "coverage/**", ".clawnuke/**", "fixtures/**"]
+  "ignorePatterns": ["dist/**", "coverage/**", ".codenuke/**", "fixtures/**"]
 }

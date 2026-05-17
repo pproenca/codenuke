@@ -5,16 +5,16 @@ description: "Explicit fix workflow for individual findings"
 
 # Patching
 
-`clawnuke fix` is explicit and finding-scoped.
+`codenuke fix` is explicit and finding-scoped.
 
 ```bash
-clawnuke fix --finding <findingId>
+codenuke fix --finding <findingId>
 ```
 
 Current behavior:
 
 - reads the selected finding
-- checks the worktree is clean outside `.clawnuke/` when configured
+- checks the worktree is clean outside `.codenuke/` when configured
 - creates a patch attempt record
 - asks the provider for a fix plan
 - lets the provider edit the worktree during the explicit fix command
@@ -32,7 +32,7 @@ Status updates:
 - validation failure keeps the finding `open`
 
 The CLI does not currently mark a finding `fixed` from the patch pass alone.
-Use `clawnuke revalidate --finding <id>` for a second pass.
+Use `codenuke revalidate --finding <id>` for a second pass.
 
 Not implemented yet:
 

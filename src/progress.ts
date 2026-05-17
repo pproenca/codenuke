@@ -18,5 +18,5 @@ export function emitProgress(
   const values = Object.entries(fields)
     .map(([key, value]) => `${key}=${String(value)}`)
     .join(" ");
-  process.stderr.write(`clawnuke ${command} ${event}${values.length > 0 ? ` ${values}` : ""}\n`);
+  process.stderr.write(`codenuke ${command} ${event}${values.length > 0 ? ` ${values}` : ""}\n`);
 }

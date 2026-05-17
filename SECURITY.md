@@ -1,12 +1,12 @@
 # Security Policy
 
-If you believe you have found a security issue in `clawnuke`, report it privately first.
+If you believe you have found a security issue in `codenuke`, report it privately first.
 
 Do not open a public issue or pull request that discloses an unpatched vulnerability, exploit path, secret, or security-sensitive proof of concept.
 
 ## Reporting
 
-For `clawnuke`, submit a private GitHub Security Advisory for this repository when available. If the issue does not fit this repository or you are unsure where it belongs, email [security@openclaw.ai](mailto:security@openclaw.ai) and we will route it.
+For `codenuke`, submit a private GitHub Security Advisory for this repository when available. If the issue does not fit this repository or you are unsure where it belongs, email [security@openclaw.ai](mailto:security@openclaw.ai) and we will route it.
 
 Useful reports include:
 

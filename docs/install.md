@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: "How to install clawnuke from npm or source"
+description: "How to install codenuke from npm or source"
 ---
 
 # Installation
@@ -8,19 +8,19 @@ description: "How to install clawnuke from npm or source"
 ## npm/pnpm
 
 ```bash
-pnpm add -g clawnuke
+pnpm add -g codenuke
 ```
 
 Or with npm:
 
 ```bash
-npm install -g clawnuke
+npm install -g codenuke
 ```
 
 Verify:
 
 ```bash
-clawnuke --version
+codenuke --version
 ```
 
 ## From source
@@ -28,8 +28,8 @@ clawnuke --version
 Clone and build:
 
 ```bash
-git clone https://github.com/openclaw/clawnuke.git
-cd clawnuke
+git clone https://github.com/pproenca/codenuke.git
+cd codenuke
 pnpm install
 pnpm build
 pnpm link --global
@@ -38,13 +38,13 @@ pnpm link --global
 Verify:
 
 ```bash
-clawnuke --version
-clawnuke doctor
+codenuke --version
+codenuke doctor
 ```
 
 ## Provider setup
 
-clawnuke requires an AI provider for code review. The default is the local Codex CLI.
+codenuke requires an AI provider for code review. The default is the local Codex CLI.
 
 ### Codex CLI
 
@@ -59,10 +59,10 @@ Verify:
 
 ```bash
 codex --version
-clawnuke doctor
+codenuke doctor
 ```
 
-`clawnuke doctor` checks that the configured provider is available and can execute test queries.
+`codenuke doctor` checks that the configured provider is available and can execute test queries.
 
 ## Next steps
 

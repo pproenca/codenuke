@@ -1,20 +1,20 @@
-# clawnuke
+# codenuke
 
 Automated code review for reliable, trusted refactoring.
 
-`clawnuke` maps a repo into semantic feature slices, reviews each slice with a
+`codenuke` maps a repo into semantic feature slices, reviews each slice with a
 provider for behavior-preserving simplification and complexity-reduction
 opportunities, persists findings, and can run an explicit fix loop for one
 finding at a time.
 
 Current status: early CLI. Review/report/state are implemented; patching exists
-behind `clawnuke fix --finding <id>` and still requires manual review of the
+behind `codenuke fix --finding <id>` and still requires manual review of the
 resulting worktree changes.
 
 ## Install
 
 ```bash
-pnpm add -g clawnuke
+pnpm add -g codenuke
 ```
 
 From source:
@@ -28,20 +28,20 @@ pnpm link --global
 ## Workflow
 
 ```bash
-clawnuke init
-clawnuke map
-clawnuke review --limit 3 --jobs 3
-clawnuke report
-clawnuke next
-clawnuke show --finding <id>
-clawnuke triage --finding <id> --status false-positive --note "covered by tests"
-clawnuke fix --finding <id>
-clawnuke revalidate --finding <id>
-clawnuke revalidate --all --status open
+codenuke init
+codenuke map
+codenuke review --limit 3 --jobs 3
+codenuke report
+codenuke next
+codenuke show --finding <id>
+codenuke triage --finding <id> --status false-positive --note "covered by tests"
+codenuke fix --finding <id>
+codenuke revalidate --finding <id>
+codenuke revalidate --all --status open
 ```
 
 `fix` does not commit, push, open PRs, or land changes. It runs configured
-validation commands and records a patch attempt under `.clawnuke/`.
+validation commands and records a patch attempt under `.codenuke/`.
 
 ## What It Maps Today
 
@@ -88,7 +88,7 @@ The default provider is the local Codex CLI.
 
 ```bash
 codex --version
-clawnuke doctor
+codenuke doctor
 ```
 
 Provider calls use `codex exec` with strict JSON schemas. Review and revalidate
@@ -106,19 +106,19 @@ Supported provider names today:
 
 ## Commands
 
-- `clawnuke init`: create `.clawnuke/`, detect project basics, write config
-- `clawnuke map`: write feature records
-- `clawnuke status`: show project, dirty state, feature/finding counts
-- `clawnuke review`: review pending or selected features for refactoring opportunities
-- `clawnuke report`: print or write a Markdown findings report
-- `clawnuke next`: print the next actionable finding
-- `clawnuke show --finding <id>`: inspect one finding with evidence and suggested validation
-- `clawnuke triage --finding <id> --status <status>`: mark a finding with optional history note
-- `clawnuke fix --finding <id>`: run the explicit patch loop for one finding
-- `clawnuke revalidate --finding <id>`: re-check one finding
-- `clawnuke revalidate --all`: re-check open findings with report-style filters
-- `clawnuke doctor`: check provider availability
-- `clawnuke clean-locks`: clear feature locks
+- `codenuke init`: create `.codenuke/`, detect project basics, write config
+- `codenuke map`: write feature records
+- `codenuke status`: show project, dirty state, feature/finding counts
+- `codenuke review`: review pending or selected features for refactoring opportunities
+- `codenuke report`: print or write a Markdown findings report
+- `codenuke next`: print the next actionable finding
+- `codenuke show --finding <id>`: inspect one finding with evidence and suggested validation
+- `codenuke triage --finding <id> --status <status>`: mark a finding with optional history note
+- `codenuke fix --finding <id>`: run the explicit patch loop for one finding
+- `codenuke revalidate --finding <id>`: re-check one finding
+- `codenuke revalidate --all`: re-check open findings with report-style filters
+- `codenuke doctor`: check provider availability
+- `codenuke clean-locks`: clear feature locks
 
 Useful flags:
 
@@ -149,7 +149,7 @@ Unknown flags fail fast.
 State is project-local by default:
 
 ```text
-.clawnuke/
+.codenuke/
   config.json
   project.json
   features/*.json
@@ -167,7 +167,7 @@ to features so runs can resume and be audited.
 - Review does not edit files.
 - Fix is explicit and selected by finding ID.
 - Fix refuses a dirty source worktree by default.
-- Clawnuke never commits, pushes, opens PRs, or lands changes today.
+- Codenuke never commits, pushes, opens PRs, or lands changes today.
 - Provider output is parsed through strict schemas.
 - Symlinked directories and generated build output are skipped during mapping.
 

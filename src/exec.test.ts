@@ -6,7 +6,7 @@ import { runCommandArgs } from "./exec.js";
 
 describe("runCommandArgs", () => {
   it("passes paths with spaces and quotes without shell quoting", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-"));
+    const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-"));
     const script = join(dir, "print-args.mjs");
     await writeFile(script, "process.stdout.write(JSON.stringify(process.argv.slice(2)));", "utf8");
 
@@ -24,15 +24,15 @@ describe("runCommandArgs", () => {
   });
 
   it("returns a command result when the executable is missing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-"));
-    const result = await runCommandArgs("clawnuke-missing-executable-for-test", [], dir);
+    const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-"));
+    const result = await runCommandArgs("codenuke-missing-executable-for-test", [], dir);
 
     expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("clawnuke-missing-executable-for-test");
+    expect(result.stderr).toContain("codenuke-missing-executable-for-test");
   });
 
   it("terminates commands that exceed a timeout", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-timeout-"));
     const script = join(dir, "hang.mjs");
     await writeFile(script, "setInterval(() => {}, 1000);\n", "utf8");
 
@@ -45,7 +45,7 @@ describe("runCommandArgs", () => {
   });
 
   it("returns after timeout even when descendants inherit stdio", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-timeout-"));
     const childScript = join(dir, "child.mjs");
     const parentScript = join(dir, "parent.mjs");
     await writeFile(childScript, "setInterval(() => {}, 1000);\n", "utf8");
@@ -73,7 +73,7 @@ describe("runCommandArgs", () => {
   it.runIf(process.platform !== "win32")(
     "force-kills timed-out descendants that ignore SIGTERM",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-timeout-"));
+      const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-timeout-"));
       const marker = join(dir, "still-alive");
       const ready = join(dir, "ready");
       const childScript = join(dir, "child.mjs");
@@ -116,7 +116,7 @@ describe("runCommandArgs", () => {
   );
 
   it.runIf(process.platform === "win32")("runs cmd shims with escaped arguments", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "clawnuke-exec-"));
+    const dir = await mkdtemp(join(tmpdir(), "codenuke-exec-"));
     const script = join(dir, "print-args.mjs");
     const shim = join(dir, "codex.cmd");
     await writeFile(script, "process.stdout.write(JSON.stringify(process.argv.slice(2)));", "utf8");

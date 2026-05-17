@@ -17,7 +17,7 @@ import {
   statusCommand,
   triageCommand,
 } from "./app.js";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import { GlobalOptions } from "./config.js";
 
 const moduleRequire = createRequire(import.meta.url);
@@ -43,7 +43,7 @@ async function dispatch(
   flags: Record<string, string | boolean>,
 ): Promise<unknown> {
   if (!isKnownCommand(command)) {
-    throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
+    throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
   return commandRegistry[command].handler(context, flags);
 }
@@ -111,7 +111,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       flags["output"] = next;
       continue;
     }
-    throw new ClawnukeError(`unknown arg: ${arg}`, 2, "invalid-usage");
+    throw new CodenukeError(`unknown arg: ${arg}`, 2, "invalid-usage");
   }
   if (command === "") {
     command = "status";
@@ -183,19 +183,19 @@ const commandRegistry = {
   init: {
     handler: initCommand,
     flags: ["force"],
-    usage: ["clawnuke init [flags]"],
+    usage: ["codenuke init [flags]"],
     globalHelpFlags: ["json"],
   },
   map: {
     handler: mapCommand,
     flags: ["source", "provider", "model", "reasoningEffort", "dryRun"],
-    usage: ["clawnuke map [flags]"],
+    usage: ["codenuke map [flags]"],
     globalHelpFlags: ["json"],
   },
   status: {
     handler: statusCommand,
     flags: [],
-    usage: ["clawnuke status [flags]"],
+    usage: ["codenuke status [flags]"],
     globalHelpFlags: ["json"],
   },
   review: {
@@ -211,26 +211,26 @@ const commandRegistry = {
       "reasoningEffort",
       "dryRun",
     ],
-    usage: ["clawnuke review [flags]"],
+    usage: ["codenuke review [flags]"],
     globalHelpFlags: ["json", "quiet"],
   },
   report: {
     handler: reportCommand,
     flags: ["status", "severity", "feature", "project", "category", "triage", "output"],
-    usage: ["clawnuke report [flags]"],
+    usage: ["codenuke report [flags]"],
     globalHelpFlags: ["json"],
   },
   show: {
     handler: showCommand,
     flags: ["finding"],
-    usage: ["clawnuke show --finding <id> [flags]"],
+    usage: ["codenuke show --finding <id> [flags]"],
     required: ["finding"],
     globalHelpFlags: ["json"],
   },
   next: {
     handler: nextCommand,
     flags: [{ name: "status", help: "--status <status>  default: open" }, "project"],
-    usage: ["clawnuke next [flags]"],
+    usage: ["codenuke next [flags]"],
     globalHelpFlags: ["json"],
   },
   triage: {
@@ -240,14 +240,14 @@ const commandRegistry = {
       { name: "status", help: "--status <open|false-positive|fixed|wont-fix|uncertain>" },
       "note",
     ],
-    usage: ["clawnuke triage --finding <id> --status <status> [flags]"],
+    usage: ["codenuke triage --finding <id> --status <status> [flags]"],
     required: ["finding", "status"],
     globalHelpFlags: ["json"],
   },
   fix: {
     handler: fixCommand,
     flags: ["finding", "provider", "model", "reasoningEffort", "dryRun"],
-    usage: ["clawnuke fix --finding <id> [flags]"],
+    usage: ["codenuke fix --finding <id> [flags]"],
     required: ["finding"],
     globalHelpFlags: ["json"],
   },
@@ -268,9 +268,9 @@ const commandRegistry = {
       "reasoningEffort",
     ],
     usage: [
-      "clawnuke revalidate --finding <id> [flags]",
-      "clawnuke revalidate --all [flags]",
-      "clawnuke revalidate --since <ref> [flags]",
+      "codenuke revalidate --finding <id> [flags]",
+      "codenuke revalidate --all [flags]",
+      "codenuke revalidate --since <ref> [flags]",
     ],
     oneOf: ["finding", "all", "since"],
     oneOfError: "missing --finding, --all, or --since",
@@ -279,13 +279,13 @@ const commandRegistry = {
   doctor: {
     handler: doctorCommand,
     flags: ["provider", "model", "reasoningEffort"],
-    usage: ["clawnuke doctor [flags]"],
+    usage: ["codenuke doctor [flags]"],
     globalHelpFlags: ["json"],
   },
   "clean-locks": {
     handler: cleanLocksCommand,
     flags: [],
-    usage: ["clawnuke clean-locks [flags]"],
+    usage: ["codenuke clean-locks [flags]"],
     globalHelpFlags: ["json"],
   },
 } satisfies Record<string, CommandSpec>;
@@ -299,12 +299,12 @@ export function packageVersion(): string {
 
 function validateCommandFlags(command: string, flags: Record<string, string | boolean>): void {
   if (!isKnownCommand(command)) {
-    throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
+    throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
   const allowed = commandRegistry[command].flags.map(flagName);
   for (const flag of Object.keys(flags)) {
     if (!allowed.includes(flag as FlagName)) {
-      throw new ClawnukeError(
+      throw new CodenukeError(
         `unsupported flag for ${command}: --${kebab(flag)}`,
         2,
         "invalid-usage",
@@ -318,18 +318,18 @@ function validateCommandRequirements(
   flags: Record<string, string | boolean>,
 ): void {
   if (!isKnownCommand(command)) {
-    throw new ClawnukeError(`unknown command: ${command}`, 2, "invalid-usage");
+    throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
   const spec = commandRegistry[command];
   const required = "required" in spec ? spec.required : [];
   for (const flag of required) {
     if (typeof flags[flag] !== "string" || flags[flag].length === 0) {
-      throw new ClawnukeError(`missing --${kebab(flag)}`, 2, "invalid-usage");
+      throw new CodenukeError(`missing --${kebab(flag)}`, 2, "invalid-usage");
     }
   }
   if ("oneOf" in spec && !spec.oneOf.some((flag: FlagName) => hasFlagValue(flag, flags))) {
     const oneOfError = "oneOfError" in spec ? spec.oneOfError : "missing required flag";
-    throw new ClawnukeError(oneOfError, 2, "invalid-usage");
+    throw new CodenukeError(oneOfError, 2, "invalid-usage");
   }
 }
 
@@ -365,7 +365,7 @@ function hasFlagValue(flag: FlagName, flags: Record<string, string | boolean>): 
 function readFlagValue(argv: string[], index: number, flag: string): string {
   const next = argv[index + 1];
   if (next === undefined || isKnownOptionToken(next)) {
-    throw new ClawnukeError(`missing value for ${flag}`, 2, "invalid-usage");
+    throw new CodenukeError(`missing value for ${flag}`, 2, "invalid-usage");
   }
   return next;
 }
@@ -440,7 +440,7 @@ function printHelp(command = ""): void {
       ...spec.flags.map(flagHelp),
       ...(spec.globalHelpFlags ?? []).map((flag) => flagDefinitions[flag].help),
     ];
-    process.stdout.write(`clawnuke ${command}
+    process.stdout.write(`codenuke ${command}
 
 Usage:
 ${spec.usage.map((line) => `  ${line}`).join("\n")}
@@ -453,10 +453,10 @@ ${flags.map((line) => `  ${line}`).join("\n")}
   const commands = Object.keys(commandRegistry)
     .map((name) => `  ${name}`)
     .join("\n");
-  process.stdout.write(`clawnuke: automated code review for reliable, trusted refactoring
+  process.stdout.write(`codenuke: automated code review for reliable, trusted refactoring
 
 Usage:
-  clawnuke [global flags] <command> [flags]
+  codenuke [global flags] <command> [flags]
 
 Commands:
 ${commands}
@@ -479,7 +479,7 @@ Global flags:
 
 if (isMainModule()) {
   main(process.argv.slice(2)).catch((error: unknown) => {
-    if (error instanceof ClawnukeError) {
+    if (error instanceof CodenukeError) {
       process.stderr.write(`error: ${error.message}\n`);
       process.exitCode = error.exitCode;
       return;

@@ -1,6 +1,6 @@
 ---
 title: E2E Verification with Gitcrawl
-description: "Real-world end-to-end test results using clawnuke on gitcrawl"
+description: "Real-world end-to-end test results using codenuke on gitcrawl"
 ---
 
 # gitcrawl e2e verification
@@ -12,17 +12,17 @@ Target:
 - repo: `/Users/steipete/Projects/gitcrawl`
 - branch: `main`
 - base sha: `469d89bc1a7af89a09e0d485a3aaec468695cc28`
-- state dir: `/tmp/clawnuke-gitcrawl-state.LS8z6l`
+- state dir: `/tmp/codenuke-gitcrawl-state.LS8z6l`
 - provider: `codex`
 
 Commands:
 
 ```bash
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/clawnuke-gitcrawl-state.LS8z6l init
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/clawnuke-gitcrawl-state.LS8z6l map
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/clawnuke-gitcrawl-state.LS8z6l review --feature feat_library_4e7327377d --provider codex
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/clawnuke-gitcrawl-state.LS8z6l fix --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/clawnuke-gitcrawl-state.LS8z6l revalidate --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
+node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l init
+node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l map
+node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l review --feature feat_library_4e7327377d --provider codex
+node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l fix --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
+node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l revalidate --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
 GOCACHE=/tmp/gitcrawl-go-cache GOWORK=off go test ./internal/vector
 ```
 
@@ -51,5 +51,5 @@ func TestQueryFiltersNonFiniteScores(t *testing.T)
 
 Known validation note:
 
-- clawnuke marked the patch attempt `failed` because Codex also ran broad `go test ./...`, which failed in unrelated `internal/cli` tests.
+- codenuke marked the patch attempt `failed` because Codex also ran broad `go test ./...`, which failed in unrelated `internal/cli` tests.
 - Focused package validation passed and Codex revalidation marked the reviewed finding fixed.

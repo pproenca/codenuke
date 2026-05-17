@@ -8,7 +8,7 @@ description: "AI provider configuration and model selection"
 The default provider is the local Codex CLI.
 
 ```bash
-clawnuke doctor
+codenuke doctor
 ```
 
 Provider names today:
@@ -33,18 +33,18 @@ Codex invocation:
 Model selection:
 
 ```bash
-clawnuke review --model <model>
-CLAWNUKE_MODEL=<model> clawnuke review
+codenuke review --model <model>
+CODENUKE_MODEL=<model> codenuke review
 ```
 
 Reasoning effort selection:
 
 ```bash
-clawnuke review --model gpt-5.5 --reasoning-effort xhigh
-CLAWNUKE_REASONING_EFFORT=xhigh clawnuke review
+codenuke review --model gpt-5.5 --reasoning-effort xhigh
+CODENUKE_REASONING_EFFORT=xhigh codenuke review
 ```
 
-When `reasoningEffort` is unset, Clawnuke does not pass a reasoning override
+When `reasoningEffort` is unset, Codenuke does not pass a reasoning override
 and Codex uses its own configured default. Explicit values are passed to Codex
 as `model_reasoning_effort`.
 
@@ -61,12 +61,12 @@ The `opencode` provider shells out to the local [OpenCode CLI](https://opencode.
 Provider selection:
 
 ```bash
-clawnuke review --provider opencode --model opencode/big-pickle
-CLAWNUKE_PROVIDER=opencode CLAWNUKE_MODEL=opencode/big-pickle clawnuke review
-clawnuke fix --finding <id> --provider opencode
+codenuke review --provider opencode --model opencode/big-pickle
+CODENUKE_PROVIDER=opencode CODENUKE_MODEL=opencode/big-pickle codenuke review
+codenuke fix --finding <id> --provider opencode
 ```
 
-Permission caveat: OpenCode permissions are configuration-driven. Clawnuke
+Permission caveat: OpenCode permissions are configuration-driven. Codenuke
 sets a restrictive `OPENCODE_PERMISSION` for review and revalidate, and uses
 `--dangerously-skip-permissions` only during explicit `fix`. Review remains
 prompted as read-only, but the same isolated-checkout guidance applies when
@@ -81,13 +81,13 @@ ACP-compatible coding agent.
 - fix: `--approve-all`
 - output: `--format json --json-strict --suppress-reads`, parsed from known ACP NDJSON envelope kinds
 - tested envelope shape: `acpx@^0.8.0`
-- timeout: 180 seconds by default, override with `CLAWNUKE_ACPX_TIMEOUT_MS` or `CLAWNUKE_PROVIDER_TIMEOUT_MS`
+- timeout: 180 seconds by default, override with `CODENUKE_ACPX_TIMEOUT_MS` or `CODENUKE_PROVIDER_TIMEOUT_MS`
 
 Permission caveat: `acpx --approve-all` is not the same as `codex --sandbox
 workspace-write`. Codex's workspace-write mode is an enforced sandbox. ACPX
 approval flags control ACP permission prompts; the underlying agent still has
 whatever filesystem and network access its own runtime grants. For untrusted
-code, run `clawnuke fix --provider acpx` inside an isolated checkout. For
+code, run `codenuke fix --provider acpx` inside an isolated checkout. For
 review and revalidate, strict read-only behavior still depends on the underlying
 agent honoring read-only permissions and the prompt directive.
 
@@ -120,10 +120,10 @@ the local Grok CLI.
 Provider selection:
 
 ```bash
-clawnuke review --provider grok
-CLAWNUKE_PROVIDER=grok clawnuke review
-clawnuke fix --finding <id> --provider grok --model grok-build
-clawnuke doctor --provider grok
+codenuke review --provider grok
+CODENUKE_PROVIDER=grok codenuke review
+codenuke fix --finding <id> --provider grok --model grok-build
+codenuke doctor --provider grok
 ```
 
 How the Grok provider works:

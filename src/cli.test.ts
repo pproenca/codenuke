@@ -80,7 +80,7 @@ describe("cli metadata", () => {
     const commandFlags = new Map<string, HelpFlag[]>();
     for (const command of commands) {
       const commandHelp = await helpFor([command, "--help"]);
-      expect(commandHelp).toContain(`clawnuke ${command}`);
+      expect(commandHelp).toContain(`codenuke ${command}`);
       commandFlags.set(
         command,
         helpFlags(commandHelp).filter((flag) => !globalFlags.has(flag.name)),

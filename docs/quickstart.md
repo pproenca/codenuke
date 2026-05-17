@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: "Get started with clawnuke in five minutes"
+description: "Get started with codenuke in five minutes"
 ---
 
 # Quickstart
@@ -9,7 +9,7 @@ This guide walks through a complete review workflow from initialization to fixin
 
 ## Prerequisites
 
-- [Install clawnuke](install.md)
+- [Install codenuke](install.md)
 - Install Codex CLI (`brew install codex`) for the default provider, or install
   the Grok Build CLI (`curl -fsSL https://x.ai/cli/install.sh | bash`) and pass
   `--provider grok` when reviewing
@@ -19,10 +19,10 @@ This guide walks through a complete review workflow from initialization to fixin
 
 ```bash
 cd your-project
-clawnuke init
+codenuke init
 ```
 
-This creates `.clawnuke/` with:
+This creates `.codenuke/` with:
 
 - `config.json` - project configuration
 - `project.json` - detected project metadata
@@ -33,13 +33,13 @@ This creates `.clawnuke/` with:
 Check project detection:
 
 ```bash
-clawnuke status
+codenuke status
 ```
 
 ## 2. Map features
 
 ```bash
-clawnuke map
+codenuke map
 ```
 
 This discovers reviewable features:
@@ -60,13 +60,13 @@ This discovers reviewable features:
 Preview mapping without writing:
 
 ```bash
-clawnuke map --dry-run
+codenuke map --dry-run
 ```
 
 Check mapped features:
 
 ```bash
-clawnuke status --json | jq '.features'
+codenuke status --json | jq '.features'
 ```
 
 ## 3. Review
@@ -74,13 +74,13 @@ clawnuke status --json | jq '.features'
 Review a few features in parallel:
 
 ```bash
-clawnuke review --limit 3 --jobs 3
+codenuke review --limit 3 --jobs 3
 ```
 
 Using Grok instead of the default Codex provider:
 
 ```bash
-clawnuke review --provider grok --limit 3 --jobs 3
+codenuke review --provider grok --limit 3 --jobs 3
 ```
 
 This:
@@ -88,31 +88,31 @@ This:
 - Selects 3 pending features
 - Reviews them in parallel with 3 workers
 - Calls the selected provider (Codex or Grok CLI) for each
-- Persists findings under `.clawnuke/findings/`
+- Persists findings under `.codenuke/findings/`
 - Updates feature status
 
 Progress goes to stderr, so you can pipe stdout:
 
 ```bash
-clawnuke review --limit 5 --json | jq '.findings'
+codenuke review --limit 5 --json | jq '.findings'
 ```
 
 ## 4. Generate report
 
 ```bash
-clawnuke report
+codenuke report
 ```
 
 Filter by severity:
 
 ```bash
-clawnuke report --severity high
+codenuke report --severity high
 ```
 
 Save to file:
 
 ```bash
-clawnuke report -o report.md
+codenuke report -o report.md
 ```
 
 ## 5. Fix a finding
@@ -120,13 +120,13 @@ clawnuke report -o report.md
 List findings:
 
 ```bash
-clawnuke report --status open
+codenuke report --status open
 ```
 
 Fix one:
 
 ```bash
-clawnuke fix --finding <findingId>
+codenuke fix --finding <findingId>
 ```
 
 This:
@@ -144,7 +144,7 @@ Review the changes and commit manually if satisfied.
 After manual edits or to re-check a finding:
 
 ```bash
-clawnuke revalidate --finding <findingId>
+codenuke revalidate --finding <findingId>
 ```
 
 ## Common workflows
@@ -152,37 +152,37 @@ clawnuke revalidate --finding <findingId>
 ### Review entire project
 
 ```bash
-clawnuke review --limit 999 --jobs 4
+codenuke review --limit 999 --jobs 4
 ```
 
 ### Review specific feature
 
 ```bash
-clawnuke review --feature <featureId>
+codenuke review --feature <featureId>
 ```
 
 ### Review with different model
 
 ```bash
-clawnuke review --model claude-opus-4-20250514 --limit 5
+codenuke review --model claude-opus-4-20250514 --limit 5
 ```
 
 ### Review with explicit Codex reasoning effort
 
 ```bash
-clawnuke review --model gpt-5.5 --reasoning-effort xhigh --limit 5
+codenuke review --model gpt-5.5 --reasoning-effort xhigh --limit 5
 ```
 
 ### Filter report by category
 
 ```bash
-clawnuke report --category security
+codenuke report --category security
 ```
 
 ### Check provider status
 
 ```bash
-clawnuke doctor
+codenuke doctor
 ```
 
 ### Clean stale locks
@@ -190,7 +190,7 @@ clawnuke doctor
 If a review run was interrupted:
 
 ```bash
-clawnuke clean-locks
+codenuke clean-locks
 ```
 
 ## Output formats
@@ -198,9 +198,9 @@ clawnuke clean-locks
 All commands support `--json` for machine-readable output:
 
 ```bash
-clawnuke map --json
-clawnuke review --json
-clawnuke status --json
+codenuke map --json
+codenuke review --json
+codenuke status --json
 ```
 
 ## Next steps

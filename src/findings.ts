@@ -1,4 +1,4 @@
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import { stableId } from "./id.js";
 import { deriveFindingTriage, FindingRecord, ReviewOutput } from "./types.js";
 import { nowIso } from "./fs.js";
@@ -38,7 +38,7 @@ export function parseFindingStatus(value: string): FindingRecord["status"] {
   ) {
     return value;
   }
-  throw new ClawnukeError(`invalid finding status: ${value}`, 2, "invalid-usage");
+  throw new CodenukeError(`invalid finding status: ${value}`, 2, "invalid-usage");
 }
 
 export function findingFromOutput(

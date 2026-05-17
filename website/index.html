@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Clawnuke — Automated Code Review</title>
+    <title>Codenuke — Automated Code Review</title>
     <meta
       name="description"
       content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic feature slices and records explicit fix attempts."
@@ -14,25 +14,25 @@
 
     <!-- Open Graph / Social Card -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Clawnuke" />
-    <meta property="og:title" content="Clawnuke — Trusted Refactoring Review" />
+    <meta property="og:site_name" content="Codenuke" />
+    <meta property="og:title" content="Codenuke — Trusted Refactoring Review" />
     <meta
       property="og:description"
       content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
     />
-    <meta property="og:url" content="https://clawnuke.ai" />
-    <meta property="og:image" content="https://clawnuke.ai/social-card.png" />
+    <meta property="og:url" content="https://codenuke.ai" />
+    <meta property="og:image" content="https://codenuke.ai/social-card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Clawnuke — Trusted Refactoring Review" />
+    <meta name="twitter:title" content="Codenuke — Trusted Refactoring Review" />
     <meta
       name="twitter:description"
       content="Automated code review for reliable, trusted refactoring. Maps codebases into semantic features and records explicit fixes."
     />
-    <meta name="twitter:image" content="https://clawnuke.ai/social-card.png" />
+    <meta name="twitter:image" content="https://codenuke.ai/social-card.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -810,7 +810,7 @@
     <div class="shell">
       <aside class="sidebar">
         <div class="sidebar-head">
-          <a class="brand" href="/" aria-label="Clawnuke docs home">
+          <a class="brand" href="/" aria-label="Codenuke docs home">
             <span class="mark" aria-hidden="true">
               <svg class="claw-icon" viewBox="0 0 100 100" aria-hidden="true">
                 <defs>
@@ -933,7 +933,7 @@
               </svg>
             </span>
             <span>
-              <strong>clawnuke</strong>
+              <strong>codenuke</strong>
               <small>Automated code review</small>
             </span>
           </a>
@@ -995,8 +995,8 @@
           </section>
           <section>
             <h2>Reference</h2>
-            <a class="nav-link" href="https://github.com/openclaw/clawnuke">GitHub</a>
-            <a class="nav-link" href="https://github.com/openclaw/clawnuke/tree/main/docs"
+            <a class="nav-link" href="https://github.com/pproenca/codenuke">GitHub</a>
+            <a class="nav-link" href="https://github.com/pproenca/codenuke/tree/main/docs"
               >Documentation</a
             >
           </section>
@@ -1007,18 +1007,18 @@
           <p class="eyebrow">Trusted Refactoring · Explicit Fixes</p>
           <h1>Reliable refactoring<br />with explicit fixes</h1>
           <p class="lede">
-            Clawnuke maps codebases into semantic feature slices, reviews them for
+            Codenuke maps codebases into semantic feature slices, reviews them for
             behavior-preserving simplification and complexity reduction, and records explicit fix
             attempts with validation.
           </p>
           <div class="home-cta">
             <a class="btn btn-primary" href="#quickstart">Quick Start</a>
-            <a class="btn btn-ghost" href="https://github.com/openclaw/clawnuke" rel="noopener"
+            <a class="btn btn-ghost" href="https://github.com/pproenca/codenuke" rel="noopener"
               >GitHub</a
             >
             <div class="home-install" aria-label="Install with npm">
               <span class="prompt" aria-hidden="true">$</span>
-              <code>npm install -g clawnuke</code>
+              <code>npm install -g codenuke</code>
             </div>
           </div>
           <p class="muted">Node.js 22+ • Git 2.x • local Codex CLI</p>
@@ -1027,12 +1027,12 @@
         <div class="doc">
           <h2 id="overview">Overview</h2>
           <p>
-            Clawnuke is an automated code review tool that goes beyond traditional linters. It maps
+            Codenuke is an automated code review tool that goes beyond traditional linters. It maps
             a repo into semantic work units, asks a provider to review bounded context, and persists
             findings for audit and follow-up.
           </p>
           <p>
-            Unlike file-only scanners, clawnuke reviews feature records with entrypoints, owned
+            Unlike file-only scanners, codenuke reviews feature records with entrypoints, owned
             files, nearby tests, and trust boundaries. Every finding includes severity, confidence,
             evidence, and a recommendation.
           </p>
@@ -1071,7 +1071,7 @@
             <h3>Resume Support</h3>
             <p>
               Persists runs, feature state, findings, and patch attempts in
-              <code>.clawnuke/</code>.
+              <code>.codenuke/</code>.
             </p>
           </div>
 
@@ -1096,34 +1096,34 @@
         <div class="doc">
           <h2 id="quickstart">Quick Start</h2>
           <pre><code><span class="hl-c"># 1. Initialize project</span>
-<span class="hl-cmd">clawnuke</span> init
+<span class="hl-cmd">codenuke</span> init
 
 <span class="hl-c"># 2. Map semantic features</span>
-<span class="hl-cmd">clawnuke</span> map
+<span class="hl-cmd">codenuke</span> map
 
 <span class="hl-c"># 3. Review code for issues</span>
-<span class="hl-cmd">clawnuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span>
+<span class="hl-cmd">codenuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span>
 
 <span class="hl-c"># 4. Generate findings report</span>
-<span class="hl-cmd">clawnuke</span> report
+<span class="hl-cmd">codenuke</span> report
 
 <span class="hl-c"># 5. Apply one explicit fix (optional)</span>
-<span class="hl-cmd">clawnuke</span> fix <span class="hl-f">--finding</span> abc123
+<span class="hl-cmd">codenuke</span> fix <span class="hl-f">--finding</span> abc123
 
 <span class="hl-c"># 6. Revalidate and review changes</span>
-<span class="hl-cmd">clawnuke</span> revalidate <span class="hl-f">--finding</span> abc123
+<span class="hl-cmd">codenuke</span> revalidate <span class="hl-f">--finding</span> abc123
 <span class="hl-cmd">git</span> diff</code></pre>
 
           <h2 id="installation">Installation</h2>
           <pre><code><span class="hl-c"># npm</span>
-<span class="hl-cmd">npm</span> install <span class="hl-f">-g</span> clawnuke
+<span class="hl-cmd">npm</span> install <span class="hl-f">-g</span> codenuke
 
 <span class="hl-c"># pnpm</span>
-<span class="hl-cmd">pnpm</span> add <span class="hl-f">-g</span> clawnuke
+<span class="hl-cmd">pnpm</span> add <span class="hl-f">-g</span> codenuke
 
 <span class="hl-c"># From source</span>
-<span class="hl-cmd">git</span> clone https://github.com/openclaw/clawnuke.git
-<span class="hl-cmd">cd</span> clawnuke
+<span class="hl-cmd">git</span> clone https://github.com/pproenca/codenuke.git
+<span class="hl-cmd">cd</span> codenuke
 <span class="hl-cmd">pnpm</span> install
 <span class="hl-cmd">pnpm</span> run build
 <span class="hl-cmd">pnpm</span> link <span class="hl-f">--global</span></code></pre>
@@ -1132,18 +1132,18 @@
           <p>The default provider shells out to the local Codex CLI:</p>
           <pre><code><span class="hl-c"># Test connection</span>
 <span class="hl-cmd">codex</span> <span class="hl-f">--version</span>
-<span class="hl-cmd">clawnuke</span> doctor</code></pre>
+<span class="hl-cmd">codenuke</span> doctor</code></pre>
 
           <h2>Commands</h2>
           <ul>
-            <li><code>clawnuke init</code> — Initialize project, detect config</li>
-            <li><code>clawnuke map</code> — Build semantic feature map</li>
-            <li><code>clawnuke status</code> — Show project/review state</li>
-            <li><code>clawnuke review</code> — Review features for refactoring opportunities</li>
-            <li><code>clawnuke report</code> — Generate findings report</li>
-            <li><code>clawnuke fix</code> — Apply repairs for findings</li>
-            <li><code>clawnuke revalidate</code> — Verify fixes or findings</li>
-            <li><code>clawnuke doctor</code> — Check environment setup</li>
+            <li><code>codenuke init</code> — Initialize project, detect config</li>
+            <li><code>codenuke map</code> — Build semantic feature map</li>
+            <li><code>codenuke status</code> — Show project/review state</li>
+            <li><code>codenuke review</code> — Review features for refactoring opportunities</li>
+            <li><code>codenuke report</code> — Generate findings report</li>
+            <li><code>codenuke fix</code> — Apply repairs for findings</li>
+            <li><code>codenuke revalidate</code> — Verify fixes or findings</li>
+            <li><code>codenuke doctor</code> — Check environment setup</li>
           </ul>
 
           <h2 id="initialization">Initialization</h2>
@@ -1151,8 +1151,8 @@
             The <code>init</code> command detects your project type and creates initial
             configuration:
           </p>
-          <pre><code><span class="hl-cmd">clawnuke</span> init</code></pre>
-          <p>This creates <code>.clawnuke/</code> directory with:</p>
+          <pre><code><span class="hl-cmd">codenuke</span> init</code></pre>
+          <p>This creates <code>.codenuke/</code> directory with:</p>
           <ul>
             <li><code>config.json</code> — User settings and preferences</li>
             <li>
@@ -1161,14 +1161,14 @@
             </li>
           </ul>
           <p>
-            Clawnuke auto-detects Node.js, TypeScript, Next.js, Python, Flask, FastAPI, Go,
+            Codenuke auto-detects Node.js, TypeScript, Next.js, Python, Flask, FastAPI, Go,
             Rust/Cargo, SwiftPM, and common build tools. You can customize settings after
             initialization.
           </p>
 
           <h2 id="feature-mapping">Feature Mapping</h2>
           <p>The <code>map</code> command builds a semantic map of your codebase:</p>
-          <pre><code><span class="hl-cmd">clawnuke</span> map</code></pre>
+          <pre><code><span class="hl-cmd">codenuke</span> map</code></pre>
           <p>Features are semantic units like:</p>
           <ul>
             <li>
@@ -1191,7 +1191,7 @@
 
           <h2 id="code-review">Code Review</h2>
           <p>The <code>review</code> command analyzes features for refactoring opportunities:</p>
-          <pre><code><span class="hl-cmd">clawnuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span></code></pre>
+          <pre><code><span class="hl-cmd">codenuke</span> review <span class="hl-f">--limit</span> <span class="hl-n">10</span></code></pre>
           <p>Reviews produce findings with:</p>
           <ul>
             <li>
@@ -1208,7 +1208,7 @@
           </p>
 
           <h2 id="findings">Findings</h2>
-          <p>All findings are tracked in <code>.clawnuke/findings/</code> with:</p>
+          <p>All findings are tracked in <code>.codenuke/findings/</code> with:</p>
           <ul>
             <li><strong>Status</strong> — open, fixed, wont-fix, false-positive, uncertain</li>
             <li><strong>Metadata</strong> — Severity, category, confidence, timestamps</li>
@@ -1216,13 +1216,13 @@
             <li><strong>Patches</strong> — Associated fix attempts and validation results</li>
           </ul>
           <p>
-            Use <code>clawnuke report</code> to generate a Markdown report, or
+            Use <code>codenuke report</code> to generate a Markdown report, or
             <code>--json</code> for structured output.
           </p>
 
           <h2 id="patching">Patching</h2>
           <p>The <code>fix</code> command runs the explicit repair loop for one finding:</p>
-          <pre><code><span class="hl-cmd">clawnuke</span> fix <span class="hl-f">--finding</span> abc123</code></pre>
+          <pre><code><span class="hl-cmd">codenuke</span> fix <span class="hl-f">--finding</span> abc123</code></pre>
           <p>Each patch goes through validation:</p>
           <ul>
             <li><strong>Format check</strong> — Prettier/dprint/etc if configured</li>
@@ -1239,7 +1239,7 @@
 
           <h2 id="validation">Validation</h2>
           <p>The <code>revalidate</code> command re-checks a finding with the provider:</p>
-          <pre><code><span class="hl-cmd">clawnuke</span> revalidate <span class="hl-f">--finding</span> <span class="hl-s">abc123</span></code></pre>
+          <pre><code><span class="hl-cmd">codenuke</span> revalidate <span class="hl-f">--finding</span> <span class="hl-s">abc123</span></code></pre>
           <p>Use this to:</p>
           <ul>
             <li>Verify a finding is still valid after manual fixes</li>
@@ -1247,10 +1247,10 @@
           </ul>
 
           <h2 id="config">Settings</h2>
-          <p><code>clawnuke init</code> writes a complete <code>.clawnuke/config.json</code>:</p>
+          <p><code>codenuke init</code> writes a complete <code>.codenuke/config.json</code>:</p>
           <pre><code>{
   <span class="hl-s">"schemaVersion"</span>: <span class="hl-n">1</span>,
-  <span class="hl-s">"stateDir"</span>: <span class="hl-s">".clawnuke"</span>,
+  <span class="hl-s">"stateDir"</span>: <span class="hl-s">".codenuke"</span>,
   <span class="hl-s">"include"</span>: [<span class="hl-s">"**/*"</span>],
   <span class="hl-s">"exclude"</span>: [
     <span class="hl-s">"node_modules/**"</span>,
@@ -1259,7 +1259,7 @@
     <span class="hl-s">"target/**"</span>,
     <span class="hl-s">".build/**"</span>,
     <span class="hl-s">".git/**"</span>,
-    <span class="hl-s">".clawnuke/**"</span>
+    <span class="hl-s">".codenuke/**"</span>
   ],
   <span class="hl-s">"provider"</span>: {
     <span class="hl-s">"name"</span>: <span class="hl-s">"codex"</span>,
@@ -1285,14 +1285,14 @@
 }</code></pre>
           <p>
             See the
-            <a href="https://github.com/openclaw/clawnuke/blob/main/docs/configuration.md"
+            <a href="https://github.com/pproenca/codenuke/blob/main/docs/configuration.md"
               >full configuration reference</a
             >
             for all options.
           </p>
 
           <h2 id="safety">Safety Features</h2>
-          <p>Clawnuke is designed with strict safety guarantees:</p>
+          <p>Codenuke is designed with strict safety guarantees:</p>
           <ul>
             <li>
               <strong>No implicit changes</strong> — Never modifies code without explicit
@@ -1312,7 +1312,7 @@
             </li>
             <li>
               <strong>Audit trail</strong> — Review runs, findings, and patch attempts are persisted
-              in <code>.clawnuke/</code>
+              in <code>.codenuke/</code>
             </li>
             <li>
               <strong>Schema validation</strong> — All provider responses validated before use

@@ -10,7 +10,7 @@ import type { FeatureSeed } from "./mappers/types.js";
 
 describe("mapFeatures", () => {
   it("counts stale existing features when mapped feature ids are duplicated", async () => {
-    const root = await fixtureRoot("clawnuke-map-stale-duplicate-ids-");
+    const root = await fixtureRoot("codenuke-map-stale-duplicate-ids-");
     const project = await detectProject(root);
     const retainedSeed: FeatureSeed = {
       title: "Retained feature",
@@ -49,7 +49,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps package bins, scripts, configs, and Next routes", async () => {
-    const root = await fixtureRoot("clawnuke-map-");
+    const root = await fixtureRoot("codenuke-map-");
     await writeFixture(
       root,
       "package.json",
@@ -105,7 +105,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Next routes under src/app and src/pages", async () => {
-    const root = await fixtureRoot("clawnuke-map-next-src-");
+    const root = await fixtureRoot("codenuke-map-next-src-");
     await writeFixture(
       root,
       "package.json",
@@ -181,7 +181,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps application routes in vendor directories", async () => {
-    const root = await fixtureRoot("clawnuke-next-vendor-route-");
+    const root = await fixtureRoot("codenuke-next-vendor-route-");
     await writeFixture(
       root,
       "package.json",
@@ -200,7 +200,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Next routes inside Nx workspace projects", async () => {
-    const root = await fixtureRoot("clawnuke-map-next-nx-workspace-");
+    const root = await fixtureRoot("codenuke-map-next-nx-workspace-");
     await writeFixture(
       root,
       "package.json",
@@ -295,7 +295,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Next routes inside Nx projects without package manifests", async () => {
-    const root = await fixtureRoot("clawnuke-map-next-nx-no-package-");
+    const root = await fixtureRoot("codenuke-map-next-nx-no-package-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "workspace-root" }, null, 2));
     await writeFixture(root, "pnpm-lock.yaml", "");
     await writeFixture(
@@ -341,7 +341,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses package-local commands when no task graph adapter is present", async () => {
-    const root = await fixtureRoot("clawnuke-task-graph-fallback-");
+    const root = await fixtureRoot("codenuke-task-graph-fallback-");
     await writeFixture(
       root,
       "package.json",
@@ -378,7 +378,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Nx target commands on the workspace package manager", async () => {
-    const root = await fixtureRoot("clawnuke-map-nx-root-package-manager-");
+    const root = await fixtureRoot("codenuke-map-nx-root-package-manager-");
     await writeFixture(
       root,
       "package.json",
@@ -413,7 +413,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses Nx target commands for React route tests", async () => {
-    const root = await fixtureRoot("clawnuke-map-react-nx-test-command-");
+    const root = await fixtureRoot("codenuke-map-react-nx-test-command-");
     await writeFixture(
       root,
       "package.json",
@@ -460,7 +460,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses Turbo task commands for React route tests", async () => {
-    const root = await fixtureRoot("clawnuke-map-react-turbo-test-command-");
+    const root = await fixtureRoot("codenuke-map-react-turbo-test-command-");
     await writeFixture(
       root,
       "package.json",
@@ -508,7 +508,7 @@ describe("mapFeatures", () => {
   });
 
   it("suppresses fallback validation commands for persistent Turbo tasks", async () => {
-    const root = await fixtureRoot("clawnuke-turbo-persistent-task-");
+    const root = await fixtureRoot("codenuke-turbo-persistent-task-");
     await writeFixture(
       root,
       "package.json",
@@ -563,7 +563,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map src app-shaped routes without a Next project signal", async () => {
-    const root = await fixtureRoot("clawnuke-map-src-non-next-");
+    const root = await fixtureRoot("codenuke-map-src-non-next-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "plain-app" }, null, 2));
     await writeFixture(
       root,
@@ -585,7 +585,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps generated package bins back to source entries", async () => {
-    const root = await fixtureRoot("clawnuke-map-bin-source-");
+    const root = await fixtureRoot("codenuke-map-bin-source-");
     await writeFixture(
       root,
       "package.json",
@@ -606,7 +606,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps generated package bins out of owned files when source is missing", async () => {
-    const root = await fixtureRoot("clawnuke-map-bin-generated-");
+    const root = await fixtureRoot("codenuke-map-bin-generated-");
     await writeFixture(
       root,
       "package.json",
@@ -628,7 +628,7 @@ describe("mapFeatures", () => {
   });
 
   it("rejects package bin and export paths that escape the repository", async () => {
-    const root = await fixtureRoot("clawnuke-map-unsafe-package-entry-");
+    const root = await fixtureRoot("codenuke-map-unsafe-package-entry-");
     const outside = `${basename(root)}-outside.js`;
     await writeFixture(
       root,
@@ -658,7 +658,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps generated module and declaration entries back to source files", async () => {
-    const root = await fixtureRoot("clawnuke-map-bin-module-source-");
+    const root = await fixtureRoot("codenuke-map-bin-module-source-");
     await writeFixture(
       root,
       "package.json",
@@ -721,7 +721,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Ruby metadata, executables, source groups, and tests", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-");
+    const root = await fixtureRoot("codenuke-map-ruby-");
     await writeFixture(
       root,
       "Gemfile",
@@ -792,7 +792,7 @@ describe("mapFeatures", () => {
   });
 
   it("treats gems.rb projects as Bundler-backed", async () => {
-    const root = await fixtureRoot("clawnuke-map-gems-rb-");
+    const root = await fixtureRoot("codenuke-map-gems-rb-");
     await writeFixture(
       root,
       "gems.rb",
@@ -812,7 +812,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects RuboCop extension gems as Ruby lint providers", async () => {
-    const root = await fixtureRoot("clawnuke-map-rubocop-extension-");
+    const root = await fixtureRoot("codenuke-map-rubocop-extension-");
     await writeFixture(root, "Gemfile", "source 'https://rubygems.org'\ngem 'rubocop-rails'\n");
     await writeFixture(root, "lib/fixture.rb", "module Fixture\nend\n");
 
@@ -822,7 +822,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat Ruby test helpers as Minitest tests", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-test-helper-");
+    const root = await fixtureRoot("codenuke-map-ruby-test-helper-");
     await writeFixture(root, "Gemfile", "source 'https://rubygems.org'\n");
     await writeFixture(root, "lib/test_helper.rb", "module TestHelper\nend\n");
     await writeFixture(root, "lib/test_utils.rb", "module TestUtils\nend\n");
@@ -840,7 +840,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects co-located Ruby Minitest suffix tests", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-colocated-minitest-");
+    const root = await fixtureRoot("codenuke-map-ruby-colocated-minitest-");
     await writeFixture(root, "Gemfile", "source 'https://rubygems.org'\n");
     await writeFixture(root, "lib/fixture.rb", "module Fixture\nend\n");
     await writeFixture(root, "lib/fixture_test.rb", "require 'minitest/autorun'\n");
@@ -856,7 +856,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps test-prefixed Ruby sources under lib reviewable", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-test-prefixed-source-");
+    const root = await fixtureRoot("codenuke-map-ruby-test-prefixed-source-");
     await writeFixture(root, "Gemfile", "source 'https://rubygems.org'\n");
     await writeFixture(root, "lib/test_client.rb", "module TestClient\nend\n");
     await writeFixture(root, "test/test_client_test.rb", "require 'minitest/autorun'\n");
@@ -873,7 +873,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps scripts directory Ruby files as source only", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-scripts-source-");
+    const root = await fixtureRoot("codenuke-map-ruby-scripts-source-");
     await writeFixture(root, "Gemfile", "source 'https://rubygems.org'\n");
     await writeFixture(root, "scripts/support.rb", "module Support\nend\n");
 
@@ -885,7 +885,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores generated nested gemspec artifacts", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-generated-gemspec-");
+    const root = await fixtureRoot("codenuke-map-ruby-generated-gemspec-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "node-only" }));
     await writeFixture(
       root,
@@ -933,7 +933,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores gemspec directories during Ruby dependency scans", async () => {
-    const root = await fixtureRoot("clawnuke-map-ruby-gemspec-dir-");
+    const root = await fixtureRoot("codenuke-map-ruby-gemspec-dir-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "gemspec-dir" }));
     await mkdir(join(root, "fake.gemspec"));
     await writeFixture(root, "config/application.rb", "module NotRails\nend\n");
@@ -950,7 +950,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not apply nested Ruby gemspec dependencies to root Rails detection", async () => {
-    const root = await fixtureRoot("clawnuke-map-nested-ruby-gemspec-");
+    const root = await fixtureRoot("codenuke-map-nested-ruby-gemspec-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "mixed-root" }));
     await writeFixture(
       root,
@@ -984,7 +984,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Gemfile-only Jekyll sites without mistaking dependencies for project names", async () => {
-    const root = await fixtureRoot("clawnuke-map-jekyll-");
+    const root = await fixtureRoot("codenuke-map-jekyll-");
     await writeFixture(
       root,
       "Gemfile",
@@ -1025,7 +1025,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Rails app structure and skips common Rails binstubs", async () => {
-    const root = await fixtureRoot("clawnuke-map-rails-");
+    const root = await fixtureRoot("codenuke-map-rails-");
     await writeFixture(
       root,
       "package.json",
@@ -1185,7 +1185,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps workspace packages and splits large Node source groups", async () => {
-    const root = await fixtureRoot("clawnuke-node-workspace-map-");
+    const root = await fixtureRoot("codenuke-node-workspace-map-");
     await writeFixture(
       root,
       "package.json",
@@ -1374,7 +1374,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps workspace package metadata, entries, tests, and docs as package context", async () => {
-    const root = await fixtureRoot("clawnuke-node-package-context-");
+    const root = await fixtureRoot("codenuke-node-package-context-");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - packages/*\n");
     await writeFixture(
       root,
@@ -1420,7 +1420,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps extension packages generically and semantically splits large flat source folders", async () => {
-    const root = await fixtureRoot("clawnuke-node-extension-map-");
+    const root = await fixtureRoot("codenuke-node-extension-map-");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - extensions/*\n");
     await writeFixture(
       root,
@@ -1486,7 +1486,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps nested source directories when semantic file labels overlap", async () => {
-    const root = await fixtureRoot("clawnuke-node-semantic-shadow-");
+    const root = await fixtureRoot("codenuke-node-semantic-shadow-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "shadow" }, null, 2));
     await writeFixture(root, "src/auth.ts", "export const auth = true;\n");
     await writeFixture(root, "src/auth/login.ts", "export const login = true;\n");
@@ -1519,7 +1519,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps pnpm workspace packages without a root package manifest", async () => {
-    const root = await fixtureRoot("clawnuke-pnpm-workspace-only-map-");
+    const root = await fixtureRoot("codenuke-pnpm-workspace-only-map-");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - packages/*\n");
     await writeFixture(
       root,
@@ -1544,7 +1544,7 @@ describe("mapFeatures", () => {
   });
 
   it("parses Turbo task metadata for workspace validation commands", async () => {
-    const root = await fixtureRoot("clawnuke-turbo-task-graph-");
+    const root = await fixtureRoot("codenuke-turbo-task-graph-");
     await writeFixture(
       root,
       "package.json",
@@ -1643,7 +1643,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses Turbo task commands for mapped workspace feature validation", async () => {
-    const root = await fixtureRoot("clawnuke-turbo-feature-validation-");
+    const root = await fixtureRoot("codenuke-turbo-feature-validation-");
     await writeFixture(
       root,
       "package.json",
@@ -1699,7 +1699,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps package-local validation for fallback packages outside the workspace graph", async () => {
-    const root = await fixtureRoot("clawnuke-turbo-non-workspace-package-");
+    const root = await fixtureRoot("codenuke-turbo-non-workspace-package-");
     await writeFixture(
       root,
       "package.json",
@@ -1745,7 +1745,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps turbo config and skips versioned virtualenv directories", async () => {
-    const root = await fixtureRoot("clawnuke-turbo-config-venv-");
+    const root = await fixtureRoot("codenuke-turbo-config-venv-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "root" }, null, 2));
     await writeFixture(root, "turbo.json", JSON.stringify({ tasks: { test: {} } }, null, 2));
     await writeFixture(root, "apps/sandbox/pyproject.toml", "[project]\nname = 'sandbox'\n");
@@ -1772,7 +1772,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses package-local locks for fallback Node package roots", async () => {
-    const root = await fixtureRoot("clawnuke-node-fallback-package-lock-");
+    const root = await fixtureRoot("codenuke-node-fallback-package-lock-");
     await writeFixture(
       root,
       "frontend/package.json",
@@ -1791,7 +1791,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses package-local pnpm workspace markers for fallback Node package roots", async () => {
-    const root = await fixtureRoot("clawnuke-node-fallback-package-workspace-");
+    const root = await fixtureRoot("codenuke-node-fallback-package-workspace-");
     await writeFixture(
       root,
       "package.json",
@@ -1816,7 +1816,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps React Router routes and components in a nested frontend app", async () => {
-    const root = await fixtureRoot("clawnuke-react-router-map-");
+    const root = await fixtureRoot("codenuke-react-router-map-");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - frontend\n");
     await writeFixture(
       root,
@@ -2049,7 +2049,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map custom React Route components as React Router routes", async () => {
-    const root = await fixtureRoot("clawnuke-react-custom-route-");
+    const root = await fixtureRoot("codenuke-react-custom-route-");
     await writeFixture(
       root,
       "package.json",
@@ -2074,7 +2074,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps React Router routes through aliased Route imports only", async () => {
-    const root = await fixtureRoot("clawnuke-react-aliased-route-");
+    const root = await fixtureRoot("codenuke-react-aliased-route-");
     await writeFixture(
       root,
       "package.json",
@@ -2109,7 +2109,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map React Router children under unresolved parent paths", async () => {
-    const root = await fixtureRoot("clawnuke-react-unresolved-parent-route-");
+    const root = await fixtureRoot("codenuke-react-unresolved-parent-route-");
     await writeFixture(
       root,
       "package.json",
@@ -2155,7 +2155,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps React index tests scoped to their component directory", async () => {
-    const root = await fixtureRoot("clawnuke-react-index-tests-");
+    const root = await fixtureRoot("codenuke-react-index-tests-");
     await writeFixture(
       root,
       "package.json",
@@ -2200,7 +2200,7 @@ describe("mapFeatures", () => {
   });
 
   it("unwraps React Router fragment and member-expression route wrappers", async () => {
-    const root = await fixtureRoot("clawnuke-react-route-wrappers-");
+    const root = await fixtureRoot("codenuke-react-route-wrappers-");
     await writeFixture(
       root,
       "package.json",
@@ -2251,7 +2251,7 @@ describe("mapFeatures", () => {
   });
 
   it("preserves React Router wildcard paths while stripping block comments", async () => {
-    const root = await fixtureRoot("clawnuke-react-wildcard-comment-");
+    const root = await fixtureRoot("codenuke-react-wildcard-comment-");
     await writeFixture(
       root,
       "package.json",
@@ -2293,7 +2293,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps unambiguous React Router conditional route elements", async () => {
-    const root = await fixtureRoot("clawnuke-react-conditional-element-");
+    const root = await fixtureRoot("codenuke-react-conditional-element-");
     await writeFixture(
       root,
       "package.json",
@@ -2341,7 +2341,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not discover React packages through symlinked package roots", async () => {
-    const root = await fixtureRoot("clawnuke-react-symlink-package-");
+    const root = await fixtureRoot("codenuke-react-symlink-package-");
     const outside = join(root, "../outside-react-package");
     const outsidePackages = join(root, "../outside-react-packages");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - packages/*\n");
@@ -2386,7 +2386,7 @@ describe("mapFeatures", () => {
   });
 
   it("discovers React packages from workspace globs and honors excludes", async () => {
-    const root = await fixtureRoot("clawnuke-react-workspace-glob-");
+    const root = await fixtureRoot("codenuke-react-workspace-glob-");
     await writeFixture(
       root,
       "pnpm-workspace.yaml",
@@ -2504,7 +2504,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses nested React package manager lockfiles for test commands", async () => {
-    const root = await fixtureRoot("clawnuke-react-nested-pm-");
+    const root = await fixtureRoot("codenuke-react-nested-pm-");
     await writeFixture(
       root,
       "frontend/package.json",
@@ -2544,7 +2544,7 @@ describe("mapFeatures", () => {
   });
 
   it("honors package-local npm lockfiles in React packages", async () => {
-    const root = await fixtureRoot("clawnuke-react-nested-npm-");
+    const root = await fixtureRoot("codenuke-react-nested-npm-");
     await writeFixture(root, "pnpm-workspace.yaml", "packages:\n  - frontend\n");
     await writeFixture(
       root,
@@ -2585,7 +2585,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps React routes after block comments with URL-looking text", async () => {
-    const root = await fixtureRoot("clawnuke-react-block-comment-url-");
+    const root = await fixtureRoot("codenuke-react-block-comment-url-");
     await writeFixture(
       root,
       "package.json",
@@ -2614,7 +2614,7 @@ describe("mapFeatures", () => {
   });
 
   it("includes app-root React route tests", async () => {
-    const root = await fixtureRoot("clawnuke-react-app-tests-");
+    const root = await fixtureRoot("codenuke-react-app-tests-");
     await writeFixture(
       root,
       "package.json",
@@ -2653,7 +2653,7 @@ describe("mapFeatures", () => {
   });
 
   it("uses bun run for root React package scripts", async () => {
-    const root = await fixtureRoot("clawnuke-react-root-bun-");
+    const root = await fixtureRoot("codenuke-react-root-bun-");
     await writeFixture(root, "bun.lockb", "");
     await writeFixture(
       root,
@@ -2691,7 +2691,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores import-like strings when resolving React route components", async () => {
-    const root = await fixtureRoot("clawnuke-react-string-import-");
+    const root = await fixtureRoot("codenuke-react-string-import-");
     await writeFixture(
       root,
       "package.json",
@@ -2724,7 +2724,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores import-like strings when collecting React context files", async () => {
-    const root = await fixtureRoot("clawnuke-react-string-context-");
+    const root = await fixtureRoot("codenuke-react-string-context-");
     await writeFixture(
       root,
       "package.json",
@@ -2763,7 +2763,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps React routes after quoted JSX text", async () => {
-    const root = await fixtureRoot("clawnuke-react-jsx-text-quote-");
+    const root = await fixtureRoot("codenuke-react-jsx-text-quote-");
     await writeFixture(
       root,
       "package.json",
@@ -2792,7 +2792,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not add binary React imports as context files", async () => {
-    const root = await fixtureRoot("clawnuke-react-binary-import-");
+    const root = await fixtureRoot("codenuke-react-binary-import-");
     await writeFixture(
       root,
       "package.json",
@@ -2825,7 +2825,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map React Storybook support files as route or component features", async () => {
-    const root = await fixtureRoot("clawnuke-react-storybook-support-");
+    const root = await fixtureRoot("codenuke-react-storybook-support-");
     await writeFixture(
       root,
       "package.json",
@@ -2901,7 +2901,7 @@ describe("mapFeatures", () => {
   });
 
   it("discovers nested React packages without recursive file walks", async () => {
-    const root = await fixtureRoot("clawnuke-react-nested-fallback-package-");
+    const root = await fixtureRoot("codenuke-react-nested-fallback-package-");
     await writeFixture(
       root,
       "frontend/packages/admin/package.json",
@@ -2929,7 +2929,7 @@ describe("mapFeatures", () => {
   });
 
   it("prioritizes exact React tests before same-directory fallback tests", async () => {
-    const root = await fixtureRoot("clawnuke-react-exact-tests-");
+    const root = await fixtureRoot("codenuke-react-exact-tests-");
     await writeFixture(
       root,
       "package.json",
@@ -2969,7 +2969,7 @@ describe("mapFeatures", () => {
   });
 
   it("refreshes React direct import context between map runs", async () => {
-    const root = await fixtureRoot("clawnuke-react-cache-refresh-");
+    const root = await fixtureRoot("codenuke-react-cache-refresh-");
     await writeFixture(
       root,
       "package.json",
@@ -3018,7 +3018,7 @@ describe("mapFeatures", () => {
     });
   });
   it("maps nested SwiftPM, Apple, and Android Gradle app surfaces", async () => {
-    const root = await fixtureRoot("clawnuke-native-app-map-");
+    const root = await fixtureRoot("codenuke-native-app-map-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "native-root" }, null, 2));
     await writeFixture(
       root,
@@ -3124,7 +3124,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin Android semantic roles from framework evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-role-map-");
+    const root = await fixtureRoot("codenuke-kotlin-android-role-map-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(
       root,
@@ -3346,7 +3346,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps server-side Kotlin roles and path fallback evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-server-role-map-");
+    const root = await fixtureRoot("codenuke-kotlin-server-role-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3512,7 +3512,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not add path-only roles to strong Kotlin server roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-strong-role-path-fallback-");
+    const root = await fixtureRoot("codenuke-kotlin-strong-role-path-fallback-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3553,7 +3553,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin Spring configuration imports as configuration roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-spring-config-import-");
+    const root = await fixtureRoot("codenuke-kotlin-spring-config-import-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3586,7 +3586,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin feature IDs stable when confidence changes", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-role-id-stability-");
+    const root = await fixtureRoot("codenuke-kotlin-role-id-stability-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3642,7 +3642,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not infer Android roles from non-Android Gradle module paths", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-path-leak-");
+    const root = await fixtureRoot("codenuke-kotlin-android-path-leak-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -3676,7 +3676,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects legacy Android Gradle plugin application syntax", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-legacy-gradle-map-");
+    const root = await fixtureRoot("codenuke-kotlin-android-legacy-gradle-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", 'apply plugin: "com.android.library"\n');
     await writeFixture(
@@ -3710,7 +3710,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat non-entrypoint Android framework imports as UI roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-non-ui-import-");
+    const root = await fixtureRoot("codenuke-kotlin-android-non-ui-import-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(root, "app/build.gradle.kts", 'plugins { id("com.android.library") }\n');
     await writeFixture(
@@ -3742,7 +3742,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat project-local Android supertype names as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-local-supertype-");
+    const root = await fixtureRoot("codenuke-kotlin-android-local-supertype-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(root, "app/build.gradle.kts", 'plugins { id("com.android.library") }\n');
     await writeFixture(
@@ -3771,7 +3771,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat Compose runtime state imports as UI roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-compose-state-");
+    const root = await fixtureRoot("codenuke-kotlin-android-compose-state-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(root, "app/build.gradle.kts", 'plugins { id("com.android.library") }\n');
     await writeFixture(
@@ -3804,7 +3804,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin role evidence from wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-wildcard-imports-");
+    const root = await fixtureRoot("codenuke-kotlin-wildcard-imports-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3856,7 +3856,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps server-side Kotlin declaration role evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-declaration-role-map-");
+    const root = await fixtureRoot("codenuke-kotlin-declaration-role-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -3921,7 +3921,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not let settings-only root sources suppress module Kotlin wildcard evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-settings-root-src-");
+    const root = await fixtureRoot("codenuke-kotlin-settings-root-src-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":app")\n');
     await writeFixture(
       root,
@@ -3960,7 +3960,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not let nested Gradle roots suppress outer Kotlin wildcard evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-nested-root-local-type-");
+    const root = await fixtureRoot("codenuke-kotlin-nested-root-local-type-");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
       root,
@@ -4002,7 +4002,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps nested Gradle roots under settings builds independently", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-settings-nested-root-");
+    const root = await fixtureRoot("codenuke-kotlin-settings-nested-root-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4049,7 +4049,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat Kotlin stdlib return types as framework components", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-stdlib-type-map-");
+    const root = await fixtureRoot("codenuke-kotlin-stdlib-type-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4080,7 +4080,7 @@ describe("mapFeatures", () => {
   });
 
   it("filters mixed Java/Kotlin module types from Kotlin framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-java-local-type-map-");
+    const root = await fixtureRoot("codenuke-kotlin-java-local-type-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4116,7 +4116,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes with constructor arguments", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-supertype-args-map-");
+    const root = await fixtureRoot("codenuke-kotlin-supertype-args-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4190,7 +4190,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin Spring components as application services", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-spring-component-map-");
+    const root = await fixtureRoot("codenuke-kotlin-spring-component-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4221,7 +4221,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat qualified Kotlin annotations as type imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-qualified-annotation-type-map-");
+    const root = await fixtureRoot("codenuke-kotlin-qualified-annotation-type-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4261,7 +4261,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat project-local nested Kotlin types as external frameworks", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-nested-type-map-");
+    const root = await fixtureRoot("codenuke-kotlin-local-nested-type-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4289,7 +4289,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores Kotlin role markers inside nested block comments", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-nested-comment-");
+    const root = await fixtureRoot("codenuke-kotlin-nested-comment-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4322,7 +4322,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin code after comment markers inside strings", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-string-comment-marker-");
+    const root = await fixtureRoot("codenuke-kotlin-string-comment-marker-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4352,7 +4352,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores Kotlin role markers inside raw strings", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-raw-string-marker-");
+    const root = await fixtureRoot("codenuke-kotlin-raw-string-marker-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4383,7 +4383,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin role IDs stable when confidence buckets merge", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-role-bucket-stability-");
+    const root = await fixtureRoot("codenuke-kotlin-role-bucket-stability-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4445,7 +4445,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat Java sources from the same Gradle module as external Kotlin framework types", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-java-local-type-");
+    const root = await fixtureRoot("codenuke-kotlin-java-local-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4481,7 +4481,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat sibling Gradle module Kotlin types as external framework types", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-sibling-module-type-");
+    const root = await fixtureRoot("codenuke-kotlin-sibling-module-type-");
     await writeFixture(
       root,
       "settings.gradle.kts",
@@ -4530,7 +4530,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat same-package nested Kotlin types as external framework types", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-nested-type-");
+    const root = await fixtureRoot("codenuke-kotlin-local-nested-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -4566,7 +4566,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from Gradle plugins without a manifest", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-role-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-role-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":ui")\n');
     await writeFixture(
       root,
@@ -4606,7 +4606,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from convention plugin android blocks", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-convention-block-");
+    const root = await fixtureRoot("codenuke-kotlin-android-convention-block-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4654,7 +4654,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from multiline Gradle plugin declarations", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-multiline-plugin-role-");
+    const root = await fixtureRoot("codenuke-kotlin-android-multiline-plugin-role-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4693,7 +4693,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat child android extension blocks as root Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-child-extension-block-");
+    const root = await fixtureRoot("codenuke-kotlin-android-child-extension-block-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4735,7 +4735,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps applied Android plugin declarations before unrelated alias apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-alias-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-alias-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4771,7 +4771,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Groovy Android plugin declarations before unrelated apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-groovy-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-groovy-apply-false-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4807,7 +4807,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin DSL Android plugin declarations before unrelated shorthand apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-shorthand-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-shorthand-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4843,7 +4843,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin DSL Android plugin declarations before unrelated backtick apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-backtick-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-backtick-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4879,7 +4879,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Kotlin DSL Android plugin declarations before bare accessor apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-accessor-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-accessor-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4915,7 +4915,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Android plugin declarations before same-line unrelated apply false entries", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-same-line-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-same-line-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4945,7 +4945,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps final Android plugin declarations before later unrelated apply false text", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-trailing-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-trailing-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -4984,7 +4984,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from version-catalog plugin aliases without a manifest", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-alias-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-alias-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5014,7 +5014,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from bare plugin aliases without a catalog", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-bare-plugin-alias-");
+    const root = await fixtureRoot("codenuke-kotlin-android-bare-plugin-alias-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", "plugins { alias(libs.plugins.android) }\n");
     await writeFixture(
@@ -5040,7 +5040,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from later wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-wildcard-supertype-");
+    const root = await fixtureRoot("codenuke-kotlin-android-wildcard-supertype-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -5067,7 +5067,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from resolved version-catalog plugin aliases", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5107,7 +5107,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not read parent version-catalog aliases from nested Gradle roots", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-nested-catalog-shadow-");
+    const root = await fixtureRoot("codenuke-kotlin-nested-catalog-shadow-");
     await writeFixture(
       root,
       "gradle/libs.versions.toml",
@@ -5150,7 +5150,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not read subproject-local version catalogs from Gradle root subprojects", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-root-catalog-subproject-");
+    const root = await fixtureRoot("codenuke-kotlin-root-catalog-subproject-");
     await writeFixture(root, "settings.gradle.kts", 'pluginManagement {}\ninclude(":server")\n');
     await writeFixture(
       root,
@@ -5193,7 +5193,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from quoted version-catalog plugin aliases", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-quoted-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-quoted-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5233,7 +5233,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat version-catalog Android plugin aliases inside Gradle strings as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-alias-string-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-alias-string-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5278,7 +5278,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from dotted-key version-catalog plugin aliases", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-dotted-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-dotted-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5318,7 +5318,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from top-level dotted version-catalog plugin aliases", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-top-dotted-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-top-dotted-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5358,7 +5358,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from plugin-specific version-catalog tables", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-plugin-table-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-plugin-table-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5398,7 +5398,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from quoted plugin-specific version-catalog tables", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-quoted-plugin-table-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-quoted-plugin-table-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5438,7 +5438,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from nested version-catalog plugin tables", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-nested-plugin-catalog-");
+    const root = await fixtureRoot("codenuke-kotlin-android-nested-plugin-catalog-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5484,7 +5484,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from applied Gradle plugin syntax without a manifest", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-plugin-role-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-plugin-role-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", "apply plugin: 'com.android.library'\n");
     await writeFixture(
@@ -5519,7 +5519,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from Groovy apply plugin syntax with spaced colons", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-spaced-colon-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-spaced-colon-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", "apply plugin : 'com.android.library'\n");
     await writeFixture(
@@ -5554,7 +5554,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Android Kotlin roles from Groovy apply plugin map syntax", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-map-role-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-map-role-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", 'apply(plugin: "com.android.library")\n');
     await writeFixture(
@@ -5589,7 +5589,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects root Android apply plugin after Gradle URL strings", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-url-string-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-url-string-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5627,7 +5627,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects root Android apply plugin after Gradle child-scope string braces", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-string-brace-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-string-brace-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5664,7 +5664,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects root Android roles from allprojects apply plugin blocks", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-allprojects-apply-");
+    const root = await fixtureRoot("codenuke-kotlin-android-allprojects-apply-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5700,7 +5700,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects root Android roles from allprojects android blocks", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-allprojects-extension-");
+    const root = await fixtureRoot("codenuke-kotlin-android-allprojects-extension-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5738,7 +5738,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat subproject Android apply blocks as root Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-subprojects-apply-");
+    const root = await fixtureRoot("codenuke-kotlin-android-subprojects-apply-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5778,7 +5778,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat project Android apply blocks as root Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-project-apply-");
+    const root = await fixtureRoot("codenuke-kotlin-android-project-apply-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5818,7 +5818,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat apply-false Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5858,7 +5858,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat apply-false Android plugin declarations with GString versions as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-gstring-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-gstring-apply-false-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5898,7 +5898,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat apply-false version-catalog Android plugin aliases as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-alias-apply-false-module-");
+    const root = await fixtureRoot("codenuke-kotlin-android-alias-apply-false-module-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5938,7 +5938,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat Kotlin DSL apply(false) Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-apply-method-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-apply-method-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -5978,7 +5978,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat multiline Kotlin DSL apply(false) Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-multiline-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-multiline-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -6020,7 +6020,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat split Kotlin DSL apply(false) Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-split-apply-false-");
+    const root = await fixtureRoot("codenuke-kotlin-android-split-apply-false-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -6064,7 +6064,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat commented Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-commented-plugin-");
+    const root = await fixtureRoot("codenuke-kotlin-android-commented-plugin-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -6104,7 +6104,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat nested-commented Kotlin DSL Android plugin declarations as Android modules", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-nested-comment-plugin-");
+    const root = await fixtureRoot("codenuke-kotlin-android-nested-comment-plugin-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(
       root,
@@ -6147,7 +6147,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map Compose runtime-only imports as Android UI entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-compose-runtime-only-");
+    const root = await fixtureRoot("codenuke-kotlin-compose-runtime-only-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6190,7 +6190,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps Android UI path fallback for injected base activities", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-ui-di-path-");
+    const root = await fixtureRoot("codenuke-kotlin-android-ui-di-path-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6233,7 +6233,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not add Android path roles after strong framework evidence", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-strong-role-path-");
+    const root = await fixtureRoot("codenuke-kotlin-android-strong-role-path-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6303,7 +6303,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map Android app utility imports as UI entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-app-utility-import-");
+    const root = await fixtureRoot("codenuke-kotlin-android-app-utility-import-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6338,7 +6338,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map local Android supertype name collisions as UI entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-local-activity-");
+    const root = await fixtureRoot("codenuke-kotlin-android-local-activity-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6369,7 +6369,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin Apache HTTP imports as external clients", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-apache-http-client-");
+    const root = await fixtureRoot("codenuke-kotlin-apache-http-client-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6401,7 +6401,7 @@ describe("mapFeatures", () => {
   });
 
   it("keeps injected Android data consumers in data role path fallback", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-android-injected-data-");
+    const root = await fixtureRoot("codenuke-kotlin-android-injected-data-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("com.android.application") }\n');
     await writeFixture(
@@ -6440,7 +6440,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map Retrofit client annotations as server web entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-retrofit-annotation-");
+    const root = await fixtureRoot("codenuke-kotlin-retrofit-annotation-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6483,7 +6483,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not map qualified custom web-like annotations as server web entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-custom-qualified-web-annotation-");
+    const root = await fixtureRoot("codenuke-kotlin-custom-qualified-web-annotation-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6515,7 +6515,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps fully qualified Kotlin JAX-RS annotations as server web entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-qualified-jaxrs-");
+    const root = await fixtureRoot("codenuke-kotlin-qualified-jaxrs-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6544,7 +6544,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps later fully qualified Kotlin JAX-RS annotations as server web entrypoints", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-qualified-jaxrs-after-custom-");
+    const root = await fixtureRoot("codenuke-kotlin-qualified-jaxrs-after-custom-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6574,7 +6574,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps fully qualified Kotlin return types as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-qualified-return-type-");
+    const root = await fixtureRoot("codenuke-kotlin-qualified-return-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6606,7 +6606,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes after the first line of a declaration", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-multiline-supertypes-");
+    const root = await fixtureRoot("codenuke-kotlin-multiline-supertypes-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6643,7 +6643,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps bodyless Kotlin supertypes before top-level functions", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-bodyless-supertype-");
+    const root = await fixtureRoot("codenuke-kotlin-bodyless-supertype-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6677,7 +6677,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps bodyless Kotlin supertypes before expect and actual declarations", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-bodyless-supertype-expect-actual-");
+    const root = await fixtureRoot("codenuke-kotlin-bodyless-supertype-expect-actual-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6711,7 +6711,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps bodyless Kotlin supertypes before modified top-level functions", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-bodyless-supertype-suspend-");
+    const root = await fixtureRoot("codenuke-kotlin-bodyless-supertype-suspend-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6745,7 +6745,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps bodyless Kotlin supertypes before top-level type aliases", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-bodyless-supertype-typealias-");
+    const root = await fixtureRoot("codenuke-kotlin-bodyless-supertype-typealias-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6779,7 +6779,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin return types after function-typed parameters", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-function-param-return-type-");
+    const root = await fixtureRoot("codenuke-kotlin-function-param-return-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6813,7 +6813,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve Kotlin built-in return types through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-builtin-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-builtin-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6857,7 +6857,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve Kotlin default return types through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-default-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-default-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6890,7 +6890,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve Kotlin range return types through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-range-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-range-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6934,7 +6934,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve dotted Kotlin built-in return types as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-dotted-builtin-type-");
+    const root = await fixtureRoot("codenuke-kotlin-dotted-builtin-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6965,7 +6965,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve local lowercase dotted Kotlin return types as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-lowercase-dotted-type-");
+    const root = await fixtureRoot("codenuke-kotlin-local-lowercase-dotted-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -6993,7 +6993,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve imported local lowercase dotted Kotlin return types as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-imported-local-lowercase-dotted-type-");
+    const root = await fixtureRoot("codenuke-kotlin-imported-local-lowercase-dotted-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7029,7 +7029,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve JVM default return types through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-jvm-default-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-jvm-default-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7062,7 +7062,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve explicitly imported Kotlin stdlib return types as framework roles", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-stdlib-direct-type-");
+    const root = await fixtureRoot("codenuke-kotlin-stdlib-direct-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7095,7 +7095,7 @@ describe("mapFeatures", () => {
   });
 
   it("resolves explicit Kotlin imports that shadow default built-in names", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-explicit-builtin-shadow-");
+    const root = await fixtureRoot("codenuke-kotlin-explicit-builtin-shadow-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7127,7 +7127,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve local Kotlin declarations through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-local-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7162,7 +7162,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve package-local Kotlin declarations through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-package-local-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-package-local-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7200,7 +7200,7 @@ describe("mapFeatures", () => {
   });
 
   it("prefers local Kotlin wildcard declarations over earlier external wildcards", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-wildcard-precedence-");
+    const root = await fixtureRoot("codenuke-kotlin-local-wildcard-precedence-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7239,7 +7239,7 @@ describe("mapFeatures", () => {
   });
 
   it("skips non-matching local Kotlin wildcard imports before external wildcards", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-local-wildcard-skip-");
+    const root = await fixtureRoot("codenuke-kotlin-local-wildcard-skip-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7277,7 +7277,7 @@ describe("mapFeatures", () => {
   });
 
   it("skips non-external Kotlin wildcard imports before external wildcards", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-non-external-wildcard-skip-");
+    const root = await fixtureRoot("codenuke-kotlin-non-external-wildcard-skip-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7310,7 +7310,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not resolve same-package Java declarations through wildcard imports", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-java-wildcard-type-");
+    const root = await fixtureRoot("codenuke-kotlin-java-wildcard-type-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7348,7 +7348,7 @@ describe("mapFeatures", () => {
   });
 
   it("preserves path roles for Kotlin interfaces", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-interface-path-roles-");
+    const root = await fixtureRoot("codenuke-kotlin-interface-path-roles-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7402,7 +7402,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes after annotated primary constructors", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-annotated-constructor-");
+    const root = await fixtureRoot("codenuke-kotlin-annotated-constructor-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7433,7 +7433,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes after visibility-before-annotation constructors", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-constructor-modifier-order-");
+    const root = await fixtureRoot("codenuke-kotlin-constructor-modifier-order-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7464,7 +7464,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes after function-typed constructor parameters", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-function-param-constructor-");
+    const root = await fixtureRoot("codenuke-kotlin-function-param-constructor-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7494,7 +7494,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes with constructor call commas", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-supertype-call-comma-");
+    const root = await fixtureRoot("codenuke-kotlin-supertype-call-comma-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7524,7 +7524,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Kotlin supertypes with named constructor arguments", async () => {
-    const root = await fixtureRoot("clawnuke-kotlin-supertype-named-arg-");
+    const root = await fixtureRoot("codenuke-kotlin-supertype-named-arg-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("org.jetbrains.kotlin.jvm") }\n');
     await writeFixture(
@@ -7554,7 +7554,7 @@ describe("mapFeatures", () => {
   });
 
   it("normalizes root Gradle source groups", async () => {
-    const root = await fixtureRoot("clawnuke-root-gradle-map-");
+    const root = await fixtureRoot("codenuke-root-gradle-map-");
     await writeFixture(root, "settings.gradle.kts", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("java") }\n');
     await writeFixture(root, "src/main/java/com/example/App.kt", "class App\n");
@@ -7575,7 +7575,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Kotlin and Gradle commands for Groovy Gradle root projects", async () => {
-    const root = await fixtureRoot("clawnuke-root-kotlin-gradle-detect-");
+    const root = await fixtureRoot("codenuke-root-kotlin-gradle-detect-");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", "plugins { id 'org.jetbrains.kotlin.jvm' }\n");
     await writeFixture(root, "src/main/kotlin/com/example/app/App.kt", "class App\n");
@@ -7592,7 +7592,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Java and wrapper Gradle commands for root Gradle projects", async () => {
-    const root = await fixtureRoot("clawnuke-root-java-gradle-detect-");
+    const root = await fixtureRoot("codenuke-root-java-gradle-detect-");
     await writeFixture(root, "gradlew", "#!/bin/sh\n");
     await writeFixture(root, "settings.gradle", "pluginManagement {}\n");
     await writeFixture(root, "build.gradle", "plugins { id 'java' }\n");
@@ -7610,7 +7610,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not detect Java from documentation-only Java files", async () => {
-    const root = await fixtureRoot("clawnuke-docs-java-detect-");
+    const root = await fixtureRoot("codenuke-docs-java-detect-");
     await writeFixture(root, "docs/Example.java", "class Example {}\n");
 
     const project = await detectProject(root);
@@ -7619,7 +7619,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps build.gradle-only roots without empty Gradle groups", async () => {
-    const root = await fixtureRoot("clawnuke-gradle-build-only-map-");
+    const root = await fixtureRoot("codenuke-gradle-build-only-map-");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("java") }\n');
     await writeFixture(root, "src/main/java/com/acme/test/Foo.kt", "class Foo\n");
     await writeFixture(root, "src/test/java/com/acme/FooTest.kt", "class FooTest\n");
@@ -7639,7 +7639,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps nested build.gradle-only Gradle apps", async () => {
-    const root = await fixtureRoot("clawnuke-nested-gradle-build-only-map-");
+    const root = await fixtureRoot("codenuke-nested-gradle-build-only-map-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(root, "apps/android/build.gradle.kts", 'plugins { id("java") }\n');
     await writeFixture(root, "apps/android/src/main/java/com/example/App.kt", "class App\n");
@@ -7656,7 +7656,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps JVM role features from Java code evidence", async () => {
-    const root = await fixtureRoot("clawnuke-jvm-role-map-");
+    const root = await fixtureRoot("codenuke-jvm-role-map-");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("java") }\n');
     await writeFixture(
       root,
@@ -7900,7 +7900,7 @@ describe("mapFeatures", () => {
   });
 
   it("does not treat qualified Java annotations as type imports", async () => {
-    const root = await fixtureRoot("clawnuke-java-qualified-annotation-type-map-");
+    const root = await fixtureRoot("codenuke-java-qualified-annotation-type-map-");
     await writeFixture(root, "build.gradle.kts", 'plugins { id("java") }\n');
     await writeFixture(
       root,
@@ -7939,7 +7939,7 @@ describe("mapFeatures", () => {
   });
 
   it("ignores vendored SwiftPM manifests during detection", async () => {
-    const root = await fixtureRoot("clawnuke-vendored-swiftpm-detect-");
+    const root = await fixtureRoot("codenuke-vendored-swiftpm-detect-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(root, "apps/ios/project.yml", "name: MobileApp\n");
     await writeFixture(
@@ -7955,7 +7955,7 @@ describe("mapFeatures", () => {
   });
 
   it("detects Swift sources in pure Apple projects", async () => {
-    const root = await fixtureRoot("clawnuke-pure-apple-swift-detect-");
+    const root = await fixtureRoot("codenuke-pure-apple-swift-detect-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(root, "apps/ios/project.yml", "name: MobileApp\n");
     await writeFixture(root, "apps/ios/Sources/App.swift", "@main struct MobileApp {}\n");
@@ -7970,7 +7970,7 @@ describe("mapFeatures", () => {
   });
 
   it("chooses Apple project manifests deterministically", async () => {
-    const root = await fixtureRoot("clawnuke-apple-manifest-order-map-");
+    const root = await fixtureRoot("codenuke-apple-manifest-order-map-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(root, "apps/ios/B.xcodeproj", "");
     await writeFixture(root, "apps/ios/A.xcworkspace", "");
@@ -7984,7 +7984,7 @@ describe("mapFeatures", () => {
   });
 
   it("maps Apple projects that also contain SwiftPM manifests", async () => {
-    const root = await fixtureRoot("clawnuke-hybrid-apple-swiftpm-map-");
+    const root = await fixtureRoot("codenuke-hybrid-apple-swiftpm-map-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(root, "apps/ios/project.yml", "name: HybridApp\n");
     await writeFixture(
@@ -8014,7 +8014,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("ignores native sample projects under fixtures and testdata during detection", async () => {
-    const root = await fixtureRoot("clawnuke-native-fixture-detect-");
+    const root = await fixtureRoot("codenuke-native-fixture-detect-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(
       root,
@@ -8044,7 +8044,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("maps Go commands and internal packages", async () => {
-    const root = await fixtureRoot("clawnuke-go-map-");
+    const root = await fixtureRoot("codenuke-go-map-");
     await writeFixture(root, "go.mod", "module example.com/tool\n\ngo 1.26\n");
     await writeFixture(root, "cmd/tool/aaa.go", "package main\n\nfunc early() {}\n");
     await writeFixture(root, "cmd/tool/main.go", "package main\n\nfunc main() {}\n");
@@ -8086,7 +8086,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("adds same-repo Go imports as context", async () => {
-    const root = await fixtureRoot("clawnuke-go-import-context-");
+    const root = await fixtureRoot("codenuke-go-import-context-");
     await writeFixture(root, "go.mod", "module example.com/tool\n\ngo 1.26\n");
     await writeFixture(
       root,
@@ -8107,7 +8107,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("adds Go module root imports as context", async () => {
-    const root = await fixtureRoot("clawnuke-go-root-import-context-");
+    const root = await fixtureRoot("codenuke-go-root-import-context-");
     await writeFixture(root, "go.mod", "module example.com/tool\n\ngo 1.26\n");
     await writeFixture(root, "lib.go", "package tool\n\nfunc Run() {}\n");
     await writeFixture(
@@ -8124,7 +8124,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("maps Go module root packages", async () => {
-    const root = await fixtureRoot("clawnuke-go-root-package-");
+    const root = await fixtureRoot("codenuke-go-root-package-");
     await writeFixture(root, "go.mod", "module example.com/rootpkg\n\ngo 1.26\n");
     await writeFixture(root, "main.go", "package main\n\nfunc main() {}\n");
     await writeFixture(root, "root.go", "package main\n\nfunc run() {}\n");
@@ -8140,7 +8140,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("maps Go packages from symlinked explicit roots", async () => {
-    const root = await fixtureRoot("clawnuke-go-symlink-real-");
+    const root = await fixtureRoot("codenuke-go-symlink-real-");
     const link = `${root}-link`;
     await writeFixture(root, "go.mod", "module example.com/symlink\n\ngo 1.26\n");
     await writeFixture(root, "cmd/tool/main.go", "package main\n\nfunc main() {}\n");
@@ -8156,7 +8156,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("does not classify nested cmd packages as commands", async () => {
-    const root = await fixtureRoot("clawnuke-go-nested-cmd-package-");
+    const root = await fixtureRoot("codenuke-go-nested-cmd-package-");
     await writeFixture(root, "go.mod", "module example.com/tool\n\ngo 1.26\n");
     await writeFixture(root, "cmd/tool/main.go", "package main\n\nfunc main() {}\n");
     await writeFixture(root, "cmd/tool/internal/store/store.go", "package store\n");
@@ -8171,7 +8171,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("does not classify non-main cmd packages as commands", async () => {
-    const root = await fixtureRoot("clawnuke-go-cmd-library-package-");
+    const root = await fixtureRoot("codenuke-go-cmd-library-package-");
     await writeFixture(root, "go.mod", "module example.com/tool\n\ngo 1.26\n");
     await writeFixture(root, "cmd/tool/tool.go", "package tool\n\nfunc Helper() {}\n");
 
@@ -8186,7 +8186,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("uses partial Go list output before falling back", async () => {
-    const root = await fixtureRoot("clawnuke-go-list-partial-");
+    const root = await fixtureRoot("codenuke-go-list-partial-");
     await writeFixture(root, "go.mod", "module example.com/broken\n\ngo 1.20\n");
     await writeFixture(root, "api/api.go", "package api\n\nfunc API() {}\n");
     await writeFixture(root, "mixed/a.go", "package a\n\nfunc A() {}\n");
@@ -8200,7 +8200,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("reads root package names when Go list falls back", async () => {
-    const root = await fixtureRoot("clawnuke-go-root-fallback-");
+    const root = await fixtureRoot("codenuke-go-root-fallback-");
     await writeFixture(root, "go.mod", "module example.com/cache\n\ngo 999.0\n");
     await writeFixture(root, "cache.go", "package cache\n\nfunc Get() {}\n");
     await writeFixture(root, "api/api.go", "package api\n\nfunc API() {}\n");
@@ -8216,7 +8216,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("parses large Go list output without truncating packages", async () => {
-    const root = await fixtureRoot("clawnuke-go-list-large-");
+    const root = await fixtureRoot("codenuke-go-list-large-");
     await writeFixture(root, "go.mod", "module example.com/large\n\ngo 1.26\n");
     for (let index = 0; index < 140; index += 1) {
       const name = `pkg${String(index).padStart(3, "0")}`;
@@ -8233,7 +8233,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("skips ignored Go package directories from Go list output", async () => {
-    const root = await fixtureRoot("clawnuke-go-list-skip-");
+    const root = await fixtureRoot("codenuke-go-list-skip-");
     await writeFixture(root, "go.mod", "module example.com/skip\n\ngo 1.26\n");
     await writeFixture(root, "app/app.go", "package app\n");
     await writeFixture(root, "node_modules/dep/dep.go", "package dep\n");
@@ -8255,7 +8255,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("mirrors Go list exclusions during fallback discovery", async () => {
-    const root = await fixtureRoot("clawnuke-go-fallback-skip-");
+    const root = await fixtureRoot("codenuke-go-fallback-skip-");
     await writeFixture(root, "go.mod", "module example.com/fallback\n\ngo 999.0\n");
     await writeFixture(root, "app/app.go", "package app\n");
     await writeFixture(root, "sub/go.mod", "module example.com/sub\n\ngo 1.20\n");
@@ -8276,7 +8276,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("maps Rust commands, libraries, integration tests, and Cargo defaults", async () => {
-    const root = await fixtureRoot("clawnuke-rust-map-");
+    const root = await fixtureRoot("codenuke-rust-map-");
     await writeFixture(root, "Cargo.toml", '[package]\nname = "rusty-tool"\n');
     await writeFixture(root, "src/main.rs", "fn main() {}\n");
     await writeFixture(root, "src/lib.rs", "pub fn run() {}\n");
@@ -8322,7 +8322,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("bounds Rust integration tests attached to entrypoint features", async () => {
-    const root = await fixtureRoot("clawnuke-rust-test-bound-");
+    const root = await fixtureRoot("codenuke-rust-test-bound-");
     await writeFixture(root, "Cargo.toml", '[package]\nname = "rust-test-bound"\n');
     await writeFixture(root, "src/lib.rs", "pub fn run() {}\n");
     for (let index = 1; index <= 8; index += 1) {
@@ -8344,7 +8344,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
   });
 
   it("maps CMake C and C++ targets without duplicating main files", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-cpp-map-");
+    const root = await fixtureRoot("codenuke-cmake-cpp-map-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8453,7 +8453,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not attach unrelated top-level CMake tests to every target", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-cpp-test-scope-");
+    const root = await fixtureRoot("codenuke-cmake-cpp-test-scope-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8473,7 +8473,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not attach generic main CMake tests to every target", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-generic-main-test-");
+    const root = await fixtureRoot("codenuke-cmake-generic-main-test-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8493,7 +8493,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps CMake test executables as test suites", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-test-executable-");
+    const root = await fixtureRoot("codenuke-cmake-test-executable-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8521,7 +8521,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps CMake binaries with helper source names that look test-like", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-test-like-helper-");
+    const root = await fixtureRoot("codenuke-cmake-test-like-helper-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app src/main.c src/test_mode.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "src/test_mode.c", "int helper(void) { return 0; }\n");
@@ -8540,7 +8540,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps CMake binaries when a test-like helper comes before main", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-test-like-helper-before-main-");
+    const root = await fixtureRoot("codenuke-cmake-test-like-helper-before-main-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8563,7 +8563,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("attaches CMake tests named after the target", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-target-named-tests-");
+    const root = await fixtureRoot("codenuke-cmake-target-named-tests-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app src/main.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "tests/app_test.c", "int main(void) { return 0; }\n");
@@ -8578,7 +8578,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps semicolon-separated CMake source lists", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-semicolon-sources-");
+    const root = await fixtureRoot("codenuke-cmake-semicolon-sources-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8605,7 +8605,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores CMake helper names ending with built-in commands", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-helper-command-names-");
+    const root = await fixtureRoot("codenuke-cmake-helper-command-names-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8630,7 +8630,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores CMake command text inside strings", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-command-string-");
+    const root = await fixtureRoot("codenuke-cmake-command-string-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8650,7 +8650,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores CMake command text inside unquoted command arguments", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-nested-command-text-");
+    const root = await fixtureRoot("codenuke-cmake-nested-command-text-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8670,7 +8670,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores CMake commands inside uncalled function and macro bodies", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-uncalled-function-body-");
+    const root = await fixtureRoot("codenuke-cmake-uncalled-function-body-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8690,7 +8690,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps CMake targets after bracket arguments containing hashes", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-bracket-hash-");
+    const root = await fixtureRoot("codenuke-cmake-bracket-hash-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8709,7 +8709,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps quoted CMake source paths containing spaces", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-quoted-space-source-");
+    const root = await fixtureRoot("codenuke-cmake-quoted-space-source-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8729,7 +8729,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps escaped CMake source paths containing spaces and semicolons", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-escaped-source-path-");
+    const root = await fixtureRoot("codenuke-cmake-escaped-source-path-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8749,7 +8749,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps target_sources scoped to standalone CMake projects", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-target-sources-scope-");
+    const root = await fixtureRoot("codenuke-cmake-target-sources-scope-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8780,7 +8780,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("attaches target_sources from CMake subdirectories", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-subdir-target-sources-");
+    const root = await fixtureRoot("codenuke-cmake-subdir-target-sources-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app)\nadd_subdirectory(src)\n");
     await writeFixture(root, "src/CMakeLists.txt", "target_sources(app PRIVATE main.c util.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
@@ -8804,7 +8804,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves PROJECT_NAME CMake targets", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-project-name-target-");
+    const root = await fixtureRoot("codenuke-cmake-project-name-target-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8825,7 +8825,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves PROJECT_NAME inside composed CMake target names", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-composed-project-name-target-");
+    const root = await fixtureRoot("codenuke-cmake-composed-project-name-target-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8842,7 +8842,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects header-only C++ CMake libraries as C++ projects", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-header-only-cpp-");
+    const root = await fixtureRoot("codenuke-cmake-header-only-cpp-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8858,7 +8858,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps uppercase C++ source extensions", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-uppercase-cpp-");
+    const root = await fixtureRoot("codenuke-cmake-uppercase-cpp-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8885,7 +8885,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("preserves CMake targets that share the same source list", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-shared-sources-");
+    const root = await fixtureRoot("codenuke-cmake-shared-sources-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -8910,7 +8910,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("prefers exact target-name source stems before prefix matches", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-target-stem-entry-");
+    const root = await fixtureRoot("codenuke-cmake-target-stem-entry-");
     await writeFixture(root, "CMakeLists.txt", "add_library(app src/apple.c src/app.c)\n");
     await writeFixture(root, "src/apple.c", "int apple(void) { return 1; }\n");
     await writeFixture(root, "src/app.c", "int app(void) { return 1; }\n");
@@ -8923,7 +8923,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps existing CMake library ids when a target starts sharing sources", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-shared-source-stability-");
+    const root = await fixtureRoot("codenuke-cmake-shared-source-stability-");
     await writeFixture(root, "CMakeLists.txt", "add_library(core_static STATIC src/core.c)\n");
     await writeFixture(root, "src/core.c", "int core(void) { return 1; }\n");
 
@@ -8950,7 +8950,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps disambiguated CMake library ids when source sharing stops", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-shared-source-removal-");
+    const root = await fixtureRoot("codenuke-cmake-shared-source-removal-");
     await writeFixture(root, "CMakeLists.txt", "add_library(core_static STATIC src/core.c)\n");
     await writeFixture(root, "src/core.c", "int core(void) { return 1; }\n");
 
@@ -8977,7 +8977,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps initially disambiguated CMake library ids after source sharing stops", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-initial-shared-source-removal-");
+    const root = await fixtureRoot("codenuke-cmake-initial-shared-source-removal-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -9002,7 +9002,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map CMake target sources outside the project root", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-cpp-safe-sources-");
+    const root = await fixtureRoot("codenuke-cmake-cpp-safe-sources-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(tool ../outside.c src/main.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
 
@@ -9021,7 +9021,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses the CMake source that defines main as the executable entrypoint", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-cpp-main-entry-");
+    const root = await fixtureRoot("codenuke-cmake-cpp-main-entry-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app src/app.cpp src/main.cpp)\n");
     await writeFixture(root, "src/app.cpp", "struct App { int main(void) { return 0; } };\n");
     await writeFixture(root, "src/main.cpp", "int main(void) { return 0; }\n");
@@ -9040,7 +9040,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map member main methods as standalone C++ binaries", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-member-main-");
+    const root = await fixtureRoot("codenuke-cpp-member-main-");
     await writeFixture(root, "src/app.cpp", "struct App { int main(void) { return 0; } };\n");
 
     const project = await detectProject(root);
@@ -9050,7 +9050,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves targets from included CMake modules relative to the source dir", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-include-source-dir-");
+    const root = await fixtureRoot("codenuke-cmake-include-source-dir-");
     await writeFixture(root, "CMakeLists.txt", "include(cmake/Targets.cmake)\n");
     await writeFixture(root, "cmake/Targets.cmake", "add_executable(app src/main.c src/util.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
@@ -9068,7 +9068,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves built-in CMake dir variables in includes and sources", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-built-in-dir-vars-");
+    const root = await fixtureRoot("codenuke-cmake-built-in-dir-vars-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -9105,7 +9105,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves CMake source dir variables from nested project roots", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-nested-project-vars-");
+    const root = await fixtureRoot("codenuke-cmake-nested-project-vars-");
     await writeFixture(
       root,
       "sub/CMakeLists.txt",
@@ -9130,7 +9130,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resets PROJECT_SOURCE_DIR when nested CMakeLists declares project", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-nested-project-source-dir-");
+    const root = await fixtureRoot("codenuke-cmake-nested-project-source-dir-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -9166,7 +9166,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves nested CMake includes relative to the source dir", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-nested-include-source-dir-");
+    const root = await fixtureRoot("codenuke-cmake-nested-include-source-dir-");
     await writeFixture(root, "CMakeLists.txt", "include(cmake/A.cmake)\n");
     await writeFixture(root, "cmake/A.cmake", "include(cmake/B.cmake)\n");
     await writeFixture(root, "cmake/B.cmake", "add_executable(app src/main.c src/util.c)\n");
@@ -9185,7 +9185,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves repeated CMake includes relative to each source dir", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-repeated-include-source-dir-");
+    const root = await fixtureRoot("codenuke-cmake-repeated-include-source-dir-");
     await writeFixture(
       root,
       "CMakeLists.txt",
@@ -9209,7 +9209,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores unreferenced CMake modules", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-unreferenced-module-");
+    const root = await fixtureRoot("codenuke-cmake-unreferenced-module-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app src/main.c)\n");
     await writeFixture(root, "cmake/Dead.cmake", "add_executable(dead src/dead.c)\n");
     await writeFixture(root, "src/main.c", "int main(void) { return 0; }\n");
@@ -9224,7 +9224,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps autotools C and C++ binary and library targets", async () => {
-    const root = await fixtureRoot("clawnuke-autotools-cpp-map-");
+    const root = await fixtureRoot("codenuke-autotools-cpp-map-");
     await writeFixture(
       root,
       "Makefile.am",
@@ -9309,7 +9309,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps autotools targets from Makefile.in", async () => {
-    const root = await fixtureRoot("clawnuke-autotools-makefile-in-");
+    const root = await fixtureRoot("codenuke-autotools-makefile-in-");
     await writeFixture(
       root,
       "Makefile.in",
@@ -9333,7 +9333,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps autotools sources with source-directory variables", async () => {
-    const root = await fixtureRoot("clawnuke-autotools-srcdir-sources-");
+    const root = await fixtureRoot("codenuke-autotools-srcdir-sources-");
     await writeFixture(
       root,
       "src/Makefile.am",
@@ -9361,7 +9361,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("honors Automake assignment overrides", async () => {
-    const root = await fixtureRoot("clawnuke-autotools-override-");
+    const root = await fixtureRoot("codenuke-autotools-override-");
     await writeFixture(
       root,
       "Makefile.am",
@@ -9384,7 +9384,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps same-named CMake and Autotools targets", async () => {
-    const root = await fixtureRoot("clawnuke-cmake-autotools-same-target-");
+    const root = await fixtureRoot("codenuke-cmake-autotools-same-target-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(app main.c cmake_only.c)\n");
     await writeFixture(
       root,
@@ -9411,7 +9411,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps standalone C main files without php-src extension semantics", async () => {
-    const root = await fixtureRoot("clawnuke-c-main-map-");
+    const root = await fixtureRoot("codenuke-c-main-map-");
     await writeFixture(root, "src/tool.c", "int main(void) { return 0; }\n");
     await writeFixture(
       root,
@@ -9437,7 +9437,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("skips C and C++ sample project paths", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-sample-paths-");
+    const root = await fixtureRoot("codenuke-cpp-sample-paths-");
     await writeFixture(root, "CMakeLists.txt", "add_executable(sample fixtures/example/main.c)\n");
     await writeFixture(root, "fixtures/example/main.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "testdata/CMakeLists.txt", "add_executable(sample main.c)\n");
@@ -9459,7 +9459,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not attach JavaScript tests to C and C++ entries", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-js-test-");
+    const root = await fixtureRoot("codenuke-cpp-js-test-");
     await writeFixture(root, "package.json", JSON.stringify({ scripts: { test: "vitest" } }));
     await writeFixture(root, "src/app.cpp", "int main(void) { return 0; }\n");
     await writeFixture(root, "src/app.test.ts", "test('app', () => {});\n");
@@ -9473,7 +9473,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("attaches plural-suffixed C and C++ tests without mapping them as binaries", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-plural-tests-");
+    const root = await fixtureRoot("codenuke-cpp-plural-tests-");
     await writeFixture(root, "src/app.cpp", "int main(void) { return 0; }\n");
     await writeFixture(root, "src/app_tests.cpp", "int main(void) { return 0; }\n");
     await writeFixture(root, "src/FooTests.cpp", "int main(void) { return 0; }\n");
@@ -9493,7 +9493,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("attaches capitalized C and C++ test directories without mapping them as binaries", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-capitalized-tests-");
+    const root = await fixtureRoot("codenuke-cpp-capitalized-tests-");
     await writeFixture(root, "src/parser.cpp", "int main(void) { return 0; }\n");
     await writeFixture(root, "Tests/parser.cpp", "int main(void) { return 0; }\n");
 
@@ -9507,7 +9507,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects C and C++ main functions after literals containing braces", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-literal-braces-");
+    const root = await fixtureRoot("codenuke-cpp-literal-braces-");
     await writeFixture(
       root,
       "src/app.cpp",
@@ -9521,7 +9521,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects C and C++ main functions after literals containing comment markers", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-literal-comments-");
+    const root = await fixtureRoot("codenuke-cpp-literal-comments-");
     await writeFixture(
       root,
       "src/app.cpp",
@@ -9535,7 +9535,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores C and C++ block markers inside line comments", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-line-comment-block-marker-");
+    const root = await fixtureRoot("codenuke-cpp-line-comment-block-marker-");
     await writeFixture(
       root,
       "src/app.cpp",
@@ -9549,7 +9549,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects C and C++ main functions after comments containing quotes", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-comment-quotes-");
+    const root = await fixtureRoot("codenuke-cpp-comment-quotes-");
     await writeFixture(
       root,
       "src/app.cpp",
@@ -9563,7 +9563,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores comment-only C and C++ sources", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-comment-only-");
+    const root = await fixtureRoot("codenuke-cpp-comment-only-");
     await writeFixture(root, "src/placeholder.cpp", `// ${"x".repeat(200)}\n`);
 
     const project = await detectProject(root);
@@ -9573,7 +9573,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not attach dependency C and C++ tests from skipped paths", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-skipped-nearby-tests-");
+    const root = await fixtureRoot("codenuke-cpp-skipped-nearby-tests-");
     await writeFixture(root, "app.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "vendor/app_test.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "CMakeFiles/app_test.c", "int main(void) { return 0; }\n");
@@ -9589,7 +9589,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("skips dependency trees during C and C++ discovery", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-dependency-paths-");
+    const root = await fixtureRoot("codenuke-cpp-dependency-paths-");
     await writeFixture(root, "src/app.c", "int main(void) { return 0; }\n");
     await writeFixture(root, "vendor/tool/main.c", "int main(void) { return 0; }\n");
     await writeFixture(root, ".venv/native/main.c", "int main(void) { return 0; }\n");
@@ -9618,7 +9618,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores dependency and generated C and C++ files during detection", async () => {
-    const root = await fixtureRoot("clawnuke-cpp-dependency-detect-");
+    const root = await fixtureRoot("codenuke-cpp-dependency-detect-");
     await writeFixture(root, "vendor/CMakeLists.txt", "add_executable(vendor main.c)\n");
     await writeFixture(root, "vendor/main.c", "int main(void) { return 0; }\n");
     await writeFixture(
@@ -9645,7 +9645,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects non-C and C++ languages under vendor path components", async () => {
-    const root = await fixtureRoot("clawnuke-vendor-language-detect-");
+    const root = await fixtureRoot("codenuke-vendor-language-detect-");
     await writeFixture(root, "src/vendor/worker.py", "def main():\n    pass\n");
     await writeFixture(root, "src/pkg/vendor/app.py", "def main():\n    pass\n");
     await writeFixture(root, "src/main/vendor/App.java", "class App {}\n");
@@ -9656,7 +9656,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores top-level vendored native project metadata during detection", async () => {
-    const root = await fixtureRoot("clawnuke-top-vendor-native-detect-");
+    const root = await fixtureRoot("codenuke-top-vendor-native-detect-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "host" }, null, 2));
     await writeFixture(
       root,
@@ -9673,7 +9673,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Python project metadata, console scripts, source groups, and tests", async () => {
-    const root = await fixtureRoot("clawnuke-python-map-");
+    const root = await fixtureRoot("codenuke-python-map-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -9719,7 +9719,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects and maps Laravel application slices", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-map-");
+    const root = await fixtureRoot("codenuke-laravel-map-");
     await writeFixture(
       root,
       "composer.json",
@@ -9862,7 +9862,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps Laravel routes scoped to same-basename controller namespaces", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-controller-namespaces-");
+    const root = await fixtureRoot("codenuke-laravel-controller-namespaces-");
     await writeFixture(
       root,
       "composer.json",
@@ -9933,7 +9933,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps fully qualified Laravel controller route references", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-qualified-routes-");
+    const root = await fixtureRoot("codenuke-laravel-qualified-routes-");
     await writeFixture(
       root,
       "composer.json",
@@ -9990,7 +9990,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps aliased Laravel controller route imports", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-aliased-routes-");
+    const root = await fixtureRoot("codenuke-laravel-aliased-routes-");
     await writeFixture(
       root,
       "composer.json",
@@ -10040,7 +10040,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps namespace-imported Laravel controller route references", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-namespace-routes-");
+    const root = await fixtureRoot("codenuke-laravel-namespace-routes-");
     await writeFixture(
       root,
       "composer.json",
@@ -10083,7 +10083,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps parameterized Laravel fluent route prefixes", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-parameterized-prefix-");
+    const root = await fixtureRoot("codenuke-laravel-parameterized-prefix-");
     await writeFixture(
       root,
       "composer.json",
@@ -10122,7 +10122,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Laravel controller route groups", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-controller-groups-");
+    const root = await fixtureRoot("codenuke-laravel-controller-groups-");
     await writeFixture(
       root,
       "composer.json",
@@ -10170,7 +10170,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps Laravel controller feature IDs stable when first route changes", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-stable-controller-id-");
+    const root = await fixtureRoot("codenuke-laravel-stable-controller-id-");
     await writeFixture(
       root,
       "composer.json",
@@ -10226,7 +10226,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores commented-out Laravel routes", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-commented-routes-");
+    const root = await fixtureRoot("codenuke-laravel-commented-routes-");
     await writeFixture(
       root,
       "composer.json",
@@ -10270,7 +10270,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("ignores commented-out Laravel command signatures", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-commented-command-signature-");
+    const root = await fixtureRoot("codenuke-laravel-commented-command-signature-");
     await writeFixture(
       root,
       "composer.json",
@@ -10310,7 +10310,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses Composer validation scripts for PHP projects", async () => {
-    const root = await fixtureRoot("clawnuke-php-composer-commands-");
+    const root = await fixtureRoot("codenuke-php-composer-commands-");
     await writeFixture(
       root,
       "composer.json",
@@ -10361,7 +10361,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses PHPUnit for Laravel package projects without artisan", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-package-commands-");
+    const root = await fixtureRoot("codenuke-laravel-package-commands-");
     await writeFixture(
       root,
       "composer.json",
@@ -10387,7 +10387,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses Pest and PHPStan defaults for PHP packages", async () => {
-    const root = await fixtureRoot("clawnuke-php-quality-commands-");
+    const root = await fixtureRoot("codenuke-php-quality-commands-");
     await writeFixture(
       root,
       "composer.json",
@@ -10429,7 +10429,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses PHPUnit dependency test commands for Laravel package features", async () => {
-    const root = await fixtureRoot("clawnuke-laravel-package-feature-tests-");
+    const root = await fixtureRoot("codenuke-laravel-package-feature-tests-");
     await writeFixture(
       root,
       "composer.json",
@@ -10472,7 +10472,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("resolves Python console scripts and tests from non-src package roots", async () => {
-    const root = await fixtureRoot("clawnuke-python-roots-");
+    const root = await fixtureRoot("codenuke-python-roots-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -10497,7 +10497,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("associates root-level pytest files with flat Python console scripts", async () => {
-    const root = await fixtureRoot("clawnuke-python-flat-tests-");
+    const root = await fixtureRoot("codenuke-python-flat-tests-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -10515,8 +10515,8 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not resolve Python console scripts through symlinked package dirs", async () => {
-    const root = await fixtureRoot("clawnuke-python-script-symlink-root-");
-    const external = await fixtureRoot("clawnuke-python-script-symlink-external-");
+    const root = await fixtureRoot("codenuke-python-script-symlink-root-");
+    const external = await fixtureRoot("codenuke-python-script-symlink-external-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -10536,7 +10536,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects Python projects and conservative command defaults", async () => {
-    const uvRoot = await fixtureRoot("clawnuke-python-uv-");
+    const uvRoot = await fixtureRoot("codenuke-python-uv-");
     await writeFixture(
       uvRoot,
       "pyproject.toml",
@@ -10548,7 +10548,7 @@ add_executable(headerapp include/headers.hpp)
       test: "uv run pytest",
     });
 
-    const uvDevRoot = await fixtureRoot("clawnuke-python-uv-dev-");
+    const uvDevRoot = await fixtureRoot("codenuke-python-uv-dev-");
     await writeFixture(
       uvDevRoot,
       "pyproject.toml",
@@ -10561,7 +10561,7 @@ add_executable(headerapp include/headers.hpp)
       test: "uv run pytest",
     });
 
-    const uvArrayRoot = await fixtureRoot("clawnuke-python-uv-array-table-");
+    const uvArrayRoot = await fixtureRoot("codenuke-python-uv-array-table-");
     await writeFixture(
       uvArrayRoot,
       "pyproject.toml",
@@ -10574,11 +10574,11 @@ add_executable(headerapp include/headers.hpp)
       },
     });
 
-    const blackRoot = await fixtureRoot("clawnuke-python-black-");
+    const blackRoot = await fixtureRoot("codenuke-python-black-");
     await writeFixture(blackRoot, "requirements.txt", "black\n");
     expect((await detectProject(blackRoot)).detected.commands.format).toBe("black --check .");
 
-    const uvBlackRoot = await fixtureRoot("clawnuke-python-uv-black-");
+    const uvBlackRoot = await fixtureRoot("codenuke-python-uv-black-");
     await writeFixture(
       uvBlackRoot,
       "pyproject.toml",
@@ -10589,7 +10589,7 @@ add_executable(headerapp include/headers.hpp)
       "uv run black --check .",
     );
 
-    const poetryRoot = await fixtureRoot("clawnuke-python-poetry-");
+    const poetryRoot = await fixtureRoot("codenuke-python-poetry-");
     await writeFixture(
       poetryRoot,
       "pyproject.toml",
@@ -10602,7 +10602,7 @@ add_executable(headerapp include/headers.hpp)
       test: "poetry run pytest",
     });
 
-    const poetryPyprojectRoot = await fixtureRoot("clawnuke-python-poetry-pyproject-");
+    const poetryPyprojectRoot = await fixtureRoot("codenuke-python-poetry-pyproject-");
     await writeFixture(
       poetryPyprojectRoot,
       "pyproject.toml",
@@ -10616,7 +10616,7 @@ add_executable(headerapp include/headers.hpp)
       },
     });
 
-    const hatchRoot = await fixtureRoot("clawnuke-python-hatch-");
+    const hatchRoot = await fixtureRoot("codenuke-python-hatch-");
     await writeFixture(
       hatchRoot,
       "pyproject.toml",
@@ -10628,7 +10628,7 @@ add_executable(headerapp include/headers.hpp)
       test: "hatch run pytest",
     });
 
-    const hatchPyprojectRoot = await fixtureRoot("clawnuke-python-hatch-pyproject-");
+    const hatchPyprojectRoot = await fixtureRoot("codenuke-python-hatch-pyproject-");
     await writeFixture(
       hatchPyprojectRoot,
       "pyproject.toml",
@@ -10642,7 +10642,7 @@ add_executable(headerapp include/headers.hpp)
       },
     });
 
-    const setupCfgRoot = await fixtureRoot("clawnuke-python-setup-cfg-tools-");
+    const setupCfgRoot = await fixtureRoot("codenuke-python-setup-cfg-tools-");
     await writeFixture(
       setupCfgRoot,
       "setup.cfg",
@@ -10654,7 +10654,7 @@ add_executable(headerapp include/headers.hpp)
       format: "ruff format --check .",
     });
 
-    const setupCfgExtrasNameRoot = await fixtureRoot("clawnuke-python-setup-cfg-extras-name-");
+    const setupCfgExtrasNameRoot = await fixtureRoot("codenuke-python-setup-cfg-extras-name-");
     await writeFixture(
       setupCfgExtrasNameRoot,
       "setup.cfg",
@@ -10667,7 +10667,7 @@ add_executable(headerapp include/headers.hpp)
       test: null,
     });
 
-    const setupCfgCommentRoot = await fixtureRoot("clawnuke-python-setup-cfg-pytest-comment-");
+    const setupCfgCommentRoot = await fixtureRoot("codenuke-python-setup-cfg-pytest-comment-");
     await writeFixture(
       setupCfgCommentRoot,
       "setup.cfg",
@@ -10675,7 +10675,7 @@ add_executable(headerapp include/headers.hpp)
     );
     expect((await detectProject(setupCfgCommentRoot)).detected.commands.test).toBeNull();
 
-    const setupCfgExtrasValueRoot = await fixtureRoot("clawnuke-python-setup-cfg-extras-value-");
+    const setupCfgExtrasValueRoot = await fixtureRoot("codenuke-python-setup-cfg-extras-value-");
     await writeFixture(
       setupCfgExtrasValueRoot,
       "setup.cfg",
@@ -10686,7 +10686,7 @@ add_executable(headerapp include/headers.hpp)
       test: "pytest",
     });
 
-    const markerRoot = await fixtureRoot("clawnuke-python-marker-deps-");
+    const markerRoot = await fixtureRoot("codenuke-python-marker-deps-");
     await writeFixture(
       markerRoot,
       "pyproject.toml",
@@ -10697,7 +10697,7 @@ add_executable(headerapp include/headers.hpp)
       test: "pytest",
     });
 
-    const pdmRoot = await fixtureRoot("clawnuke-python-pdm-");
+    const pdmRoot = await fixtureRoot("codenuke-python-pdm-");
     await writeFixture(pdmRoot, "requirements.txt", "pytest\nruff\n");
     await writeFixture(pdmRoot, "pdm.lock", "");
     expect((await detectProject(pdmRoot)).detected.commands).toMatchObject({
@@ -10706,7 +10706,7 @@ add_executable(headerapp include/headers.hpp)
       test: "pdm run pytest",
     });
 
-    const pdmPyprojectRoot = await fixtureRoot("clawnuke-python-pdm-pyproject-");
+    const pdmPyprojectRoot = await fixtureRoot("codenuke-python-pdm-pyproject-");
     await writeFixture(
       pdmPyprojectRoot,
       "pyproject.toml",
@@ -10719,7 +10719,7 @@ add_executable(headerapp include/headers.hpp)
       test: "pdm run pytest",
     });
 
-    const pdmPyprojectNoLockRoot = await fixtureRoot("clawnuke-python-pdm-pyproject-no-lock-");
+    const pdmPyprojectNoLockRoot = await fixtureRoot("codenuke-python-pdm-pyproject-no-lock-");
     await writeFixture(
       pdmPyprojectNoLockRoot,
       "pyproject.toml",
@@ -10733,12 +10733,12 @@ add_executable(headerapp include/headers.hpp)
       },
     });
 
-    const directRoot = await fixtureRoot("clawnuke-python-direct-");
+    const directRoot = await fixtureRoot("codenuke-python-direct-");
     await writeFixture(directRoot, "setup.py", "from setuptools import setup\n");
     await writeFixture(directRoot, "tests/test_app.py", "def test_app():\n    pass\n");
     expect((await detectProject(directRoot)).detected.commands.test).toBe("pytest");
 
-    const nullRoot = await fixtureRoot("clawnuke-python-null-");
+    const nullRoot = await fixtureRoot("codenuke-python-null-");
     await writeFixture(nullRoot, "src/app/main.py", "def main():\n    pass\n");
     const nullProject = await detectProject(nullRoot);
     expect(nullProject.detected.languages).toContain("python");
@@ -10750,7 +10750,7 @@ add_executable(headerapp include/headers.hpp)
       test: null,
     });
 
-    const groupNameRoot = await fixtureRoot("clawnuke-python-group-names-");
+    const groupNameRoot = await fixtureRoot("codenuke-python-group-names-");
     await writeFixture(
       groupNameRoot,
       "pyproject.toml",
@@ -10763,7 +10763,7 @@ add_executable(headerapp include/headers.hpp)
       test: null,
     });
 
-    const commentedGroupRoot = await fixtureRoot("clawnuke-python-commented-groups-");
+    const commentedGroupRoot = await fixtureRoot("codenuke-python-commented-groups-");
     await writeFixture(
       commentedGroupRoot,
       "pyproject.toml",
@@ -10776,7 +10776,7 @@ add_executable(headerapp include/headers.hpp)
       test: null,
     });
 
-    const dependencyGroupRoot = await fixtureRoot("clawnuke-python-dependency-groups-");
+    const dependencyGroupRoot = await fixtureRoot("codenuke-python-dependency-groups-");
     await writeFixture(
       dependencyGroupRoot,
       "pyproject.toml",
@@ -10790,7 +10790,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps root-level Python pytest files", async () => {
-    const root = await fixtureRoot("clawnuke-python-root-tests-");
+    const root = await fixtureRoot("codenuke-python-root-tests-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "root-tests"\n');
     await writeFixture(root, "test_app.py", "def test_app():\n    pass\n");
 
@@ -10804,7 +10804,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Flask routes under web source roots", async () => {
-    const root = await fixtureRoot("clawnuke-python-flask-routes-");
+    const root = await fixtureRoot("codenuke-python-flask-routes-");
     await writeFixture(root, "requirements.txt", "Flask\npytest\n");
     await writeFixture(
       root,
@@ -10868,7 +10868,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps root-level Flask entry files and non-list methods", async () => {
-    const root = await fixtureRoot("clawnuke-python-flask-root-routes-");
+    const root = await fixtureRoot("codenuke-python-flask-root-routes-");
     await writeFixture(root, "requirements.txt", "Flask\npytest\n");
     await writeFixture(
       root,
@@ -10918,7 +10918,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map generic Python route decorators as Flask routes", async () => {
-    const root = await fixtureRoot("clawnuke-python-generic-routes-");
+    const root = await fixtureRoot("codenuke-python-generic-routes-");
     await writeFixture(root, "requirements.txt", "pytest\n");
     await writeFixture(
       root,
@@ -10947,7 +10947,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps FastAPI routes in root and web source files", async () => {
-    const root = await fixtureRoot("clawnuke-python-fastapi-routes-");
+    const root = await fixtureRoot("codenuke-python-fastapi-routes-");
     await writeFixture(root, "requirements.txt", "fastapi\npytest\n");
     await writeFixture(
       root,
@@ -11021,7 +11021,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("detects metadata-free root and web Python sources", async () => {
-    const root = await fixtureRoot("clawnuke-python-root-web-detect-");
+    const root = await fixtureRoot("codenuke-python-root-web-detect-");
     await writeFixture(root, "app.py", "def app():\n    pass\n");
     await writeFixture(
       root,
@@ -11057,7 +11057,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses Hatch pytest commands in mapped Python features", async () => {
-    const root = await fixtureRoot("clawnuke-python-hatch-map-");
+    const root = await fixtureRoot("codenuke-python-hatch-map-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -11077,7 +11077,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses uv pytest commands from pyproject uv config in mapped Python features", async () => {
-    const root = await fixtureRoot("clawnuke-python-uv-pyproject-map-");
+    const root = await fixtureRoot("codenuke-python-uv-pyproject-map-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -11095,7 +11095,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses uv pytest commands from pyproject uv array-table config in mapped Python features", async () => {
-    const root = await fixtureRoot("clawnuke-python-uv-array-map-");
+    const root = await fixtureRoot("codenuke-python-uv-array-map-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -11115,7 +11115,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("uses Poetry and PDM pytest commands from pyproject tool config in mapped Python features", async () => {
-    const poetryRoot = await fixtureRoot("clawnuke-python-poetry-pyproject-map-");
+    const poetryRoot = await fixtureRoot("codenuke-python-poetry-pyproject-map-");
     await writeFixture(
       poetryRoot,
       "pyproject.toml",
@@ -11133,7 +11133,7 @@ add_executable(headerapp include/headers.hpp)
       { path: "src/poetry_map/test_app.py", command: "poetry run pytest" },
     ]);
 
-    const pdmRoot = await fixtureRoot("clawnuke-python-pdm-pyproject-map-");
+    const pdmRoot = await fixtureRoot("codenuke-python-pdm-pyproject-map-");
     await writeFixture(
       pdmRoot,
       "pyproject.toml",
@@ -11151,7 +11151,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Python metadata-only projects without pyproject", async () => {
-    const root = await fixtureRoot("clawnuke-python-legacy-metadata-");
+    const root = await fixtureRoot("codenuke-python-legacy-metadata-");
     await writeFixture(root, "setup.cfg", "[metadata]\nname = legacy\n");
     await writeFixture(root, "requirements.txt", "pytest\n");
 
@@ -11168,7 +11168,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps setup.cfg Python project names and console scripts", async () => {
-    const root = await fixtureRoot("clawnuke-python-setup-cfg-entry-points-");
+    const root = await fixtureRoot("codenuke-python-setup-cfg-entry-points-");
     await writeFixture(
       root,
       "setup.cfg",
@@ -11196,7 +11196,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps setup.py Python project names and console scripts", async () => {
-    const root = await fixtureRoot("clawnuke-python-setup-py-entry-points-");
+    const root = await fixtureRoot("codenuke-python-setup-py-entry-points-");
     await writeFixture(
       root,
       "setup.py",
@@ -11222,7 +11222,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps Python source group ids stable when a root gains files", async () => {
-    const root = await fixtureRoot("clawnuke-python-stable-source-id-");
+    const root = await fixtureRoot("codenuke-python-stable-source-id-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "stable-source"\n');
     await writeFixture(root, "scripts/tool.py", "def main():\n    pass\n");
 
@@ -11241,7 +11241,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps Python pytest suite ids stable when tests are added", async () => {
-    const root = await fixtureRoot("clawnuke-python-stable-test-id-");
+    const root = await fixtureRoot("codenuke-python-stable-test-id-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "stable-tests"\n');
     await writeFixture(root, "tests/test_b.py", "def test_b():\n    pass\n");
 
@@ -11262,7 +11262,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps root-level Python pytest suite ids stable when tests are added", async () => {
-    const root = await fixtureRoot("clawnuke-python-stable-root-test-id-");
+    const root = await fixtureRoot("codenuke-python-stable-root-test-id-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "stable-root-tests"\n');
     await writeFixture(root, "test_b.py", "def test_b():\n    pass\n");
 
@@ -11283,7 +11283,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("stops Python script parsing at TOML array-table headers", async () => {
-    const root = await fixtureRoot("clawnuke-python-array-table-script-");
+    const root = await fixtureRoot("codenuke-python-array-table-script-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -11302,7 +11302,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map commented Python console scripts", async () => {
-    const root = await fixtureRoot("clawnuke-python-commented-script-");
+    const root = await fixtureRoot("codenuke-python-commented-script-");
     await writeFixture(
       root,
       "pyproject.toml",
@@ -11321,7 +11321,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("groups colocated Python pytest suites by their actual directory", async () => {
-    const root = await fixtureRoot("clawnuke-python-colocated-test-groups-");
+    const root = await fixtureRoot("codenuke-python-colocated-test-groups-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "colocated-tests"\n');
     for (let index = 0; index < 13; index += 1) {
       await writeFixture(root, `src/pkg/test_${index}.py`, `def test_${index}():\n    pass\n`);
@@ -11343,7 +11343,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("groups nested Python star-test files by their actual directory", async () => {
-    const root = await fixtureRoot("clawnuke-python-nested-star-test-");
+    const root = await fixtureRoot("codenuke-python-nested-star-test-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "nested-star-tests"\n');
     await writeFixture(root, "src/pkg/store_test.py", "def test_store():\n    pass\n");
 
@@ -11357,7 +11357,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map Python test support modules as pytest suites", async () => {
-    const root = await fixtureRoot("clawnuke-python-test-support-");
+    const root = await fixtureRoot("codenuke-python-test-support-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "support-only"\n');
     await writeFixture(root, "tests/helpers.py", "def helper():\n    pass\n");
     await writeFixture(root, "tests/conftest.py", "def pytest_configure():\n    pass\n");
@@ -11371,7 +11371,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map Python fixture sample tests as pytest suites", async () => {
-    const root = await fixtureRoot("clawnuke-python-fixture-tests-");
+    const root = await fixtureRoot("codenuke-python-fixture-tests-");
     await writeFixture(root, "pyproject.toml", '[project]\nname = "fixture-only"\n');
     await writeFixture(root, "tests/fixtures/test_sample.py", "def test_sample():\n    pass\n");
     await writeFixture(root, "tests/__fixtures__/test_sample.py", "def test_sample():\n    pass\n");
@@ -11385,7 +11385,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Python source-only projects without a full source-group pre-scan", async () => {
-    const root = await fixtureRoot("clawnuke-python-source-only-");
+    const root = await fixtureRoot("codenuke-python-source-only-");
     await writeFixture(root, "src/source_only/app.py", "def app():\n    pass\n");
 
     const project = await detectProject(root);
@@ -11399,7 +11399,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("keeps Node scripts and native defaults in mixed package repos", async () => {
-    const root = await fixtureRoot("clawnuke-mixed-map-");
+    const root = await fixtureRoot("codenuke-mixed-map-");
     await writeFixture(
       root,
       "package.json",
@@ -11433,7 +11433,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("maps Cargo workspace members outside crates", async () => {
-    const root = await fixtureRoot("clawnuke-rust-workspace-");
+    const root = await fixtureRoot("codenuke-rust-workspace-");
     await writeFixture(root, "Cargo.toml", "[workspace]\nmembers = ['cli', 'core']\n");
     await writeFixture(root, "cli/Cargo.toml", '[package]\nname = "workspace-cli"\n');
     await writeFixture(root, "cli/src/main.rs", "fn main() {}\n");
@@ -11454,7 +11454,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("does not map virtual Cargo workspace root sources", async () => {
-    const root = await fixtureRoot("clawnuke-rust-virtual-workspace-");
+    const root = await fixtureRoot("codenuke-rust-virtual-workspace-");
     await writeFixture(root, "Cargo.toml", '[workspace]\nmembers = ["core"]\n');
     await writeFixture(root, "src/lib.rs", "pub fn ignored() {}\n");
     await writeFixture(root, "src/main.rs", "fn main() {}\n");
@@ -11473,7 +11473,7 @@ add_executable(headerapp include/headers.hpp)
   });
 
   it("reads Cargo package names from the package section", async () => {
-    const root = await fixtureRoot("clawnuke-rust-package-name-");
+    const root = await fixtureRoot("codenuke-rust-package-name-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -11495,7 +11495,7 @@ name = 'actual-pkg'
   });
 
   it("ignores commented and excluded Cargo workspace members", async () => {
-    const root = await fixtureRoot("clawnuke-rust-workspace-comments-");
+    const root = await fixtureRoot("codenuke-rust-workspace-comments-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -11525,7 +11525,7 @@ exclude = ["./crates/old/"]
   });
 
   it("expands Cargo workspace member glob segments", async () => {
-    const root = await fixtureRoot("clawnuke-rust-workspace-glob-");
+    const root = await fixtureRoot("codenuke-rust-workspace-glob-");
     await writeFixture(root, "Cargo.toml", '[workspace]\nmembers = ["crates/o*"]\n');
     await writeFixture(root, "crates/old-one/Cargo.toml", '[package]\nname = "old-one"\n');
     await writeFixture(root, "crates/old-one/src/lib.rs", "pub fn old() {}\n");
@@ -11541,7 +11541,7 @@ exclude = ["./crates/old/"]
   });
 
   it("does not map Cargo workspace members without package manifests", async () => {
-    const root = await fixtureRoot("clawnuke-rust-member-manifest-");
+    const root = await fixtureRoot("codenuke-rust-member-manifest-");
     await writeFixture(root, "Cargo.toml", '[workspace]\nmembers = ["crates/*"]\n');
     await writeFixture(root, "crates/template/src/lib.rs", "pub fn template() {}\n");
     await writeFixture(root, "crates/real/Cargo.toml", '[package]\nname = "real"\n');
@@ -11556,7 +11556,7 @@ exclude = ["./crates/old/"]
   });
 
   it("ignores Cargo members outside the workspace section", async () => {
-    const root = await fixtureRoot("clawnuke-rust-metadata-members-");
+    const root = await fixtureRoot("codenuke-rust-metadata-members-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -11580,8 +11580,8 @@ members = ["tools/old"]
   });
 
   it("skips duplicate and symlinked Cargo workspace members", async () => {
-    const root = await fixtureRoot("clawnuke-rust-workspace-safe-");
-    const external = await fixtureRoot("clawnuke-rust-workspace-external-");
+    const root = await fixtureRoot("codenuke-rust-workspace-safe-");
+    const external = await fixtureRoot("codenuke-rust-workspace-external-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -11606,8 +11606,8 @@ members = ["tools/old"]
   });
 
   it("does not scan symlinked conventional crates directories", async () => {
-    const root = await fixtureRoot("clawnuke-rust-crates-symlink-root-");
-    const external = await fixtureRoot("clawnuke-rust-crates-symlink-external-");
+    const root = await fixtureRoot("codenuke-rust-crates-symlink-root-");
+    const external = await fixtureRoot("codenuke-rust-crates-symlink-external-");
     await writeFixture(root, "Cargo.toml", '[package]\nname = "rootpkg"\n');
     await writeFixture(root, "src/lib.rs", "pub fn root() {}\n");
     await writeFixture(external, "member/Cargo.toml", '[package]\nname = "outside-member"\n');
@@ -11623,9 +11623,9 @@ members = ["tools/old"]
   });
 
   it("does not map Rust entrypoints through symlinked source directories", async () => {
-    const root = await fixtureRoot("clawnuke-rust-src-symlink-root-");
-    const externalRoot = await fixtureRoot("clawnuke-rust-src-symlink-external-root-");
-    const externalMember = await fixtureRoot("clawnuke-rust-src-symlink-external-member-");
+    const root = await fixtureRoot("codenuke-rust-src-symlink-root-");
+    const externalRoot = await fixtureRoot("codenuke-rust-src-symlink-external-root-");
+    const externalMember = await fixtureRoot("codenuke-rust-src-symlink-external-member-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -11650,7 +11650,7 @@ members = ["tools/old"]
   });
 
   it("skips native build output during root test discovery", async () => {
-    const root = await fixtureRoot("clawnuke-native-build-skip-");
+    const root = await fixtureRoot("codenuke-native-build-skip-");
     await writeFixture(root, "Cargo.toml", '[package]\nname = "rootpkg"\n');
     await writeFixture(root, "src/lib.rs", "pub fn root() {}\n");
     await writeFixture(root, "target/Cargo.test.ts", "test('generated', () => {});\n");
@@ -11664,7 +11664,7 @@ members = ["tools/old"]
   });
 
   it("maps SwiftPM executable targets, libraries, tests, and Swift defaults", async () => {
-    const root = await fixtureRoot("clawnuke-swift-map-");
+    const root = await fixtureRoot("codenuke-swift-map-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11715,7 +11715,7 @@ let package = Package(
   });
 
   it("preserves SwiftPM target roles from mixed manifest declarations", async () => {
-    const root = await fixtureRoot("clawnuke-swift-mixed-target-roles-");
+    const root = await fixtureRoot("codenuke-swift-mixed-target-roles-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11752,7 +11752,7 @@ let package = Package(
   });
 
   it("ignores commented SwiftPM target declarations", async () => {
-    const root = await fixtureRoot("clawnuke-swift-comments-");
+    const root = await fixtureRoot("codenuke-swift-comments-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11789,7 +11789,7 @@ let package = Package(
   });
 
   it("ignores commented and string Swift main attributes", async () => {
-    const root = await fixtureRoot("clawnuke-swift-main-comments-");
+    const root = await fixtureRoot("codenuke-swift-main-comments-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11817,7 +11817,7 @@ public struct Core {
   });
 
   it("uses manifest target names for SwiftPM custom paths", async () => {
-    const root = await fixtureRoot("clawnuke-swift-custom-path-");
+    const root = await fixtureRoot("codenuke-swift-custom-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11859,7 +11859,7 @@ let package = Package(
   });
 
   it("links SwiftPM tests from arbitrary manifest test paths", async () => {
-    const root = await fixtureRoot("clawnuke-swift-specs-path-");
+    const root = await fixtureRoot("codenuke-swift-specs-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11890,7 +11890,7 @@ let package = Package(
   });
 
   it("links custom SwiftPM test targets by dependency", async () => {
-    const root = await fixtureRoot("clawnuke-swift-custom-test-name-");
+    const root = await fixtureRoot("codenuke-swift-custom-test-name-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11924,7 +11924,7 @@ let package = Package(
   });
 
   it("does not link SwiftPM external product names as local target dependencies", async () => {
-    const root = await fixtureRoot("clawnuke-swift-external-product-name-");
+    const root = await fixtureRoot("codenuke-swift-external-product-name-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11961,7 +11961,7 @@ let package = Package(
   });
 
   it("links custom SwiftPM test targets at default test paths", async () => {
-    const root = await fixtureRoot("clawnuke-swift-default-custom-test-name-");
+    const root = await fixtureRoot("codenuke-swift-default-custom-test-name-");
     await writeFixture(
       root,
       "Package.swift",
@@ -11992,7 +11992,7 @@ let package = Package(
   });
 
   it("maps SwiftPM targets with root custom paths", async () => {
-    const root = await fixtureRoot("clawnuke-swift-root-path-");
+    const root = await fixtureRoot("codenuke-swift-root-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12031,7 +12031,7 @@ let package = Package(
   });
 
   it("handles SwiftPM root test paths with source filters", async () => {
-    const root = await fixtureRoot("clawnuke-swift-root-test-path-");
+    const root = await fixtureRoot("codenuke-swift-root-test-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12071,7 +12071,7 @@ let package = Package(
   });
 
   it("ignores SwiftPM custom paths that escape the repo", async () => {
-    const root = await fixtureRoot("clawnuke-swift-escape-");
+    const root = await fixtureRoot("codenuke-swift-escape-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12104,8 +12104,8 @@ let package = Package(
   });
 
   it("ignores SwiftPM custom paths through symlinks outside the repo", async () => {
-    const root = await fixtureRoot("clawnuke-swift-symlink-path-");
-    const external = await fixtureRoot("clawnuke-swift-external-path-");
+    const root = await fixtureRoot("codenuke-swift-symlink-path-");
+    const external = await fixtureRoot("codenuke-swift-external-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12134,7 +12134,7 @@ let package = Package(
   });
 
   it("does not seed swift test when a SwiftPM package has no tests", async () => {
-    const root = await fixtureRoot("clawnuke-swift-no-tests-");
+    const root = await fixtureRoot("codenuke-swift-no-tests-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12168,8 +12168,8 @@ let package = Package(name: "NoTests", targets: [.executableTarget(name: "NoTest
   });
 
   it("ignores symlinked SwiftPM test directories", async () => {
-    const root = await fixtureRoot("clawnuke-swift-symlink-tests-");
-    const external = await fixtureRoot("clawnuke-swift-external-tests-");
+    const root = await fixtureRoot("codenuke-swift-symlink-tests-");
+    const external = await fixtureRoot("codenuke-swift-external-tests-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12197,7 +12197,7 @@ let package = Package(name: "NoTests", targets: [.executableTarget(name: "NoTest
   });
 
   it("uses manifest target names for flat SwiftPM source layouts", async () => {
-    const root = await fixtureRoot("clawnuke-swift-flat-");
+    const root = await fixtureRoot("codenuke-swift-flat-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12234,7 +12234,7 @@ let package = Package(
   });
 
   it("preserves SwiftPM source targets declared under Tests", async () => {
-    const root = await fixtureRoot("clawnuke-swift-test-helper-target-");
+    const root = await fixtureRoot("codenuke-swift-test-helper-target-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12276,7 +12276,7 @@ let package = Package(
   });
 
   it("preserves SwiftPM targets sharing a path with sources filters", async () => {
-    const root = await fixtureRoot("clawnuke-swift-shared-source-path-");
+    const root = await fixtureRoot("codenuke-swift-shared-source-path-");
     await writeFixture(
       root,
       "Package.swift",
@@ -12332,7 +12332,7 @@ let package = Package(
   });
 
   it("maps SwiftPM source filters that point at files", async () => {
-    const root = await fixtureRoot("clawnuke-swift-file-source-");
+    const root = await fixtureRoot("codenuke-swift-file-source-");
     await writeFixture(
       root,
       "Package.swift",

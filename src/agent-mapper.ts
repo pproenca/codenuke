@@ -1,6 +1,6 @@
 import { isAbsolute, join } from "node:path";
 import { buildAgentMapPrompt } from "./prompt.js";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import { stableFeatureJson } from "./feature-equivalence.js";
 import { Provider, ProviderOptions } from "./provider.js";
 import { AgentMapOutput, FeatureRecord, ProjectRecord } from "./types.js";
@@ -135,7 +135,7 @@ export async function mapWithSource(
   });
   if (agent.features.length === 0) {
     if (options.source === "agent") {
-      throw new ClawnukeError("agent mapper returned no valid features", 8, "malformed-output");
+      throw new CodenukeError("agent mapper returned no valid features", 8, "malformed-output");
     }
     return withDecision(
       heuristic,

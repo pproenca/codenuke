@@ -1388,7 +1388,7 @@ function shouldSkipSearchEntry(entry: string, relativePath = entry): boolean {
     ".build",
     ".swiftpm",
     ".git",
-    ".clawnuke",
+    ".codenuke",
     ".worktrees",
     ".venv",
     "venv",

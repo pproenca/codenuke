@@ -1,10 +1,10 @@
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { requiresChangedTestForFix } from "./test-coverage.js";
-import { ClawnukeConfig, FeatureRecord, FindingRecord, ProjectRecord } from "./types.js";
+import { CodenukeConfig, FeatureRecord, FindingRecord, ProjectRecord } from "./types.js";
 
 export function buildAgentMapPrompt(project: ProjectRecord, inventory: unknown): string {
-  return `You are mapping a repository into semantic clawnuke review slices.
+  return `You are mapping a repository into semantic codenuke review slices.
 
 Return strict JSON only. No markdown fences.
 
@@ -57,7 +57,7 @@ export async function buildReviewPrompt(
   root: string,
   project: ProjectRecord,
   feature: FeatureRecord,
-  config: ClawnukeConfig,
+  config: CodenukeConfig,
 ): Promise<string> {
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);
   const context = feature.contextFiles.slice(0, config.review.maxContextFiles);
@@ -81,12 +81,12 @@ export async function buildReviewPrompt(
   for (const path of paths) {
     fileBlocks.push(await fileBlock(root, path));
   }
-  return `You are reviewing one semantic feature for clawnuke.
+  return `You are reviewing one semantic feature for codenuke.
 
 Return strict JSON only. No markdown fences.
 
 Mission:
-- clawnuke's primary mission is reliable, trusted refactoring.
+- codenuke's primary mission is reliable, trusted refactoring.
 - Find behavior-preserving opportunities to reduce algorithmic complexity, code volume, duplicated
   structure, derived state, and accidental abstraction.
 - Report correctness, security, data-loss, or concurrency bugs only when they are directly
@@ -116,7 +116,7 @@ Review categories:
 - release/build hazards
 - maintainability risks with concrete impact
 
-Clawnuke focus:
+Codenuke focus:
 - Prioritize concrete simplification and complexity-reduction findings over bugfixing.
 - Report algorithmic or render-path complexity under "performance". Strong examples include nested
   lookup loops, repeated membership checks inside loops, sorting inside loops, pairwise comparisons
@@ -165,7 +165,7 @@ ${fileBlocks.join("\n\n")}`;
 }
 
 export async function buildRevalidatePrompt(root: string, findingJson: string): Promise<string> {
-  return `Revalidate this clawnuke finding against the current repository at ${root}.
+  return `Revalidate this codenuke finding against the current repository at ${root}.
 
 Check whether the original evidence paths/lines still exist. If evidence moved or changed,
 decide whether the issue is fixed, stale/false-positive, still open elsewhere, or uncertain.
@@ -184,7 +184,7 @@ export async function buildFixPrompt(
   root: string,
   finding: FindingRecord,
   feature: FeatureRecord,
-  config: ClawnukeConfig,
+  config: CodenukeConfig,
 ): Promise<string> {
   const fileBlocks: string[] = [];
   for (const path of fixPromptPaths(finding, feature, config)) {
@@ -193,7 +193,7 @@ export async function buildFixPrompt(
   const testRequirement = requiresChangedTestForFix(finding, feature)
     ? `\nTDD requirement:\n- This is a trusted-refactor finding with no linked feature tests.\n- Add or update a focused behavior test before changing production code.\n- The fix will be rejected unless the patch changes at least one test file.\n`
     : "";
-  return `You are clawnuke applying one small simplification or complexity repair in the current repository.
+  return `You are codenuke applying one small simplification or complexity repair in the current repository.
 
 Fix only the finding below. Keep the patch minimal and behavior-preserving. Prefer removing code,
 collapsing duplication, simplifying data flow, or improving algorithmic complexity over broad
@@ -225,7 +225,7 @@ ${fileBlocks.join("\n\n")}`;
 function fixPromptPaths(
   finding: FindingRecord,
   feature: FeatureRecord,
-  config: ClawnukeConfig,
+  config: CodenukeConfig,
 ): string[] {
   const paths: string[] = [];
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);

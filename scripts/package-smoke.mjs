@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 
 const moduleRequire = createRequire(import.meta.url);
 const root = process.cwd();
-const tmp = mkdtempSync(join(tmpdir(), "clawnuke-pack-smoke-"));
+const tmp = mkdtempSync(join(tmpdir(), "codenuke-pack-smoke-"));
 const fixtureRoot = join(tmp, "fixture");
 const installRoot = join(tmp, "installed");
 const npmCache = join(tmp, "npm-cache");
@@ -107,7 +107,7 @@ try {
     installRoot,
     "node_modules",
     ".bin",
-    process.platform === "win32" ? "clawnuke.cmd" : "clawnuke",
+    process.platform === "win32" ? "codenuke.cmd" : "codenuke",
   );
   run(bin, ["--root", fixtureRoot, "init", "--force", "--json"]);
   const mapped = JSON.parse(run(bin, ["--root", fixtureRoot, "map", "--json"]));
@@ -117,7 +117,7 @@ try {
       [
         "const { readdirSync, readFileSync } = require('node:fs');",
         "const { join } = require('node:path');",
-        "const dir = join(process.argv[1], '.clawnuke', 'features');",
+        "const dir = join(process.argv[1], '.codenuke', 'features');",
         "console.log(JSON.stringify(readdirSync(dir).map((file) => JSON.parse(readFileSync(join(dir, file), 'utf8')))));",
       ].join(""),
       fixtureRoot,

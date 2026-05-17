@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import { basename } from "node:path";
 import { runCommand } from "./exec.js";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 
 export type GitInfo = {
   root: string | null;
@@ -45,7 +45,7 @@ export async function findProjectRoot(cwd: string, explicitRoot?: string): Promi
   if (explicitRoot !== undefined) {
     const info = await stat(explicitRoot).catch(() => null);
     if (info === null || !info.isDirectory()) {
-      throw new ClawnukeError(`root not found: ${explicitRoot}`, 2, "invalid-root");
+      throw new CodenukeError(`root not found: ${explicitRoot}`, 2, "invalid-root");
     }
     return explicitRoot;
   }
@@ -72,7 +72,7 @@ export async function changedFilesSince(root: string, ref: string): Promise<Set<
     { trimOutput: false },
   );
   if (result.exitCode !== 0) {
-    throw new ClawnukeError(
+    throw new CodenukeError(
       `git diff --since ${ref} failed: ${result.stderr || result.stdout}`,
       2,
       "git-failure",
@@ -102,7 +102,7 @@ async function gitText(cwd: string, command: string): Promise<string> {
 
 function shellQuoteRef(ref: string): string {
   if (!/^[A-Za-z0-9_./~^@-]+$/u.test(ref)) {
-    throw new ClawnukeError(`invalid git ref: ${ref}`, 2, "invalid-input");
+    throw new CodenukeError(`invalid git ref: ${ref}`, 2, "invalid-input");
   }
   return ref;
 }

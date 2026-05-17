@@ -5,11 +5,11 @@ description: "Project initialization and detection"
 
 # Initialization
 
-`clawnuke init` creates project-local state.
+`codenuke init` creates project-local state.
 
 ```bash
-clawnuke init
-clawnuke init --force
+codenuke init
+codenuke init --force
 ```
 
 It detects:
@@ -23,8 +23,8 @@ It detects:
 
 It writes:
 
-- `.clawnuke/project.json`
-- `.clawnuke/config.json`
+- `.codenuke/project.json`
+- `.codenuke/config.json`
 
 `--force` allows replacing the existing project/config detection output. It does
 not run review, fix code, commit, or contact any provider.

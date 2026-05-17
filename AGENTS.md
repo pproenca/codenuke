@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`clawnuke` is a TypeScript CLI. Source lives in `src/`, with the CLI entry in
+`codenuke` is a TypeScript CLI. Source lives in `src/`, with the CLI entry in
 `src/cli.ts`, workflow orchestration in `src/app.ts` and `src/workflow.test.ts`,
 and feature mappers under `src/mappers/`. Tests sit beside implementation files
 as `*.test.ts`. Build output is generated into `dist/` and should not be edited.
@@ -50,6 +50,6 @@ rendered-doc changes.
 
 ## Security & Configuration Tips
 
-Do not commit `.clawnuke/` state, credentials, provider transcripts with
+Do not commit `.codenuke/` state, credentials, provider transcripts with
 secrets, or generated `dist/` edits. Provider output is schema-validated; keep
 new provider or mapper code conservative about reading secret-bearing files.

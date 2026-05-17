@@ -1,6 +1,6 @@
-title: clawnuke
+title: codenuke
 description: Automated code review for reliable, trusted refactoring
-url: https://clawnuke.dev
+url: https://codenuke.dev
 theme: minima
 
 markdown: kramdown

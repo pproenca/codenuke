@@ -143,7 +143,7 @@ export const configSchema = z.object({
   }),
 });
 
-export type ClawnukeConfig = z.infer<typeof configSchema>;
+export type CodenukeConfig = z.infer<typeof configSchema>;
 
 export const featureFileRefSchema = z.object({
   path: z.string(),

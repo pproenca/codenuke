@@ -1,10 +1,10 @@
-export class ClawnukeError extends Error {
+export class CodenukeError extends Error {
   public readonly exitCode: number;
   public readonly code: string;
 
   public constructor(message: string, exitCode = 1, code = "runtime") {
     super(message);
-    this.name = "ClawnukeError";
+    this.name = "CodenukeError";
     this.exitCode = exitCode;
     this.code = code;
   }
@@ -12,7 +12,7 @@ export class ClawnukeError extends Error {
 
 export function assertDefined<T>(value: T | null | undefined, message: string): T {
   if (value === null || value === undefined) {
-    throw new ClawnukeError(message);
+    throw new CodenukeError(message);
   }
   return value;
 }

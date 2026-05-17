@@ -1,7 +1,7 @@
 import { open, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { ClawnukeError } from "./errors.js";
+import { CodenukeError } from "./errors.js";
 import { ensureDir, nowIso, pathExists, readJson, writeJson } from "./fs.js";
 import {
   FeatureRecord,
@@ -95,7 +95,7 @@ export async function claimFeature(
     await handle.writeFile(`${JSON.stringify(lock, null, 2)}\n`, "utf8");
   } catch (error: unknown) {
     if (isNodeError(error, "EEXIST")) {
-      throw new ClawnukeError(`feature locked: ${featureId}`, 7, "lock-conflict");
+      throw new CodenukeError(`feature locked: ${featureId}`, 7, "lock-conflict");
     }
     if (handle !== undefined) {
       await handle.close();
@@ -110,13 +110,13 @@ export async function claimFeature(
   try {
     const feature = await readFeature(paths, featureId);
     if (feature === null) {
-      throw new ClawnukeError(`feature not found: ${featureId}`, 2, "feature-not-found");
+      throw new CodenukeError(`feature not found: ${featureId}`, 2, "feature-not-found");
     }
     if (feature.lock !== null) {
-      throw new ClawnukeError(`feature locked: ${featureId}`, 7, "lock-conflict");
+      throw new CodenukeError(`feature locked: ${featureId}`, 7, "lock-conflict");
     }
     if (options.allowNonPending !== true && !["pending", "error"].includes(feature.status)) {
-      throw new ClawnukeError(`feature not reviewable: ${featureId}`, 7, "lock-conflict");
+      throw new CodenukeError(`feature not reviewable: ${featureId}`, 7, "lock-conflict");
     }
     const claimed: FeatureRecord = {
       ...feature,

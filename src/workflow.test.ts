@@ -200,9 +200,9 @@ describe("workflow", () => {
     expect(() => parseArgs(["revalidate"])).toThrow("--since");
 
     const { stdout } = await runCli(["revalidate", "--help"]);
-    expect(stdout).toContain("clawnuke revalidate --finding <id> [flags]");
-    expect(stdout).toContain("clawnuke revalidate --all [flags]");
-    expect(stdout).toContain("clawnuke revalidate --since <ref> [flags]");
+    expect(stdout).toContain("codenuke revalidate --finding <id> [flags]");
+    expect(stdout).toContain("codenuke revalidate --all [flags]");
+    expect(stdout).toContain("codenuke revalidate --since <ref> [flags]");
   });
 
   it("rejects value flags followed by another option token", () => {
@@ -299,13 +299,13 @@ describe("workflow", () => {
   });
 
   it("rejects nonexistent explicit roots before init", async () => {
-    const root = join(await fixtureRoot("clawnuke-missing-root-parent-"), "missing");
+    const root = join(await fixtureRoot("codenuke-missing-root-parent-"), "missing");
 
     await expect(makeContext(testOptions(root))).rejects.toMatchObject({ exitCode: 2 });
   });
 
   it("initializes, maps, reviews, and reports findings", async () => {
-    const root = await fixtureRoot("clawnuke-flow-");
+    const root = await fixtureRoot("codenuke-flow-");
     await writeFixture(
       root,
       "package.json",
@@ -321,13 +321,13 @@ describe("workflow", () => {
     );
     await writeFixture(root, "tsconfig.json", "{}");
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     const mapped = await mapCommand(context);
     const reviewed = await reviewCommand(context, { limit: "1" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const finding = (await readFindings(paths))[0];
     expect(finding).toBeDefined();
     await writeFinding(paths, {
@@ -361,13 +361,13 @@ describe("workflow", () => {
         },
       ],
     });
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it.runIf(process.platform !== "win32")(
     "reviews end-to-end when codex writes fenced JSON with trailing prose",
     async () => {
-      const root = await fixtureRoot("clawnuke-codex-fenced-e2e-");
+      const root = await fixtureRoot("codenuke-codex-fenced-e2e-");
       await writeFixture(
         root,
         "package.json",
@@ -405,9 +405,9 @@ describe("workflow", () => {
         ].join("\n"),
       );
       await chmod(codexShim, 0o755);
-      const previousProvider = process.env["CLAWNUKE_PROVIDER"];
+      const previousProvider = process.env["CODENUKE_PROVIDER"];
       const previousPath = process.env["PATH"];
-      process.env["CLAWNUKE_PROVIDER"] = "codex";
+      process.env["CODENUKE_PROVIDER"] = "codex";
       process.env["PATH"] = `${binDir}${delimiter}${previousPath ?? ""}`;
       try {
         const context = await makeContext(testOptions(root));
@@ -415,7 +415,7 @@ describe("workflow", () => {
         await initCommand(context, {});
         await mapCommand(context);
         const reviewed = await reviewCommand(context, { limit: "1" });
-        const paths = statePaths(join(root, ".clawnuke"));
+        const paths = statePaths(join(root, ".codenuke"));
         const [features, findings, runs] = await Promise.all([
           readFeatures(paths),
           readFindings(paths),
@@ -433,9 +433,9 @@ describe("workflow", () => {
         ).toBe(true);
       } finally {
         if (previousProvider === undefined) {
-          delete process.env["CLAWNUKE_PROVIDER"];
+          delete process.env["CODENUKE_PROVIDER"];
         } else {
-          process.env["CLAWNUKE_PROVIDER"] = previousProvider;
+          process.env["CODENUKE_PROVIDER"] = previousProvider;
         }
         if (previousPath === undefined) {
           delete process.env["PATH"];
@@ -447,14 +447,14 @@ describe("workflow", () => {
   );
 
   it("selects review features whose owned files overlap the diff range", async () => {
-    const root = await sinceFixture("clawnuke-since-owned-");
+    const root = await sinceFixture("codenuke-since-owned-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
     await commitAll(root, "change two");
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const features = await readFeatures(paths);
     const reviewed = await reviewCommand(context, { since: "base", limit: "20", dryRun: true });
 
@@ -465,14 +465,14 @@ describe("workflow", () => {
   });
 
   it("selects review features whose context files overlap the diff range", async () => {
-    const root = await sinceFixture("clawnuke-since-context-");
+    const root = await sinceFixture("codenuke-since-context-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await writeFixture(root, "tests/one.test.ts", "expect('changed').toBe('changed');\n");
     await commitAll(root, "change test");
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const features = await readFeatures(paths);
     const reviewed = await reviewCommand(context, { since: "base", limit: "20", dryRun: true });
     const selectedIds = (reviewed as { featureIds: string[] }).featureIds;
@@ -489,7 +489,7 @@ describe("workflow", () => {
   });
 
   it("returns cleanly when --since touches no review features", async () => {
-    const root = await sinceFixture("clawnuke-since-empty-");
+    const root = await sinceFixture("codenuke-since-empty-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -500,7 +500,7 @@ describe("workflow", () => {
   });
 
   it("rejects invalid --since refs before running git diff", async () => {
-    const root = await sinceFixture("clawnuke-since-invalid-");
+    const root = await sinceFixture("codenuke-since-invalid-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -513,7 +513,7 @@ describe("workflow", () => {
   });
 
   it("applies --since before --limit for review selection", async () => {
-    const root = await sinceFixture("clawnuke-since-limit-");
+    const root = await sinceFixture("codenuke-since-limit-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -521,7 +521,7 @@ describe("workflow", () => {
     await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
     await writeFixture(root, "src/three.ts", "export const three = 'changed';\n");
     await commitAll(root, "change two and three");
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const features = await readFeatures(paths);
     const reviewed = await reviewCommand(context, { since: "base", limit: "2", dryRun: true });
 
@@ -535,12 +535,12 @@ describe("workflow", () => {
   });
 
   it("runs review --since through the CLI entrypoint", async () => {
-    const root = await sinceFixture("clawnuke-since-cli-");
+    const root = await sinceFixture("codenuke-since-cli-");
     await runCli(["--root", root, "--json", "--quiet", "init"]);
     await runCli(["--root", root, "--json", "--quiet", "map"]);
     await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
     await commitAll(root, "change two");
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const features = await readFeatures(paths);
 
     const reviewed = await runCli([
@@ -564,7 +564,7 @@ describe("workflow", () => {
   });
 
   it("keeps the full changed file list for large --since diffs", async () => {
-    const root = await fixtureRoot("clawnuke-since-large-");
+    const root = await fixtureRoot("codenuke-since-large-");
     const files = Array.from(
       { length: 220 },
       (_value, index) =>
@@ -596,7 +596,7 @@ describe("workflow", () => {
     const context = await makeContext(testOptions(root));
     await initCommand(context, {});
     await mapCommand(context);
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const targetFeature = features.find((feature) =>
       feature.ownedFiles.some((file) => file.path === targetPath),
     );
@@ -613,7 +613,7 @@ describe("workflow", () => {
   });
 
   it("matches --since paths relative to an explicit subdirectory root", async () => {
-    const repoRoot = await fixtureRoot("clawnuke-since-subdir-repo-");
+    const repoRoot = await fixtureRoot("codenuke-since-subdir-repo-");
     const root = join(repoRoot, "packages", "app");
     await writeFixture(
       root,
@@ -631,7 +631,7 @@ describe("workflow", () => {
     await writeFixture(root, "src/app.ts", "export const value = 'changed';\n");
     await checkCommand(repoRoot, "git add packages/app/src/app.ts");
     await checkCommand(repoRoot, 'git -c commit.gpgsign=false commit -q -m "change app"');
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const targetFeature = features.find((feature) =>
       feature.ownedFiles.some((file) => file.path === "src/app.ts"),
     );
@@ -646,8 +646,8 @@ describe("workflow", () => {
   });
 
   it("revalidates only findings whose feature owned files overlap --since", async () => {
-    const root = await sinceFixture("clawnuke-since-revalidate-");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    const root = await sinceFixture("codenuke-since-revalidate-");
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -655,7 +655,7 @@ describe("workflow", () => {
     await reviewCommand(context, { limit: "20", jobs: "2" });
     await writeFixture(root, "src/two.ts", "export const two = 'changed';\n");
     await commitAll(root, "change two");
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
     const touchedFeatureIds = new Set(
       features
@@ -666,11 +666,11 @@ describe("workflow", () => {
     const result = await revalidateCommand(context, { since: "base" });
 
     expect(result).toMatchObject({ revalidated: expected.length });
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("shows, prioritizes, and triages findings with history", async () => {
-    const root = await fixtureRoot("clawnuke-finding-lifecycle-");
+    const root = await fixtureRoot("codenuke-finding-lifecycle-");
     await writeFixture(
       root,
       "package.json",
@@ -681,13 +681,13 @@ describe("workflow", () => {
       }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await reviewCommand(context, { limit: "1" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const finding = (await readFindings(paths))[0];
     expect(finding).toBeDefined();
 
@@ -703,10 +703,10 @@ describe("workflow", () => {
 
     expect(next).toMatchObject({ finding: finding!.findingId });
     expect(shown).toMatchObject({
-      markdown: expect.stringContaining(`next: clawnuke triage --finding ${finding!.findingId}`),
+      markdown: expect.stringContaining(`next: codenuke triage --finding ${finding!.findingId}`),
     });
     expect(report).toMatchObject({
-      markdown: expect.stringContaining(`next: clawnuke show --finding ${finding!.findingId}`),
+      markdown: expect.stringContaining(`next: codenuke show --finding ${finding!.findingId}`),
     });
     expect(triaged).toMatchObject({ status: "false-positive" });
     expect(updated?.status).toBe("false-positive");
@@ -715,11 +715,11 @@ describe("workflow", () => {
       status: "false-positive",
       note: "tests cover intended contract",
     });
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("suggests simplification findings before bug findings after review", async () => {
-    const root = await fixtureRoot("clawnuke-refactor-next-");
+    const root = await fixtureRoot("codenuke-refactor-next-");
     await writeFixture(
       root,
       "package.json",
@@ -734,7 +734,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/bug.ts", "export const problem = 'TODO_BUG';\n");
     await writeFixture(root, "src/simplify.ts", "export const dead = 'TODO_SIMPLIFY';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -742,7 +742,7 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "20", jobs: "1" })) as {
       next: string;
     };
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const findings = await readFindings(paths);
     const reviewedNext = await readFinding(paths, reviewed.next.split(" ").at(-1) ?? "");
     const queuedNext = (await nextCommand(context, {})) as { finding: string };
@@ -752,11 +752,11 @@ describe("workflow", () => {
     expect(findings.some((finding) => finding.category === "maintainability")).toBe(true);
     expect(reviewedNext?.category).toBe("maintainability");
     expect(queuedFinding?.category).toBe("maintainability");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("revalidates filtered findings in bulk and records history", async () => {
-    const root = await fixtureRoot("clawnuke-revalidate-all-");
+    const root = await fixtureRoot("codenuke-revalidate-all-");
     await writeFixture(
       root,
       "package.json",
@@ -774,13 +774,13 @@ describe("workflow", () => {
     await writeFixture(root, "src/open.ts", "export const open = 'TODO_BUG';\n");
     await writeFixture(root, "src/falsey.ts", "export const falsey = 'TODO_BUG';\n");
     await writeFixture(root, "src/uncertain.ts", "export const uncertain = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await reviewCommand(context, { limit: "4", jobs: "2" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const findings = await readFindings(paths);
     expect(findings).toHaveLength(4);
     const markers = [
@@ -817,31 +817,31 @@ describe("workflow", () => {
       "uncertain",
     ]);
     expect(updated.every((finding) => finding.history.at(-1)?.kind === "revalidate")).toBe(true);
-    expect(progress).toContain("clawnuke revalidate start");
-    expect(progress).toContain("clawnuke revalidate finding-start");
-    expect(progress).toContain("clawnuke revalidate finding-done");
-    expect(progress).toContain("clawnuke revalidate done");
+    expect(progress).toContain("codenuke revalidate start");
+    expect(progress).toContain("codenuke revalidate finding-start");
+    expect(progress).toContain("codenuke revalidate finding-done");
+    expect(progress).toContain("codenuke revalidate done");
     const uncertain = updated.find((finding) => finding.status === "uncertain");
     const uncertainFeature = features.find((feature) => feature.featureId === uncertain?.featureId);
     expect(uncertainFeature?.status).toBe("needs-fix");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("preserves selected finding ids when revalidation fails", async () => {
-    const root = await fixtureRoot("clawnuke-revalidate-fail-");
+    const root = await fixtureRoot("codenuke-revalidate-fail-");
     await writeFixture(
       root,
       "package.json",
       JSON.stringify({ name: "reval-fail", bin: { fail: "src/fail.ts" } }),
     );
     await writeFixture(root, "src/fail.ts", "export const fail = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await reviewCommand(context, { limit: "1" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const finding = (await readFindings(paths))[0];
     expect(finding).toBeDefined();
 
@@ -855,11 +855,11 @@ describe("workflow", () => {
       status: "failed",
       findingIds: [finding!.findingId],
     });
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("reviews features concurrently without corrupting findings or locks", async () => {
-    const root = await fixtureRoot("clawnuke-parallel-review-");
+    const root = await fixtureRoot("codenuke-parallel-review-");
     await writeFixture(
       root,
       "package.json",
@@ -867,23 +867,23 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/one.ts", "export const one = 'TODO_BUG';\n");
     await writeFixture(root, "src/two.ts", "export const two = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = await reviewCommand(context, { limit: "2", jobs: "2" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
 
     expect(reviewed).toMatchObject({ reviewed: 2, findings: 2, jobs: 2 });
     expect(findings).toHaveLength(2);
     expect(features.every((feature) => feature.lock === null)).toBe(true);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("claims feature locks atomically", async () => {
-    const root = await fixtureRoot("clawnuke-atomic-lock-");
+    const root = await fixtureRoot("codenuke-atomic-lock-");
     await writeFixture(
       root,
       "package.json",
@@ -891,7 +891,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -931,7 +931,7 @@ describe("workflow", () => {
   });
 
   it("cleans up lock files when claim lock payload writes fail", async () => {
-    const root = await fixtureRoot("clawnuke-lock-write-fail-");
+    const root = await fixtureRoot("codenuke-lock-write-fail-");
     await writeFixture(
       root,
       "package.json",
@@ -939,7 +939,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -968,7 +968,7 @@ describe("workflow", () => {
   });
 
   it("does not claim a stale feature after another run finishes it", async () => {
-    const root = await fixtureRoot("clawnuke-stale-lock-");
+    const root = await fixtureRoot("codenuke-stale-lock-");
     await writeFixture(
       root,
       "package.json",
@@ -976,7 +976,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -1003,7 +1003,7 @@ describe("workflow", () => {
   });
 
   it("does not consume features on dry-run review", async () => {
-    const root = await fixtureRoot("clawnuke-dry-run-");
+    const root = await fixtureRoot("codenuke-dry-run-");
     await writeFixture(
       root,
       "package.json",
@@ -1015,13 +1015,13 @@ describe("workflow", () => {
     await initCommand(context, {});
     await mapCommand(context);
     await reviewCommand(context, { dryRun: true });
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(features[0]?.status).toBe("pending");
   });
 
   it("filters review dry-runs by project name or root", async () => {
-    const root = await fixtureRoot("clawnuke-project-filter-");
+    const root = await fixtureRoot("codenuke-project-filter-");
     await writeFixture(
       root,
       "package.json",
@@ -1071,7 +1071,7 @@ describe("workflow", () => {
       project: "web",
       limit: "20",
     })) as { featureIds: string[]; wouldReview: number };
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const titleById = new Map(features.map((feature) => [feature.featureId, feature.title]));
 
     expect(byRoot.wouldReview).toBeGreaterThan(0);
@@ -1086,7 +1086,7 @@ describe("workflow", () => {
   });
 
   it("does not mutate features on dry-run map", async () => {
-    const root = await fixtureRoot("clawnuke-map-dry-run-");
+    const root = await fixtureRoot("codenuke-map-dry-run-");
     await writeFixture(
       root,
       "package.json",
@@ -1099,14 +1099,14 @@ describe("workflow", () => {
     await mapCommand(context);
     await writeFixture(root, "package.json", JSON.stringify({ name: "map-dry-run-cli" }));
     const preview = await mapCommand(context, { dryRun: true });
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(preview).toMatchObject({ dryRun: true, stale: 1 });
     expect(features.some((feature) => feature.status === "skipped")).toBe(false);
   });
 
   it("emits map progress to stderr while preserving JSON stdout", async () => {
-    const root = await fixtureRoot("clawnuke-map-progress-");
+    const root = await fixtureRoot("codenuke-map-progress-");
     await writeFixture(root, "Cargo.toml", '[package]\nname = "map-progress"\nversion = "0.1.0"\n');
     await writeFixture(root, "src/lib.rs", "pub fn run() {}\n");
 
@@ -1114,14 +1114,14 @@ describe("workflow", () => {
     const mapped = await runCli(["--root", root, "--json", "map"]);
 
     expect(JSON.parse(mapped.stdout)).toMatchObject({ features: expect.any(Number) });
-    expect(mapped.stderr).toContain("clawnuke map start");
-    expect(mapped.stderr).toContain("clawnuke map mapper-start mapper=rust");
-    expect(mapped.stderr).toContain("clawnuke map mapper-done mapper=rust");
-    expect(mapped.stderr).toContain("clawnuke map done");
+    expect(mapped.stderr).toContain("codenuke map start");
+    expect(mapped.stderr).toContain("codenuke map mapper-start mapper=rust");
+    expect(mapped.stderr).toContain("codenuke map mapper-done mapper=rust");
+    expect(mapped.stderr).toContain("codenuke map done");
   });
 
   it("suppresses map progress when quiet", async () => {
-    const root = await fixtureRoot("clawnuke-map-progress-quiet-");
+    const root = await fixtureRoot("codenuke-map-progress-quiet-");
     await writeFixture(
       root,
       "Cargo.toml",
@@ -1137,7 +1137,7 @@ describe("workflow", () => {
   });
 
   it("can use the configured provider as an agent mapper source", async () => {
-    const root = await fixtureRoot("clawnuke-agent-map-");
+    const root = await fixtureRoot("codenuke-agent-map-");
     await writeFixture(root, "agent/worker.custom", "worker source\n");
     await writeFixture(root, "agent/scheduler.custom", "scheduler source\n");
     await writeFixture(root, "agent/worker.test.custom", "worker test\n");
@@ -1146,7 +1146,7 @@ describe("workflow", () => {
 
     await initCommand(context, {});
     const mapped = await mapCommand(context, { source: "auto", provider: "mock" });
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const agentFeature = features.find((feature) => feature.source === "agent-mapper");
 
     expect(mapped).toMatchObject({
@@ -1165,7 +1165,7 @@ describe("workflow", () => {
   });
 
   it("fails forced agent mapping when the provider returns no valid features", async () => {
-    const root = await fixtureRoot("clawnuke-empty-agent-map-");
+    const root = await fixtureRoot("codenuke-empty-agent-map-");
     await writeFixture(
       root,
       "package.json",
@@ -1181,12 +1181,12 @@ describe("workflow", () => {
   });
 
   it("keeps agent feature ids stable across title changes and drops duplicates", async () => {
-    const root = await fixtureRoot("clawnuke-agent-map-stable-");
+    const root = await fixtureRoot("codenuke-agent-map-stable-");
     await writeFixture(root, "agent/worker.custom", "worker source\n");
     await writeFixture(root, "agent/scheduler.custom", "scheduler source\n");
     const context = await makeContext(testOptions(root));
     await initCommand(context, {});
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const project = await readProject(paths);
     if (project === null) {
       throw new Error("missing project");
@@ -1214,7 +1214,7 @@ describe("workflow", () => {
   });
 
   it("augments deterministic features when forced agent mapping returns partial coverage", async () => {
-    const root = await fixtureRoot("clawnuke-agent-map-merge-");
+    const root = await fixtureRoot("codenuke-agent-map-merge-");
     await writeFixture(
       root,
       "package.json",
@@ -1228,7 +1228,7 @@ describe("workflow", () => {
     await initCommand(context, {});
     await mapCommand(context);
     const mapped = await mapCommand(context, { source: "agent", provider: "mock" });
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(mapped).toMatchObject({ source: "agent", usedAgent: true, stale: 0 });
     expect(features.some((feature) => feature.source === "package-json-bin")).toBe(true);
@@ -1237,7 +1237,7 @@ describe("workflow", () => {
   });
 
   it("rejects invalid map source values", async () => {
-    const root = await fixtureRoot("clawnuke-agent-map-bad-source-");
+    const root = await fixtureRoot("codenuke-agent-map-bad-source-");
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -1247,8 +1247,8 @@ describe("workflow", () => {
   });
 
   it("does not recurse through symlinked mapper directories", async () => {
-    const root = await fixtureRoot("clawnuke-map-symlink-root-");
-    const external = await fixtureRoot("clawnuke-map-symlink-external-");
+    const root = await fixtureRoot("codenuke-map-symlink-root-");
+    const external = await fixtureRoot("codenuke-map-symlink-external-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "map-symlink" }));
     await writeFixture(external, "page.tsx", "export default function Page() { return null; }\n");
     await symlink(external, join(root, "app"), "dir");
@@ -1256,13 +1256,13 @@ describe("workflow", () => {
 
     await initCommand(context, {});
     await mapCommand(context);
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(features.some((feature) => feature.source === "next-app-route")).toBe(false);
   });
 
   it("seeds config commands from detected package scripts and package manager", async () => {
-    const root = await fixtureRoot("clawnuke-config-");
+    const root = await fixtureRoot("codenuke-config-");
     await writeFixture(
       root,
       "package.json",
@@ -1275,7 +1275,7 @@ describe("workflow", () => {
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
-    const config = JSON.parse(await readFile(join(root, ".clawnuke/config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(root, ".codenuke/config.json"), "utf8")) as {
       commands: { typecheck: string; test: string };
     };
 
@@ -1283,28 +1283,28 @@ describe("workflow", () => {
     expect(config.commands.test).toBe("npm run test");
   });
 
-  it("honors CLAWNUKE_STATE_DIR during init", async () => {
-    const root = await fixtureRoot("clawnuke-env-state-root-");
-    const stateDir = await fixtureRoot("clawnuke-env-state-");
+  it("honors CODENUKE_STATE_DIR during init", async () => {
+    const root = await fixtureRoot("codenuke-env-state-root-");
+    const stateDir = await fixtureRoot("codenuke-env-state-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "env-state" }));
-    process.env["CLAWNUKE_STATE_DIR"] = stateDir;
+    process.env["CODENUKE_STATE_DIR"] = stateDir;
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     const project = await readProject(statePaths(stateDir));
 
     expect(project?.name).toBe("env-state");
-    await expect(access(join(root, ".clawnuke"))).rejects.toThrow();
-    delete process.env["CLAWNUKE_STATE_DIR"];
+    await expect(access(join(root, ".codenuke"))).rejects.toThrow();
+    delete process.env["CODENUKE_STATE_DIR"];
   });
 
   it("loads and reports Codex reasoning effort overrides", async () => {
-    const root = await fixtureRoot("clawnuke-reasoning-effort-");
+    const root = await fixtureRoot("codenuke-reasoning-effort-");
     await writeFixture(root, "package.json", JSON.stringify({ name: "reasoning-effort" }));
-    const previousProvider = process.env["CLAWNUKE_PROVIDER"];
-    const previousReasoning = process.env["CLAWNUKE_REASONING_EFFORT"];
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
-    process.env["CLAWNUKE_REASONING_EFFORT"] = "xhigh";
+    const previousProvider = process.env["CODENUKE_PROVIDER"];
+    const previousReasoning = process.env["CODENUKE_REASONING_EFFORT"];
+    process.env["CODENUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_REASONING_EFFORT"] = "xhigh";
     try {
       const context = await makeContext(testOptions(root));
 
@@ -1316,20 +1316,20 @@ describe("workflow", () => {
       expect(doctor).toMatchObject({ provider: "mock", reasoningEffort: "xhigh" });
     } finally {
       if (previousProvider === undefined) {
-        delete process.env["CLAWNUKE_PROVIDER"];
+        delete process.env["CODENUKE_PROVIDER"];
       } else {
-        process.env["CLAWNUKE_PROVIDER"] = previousProvider;
+        process.env["CODENUKE_PROVIDER"] = previousProvider;
       }
       if (previousReasoning === undefined) {
-        delete process.env["CLAWNUKE_REASONING_EFFORT"];
+        delete process.env["CODENUKE_REASONING_EFFORT"];
       } else {
-        process.env["CLAWNUKE_REASONING_EFFORT"] = previousReasoning;
+        process.env["CODENUKE_REASONING_EFFORT"] = previousReasoning;
       }
     }
   });
 
   it("allows fix dry-run when only the default state dir is dirty", async () => {
-    const root = await fixtureRoot("clawnuke-state-dirty-");
+    const root = await fixtureRoot("codenuke-state-dirty-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -1344,7 +1344,7 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -1352,15 +1352,15 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding, dryRun: true });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ dryRun: true });
     expect(patches).toEqual([]);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("retires stale features when seeds disappear", async () => {
-    const root = await fixtureRoot("clawnuke-stale-");
+    const root = await fixtureRoot("codenuke-stale-");
     await writeFixture(
       root,
       "package.json",
@@ -1374,13 +1374,13 @@ describe("workflow", () => {
     await unlink(join(root, "src/index.ts"));
     await writeFixture(root, "package.json", JSON.stringify({ name: "stale-cli" }));
     await mapCommand(context);
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(features.some((feature) => feature.status === "skipped")).toBe(true);
   });
 
   it("counts stale features by missing ids", async () => {
-    const root = await fixtureRoot("clawnuke-stale-count-");
+    const root = await fixtureRoot("codenuke-stale-count-");
     await writeFixture(
       root,
       "package.json",
@@ -1403,7 +1403,7 @@ describe("workflow", () => {
   });
 
   it("requeues restored skipped features", async () => {
-    const root = await fixtureRoot("clawnuke-restore-");
+    const root = await fixtureRoot("codenuke-restore-");
     await writeFixture(
       root,
       "package.json",
@@ -1424,14 +1424,14 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     await mapCommand(context);
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const restored = features.find((feature) => feature.title === "CLI command restore");
 
     expect(restored?.status).toBe("pending");
   });
 
   it("releases feature locks on provider review failure", async () => {
-    const root = await fixtureRoot("clawnuke-lock-fail-");
+    const root = await fixtureRoot("codenuke-lock-fail-");
     await writeFixture(
       root,
       "package.json",
@@ -1445,25 +1445,25 @@ describe("workflow", () => {
     await expect(reviewCommand(context, { provider: "mock-fail" })).rejects.toThrow(
       "mock review failure",
     );
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
 
     expect(features[0]?.status).toBe("error");
     expect(features[0]?.lock).toBeNull();
-    expect(await readdir(join(root, ".clawnuke/locks"))).toEqual([]);
-    await rm(join(root, ".clawnuke"), { recursive: true, force: true });
+    expect(await readdir(join(root, ".codenuke/locks"))).toEqual([]);
+    await rm(join(root, ".codenuke"), { recursive: true, force: true });
   });
 
   it("does not create state directories for status before init", async () => {
-    const root = await fixtureRoot("clawnuke-readonly-");
+    const root = await fixtureRoot("codenuke-readonly-");
     const context = await makeContext(testOptions(root));
 
     await expect(statusCommand(context)).rejects.toThrow("not initialized");
-    await expect(access(join(root, ".clawnuke"))).rejects.toThrow();
+    await expect(access(join(root, ".codenuke"))).rejects.toThrow();
   });
 
   it("loads config from custom state directories", async () => {
-    const root = await fixtureRoot("clawnuke-custom-state-root-");
-    const stateDir = await fixtureRoot("clawnuke-custom-state-");
+    const root = await fixtureRoot("codenuke-custom-state-root-");
+    const stateDir = await fixtureRoot("codenuke-custom-state-");
     await writeFixture(
       root,
       "package.json",
@@ -1483,7 +1483,7 @@ describe("workflow", () => {
   });
 
   it("clean-locks requeues claimed features", async () => {
-    const root = await fixtureRoot("clawnuke-clean-locks-");
+    const root = await fixtureRoot("codenuke-clean-locks-");
     await writeFixture(
       root,
       "package.json",
@@ -1491,7 +1491,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -1513,7 +1513,7 @@ describe("workflow", () => {
   });
 
   it("surfaces crash-window lock files in status", async () => {
-    const root = await fixtureRoot("clawnuke-file-lock-status-");
+    const root = await fixtureRoot("codenuke-file-lock-status-");
     await writeFixture(
       root,
       "package.json",
@@ -1521,7 +1521,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -1529,7 +1529,7 @@ describe("workflow", () => {
     expect(feature).toBeDefined();
     await writeFixture(
       root,
-      `.clawnuke/locks/${feature!.featureId}.json`,
+      `.codenuke/locks/${feature!.featureId}.json`,
       `${JSON.stringify({
         lockedByRunId: "interrupted",
         lockedAt: new Date().toISOString(),
@@ -1542,7 +1542,7 @@ describe("workflow", () => {
   });
 
   it("cleans interrupted review locks through the CLI entrypoint", async () => {
-    const root = await fixtureRoot("clawnuke-clean-locks-cli-");
+    const root = await fixtureRoot("codenuke-clean-locks-cli-");
     await writeFixture(
       root,
       "package.json",
@@ -1553,7 +1553,7 @@ describe("workflow", () => {
     await runCli(["--root", root, "init", "--json"]);
     await runCli(["--root", root, "map", "--json"]);
 
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0];
     expect(feature).toBeDefined();
     await claimFeature(paths, feature!.featureId, {
@@ -1573,7 +1573,7 @@ describe("workflow", () => {
   });
 
   it("filters state files from successful fix results", async () => {
-    const root = await fixtureRoot("clawnuke-filter-state-");
+    const root = await fixtureRoot("codenuke-filter-state-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -1588,7 +1588,7 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -1596,30 +1596,30 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
     await expect(access(join(root, "SHOULD_NOT_RUN_PROVIDER_COMMANDS"))).rejects.toThrow();
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("includes feature-specific validation in fix dry-run output", async () => {
-    const root = await fixtureRoot("clawnuke-feature-validation-dry-run-");
+    const root = await fixtureRoot("codenuke-feature-validation-dry-run-");
     await writeFixture(
       root,
       "package.json",
       JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0];
     const featureCommand = 'node -e "process.exit(0)"';
     await writeFeature(paths, {
@@ -1631,11 +1631,11 @@ describe("workflow", () => {
 
     expect(fixed).toMatchObject({ dryRun: true, validation: featureCommand });
     expect(patches).toEqual([]);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("fails trusted-refactor fixes without linked tests or changed test files", async () => {
-    const root = await fixtureRoot("clawnuke-refactor-test-coverage-");
+    const root = await fixtureRoot("codenuke-refactor-test-coverage-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -1650,7 +1650,7 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -1660,7 +1660,7 @@ describe("workflow", () => {
     await expect(fixCommand(context, { finding })).rejects.toMatchObject({
       code: "missing-test-coverage",
     });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const [patches, updatedFinding] = await Promise.all([
       readPatchAttempts(paths),
       readFinding(paths, finding),
@@ -1669,11 +1669,11 @@ describe("workflow", () => {
     expect(patches[0]?.status).toBe("failed");
     expect(patches[0]?.plan).toContain("Provider did not add or update a test file");
     expect(updatedFinding?.status).toBe("open");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("includes evidence, context, and tests in fix prompts", async () => {
-    const root = await fixtureRoot("clawnuke-fix-prompt-context-");
+    const root = await fixtureRoot("codenuke-fix-prompt-context-");
     await writeFixture(
       root,
       "package.json",
@@ -1683,14 +1683,14 @@ describe("workflow", () => {
     await writeFixture(root, "src/helper.ts", "export const helper = true;\n");
     await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
     await writeFixture(root, ".env", "SECRET=do-not-send\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const findingId = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0]!;
     const featureWithContext: FeatureRecord = {
       ...feature,
@@ -1719,11 +1719,11 @@ describe("workflow", () => {
     expect(prompt).toContain("--- src/helper.ts");
     expect(prompt).toContain("--- src/index.test.ts");
     expect(prompt).not.toContain("SECRET=do-not-send");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("includes linked tests in review prompts once", async () => {
-    const root = await fixtureRoot("clawnuke-review-prompt-tests-");
+    const root = await fixtureRoot("codenuke-review-prompt-tests-");
     await writeFixture(root, "src/index.ts", "export const value = helper;\n");
     await writeFixture(root, "src/helper.ts", "export const helper = true;\n");
     await writeFixture(root, "src/index.test.ts", "expect(value).toBe(true);\n");
@@ -1780,12 +1780,12 @@ describe("workflow", () => {
   });
 
   it("records already-dirty files changed during fix validation", async () => {
-    const root = await fixtureRoot("clawnuke-fix-dirty-snapshot-");
+    const root = await fixtureRoot("codenuke-fix-dirty-snapshot-");
     await initGit(root);
     const config = defaultConfig();
     await writeFixture(
       root,
-      "clawnuke.config.json",
+      "codenuke.config.json",
       JSON.stringify(
         {
           ...config,
@@ -1811,7 +1811,7 @@ describe("workflow", () => {
       }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(
       root,
@@ -1825,19 +1825,19 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
     expect(patches[0]?.filesChanged).toEqual(["src/index.ts"]);
   });
 
   it("records dirty files removed during fix validation", async () => {
-    const root = await fixtureRoot("clawnuke-fix-dirty-delete-");
+    const root = await fixtureRoot("codenuke-fix-dirty-delete-");
     await initGit(root);
     const config = defaultConfig();
     await writeFixture(
       root,
-      "clawnuke.config.json",
+      "codenuke.config.json",
       JSON.stringify(
         {
           ...config,
@@ -1858,7 +1858,7 @@ describe("workflow", () => {
       JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(root, "src/scratch.txt", "temporary user work\n");
     const context = await makeContext(testOptions(root));
@@ -1868,19 +1868,19 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
     expect(patches[0]?.filesChanged).toEqual(["src/scratch.txt"]);
   });
 
   it("records changes inside pre-existing untracked directories", async () => {
-    const root = await fixtureRoot("clawnuke-fix-dirty-untracked-dir-");
+    const root = await fixtureRoot("codenuke-fix-dirty-untracked-dir-");
     await initGit(root);
     const config = defaultConfig();
     await writeFixture(
       root,
-      "clawnuke.config.json",
+      "codenuke.config.json",
       JSON.stringify(
         {
           ...config,
@@ -1902,7 +1902,7 @@ describe("workflow", () => {
       JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(root, "scratch/note.txt", "pre-existing user work\n");
     const context = await makeContext(testOptions(root));
@@ -1912,20 +1912,20 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
     expect(patches[0]?.filesChanged).toEqual(["scratch/note.txt"]);
   });
 
   it("records mode-only changes to already-dirty files", async () => {
-    const root = await fixtureRoot("clawnuke-fix-dirty-mode-");
+    const root = await fixtureRoot("codenuke-fix-dirty-mode-");
     await initGit(root);
     await checkCommand(root, "git config core.filemode true");
     const config = defaultConfig();
     await writeFixture(
       root,
-      "clawnuke.config.json",
+      "codenuke.config.json",
       JSON.stringify(
         {
           ...config,
@@ -1947,7 +1947,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
     await writeFixture(root, "script.sh", "#!/bin/sh\necho before\n");
-    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts script.sh");
+    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts script.sh");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(root, "script.sh", "#!/bin/sh\necho before\necho dirty\n");
     const context = await makeContext(testOptions(root));
@@ -1957,15 +1957,15 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
     expect(patches[0]?.filesChanged).toEqual(["script.sh"]);
   });
 
   it("fingerprints dirty symlinks without reading external targets", async () => {
-    const root = await fixtureRoot("clawnuke-fix-dirty-symlink-");
-    const external = await fixtureRoot("clawnuke-fix-dirty-symlink-external-");
+    const root = await fixtureRoot("codenuke-fix-dirty-symlink-");
+    const external = await fixtureRoot("codenuke-fix-dirty-symlink-external-");
     const externalPath = join(external, "target.txt");
     await initGit(root);
     await writeFixture(external, "target.txt", "secret\n");
@@ -1975,7 +1975,7 @@ describe("workflow", () => {
     )}, 'changed\\n')`;
     await writeFixture(
       root,
-      "clawnuke.config.json",
+      "codenuke.config.json",
       JSON.stringify(
         {
           ...config,
@@ -1996,7 +1996,7 @@ describe("workflow", () => {
       JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add clawnuke.config.json package.json src/index.ts");
+    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await symlink(externalPath, join(root, "src/link.txt"));
     const context = await makeContext(testOptions(root));
@@ -2006,7 +2006,7 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
@@ -2014,7 +2014,7 @@ describe("workflow", () => {
   });
 
   it("suppresses configured test validation for persistent feature tests", async () => {
-    const root = await fixtureRoot("clawnuke-feature-validation-suppressed-test-");
+    const root = await fixtureRoot("codenuke-feature-validation-suppressed-test-");
     await writeFixture(
       root,
       "package.json",
@@ -2028,14 +2028,14 @@ describe("workflow", () => {
       }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0];
     await writeFeature(paths, {
       ...feature!,
@@ -2045,11 +2045,11 @@ describe("workflow", () => {
     const fixed = await fixCommand(context, { finding, dryRun: true });
 
     expect(fixed).toMatchObject({ dryRun: true, validation: "npm run format" });
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("fails fix when feature-specific validation fails", async () => {
-    const root = await fixtureRoot("clawnuke-feature-validation-fail-");
+    const root = await fixtureRoot("codenuke-feature-validation-fail-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -2064,14 +2064,14 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0];
     const featureCommand = 'node -e "process.exit(7)"';
     await writeFeature(paths, {
@@ -2088,11 +2088,11 @@ describe("workflow", () => {
     expect(patches[0]?.commandsRun).toHaveLength(1);
     expect(patches[0]?.commandsRun[0]).toMatchObject({ command: featureCommand, exitCode: 7 });
     expect(updatedFinding?.status).toBe("open");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("deduplicates feature-specific and configured fix validation commands", async () => {
-    const root = await fixtureRoot("clawnuke-feature-validation-dedupe-");
+    const root = await fixtureRoot("codenuke-feature-validation-dedupe-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -2114,14 +2114,14 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const feature = (await readFeatures(paths))[0];
     const featureCommand = 'node -e "process.exit(0)"';
     await writeFeature(paths, {
@@ -2141,18 +2141,18 @@ describe("workflow", () => {
       featureCommand,
       "npm run test",
     ]);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("blocks fix when git cleanliness cannot be verified", async () => {
-    const root = await fixtureRoot("clawnuke-non-git-fix-");
+    const root = await fixtureRoot("codenuke-non-git-fix-");
     await writeFixture(
       root,
       "package.json",
       JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -2163,11 +2163,11 @@ describe("workflow", () => {
       code: "dirty-worktree",
     });
 
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("fails fix when configured validation fails", async () => {
-    const root = await fixtureRoot("clawnuke-validation-fail-");
+    const root = await fixtureRoot("codenuke-validation-fail-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -2186,7 +2186,7 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -2194,14 +2194,14 @@ describe("workflow", () => {
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
     await expect(fixCommand(context, { finding })).rejects.toMatchObject({ exitCode: 6 });
-    const patches = await readPatchAttempts(statePaths(join(root, ".clawnuke")));
+    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
     expect(patches[0]?.status).toBe("failed");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("marks review runs failed on lock conflicts", async () => {
-    const root = await fixtureRoot("clawnuke-lock-conflict-");
+    const root = await fixtureRoot("codenuke-lock-conflict-");
     await writeFixture(
       root,
       "package.json",
@@ -2209,7 +2209,7 @@ describe("workflow", () => {
     );
     await writeFixture(root, "src/index.ts", "export const value = 1;\n");
     const context = await makeContext(testOptions(root));
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
 
     await initCommand(context, {});
     await mapCommand(context);
@@ -2234,13 +2234,13 @@ describe("workflow", () => {
   });
 
   it("requeues changed reviewed features after remapping", async () => {
-    const root = await fixtureRoot("clawnuke-requeue-");
+    const root = await fixtureRoot("codenuke-requeue-");
     await writeFixture(
       root,
       "package.json",
       JSON.stringify({ name: "requeue", scripts: { test: "echo old" } }),
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -2252,29 +2252,29 @@ describe("workflow", () => {
       JSON.stringify({ name: "requeue", scripts: { test: "echo new" } }),
     );
     await mapCommand(context);
-    const features = await readFeatures(statePaths(join(root, ".clawnuke")));
+    const features = await readFeatures(statePaths(join(root, ".codenuke")));
     const testFeature = features.find((feature) => feature.title === "Package script test");
 
     expect(testFeature?.summary).toContain("echo new");
     expect(testFeature?.status).toBe("pending");
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("preserves finding status and patch links on repeated review", async () => {
-    const root = await fixtureRoot("clawnuke-merge-finding-");
+    const root = await fixtureRoot("codenuke-merge-finding-");
     await writeFixture(
       root,
       "package.json",
       JSON.stringify({ name: "merge-finding", bin: { merge: "src/index.ts" } }),
     );
     await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
     await mapCommand(context);
     await reviewCommand(context, { limit: "1" });
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const finding = (await readFindings(paths))[0];
     expect(finding).toBeDefined();
     await writeFinding(paths, {
@@ -2287,11 +2287,11 @@ describe("workflow", () => {
 
     expect(reviewedAgain?.status).toBe("fixed");
     expect(reviewedAgain?.linkedPatchAttemptIds).toEqual(["pat_existing"]);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 
   it("does not include escaped feature paths in prompts", async () => {
-    const root = await fixtureRoot("clawnuke-path-escape-");
+    const root = await fixtureRoot("codenuke-path-escape-");
     const siblingSecret = join(root, "..", "secret.txt");
     await writeFixture(root, "package.json", JSON.stringify({ name: "path-escape" }));
     await writeFixture(root, "../secret.txt", "do-not-read\n");
@@ -2300,7 +2300,7 @@ describe("workflow", () => {
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
-    const project = await readProject(statePaths(join(root, ".clawnuke")));
+    const project = await readProject(statePaths(join(root, ".codenuke")));
     expect(project).toBeDefined();
     const prompt = await buildReviewPrompt(
       root,
@@ -2366,7 +2366,7 @@ describe("workflow", () => {
   });
 
   it("persists failed patch attempts when provider fix throws", async () => {
-    const root = await fixtureRoot("clawnuke-fix-fail-");
+    const root = await fixtureRoot("codenuke-fix-fail-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
       root,
@@ -2381,7 +2381,7 @@ describe("workflow", () => {
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
-    process.env["CLAWNUKE_PROVIDER"] = "mock";
+    process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
     await initCommand(context, {});
@@ -2391,12 +2391,12 @@ describe("workflow", () => {
     await expect(fixCommand(context, { finding, provider: "mock-fail" })).rejects.toThrow(
       "mock fix failure",
     );
-    const paths = statePaths(join(root, ".clawnuke"));
+    const paths = statePaths(join(root, ".codenuke"));
     const patches = await readPatchAttempts(paths);
     const findings = await readFindings(paths);
 
     expect(patches[0]?.status).toBe("failed");
     expect(findings[0]?.linkedPatchAttemptIds).toContain(patches[0]?.patchAttemptId);
-    delete process.env["CLAWNUKE_PROVIDER"];
+    delete process.env["CODENUKE_PROVIDER"];
   });
 });

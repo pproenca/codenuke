@@ -8,7 +8,7 @@ import { fixtureRoot, writeFixture } from "../test-helpers.js";
 
 describe("workspace helpers", () => {
   it("expands package and pnpm workspace patterns with excludes and unsafe paths", async () => {
-    const root = await fixtureRoot("clawnuke-workspace-helpers-");
+    const root = await fixtureRoot("codenuke-workspace-helpers-");
     await writeFixture(
       root,
       "package.json",

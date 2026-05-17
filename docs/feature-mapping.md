@@ -1,17 +1,17 @@
 ---
 title: Feature Mapping
-description: "How clawnuke maps repositories into reviewable feature slices"
+description: "How codenuke maps repositories into reviewable feature slices"
 ---
 
 # Feature Mapping
 
-`clawnuke map` creates durable feature records under `.clawnuke/features/`.
+`codenuke map` creates durable feature records under `.codenuke/features/`.
 
 ```bash
-clawnuke map
-clawnuke map --dry-run
-clawnuke map --source auto
-clawnuke map --source agent --provider codex
+codenuke map
+codenuke map --dry-run
+codenuke map --source auto
+codenuke map --source agent --provider codex
 ```
 
 A feature is a reviewable slice with:
@@ -63,14 +63,14 @@ folders. `map` emits progress to stderr unless `--quiet` is set, including
 deterministic mapper start/done events, agent mapper decisions, write progress,
 and elapsed time. JSON output stays on stdout.
 
-When deterministic mapping is too shallow, `clawnuke map --source auto` can ask
+When deterministic mapping is too shallow, `codenuke map --source auto` can ask
 the configured provider to split the repository into reviewable feature slices.
 `--source auto` runs the deterministic mapper first and invokes the agent mapper
 only when the result is weak, such as no features, only config features, very low
 source coverage, or one/two features for a larger source tree. `--source agent`
 forces the provider-backed mapper and adds its slices to the deterministic map
 instead of retiring deterministic coverage. The agent mapper is read-only,
-receives a bounded repository inventory rather than the whole repo, and Clawnuke
+receives a bounded repository inventory rather than the whole repo, and Codenuke
 validates that every returned path exists inside the repository before writing
 features. Agent-derived features use `source: agent-mapper` and include the
 mapper reason in the feature summary.
@@ -96,17 +96,17 @@ that they apply at the repository root. Feature tags include project name and
 project root metadata, enabling commands such as:
 
 ```bash
-clawnuke review --project apps/web --limit 10
-clawnuke review --project web --limit 10
-clawnuke report --project web --status open
-clawnuke next --project web
+codenuke review --project apps/web --limit 10
+codenuke review --project web --limit 10
+codenuke report --project web --status open
+codenuke next --project web
 ```
 
 When an Nx project target is available, nearby tests use the project-scoped
 command, such as `yarn nx test web`, instead of a repository-wide test command.
 
 When Turborepo metadata is available, mapped workspace features use filtered
-Turbo validation commands such as `pnpm turbo run test --filter web`. Clawnuke
+Turbo validation commands such as `pnpm turbo run test --filter web`. Codenuke
 does not execute Turbo during mapping and leaves task dependency expansion to
 Turbo when validation commands run.
 
