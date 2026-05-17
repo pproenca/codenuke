@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ClawnukeError } from "./errors.js";
 import { __testing, extractJson, providerByName } from "./provider.js";
+import {
+  agentMapJsonSchema,
+  fixPlanJsonSchema,
+  reviewJsonSchema,
+  revalidateJsonSchema,
+} from "./provider-schema.js";
 import { reviewOutputSchema } from "./types.js";
 
 // eslint-disable-next-line no-underscore-dangle
@@ -11,7 +17,9 @@ const {
   extractOpencodeJson,
   parseAcpxAgent,
   parseCodexJson,
+  providerOperationModes,
   providerJsonSchema,
+  withProviderOperations,
 } = __testing;
 
 function updateEnvelope(update: object): string {
@@ -135,6 +143,98 @@ describe("providerJsonSchema", () => {
         "multipleOf",
       ]),
     );
+  });
+});
+
+describe("withProviderOperations", () => {
+  it("keeps CLI provider operation modes in one explicit matrix", () => {
+    expect(providerOperationModes).toEqual({
+      codex: {
+        map: "read-only",
+        review: "read-only",
+        fix: "workspace-write",
+        revalidate: "read-only",
+      },
+      opencode: {
+        map: true,
+        review: true,
+        fix: false,
+        revalidate: true,
+      },
+      acpx: {
+        map: "read",
+        review: "read",
+        fix: "approve",
+        revalidate: "read",
+      },
+      grok: {
+        map: true,
+        review: true,
+        fix: false,
+        revalidate: true,
+      },
+    });
+  });
+
+  it("routes operations through the matching schema, parser, and provider mode", async () => {
+    const outputs = new Map<object, unknown>([
+      [agentMapJsonSchema, { features: [], notes: ["mapped"] }],
+      [
+        reviewJsonSchema,
+        { findings: [], inspected: { files: ["src/provider.ts"], symbols: [], notes: [] } },
+      ],
+      [
+        fixPlanJsonSchema,
+        {
+          summary: "fix",
+          findingIds: [],
+          plannedFiles: ["src/provider.ts"],
+          risk: "low",
+          steps: ["edit"],
+          validationCommands: ["pnpm test src/provider.test.ts"],
+        },
+      ],
+      [revalidateJsonSchema, { outcome: "fixed", reasoning: "ok", commands: [] }],
+    ]);
+    const calls: Array<{ schema: object; mode: string }> = [];
+    const provider = withProviderOperations(
+      {
+        name: "fake",
+        async check() {
+          return "fake";
+        },
+      },
+      async (_root, _prompt, _options, schema, mode) => {
+        calls.push({ schema, mode });
+        return outputs.get(schema);
+      },
+      {
+        map: "read",
+        review: "read",
+        fix: "write",
+        revalidate: "read",
+      },
+    );
+
+    await expect(
+      provider.map("/repo", "prompt", { model: null, reasoningEffort: null }),
+    ).resolves.toEqual({ features: [], notes: ["mapped"] });
+    await expect(
+      provider.review("/repo", "prompt", { model: null, reasoningEffort: null }),
+    ).resolves.toMatchObject({ inspected: { files: ["src/provider.ts"] } });
+    await expect(
+      provider.fix("/repo", "prompt", { model: null, reasoningEffort: null }),
+    ).resolves.toMatchObject({ risk: "low" });
+    await expect(
+      provider.revalidate("/repo", "prompt", { model: null, reasoningEffort: null }),
+    ).resolves.toMatchObject({ outcome: "fixed" });
+
+    expect(calls).toEqual([
+      { schema: agentMapJsonSchema, mode: "read" },
+      { schema: reviewJsonSchema, mode: "read" },
+      { schema: fixPlanJsonSchema, mode: "write" },
+      { schema: revalidateJsonSchema, mode: "read" },
+    ]);
   });
 });
 

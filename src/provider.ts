@@ -38,6 +38,110 @@ export type Provider = {
   revalidate(root: string, prompt: string, options: ProviderOptions): Promise<RevalidateOutput>;
 };
 
+type ProviderOperationName = "map" | "review" | "fix" | "revalidate";
+type ProviderOperationOutput = {
+  map: AgentMapOutput;
+  review: ReviewOutput;
+  fix: FixPlanOutput;
+  revalidate: RevalidateOutput;
+};
+type ProviderOperationConfig<K extends ProviderOperationName> = {
+  jsonSchema: object;
+  parse(output: unknown): ProviderOperationOutput[K];
+};
+type ProviderOperationModes<Mode> = { [K in ProviderOperationName]: Mode };
+type ProviderJsonRunner<Mode> = (
+  root: string,
+  prompt: string,
+  options: ProviderOptions,
+  schema: object,
+  mode: Mode,
+) => Promise<unknown>;
+
+const providerOperations: {
+  [K in ProviderOperationName]: ProviderOperationConfig<K>;
+} = {
+  map: {
+    jsonSchema: agentMapJsonSchema,
+    parse: (output) => agentMapOutputSchema.parse(output),
+  },
+  review: {
+    jsonSchema: reviewJsonSchema,
+    parse: (output) => reviewOutputSchema.parse(output),
+  },
+  fix: {
+    jsonSchema: fixPlanJsonSchema,
+    parse: (output) => fixPlanOutputSchema.parse(output),
+  },
+  revalidate: {
+    jsonSchema: revalidateJsonSchema,
+    parse: (output) => revalidateOutputSchema.parse(output),
+  },
+};
+
+const providerOperationModes = {
+  codex: {
+    map: "read-only",
+    review: "read-only",
+    fix: "workspace-write",
+    revalidate: "read-only",
+  },
+  opencode: {
+    map: true,
+    review: true,
+    fix: false,
+    revalidate: true,
+  },
+  acpx: {
+    map: "read",
+    review: "read",
+    fix: "approve",
+    revalidate: "read",
+  },
+  grok: {
+    map: true,
+    review: true,
+    fix: false,
+    revalidate: true,
+  },
+} satisfies {
+  codex: ProviderOperationModes<string>;
+  opencode: ProviderOperationModes<boolean>;
+  acpx: ProviderOperationModes<"read" | "approve">;
+  grok: ProviderOperationModes<boolean>;
+};
+
+function withProviderOperations<Mode>(
+  base: Pick<Provider, "name" | "check">,
+  runner: ProviderJsonRunner<Mode>,
+  modes: ProviderOperationModes<Mode>,
+): Provider {
+  return {
+    ...base,
+    map: (root, prompt, options) =>
+      runProviderOperation("map", root, prompt, options, runner, modes.map),
+    review: (root, prompt, options) =>
+      runProviderOperation("review", root, prompt, options, runner, modes.review),
+    fix: (root, prompt, options) =>
+      runProviderOperation("fix", root, prompt, options, runner, modes.fix),
+    revalidate: (root, prompt, options) =>
+      runProviderOperation("revalidate", root, prompt, options, runner, modes.revalidate),
+  };
+}
+
+async function runProviderOperation<K extends ProviderOperationName, Mode>(
+  operation: K,
+  root: string,
+  prompt: string,
+  options: ProviderOptions,
+  runner: ProviderJsonRunner<Mode>,
+  mode: Mode,
+): Promise<ProviderOperationOutput[K]> {
+  const config = providerOperations[operation];
+  const output = await runner(root, prompt, options, config.jsonSchema, mode);
+  return config.parse(output);
+}
+
 export function providerByName(name: string): Provider {
   if (name === "codex") {
     return codexProvider;
@@ -60,137 +164,76 @@ export function providerByName(name: string): Provider {
   throw new ClawnukeError(`unsupported provider: ${name}`, 2, "unsupported-provider");
 }
 
-const codexProvider: Provider = {
-  name: "codex",
-  async check(root: string): Promise<string> {
-    const result = await runCommandArgs("codex", ["--version"], root);
-    if (result.exitCode !== 0) {
-      throw new ClawnukeError("codex CLI not available", 4, "provider-auth");
-    }
-    return result.stdout.trim();
+const codexProvider: Provider = withProviderOperations(
+  {
+    name: "codex",
+    async check(root: string): Promise<string> {
+      const result = await runCommandArgs("codex", ["--version"], root);
+      if (result.exitCode !== 0) {
+        throw new ClawnukeError("codex CLI not available", 4, "provider-auth");
+      }
+      return result.stdout.trim();
+    },
   },
-  async map(root: string, prompt: string, options: ProviderOptions): Promise<AgentMapOutput> {
-    const output = await runCodexJson(root, prompt, options, agentMapJsonSchema);
-    return agentMapOutputSchema.parse(output);
-  },
-  async review(root: string, prompt: string, options: ProviderOptions): Promise<ReviewOutput> {
-    const output = await runCodexJson(root, prompt, options, reviewJsonSchema);
-    return reviewOutputSchema.parse(output);
-  },
-  async fix(root: string, prompt: string, options: ProviderOptions): Promise<FixPlanOutput> {
-    const output = await runCodexJson(root, prompt, options, fixPlanJsonSchema, "workspace-write");
-    return fixPlanOutputSchema.parse(output);
-  },
-  async revalidate(
-    root: string,
-    prompt: string,
-    options: ProviderOptions,
-  ): Promise<RevalidateOutput> {
-    const output = await runCodexJson(root, prompt, options, revalidateJsonSchema);
-    return revalidateOutputSchema.parse(output);
-  },
-};
+  (root, prompt, options, schema, sandbox) => runCodexJson(root, prompt, options, schema, sandbox),
+  providerOperationModes.codex,
+);
 
-const opencodeProvider: Provider = {
-  name: "opencode",
-  async check(root: string): Promise<string> {
-    const result = await runCommandArgs("opencode", ["--version"], root);
-    if (result.exitCode !== 0) {
-      throw new ClawnukeError("opencode CLI not available", 4, "provider-auth");
-    }
-    return result.stdout.trim();
+const opencodeProvider: Provider = withProviderOperations(
+  {
+    name: "opencode",
+    async check(root: string): Promise<string> {
+      const result = await runCommandArgs("opencode", ["--version"], root);
+      if (result.exitCode !== 0) {
+        throw new ClawnukeError("opencode CLI not available", 4, "provider-auth");
+      }
+      return result.stdout.trim();
+    },
   },
-  async map(root: string, prompt: string, options: ProviderOptions): Promise<AgentMapOutput> {
-    const output = await runOpencodeJson(root, prompt, options.model, agentMapJsonSchema, true);
-    return agentMapOutputSchema.parse(output);
-  },
-  async review(root: string, prompt: string, options: ProviderOptions): Promise<ReviewOutput> {
-    const output = await runOpencodeJson(root, prompt, options.model, reviewJsonSchema, true);
-    return reviewOutputSchema.parse(output);
-  },
-  async fix(root: string, prompt: string, options: ProviderOptions): Promise<FixPlanOutput> {
-    const output = await runOpencodeJson(root, prompt, options.model, fixPlanJsonSchema, false);
-    return fixPlanOutputSchema.parse(output);
-  },
-  async revalidate(
-    root: string,
-    prompt: string,
-    options: ProviderOptions,
-  ): Promise<RevalidateOutput> {
-    const output = await runOpencodeJson(root, prompt, options.model, revalidateJsonSchema, true);
-    return revalidateOutputSchema.parse(output);
-  },
-};
+  (root, prompt, options, schema, readOnly) =>
+    runOpencodeJson(root, prompt, options.model, schema, readOnly),
+  providerOperationModes.opencode,
+);
 
 const ACPX_TESTED_VERSIONS = "^0.8.0";
 const ACPX_DEFAULT_TIMEOUT_MS = 180_000;
 
-const acpxProvider: Provider = {
-  name: "acpx",
-  async check(root: string): Promise<string> {
-    const result = await runCommandArgs("acpx", ["--version"], root);
-    if (result.exitCode !== 0) {
-      throw new ClawnukeError(
-        "acpx CLI not available. Install: npm install -g acpx@latest",
-        4,
-        "provider-auth",
-      );
-    }
-    const version = result.stdout.trim();
-    return `${version} (tested against ${ACPX_TESTED_VERSIONS})`;
+const acpxProvider: Provider = withProviderOperations<"read" | "approve">(
+  {
+    name: "acpx",
+    async check(root: string): Promise<string> {
+      const result = await runCommandArgs("acpx", ["--version"], root);
+      if (result.exitCode !== 0) {
+        throw new ClawnukeError(
+          "acpx CLI not available. Install: npm install -g acpx@latest",
+          4,
+          "provider-auth",
+        );
+      }
+      const version = result.stdout.trim();
+      return `${version} (tested against ${ACPX_TESTED_VERSIONS})`;
+    },
   },
-  async map(root: string, prompt: string, options: ProviderOptions): Promise<AgentMapOutput> {
-    const output = await runAcpxJson(root, prompt, options.model, agentMapJsonSchema, "read");
-    return agentMapOutputSchema.parse(output);
-  },
-  async review(root: string, prompt: string, options: ProviderOptions): Promise<ReviewOutput> {
-    const output = await runAcpxJson(root, prompt, options.model, reviewJsonSchema, "read");
-    return reviewOutputSchema.parse(output);
-  },
-  async fix(root: string, prompt: string, options: ProviderOptions): Promise<FixPlanOutput> {
-    const output = await runAcpxJson(root, prompt, options.model, fixPlanJsonSchema, "approve");
-    return fixPlanOutputSchema.parse(output);
-  },
-  async revalidate(
-    root: string,
-    prompt: string,
-    options: ProviderOptions,
-  ): Promise<RevalidateOutput> {
-    const output = await runAcpxJson(root, prompt, options.model, revalidateJsonSchema, "read");
-    return revalidateOutputSchema.parse(output);
-  },
-};
+  (root, prompt, options, schema, permission) =>
+    runAcpxJson(root, prompt, options.model, schema, permission),
+  providerOperationModes.acpx,
+);
 
-const grokProvider: Provider = {
-  name: "grok",
-  async check(root: string): Promise<string> {
-    const result = await runCommandArgs("grok", ["--version"], root);
-    if (result.exitCode !== 0) {
-      throw new ClawnukeError("grok CLI not available", 4, "provider-auth");
-    }
-    return result.stdout.trim();
+const grokProvider: Provider = withProviderOperations(
+  {
+    name: "grok",
+    async check(root: string): Promise<string> {
+      const result = await runCommandArgs("grok", ["--version"], root);
+      if (result.exitCode !== 0) {
+        throw new ClawnukeError("grok CLI not available", 4, "provider-auth");
+      }
+      return result.stdout.trim();
+    },
   },
-  async map(root: string, prompt: string, options: ProviderOptions): Promise<AgentMapOutput> {
-    const output = await runGrokJson(root, prompt, options.model, agentMapJsonSchema, true);
-    return agentMapOutputSchema.parse(output);
-  },
-  async review(root: string, prompt: string, options: ProviderOptions): Promise<ReviewOutput> {
-    const output = await runGrokJson(root, prompt, options.model, reviewJsonSchema, true);
-    return reviewOutputSchema.parse(output);
-  },
-  async fix(root: string, prompt: string, options: ProviderOptions): Promise<FixPlanOutput> {
-    const output = await runGrokJson(root, prompt, options.model, fixPlanJsonSchema, false);
-    return fixPlanOutputSchema.parse(output);
-  },
-  async revalidate(
-    root: string,
-    prompt: string,
-    options: ProviderOptions,
-  ): Promise<RevalidateOutput> {
-    const output = await runGrokJson(root, prompt, options.model, revalidateJsonSchema, true);
-    return revalidateOutputSchema.parse(output);
-  },
-};
+  (root, prompt, options, schema, readOnly) =>
+    runGrokJson(root, prompt, options.model, schema, readOnly),
+  providerOperationModes.grok,
+);
 
 const mockProvider: Provider = {
   name: "mock",
@@ -872,5 +915,7 @@ export const __testing = {
   extractOpencodeJson,
   parseAcpxAgent,
   parseCodexJson,
+  providerOperationModes,
   providerJsonSchema,
+  withProviderOperations,
 };
