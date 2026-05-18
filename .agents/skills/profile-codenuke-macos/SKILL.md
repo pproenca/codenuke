@@ -17,11 +17,13 @@ change in the TypeScript codebase.
    input flags, provider/model if relevant, and whether network/provider time is
    part of the question.
 2. Prefer a direct local CLI command so the profiled process is Node, not a pnpm
-   shim:
+   shim. If `node` is a version-manager shim such as `mise`, resolve the real
+   binary first:
 
    ```bash
    pnpm build
-   node dist/cli.js <command> <flags>
+   NODE_BIN="$(mise which node 2>/dev/null || command -v node)"
+   "$NODE_BIN" dist/cli.js <command> <flags>
    ```
 
 3. Capture a baseline with the bundled script:

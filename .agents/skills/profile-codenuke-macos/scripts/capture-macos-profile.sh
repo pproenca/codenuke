@@ -176,32 +176,35 @@ write_metadata() {
   } > "$out_dir/metadata.txt"
 }
 
+write_snapshot() {
+  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  pids="$(collect_tree_pids "$target_pid")"
+  csv="$(pid_csv "$pids")"
+
+  {
+    echo "### $ts"
+    if [[ -n "$csv" ]]; then
+      ps -o pid,ppid,pgid,stat,%cpu,%mem,rss,vsz,etime,command -p "$csv" 2>&1
+    fi
+    echo
+  } >> "$out_dir/ps.txt"
+
+  {
+    echo "### $ts"
+    top -l 1 -stats pid,command,cpu,mem,threads,ports,wq,time -pid "$target_pid" 2>&1
+    echo
+  } >> "$out_dir/top.txt"
+
+  {
+    echo "### $ts"
+    vm_stat 2>&1
+    echo
+  } >> "$out_dir/vm_stat.txt"
+}
+
 monitor_loop() {
   while process_exists "$target_pid"; do
-    ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    pids="$(collect_tree_pids "$target_pid")"
-    csv="$(pid_csv "$pids")"
-
-    {
-      echo "### $ts"
-      if [[ -n "$csv" ]]; then
-        ps -o pid,ppid,pgid,stat,%cpu,%mem,rss,vsz,etime,command -p "$csv" 2>&1
-      fi
-      echo
-    } >> "$out_dir/ps.txt"
-
-    {
-      echo "### $ts"
-      top -l 1 -stats pid,command,cpu,mem,threads,ports,wq,time -pid "$target_pid" 2>&1
-      echo
-    } >> "$out_dir/top.txt"
-
-    {
-      echo "### $ts"
-      vm_stat 2>&1
-      echo
-    } >> "$out_dir/vm_stat.txt"
-
+    write_snapshot
     sleep "$interval" || break
   done
 }
@@ -211,8 +214,6 @@ start_samples() {
     echo "sample not found" > "$out_dir/sample.log"
     return
   fi
-
-  sleep 1
   pids="$(collect_tree_pids "$target_pid")"
   for sample_pid in $pids; do
     if process_exists "$sample_pid"; then
@@ -277,14 +278,14 @@ else
   ps -o pid,ppid,command -p "$target_pid" > "$out_dir/command.txt" 2>&1 || true
 fi
 
-write_metadata
-lsof -p "$target_pid" > "$out_dir/lsof-start.txt" 2>&1 || true
-monitor_loop &
-monitor_pid="$!"
-
 start_fs_usage
 start_spindump
 start_samples
+write_metadata
+lsof -p "$target_pid" > "$out_dir/lsof-start.txt" 2>&1 || true
+write_snapshot
+monitor_loop &
+monitor_pid="$!"
 
 for job in "${sample_jobs[@]}"; do
   wait "$job" || true
