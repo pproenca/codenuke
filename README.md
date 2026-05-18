@@ -25,6 +25,17 @@ pnpm build
 pnpm link --global
 ```
 
+## Agent Skill
+
+Install the companion skill for Codex or other skill-aware agents:
+
+```bash
+npx skills add pproenca/codenuke --skill codenuke --agent codex
+```
+
+The skill uses `npx --yes codenuke@latest`, so users can set up review and
+one-finding auto-fix loops without installing `codenuke` globally.
+
 ## Workflow
 
 ```bash
