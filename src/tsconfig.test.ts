@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -24,6 +24,20 @@ describe("TypeScript config", () => {
       declaration: true,
       sourceMap: true,
     });
+  });
+
+  it("uses explicit includes as the complete typecheck file set", () => {
+    const config = readConfig("tsconfig.json");
+
+    expect(config.raw.include).toEqual(["src/**/*.ts", "vitest.config.ts"]);
+    expect(config.raw.exclude).toBeUndefined();
+
+    const files = config.fileNames.map((fileName) => relative(repoRoot, fileName)).toSorted();
+
+    expect(files).toContain("vitest.config.ts");
+    expect(
+      files.every((fileName) => fileName.startsWith("src/") || fileName === "vitest.config.ts"),
+    ).toBe(true);
   });
 });
 
