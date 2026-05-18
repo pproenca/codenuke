@@ -42,40 +42,13 @@ export function renderReport(
     if (options.includeNext === true) {
       lines.push(`next: codenuke show --finding ${finding.findingId}`);
     }
-    if (finding.evidence.length > 0) {
-      lines.push("");
-      lines.push("evidence:");
-      for (const evidence of finding.evidence) {
-        lines.push(`- ${evidenceLabel(evidence)}`);
-      }
-    }
+    appendEvidence(lines, finding.evidence, "omit");
     lines.push("");
     lines.push(finding.reasoning);
-    if (finding.recommendation.length > 0) {
-      lines.push("");
-      lines.push("recommendation:");
-      lines.push(finding.recommendation);
-    }
-    if (finding.whyTestsDoNotAlreadyCoverThis.length > 0) {
-      lines.push("");
-      lines.push("test analysis:");
-      lines.push(finding.whyTestsDoNotAlreadyCoverThis);
-    }
-    if (finding.suggestedRegressionTest !== null && finding.suggestedRegressionTest.length > 0) {
-      lines.push("");
-      lines.push("suggested regression test:");
-      lines.push(finding.suggestedRegressionTest);
-    }
-    if (finding.minimumFixScope.length > 0) {
-      lines.push("");
-      lines.push("minimum fix scope:");
-      lines.push(finding.minimumFixScope);
-    }
-    if (finding.reproduction !== null && finding.reproduction.length > 0) {
-      lines.push("");
-      lines.push("repro:");
-      lines.push(finding.reproduction);
-    }
+    appendOptionalFindingSections(lines, finding, {
+      recommendation: "when-present",
+      includeReproduction: true,
+    });
     lines.push("");
   }
   return `${lines.join("\n")}\n`;
@@ -95,35 +68,14 @@ export function renderFindingDetail(
   lines.push(`confidence: ${finding.confidence}`);
   lines.push(`triage: ${finding.triage}`);
   lines.push(`feature: ${featureLabel(finding.featureId, feature ?? undefined)}`);
-  lines.push("");
-  lines.push("evidence:");
-  for (const evidence of finding.evidence) {
-    lines.push(`- ${evidenceLabel(evidence)}`);
-  }
-  if (finding.evidence.length === 0) {
-    lines.push("- none");
-  }
+  appendEvidence(lines, finding.evidence, "none");
   lines.push("");
   lines.push("reasoning:");
   lines.push(finding.reasoning);
-  lines.push("");
-  lines.push("recommendation:");
-  lines.push(finding.recommendation);
-  if (finding.whyTestsDoNotAlreadyCoverThis.length > 0) {
-    lines.push("");
-    lines.push("test analysis:");
-    lines.push(finding.whyTestsDoNotAlreadyCoverThis);
-  }
-  if (finding.suggestedRegressionTest !== null && finding.suggestedRegressionTest.length > 0) {
-    lines.push("");
-    lines.push("suggested regression test:");
-    lines.push(finding.suggestedRegressionTest);
-  }
-  if (finding.minimumFixScope.length > 0) {
-    lines.push("");
-    lines.push("minimum fix scope:");
-    lines.push(finding.minimumFixScope);
-  }
+  appendOptionalFindingSections(lines, finding, {
+    recommendation: "always",
+    includeReproduction: false,
+  });
   if (feature !== null) {
     lines.push("");
     lines.push("owned files:");
@@ -165,6 +117,56 @@ export function renderFindingDetail(
   lines.push("");
   lines.push(`next: codenuke triage --finding ${finding.findingId} --status <status>`);
   return `${lines.join("\n")}\n`;
+}
+
+function appendEvidence(
+  lines: string[],
+  evidenceRefs: FindingRecord["evidence"],
+  emptyMode: "omit" | "none",
+): void {
+  if (evidenceRefs.length === 0 && emptyMode === "omit") {
+    return;
+  }
+  lines.push("");
+  lines.push("evidence:");
+  for (const evidence of evidenceRefs) {
+    lines.push(`- ${evidenceLabel(evidence)}`);
+  }
+  if (evidenceRefs.length === 0) {
+    lines.push("- none");
+  }
+}
+
+function appendOptionalFindingSections(
+  lines: string[],
+  finding: FindingRecord,
+  options: { recommendation: "always" | "when-present"; includeReproduction: boolean },
+): void {
+  if (options.recommendation === "always" || finding.recommendation.length > 0) {
+    appendSection(lines, "recommendation:", finding.recommendation);
+  }
+  if (finding.whyTestsDoNotAlreadyCoverThis.length > 0) {
+    appendSection(lines, "test analysis:", finding.whyTestsDoNotAlreadyCoverThis);
+  }
+  if (finding.suggestedRegressionTest !== null && finding.suggestedRegressionTest.length > 0) {
+    appendSection(lines, "suggested regression test:", finding.suggestedRegressionTest);
+  }
+  if (finding.minimumFixScope.length > 0) {
+    appendSection(lines, "minimum fix scope:", finding.minimumFixScope);
+  }
+  if (
+    options.includeReproduction &&
+    finding.reproduction !== null &&
+    finding.reproduction.length > 0
+  ) {
+    appendSection(lines, "repro:", finding.reproduction);
+  }
+}
+
+function appendSection(lines: string[], label: string, value: string): void {
+  lines.push("");
+  lines.push(label);
+  lines.push(value);
 }
 
 export function findingSummaries(
