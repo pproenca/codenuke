@@ -77,38 +77,23 @@ export function parseArgs(argv: string[]): ParsedArgs {
       command = arg;
       continue;
     }
-    const globalValueName = arg.startsWith("--") ? camel(arg.replace(/^--/u, "")) : "";
-    const target = isGlobalFlag(globalValueName) ? global : flags;
     if (arg === "-h" || arg === "--help") {
       return { command, flags, global, help: true, version: false };
     }
     if (arg === "--version") {
       return { command, flags, global, help: false, version: true };
     }
-    const valueName = arg.replace(/^--/u, "");
-    const flagDefinition = flagDefinitionFor(valueName);
-    if (flagDefinition?.kind === "value") {
-      const next = readFlagValue(argv, index, arg);
-      index += 1;
-      setFlag(target, camel(valueName), next);
-      continue;
-    }
-    if (arg.startsWith("--") && flagDefinition?.kind === "boolean") {
-      setFlag(target, camel(valueName), true);
-      continue;
-    }
-    if (arg === "-q") {
-      global.quiet = true;
-      continue;
-    }
-    if (arg === "-v") {
-      global.verbose = true;
-      continue;
-    }
-    if (arg === "-o") {
-      const next = readFlagValue(argv, index, "-o");
-      index += 1;
-      flags["output"] = next;
+    const flag = flagNameForArg(arg);
+    if (flag !== undefined) {
+      const flagDefinition = flagDefinitions[flag];
+      const target = isGlobalFlag(flag) ? global : flags;
+      if (flagDefinition.kind === "value") {
+        const next = readFlagValue(argv, index, arg);
+        index += 1;
+        setFlag(target, flag, next);
+        continue;
+      }
+      setFlag(target, flag, true);
       continue;
     }
     throw new CodenukeError(`unknown arg: ${arg}`, 2, "invalid-usage");
@@ -124,6 +109,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 type FlagDefinition = {
   kind: "boolean" | "value";
   help: string;
+  aliases?: readonly string[];
   global?: boolean;
 };
 
@@ -133,8 +119,8 @@ const flagDefinitions = {
   config: { kind: "value", help: "--config <path>", global: true },
   json: { kind: "boolean", help: "--json", global: true },
   plain: { kind: "boolean", help: "--plain", global: true },
-  quiet: { kind: "boolean", help: "-q, --quiet", global: true },
-  verbose: { kind: "boolean", help: "-v, --verbose", global: true },
+  quiet: { kind: "boolean", aliases: ["-q"], help: "--quiet", global: true },
+  verbose: { kind: "boolean", aliases: ["-v"], help: "--verbose", global: true },
   debug: { kind: "boolean", help: "--debug", global: true },
   noColor: { kind: "boolean", help: "--no-color", global: true },
   noInput: { kind: "boolean", help: "--no-input", global: true },
@@ -150,7 +136,7 @@ const flagDefinitions = {
     kind: "value",
     help: "--reasoning-effort <none|minimal|low|medium|high|xhigh>",
   },
-  output: { kind: "value", help: "--output <path>" },
+  output: { kind: "value", aliases: ["-o"], help: "--output <path>" },
   status: { kind: "value", help: "--status <status>" },
   severity: { kind: "value", help: "--severity <severity>" },
   category: { kind: "value", help: "--category <category>" },
@@ -163,6 +149,11 @@ const flagDefinitions = {
 } satisfies Record<string, FlagDefinition>;
 
 type FlagName = keyof typeof flagDefinitions;
+const shortFlagNames = new Map<string, FlagName>(
+  Object.entries(flagDefinitions).flatMap(([name, definition]) =>
+    flagAliases(definition).map((alias): [string, FlagName] => [alias, name as FlagName]),
+  ),
+);
 type CommandContext = Awaited<ReturnType<typeof makeContext>>;
 type CommandHandler = (
   context: CommandContext,
@@ -290,8 +281,6 @@ const commandRegistry = {
   },
 } satisfies Record<string, CommandSpec>;
 
-const shortFlagNames = new Set(["-h", "-q", "-v", "-o"]);
-
 export function packageVersion(): string {
   const pkg = moduleRequire("../package.json") as { version?: unknown };
   return typeof pkg.version === "string" ? pkg.version : "0.0.0";
@@ -342,12 +331,24 @@ function flagName(flag: CommandFlag): FlagName {
 }
 
 function flagHelp(flag: CommandFlag): string {
-  return typeof flag === "string" ? flagDefinitions[flag].help : flag.help;
+  return typeof flag === "string" ? renderFlagHelp(flag) : flag.help;
 }
 
-function flagDefinitionFor(name: string): FlagDefinition | undefined {
-  const flag = camel(name);
-  return isFlagName(flag) ? flagDefinitions[flag] : undefined;
+function renderFlagHelp(flag: FlagName): string {
+  const definition = flagDefinitions[flag];
+  return [...flagAliases(definition), definition.help].join(", ");
+}
+
+function flagAliases(definition: FlagDefinition): readonly string[] {
+  return definition.aliases ?? [];
+}
+
+function flagNameForArg(arg: string): FlagName | undefined {
+  if (arg.startsWith("--")) {
+    const flag = camel(arg.replace(/^--/u, ""));
+    return isFlagName(flag) ? flag : undefined;
+  }
+  return shortFlagNames.get(arg);
 }
 
 function isFlagName(name: string): name is FlagName {
@@ -371,10 +372,7 @@ function readFlagValue(argv: string[], index: number, flag: string): string {
 }
 
 function isKnownOptionToken(value: string): boolean {
-  if (shortFlagNames.has(value)) {
-    return true;
-  }
-  return value.startsWith("--");
+  return value === "-h" || shortFlagNames.has(value) || value.startsWith("--");
 }
 
 function setFlag(
@@ -438,7 +436,7 @@ function printHelp(command = ""): void {
     const spec = commandRegistry[command];
     const flags = [
       ...spec.flags.map(flagHelp),
-      ...(spec.globalHelpFlags ?? []).map((flag) => flagDefinitions[flag].help),
+      ...(spec.globalHelpFlags ?? []).map(renderFlagHelp),
     ];
     process.stdout.write(`codenuke ${command}
 
@@ -462,16 +460,16 @@ Commands:
 ${commands}
 
 Global flags:
-  ${flagDefinitions.root.help}
-  ${flagDefinitions.stateDir.help}
-  ${flagDefinitions.config.help}
-  ${flagDefinitions.json.help}
-  ${flagDefinitions.plain.help}
-  ${flagDefinitions.quiet.help}
-  ${flagDefinitions.verbose.help}
-  ${flagDefinitions.debug.help}
-  ${flagDefinitions.noColor.help}
-  ${flagDefinitions.noInput.help}
+  ${renderFlagHelp("root")}
+  ${renderFlagHelp("stateDir")}
+  ${renderFlagHelp("config")}
+  ${renderFlagHelp("json")}
+  ${renderFlagHelp("plain")}
+  ${renderFlagHelp("quiet")}
+  ${renderFlagHelp("verbose")}
+  ${renderFlagHelp("debug")}
+  ${renderFlagHelp("noColor")}
+  ${renderFlagHelp("noInput")}
   -h, --help
   --version
 `);

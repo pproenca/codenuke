@@ -1,4 +1,4 @@
-name: clawnuke-codeql-actions-security
+name: codenuke-codeql-actions-security
 
 disable-default-queries: true
 

@@ -1,4 +1,4 @@
-name: clawnuke-codeql-typescript-security
+name: codenuke-codeql-typescript-security
 
 disable-default-queries: true
 

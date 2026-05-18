@@ -39,20 +39,25 @@ function commandNames(output: string): string[] {
 
 type HelpFlag = {
   name: string;
+  shortName?: string;
   takesValue: boolean;
 };
 
 function helpFlags(output: string): HelpFlag[] {
   return helpSection(output, "Flags").flatMap((line) => {
-    const flags: HelpFlag[] = [];
-    for (const match of line.matchAll(/--([a-z-]+)(?:\s+<[^>]+>)?/gu)) {
-      const token = match[0] ?? "";
-      const name = match[1];
-      if (name !== undefined) {
-        flags.push({ name, takesValue: token.includes("<") });
-      }
+    const longFlag = /--([a-z-]+)(?:\s+<[^>]+>)?/u.exec(line);
+    if (longFlag?.[1] === undefined) {
+      return [];
     }
-    return flags;
+    const shortFlag = /(?:^|,\s*)-([a-z])(?=,|\s|$)/u.exec(line);
+    const shortName = shortFlag?.[1];
+    return [
+      {
+        name: longFlag[1],
+        ...(shortName === undefined ? {} : { shortName }),
+        takesValue: longFlag[0].includes("<"),
+      },
+    ];
   });
 }
 
@@ -78,14 +83,22 @@ describe("cli metadata", () => {
     ]);
 
     const commandFlags = new Map<string, HelpFlag[]>();
+    const advertisedFlags = new Map<string, HelpFlag[]>();
     for (const command of commands) {
       const commandHelp = await helpFor([command, "--help"]);
       expect(commandHelp).toContain(`codenuke ${command}`);
+      const flags = helpFlags(commandHelp);
+      advertisedFlags.set(command, flags);
       commandFlags.set(
         command,
-        helpFlags(commandHelp).filter((flag) => !globalFlags.has(flag.name)),
+        flags.filter((flag) => !globalFlags.has(flag.name)),
       );
     }
+    expect(commandFlags.get("report")).toContainEqual({
+      name: "output",
+      shortName: "o",
+      takesValue: true,
+    });
 
     const allFlags = [...commandFlags.values()].flat();
     for (const command of commands) {
@@ -98,6 +111,15 @@ describe("cli metadata", () => {
         }
       }
       expect(() => parseArgs(args)).not.toThrow();
+
+      const aliasArgs = [command];
+      for (const flag of advertisedFlags.get(command) ?? []) {
+        aliasArgs.push(flag.shortName === undefined ? `--${flag.name}` : `-${flag.shortName}`);
+        if (flag.takesValue) {
+          aliasArgs.push("x");
+        }
+      }
+      expect(() => parseArgs(aliasArgs)).not.toThrow();
 
       const unsupported = allFlags.find(
         (candidate) => !flags.some((flag) => flag.name === candidate.name),
