@@ -133,3 +133,15 @@ describe("cli metadata", () => {
     }
   });
 });
+
+describe("parseArgs", () => {
+  it("rejects empty revalidate selector values", () => {
+    expect(() => parseArgs(["revalidate", "--finding", ""])).toThrow(
+      "missing --finding, --all, or --since",
+    );
+    expect(() => parseArgs(["revalidate", "--since", ""])).toThrow(
+      "missing --finding, --all, or --since",
+    );
+    expect(() => parseArgs(["revalidate", "--all"])).not.toThrow();
+  });
+});

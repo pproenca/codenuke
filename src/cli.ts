@@ -360,7 +360,7 @@ function hasFlagValue(flag: FlagName, flags: Record<string, string | boolean>): 
   if (flagDefinitions[flag].kind === "boolean") {
     return value === true;
   }
-  return typeof value === "string";
+  return typeof value === "string" && value.length > 0;
 }
 
 function readFlagValue(argv: string[], index: number, flag: string): string {
