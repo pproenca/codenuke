@@ -14,9 +14,9 @@ import {
   packageTrustBoundaries,
   pathMatchesPrefix,
   shouldSkip,
-  walk,
 } from "./shared.js";
-import { FeatureSeed, SeedFileRef, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 import { TrustBoundary } from "../types.js";
 
 type SourceGroup = {
@@ -47,13 +47,13 @@ const rootToolingFiles = new Set([
   "tsconfig.json",
 ]);
 
-export async function rubySeeds(root: string): Promise<FeatureSeed[]> {
-  if (!(await isRubyProject(root))) {
+export async function rubySeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
+  if (!(await isRubyProject(root, context))) {
     return [];
   }
   const info = await rubyProjectInfo(root);
   const projectFiles = await rubyMetadataFiles(root);
-  const testFiles = await rubyTestFiles(root);
+  const testFiles = await rubyTestFiles(root, context);
   const runPrefix = await rubyRunPrefix(root);
   const testCommand = rubyProjectTestCommand(runPrefix, info, testFiles);
   const commandForTest = (path: string): string | null =>
@@ -80,7 +80,7 @@ export async function rubySeeds(root: string): Promise<FeatureSeed[]> {
     });
   }
 
-  for (const executable of await rubyExecutables(root, railsApp)) {
+  for (const executable of await rubyExecutables(root, context, railsApp)) {
     const tests = associatedTests([executable], testFiles, commandForTest);
     seeds.push({
       title: `Ruby CLI command ${basename(executable)}`,
@@ -122,7 +122,7 @@ export async function rubySeeds(root: string): Promise<FeatureSeed[]> {
     });
   }
 
-  for (const group of await rubySourceGroups(root)) {
+  for (const group of await rubySourceGroups(root, context)) {
     const tests = associatedTests(group.files, testFiles, commandForTest);
     seeds.push({
       title: `Ruby source ${group.label}`,
@@ -147,8 +147,8 @@ export async function rubySeeds(root: string): Promise<FeatureSeed[]> {
     });
   }
 
-  seeds.push(...(await jekyllSeeds(root, info)));
-  seeds.push(...(await railsSeeds(root, info)));
+  seeds.push(...(await jekyllSeeds(root, info, context)));
+  seeds.push(...(await railsSeeds(root, info, context)));
 
   for (const testSuite of standaloneTestSuites(testFiles, commandForTest)) {
     seeds.push(testSuite);
@@ -157,15 +157,15 @@ export async function rubySeeds(root: string): Promise<FeatureSeed[]> {
   return seeds;
 }
 
-async function isRubyProject(root: string): Promise<boolean> {
+async function isRubyProject(root: string, context: MapperContext): Promise<boolean> {
   return (
     (await pathExists(join(root, "Gemfile"))) ||
     (await pathExists(join(root, "gems.rb"))) ||
     (await pathExists(join(root, "Rakefile"))) ||
     (await pathExists(join(root, "config.ru"))) ||
     (await rubyGemspecs(root)).length > 0 ||
-    (await rootRubySourceFiles(root)).length > 0 ||
-    (await containsReviewableRubySource(root))
+    rootRubySourceFiles(context).length > 0 ||
+    containsReviewableRubySource(context)
   );
 }
 
@@ -268,7 +268,11 @@ async function rubyProjectContextFiles(
   return refs;
 }
 
-async function jekyllSeeds(root: string, info: RubyProjectInfo): Promise<FeatureSeed[]> {
+async function jekyllSeeds(
+  root: string,
+  info: RubyProjectInfo,
+  context: MapperContext,
+): Promise<FeatureSeed[]> {
   if (!(await isJekyllSite(root, info))) {
     return [];
   }
@@ -298,7 +302,7 @@ async function jekyllSeeds(root: string, info: RubyProjectInfo): Promise<Feature
     });
   }
 
-  const themeFiles = await jekyllThemeFiles(root);
+  const themeFiles = jekyllThemeFiles(context);
   for (const group of jekyllThemeGroups(themeFiles)) {
     seeds.push({
       title: `Jekyll theme ${group.label}`,
@@ -318,7 +322,7 @@ async function jekyllSeeds(root: string, info: RubyProjectInfo): Promise<Feature
     });
   }
 
-  for (const group of await jekyllContentGroups(root)) {
+  for (const group of await jekyllContentGroups(root, context)) {
     seeds.push({
       title: `Jekyll content ${group.label}`,
       summary: `Jekyll Markdown content group ${group.label} with ${group.files.length} file(s).`,
@@ -344,13 +348,17 @@ async function isJekyllSite(root: string, info: RubyProjectInfo): Promise<boolea
   return (await pathExists(join(root, "_config.yml"))) && info.dependencies.has("jekyll");
 }
 
-async function railsSeeds(root: string, info: RubyProjectInfo): Promise<FeatureSeed[]> {
+async function railsSeeds(
+  root: string,
+  info: RubyProjectInfo,
+  context: MapperContext,
+): Promise<FeatureSeed[]> {
   if (!(await isRailsApp(root, info))) {
     return [];
   }
   const trustBoundaries = rubyTrustBoundaries("rails app", info.dependencies);
   const seeds: FeatureSeed[] = [];
-  const configFiles = await railsConfigFiles(root);
+  const configFiles = railsConfigFiles(context);
   if (configFiles.length > 0) {
     seeds.push({
       title: "Rails application configuration",
@@ -370,7 +378,7 @@ async function railsSeeds(root: string, info: RubyProjectInfo): Promise<FeatureS
     });
   }
 
-  const dbFiles = await railsDatabaseFiles(root);
+  const dbFiles = railsDatabaseFiles(context);
   for (const group of partitionSourceFiles("db", dbFiles, sourceGroupMaxOwnedFiles)) {
     seeds.push({
       title:
@@ -396,7 +404,7 @@ async function railsSeeds(root: string, info: RubyProjectInfo): Promise<FeatureS
     });
   }
 
-  for (const group of await railsViewGroups(root)) {
+  for (const group of railsViewGroups(context)) {
     seeds.push({
       title: `Rails views ${group.label}`,
       summary: `Rails view/template group ${group.label} with ${group.files.length} file(s).`,
@@ -417,7 +425,7 @@ async function railsSeeds(root: string, info: RubyProjectInfo): Promise<FeatureS
     });
   }
 
-  for (const group of await railsAssetGroups(root)) {
+  for (const group of await railsAssetGroups(root, context)) {
     seeds.push({
       title: `Rails assets ${group.label}`,
       summary: `Rails asset group ${group.label} with ${group.files.length} file(s).`,
@@ -443,19 +451,16 @@ async function isRailsApp(root: string, info: RubyProjectInfo): Promise<boolean>
   return info.dependencies.has("rails") && (await pathExists(join(root, "config/application.rb")));
 }
 
-async function railsConfigFiles(root: string): Promise<string[]> {
-  const files = await existingFiles(root, [
+function railsConfigFiles(context: MapperContext): string[] {
+  const files = existingIndexedFiles(context, [
     "config/application.rb",
     "config/routes.rb",
     "config/environment.rb",
     "config/boot.rb",
   ]);
   for (const prefix of ["config/environments", "config/initializers", "config/locales"]) {
-    if (!(await isSafeDirectory(root, join(root, prefix)))) {
-      continue;
-    }
     files.push(
-      ...(await walk(root, [prefix])).filter(
+      ...repoFilesUnderAny(context.repoIndex, [prefix]).filter(
         (path) =>
           /\.(rb|ya?ml)$/u.test(path) && !rubyShouldSkip(path) && !isSensitiveRailsConfig(path),
       ),
@@ -468,34 +473,25 @@ function isSensitiveRailsConfig(path: string): boolean {
   return /^config\/initializers\/(?:secret_token|secret_key_base)\.rb$/u.test(path);
 }
 
-async function railsDatabaseFiles(root: string): Promise<string[]> {
-  if (!(await isSafeDirectory(root, join(root, "db")))) {
-    return [];
-  }
-  return (await walk(root, ["db"]))
+function railsDatabaseFiles(context: MapperContext): string[] {
+  return repoFilesUnderAny(context.repoIndex, ["db"])
     .filter((path) => /\.(rb|ya?ml|sql)$/u.test(path) && !rubyShouldSkip(path))
     .toSorted();
 }
 
-async function railsViewGroups(root: string): Promise<SourceGroup[]> {
-  if (!(await isSafeDirectory(root, join(root, "app/views")))) {
-    return [];
-  }
-  const files = (await walk(root, ["app/views"])).filter(
+function railsViewGroups(context: MapperContext): SourceGroup[] {
+  const files = repoFilesUnderAny(context.repoIndex, ["app/views"]).filter(
     (path) => /\.(erb|haml|slim|builder|jbuilder|coffee)$/u.test(path) && !rubyShouldSkip(path),
   );
   return partitionSourceFiles("app/views", files, jekyllContentMaxOwnedFiles);
 }
 
-async function railsAssetGroups(root: string): Promise<SourceGroup[]> {
+async function railsAssetGroups(root: string, context: MapperContext): Promise<SourceGroup[]> {
   const hasNodePackage = await pathExists(join(root, "package.json"));
   const roots = ["app/assets", "app/javascript", "app/packs", "app/frontend"];
   const groups: SourceGroup[] = [];
   for (const prefix of roots) {
-    if (!(await isSafeDirectory(root, join(root, prefix)))) {
-      continue;
-    }
-    const files = (await walk(root, [prefix])).filter(
+    const files = repoFilesUnderAny(context.repoIndex, [prefix]).filter(
       (path) =>
         isRailsAssetFile(path, hasNodePackage) &&
         !rubyShouldSkip(path) &&
@@ -534,14 +530,11 @@ async function jekyllRootPages(root: string): Promise<string[]> {
     .toSorted();
 }
 
-async function jekyllThemeFiles(root: string): Promise<string[]> {
+function jekyllThemeFiles(context: MapperContext): string[] {
   const files: string[] = [];
   for (const prefix of ["_layouts", "_includes", "_sass", "assets"]) {
-    if (!(await isSafeDirectory(root, join(root, prefix)))) {
-      continue;
-    }
     files.push(
-      ...(await walk(root, [prefix])).filter(
+      ...repoFilesUnderAny(context.repoIndex, [prefix]).filter(
         (path) =>
           /\.(html|liquid|scss|sass|css|js)$/u.test(path) &&
           !rubyShouldSkip(path) &&
@@ -565,9 +558,9 @@ function jekyllThemeGroups(files: string[]): SourceGroup[] {
     );
 }
 
-async function jekyllContentGroups(root: string): Promise<SourceGroup[]> {
+async function jekyllContentGroups(root: string, context: MapperContext): Promise<SourceGroup[]> {
   const groups: SourceGroup[] = [];
-  const posts = await jekyllPosts(root);
+  const posts = jekyllPosts(context);
   for (const [year, files] of groupByPostYear(posts)) {
     groups.push(...chunkFiles(`_posts/${year}`, files, jekyllContentMaxOwnedFiles));
   }
@@ -575,7 +568,7 @@ async function jekyllContentGroups(root: string): Promise<SourceGroup[]> {
     if (!(await isSafeDirectory(root, join(root, prefix)))) {
       continue;
     }
-    const files = (await walk(root, [prefix])).filter(
+    const files = repoFilesUnderAny(context.repoIndex, [prefix]).filter(
       (path) => /\.(md|html)$/u.test(path) && !rubyShouldSkip(path),
     );
     groups.push(...partitionSourceFiles(prefix, files, jekyllContentMaxOwnedFiles));
@@ -583,11 +576,8 @@ async function jekyllContentGroups(root: string): Promise<SourceGroup[]> {
   return groups;
 }
 
-async function jekyllPosts(root: string): Promise<string[]> {
-  if (!(await isSafeDirectory(root, join(root, "_posts")))) {
-    return [];
-  }
-  return (await walk(root, ["_posts"]))
+function jekyllPosts(context: MapperContext): string[] {
+  return repoFilesUnderAny(context.repoIndex, ["_posts"])
     .filter((path) => /^_posts\/\d{4}-\d{2}-\d{2}-.+\.md$/u.test(path))
     .toSorted();
 }
@@ -601,13 +591,14 @@ function groupByPostYear(posts: string[]): Map<string, string[]> {
   return new Map([...groups.entries()].toSorted(([left], [right]) => left.localeCompare(right)));
 }
 
-async function rubyExecutables(root: string, skipRailsBinstubs: boolean): Promise<string[]> {
+async function rubyExecutables(
+  root: string,
+  context: MapperContext,
+  skipRailsBinstubs: boolean,
+): Promise<string[]> {
   const executables: string[] = [];
   for (const executableRoot of await rubyExecutableRoots(root)) {
-    if (!(await isSafeDirectory(root, join(root, executableRoot)))) {
-      continue;
-    }
-    for (const path of await walk(root, [executableRoot])) {
+    for (const path of repoFilesUnderAny(context.repoIndex, [executableRoot])) {
       if (
         skipRailsBinstubs &&
         executableRoot.endsWith("bin") &&
@@ -634,33 +625,31 @@ async function hasRubyShebang(root: string, path: string): Promise<boolean> {
   return fileHasRubyShebang(join(root, path));
 }
 
-async function rubySourceGroups(root: string): Promise<SourceGroup[]> {
+async function rubySourceGroups(root: string, context: MapperContext): Promise<SourceGroup[]> {
   const groups: SourceGroup[] = [];
-  groups.push(...(await rootRubySourceGroups(root)));
+  groups.push(...rootRubySourceGroups(context));
   for (const sourceRoot of await rubySourceRoots(root)) {
-    if (!(await isSafeDirectory(root, join(root, sourceRoot)))) {
-      continue;
-    }
-    const files = (await walk(root, [sourceRoot])).filter(isReviewableRubySourceFile);
+    const files = repoFilesUnderAny(context.repoIndex, [sourceRoot]).filter(
+      isReviewableRubySourceFile,
+    );
     groups.push(...partitionSourceFiles(sourceRoot, files, sourceGroupMaxOwnedFiles));
   }
   return groups;
 }
 
-async function rootRubySourceGroups(root: string): Promise<SourceGroup[]> {
-  return chunkFiles("root", await rootRubySourceFiles(root), sourceGroupMaxOwnedFiles);
+function rootRubySourceGroups(context: MapperContext): SourceGroup[] {
+  return chunkFiles("root", rootRubySourceFiles(context), sourceGroupMaxOwnedFiles);
 }
 
-async function rootRubySourceFiles(root: string): Promise<string[]> {
-  return (await readdir(root, { withFileTypes: true }).catch(() => []))
-    .filter((entry) => entry.isFile() && isReviewableRubySourceFile(entry.name))
-    .map((entry) => entry.name)
-    .toSorted();
+function rootRubySourceFiles(context: MapperContext): string[] {
+  return context.repoIndex.files
+    .filter((path) => !path.includes("/"))
+    .filter(isReviewableRubySourceFile);
 }
 
-async function rubyTestFiles(root: string): Promise<string[]> {
-  const rootTests = await rootRubyTestFiles(root);
-  const files = (await walk(root, await rubyTestRoots(root)))
+async function rubyTestFiles(root: string, context: MapperContext): Promise<string[]> {
+  const rootTests = rootRubyTestFiles(context);
+  const files = repoFilesUnderAny(context.repoIndex, await rubyTestRoots(root))
     .filter(isRubyTestPath)
     .filter((path) => !rubyShouldSkip(path) && !isRubyFixturePath(path));
   return uniquePaths([...rootTests, ...files]).slice(0, 200);
@@ -705,11 +694,8 @@ async function nestedRubyPackageRoots(root: string): Promise<string[]> {
   return [...packageRoots].toSorted();
 }
 
-async function rootRubyTestFiles(root: string): Promise<string[]> {
-  return (await readdir(root, { withFileTypes: true }).catch(() => []))
-    .filter((entry) => entry.isFile() && isRubyTestPath(entry.name))
-    .map((entry) => entry.name)
-    .toSorted();
+function rootRubyTestFiles(context: MapperContext): string[] {
+  return context.repoIndex.files.filter((path) => !path.includes("/")).filter(isRubyTestPath);
 }
 
 async function rubyRunPrefix(root: string): Promise<string> {
@@ -971,29 +957,24 @@ function rubyShouldSkip(path: string): boolean {
   );
 }
 
-async function containsReviewableRubySource(root: string): Promise<boolean> {
-  for (const sourceRoot of await rubySourceRoots(root)) {
-    if (!(await isSafeDirectory(root, join(root, sourceRoot)))) {
-      continue;
-    }
-    if ((await walk(root, [sourceRoot])).some(isReviewableRubySourceFile)) {
+function containsReviewableRubySource(context: MapperContext): boolean {
+  for (const path of context.repoIndex.files) {
+    if (isReviewableRubySourceFile(path)) {
       return true;
     }
-  }
-  for (const sourceRoot of await rubyExecutableRoots(root)) {
-    if (!(await isSafeDirectory(root, join(root, sourceRoot)))) {
-      continue;
-    }
-    for (const path of await walk(root, [sourceRoot])) {
-      if (
-        isReviewableRubySourceFile(path) ||
-        (isRubyShebangCandidate(path) && (await hasRubyShebang(root, path)))
-      ) {
-        return true;
+    if (isRubyShebangCandidate(path)) {
+      for (const executableRoot of executableRoots) {
+        if (pathMatchesPrefix(path, executableRoot)) {
+          return true;
+        }
       }
     }
   }
   return false;
+}
+
+function existingIndexedFiles(context: MapperContext, candidates: string[]): string[] {
+  return candidates.filter((candidate) => context.repoIndex.fileSet.has(candidate));
 }
 
 function isRubyShebangCandidate(path: string): boolean {

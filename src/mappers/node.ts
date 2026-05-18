@@ -209,6 +209,7 @@ async function sourceGroupSeeds(
     }
     for (const group of partitionNodeFileGroups(sourceRoot, files, sourceGroupMaxOwnedFiles)) {
       const tests = associatedTests(group.files, testFiles, testCommand ?? null);
+      const imports = await directLocalImportRefs(root, group.files, repoIndex);
       seeds.push({
         title: `Node source ${group.label}`,
         summary:
@@ -228,6 +229,7 @@ async function sourceGroupSeeds(
         })),
         contextFiles: uniqueFileRefs([
           { path: info.packageJsonPath, reason: "package manifest" },
+          ...imports,
           ...tests.map((test) => ({ path: test.path, reason: "associated test" })),
         ]),
         tests,
@@ -246,6 +248,62 @@ async function sourceGroupSeeds(
   }
 
   return seeds;
+}
+
+async function directLocalImportRefs(
+  root: string,
+  files: readonly string[],
+  repoIndex: RepoIndex,
+): Promise<SeedFileRef[]> {
+  const owned = new Set(files);
+  const refs: SeedFileRef[] = [];
+  const seen = new Set<string>();
+  for (const file of files) {
+    const source = await readFile(join(root, file), "utf8").catch(() => "");
+    for (const specifier of localImportSpecifiers(source)) {
+      const resolved = resolveLocalImport(file, specifier, repoIndex);
+      if (resolved === null || owned.has(resolved) || seen.has(resolved)) {
+        continue;
+      }
+      seen.add(resolved);
+      refs.push({ path: resolved, reason: `direct import from ${file}` });
+      if (refs.length >= 12) {
+        return refs;
+      }
+    }
+  }
+  return refs;
+}
+
+function localImportSpecifiers(source: string): string[] {
+  const specifiers = new Set<string>();
+  for (const match of source.matchAll(
+    /(?:import\s+(?:[^"'()]+?\s+from\s+)?|export\s+[^"']*?\s+from\s+|import\s*\()\s*["']([^"']+)["']/gu,
+  )) {
+    const specifier = match[1];
+    if (specifier?.startsWith(".") === true) {
+      specifiers.add(specifier);
+    }
+  }
+  return [...specifiers];
+}
+
+function resolveLocalImport(
+  fromFile: string,
+  specifier: string,
+  repoIndex: RepoIndex,
+): string | null {
+  const base = normalize(join(dirname(fromFile), specifier));
+  const candidates =
+    extname(base).length > 0
+      ? [base]
+      : [
+          ...[".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"].map(
+            (extension) => `${base}${extension}`,
+          ),
+          ...["index.ts", "index.tsx", "index.js", "index.jsx"].map((file) => `${base}/${file}`),
+        ];
+  return candidates.find((candidate) => repoIndex.fileSet.has(candidate)) ?? null;
 }
 
 async function packageOwnedMetadataFiles(root: string, info: PackageInfo): Promise<SeedFileRef[]> {

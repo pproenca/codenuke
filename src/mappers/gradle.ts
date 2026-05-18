@@ -2,8 +2,9 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { pathExists } from "../fs.js";
 import { partitionFileGroups } from "./grouping.js";
-import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip, walk } from "./shared.js";
-import { FeatureSeed, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
+import { FeatureSeed, MapperContext, SeedTestRef } from "./types.js";
 
 const maxOwnedFiles = 12;
 const maxTests = 8;
@@ -367,18 +368,22 @@ type KotlinProjectIndex = {
   packageTypes: Map<string, Set<string>>;
 };
 
-export async function gradleSeeds(root: string): Promise<FeatureSeed[]> {
+export async function gradleSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const roots = await discoverGradleRoots(root);
   const seeds: FeatureSeed[] = [];
   for (const gradleRoot of roots) {
-    seeds.push(...(await gradleProjectSeeds(root, gradleRoot)));
+    seeds.push(...(await gradleProjectSeeds(root, context, gradleRoot)));
   }
   return seeds;
 }
 
-async function gradleProjectSeeds(root: string, gradleRoot: string): Promise<FeatureSeed[]> {
+async function gradleProjectSeeds(
+  root: string,
+  context: MapperContext,
+  gradleRoot: string,
+): Promise<FeatureSeed[]> {
   const moduleRoots = await gradleModuleRoots(root, gradleRoot);
-  const inventories = await gradleModuleSourceInventories(root, moduleRoots);
+  const inventories = await gradleModuleSourceInventories(root, context, moduleRoots);
   const projectSourceFiles = unique(
     inventories.flatMap(({ sourceFiles }) => sourceFiles),
   ).toSorted();
@@ -477,6 +482,7 @@ async function gradleProjectSeeds(root: string, gradleRoot: string): Promise<Fea
 
 async function gradleModuleSourceInventories(
   root: string,
+  context: MapperContext,
   moduleRoots: string[],
 ): Promise<GradleModuleSourceInventory[]> {
   const inventories: GradleModuleSourceInventory[] = [];
@@ -488,7 +494,9 @@ async function gradleModuleSourceInventories(
     const sourceRoot = moduleRoot === "." ? "src" : `${moduleRoot}/src`;
     const sourceFiles: string[] = [];
     const testFiles: string[] = [];
-    for (const file of (await walk(root, [sourceRoot])).filter(isGradleSourceFile)) {
+    for (const file of repoFilesUnderAny(context.repoIndex, [sourceRoot]).filter(
+      isGradleSourceFile,
+    )) {
       if (isGradleTestFile(moduleRoot, file)) {
         testFiles.push(file);
       } else {

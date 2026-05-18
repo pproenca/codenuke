@@ -2,28 +2,33 @@ import { lstat, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { pathExists } from "../fs.js";
 import { partitionFileGroups } from "./grouping.js";
-import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip, walk } from "./shared.js";
-import { FeatureSeed, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
+import { FeatureSeed, MapperContext, SeedTestRef } from "./types.js";
 
 const maxOwnedFiles = 12;
 const maxTests = 8;
 
-export async function appleSeeds(root: string): Promise<FeatureSeed[]> {
+export async function appleSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const projectRoots = await discoverAppleProjectRoots(root);
   const seeds: FeatureSeed[] = [];
   for (const projectRoot of projectRoots) {
-    seeds.push(...(await appleProjectSeeds(root, projectRoot)));
+    seeds.push(...(await appleProjectSeeds(root, context, projectRoot)));
   }
   return seeds;
 }
 
-async function appleProjectSeeds(root: string, projectRoot: string): Promise<FeatureSeed[]> {
+async function appleProjectSeeds(
+  root: string,
+  context: MapperContext,
+  projectRoot: string,
+): Promise<FeatureSeed[]> {
   const manifest = await appleProjectManifest(root, projectRoot);
   if (manifest === null) {
     return [];
   }
   const prefixes = await appleReviewPrefixes(root, projectRoot);
-  const allFiles = await walk(root, prefixes);
+  const allFiles = repoFilesUnderAny(context.repoIndex, prefixes);
   const swiftFiles = allFiles
     .filter((file) => file.endsWith(".swift"))
     .filter((file) => !isApplePackageManifest(projectRoot, file))

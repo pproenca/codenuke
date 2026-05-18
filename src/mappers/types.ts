@@ -1,5 +1,5 @@
 import { FeatureRecord, TrustBoundary } from "../types.js";
-import type { NodeProjectInfo } from "./projects.js";
+import type { NodeProjectInfo } from "./node-project-types.js";
 import type { RepoIndex } from "./repo-index.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 

@@ -8,8 +8,9 @@ import {
 } from "../detect.js";
 import { pathExists } from "../fs.js";
 import { TrustBoundary } from "../types.js";
-import { isSafeDirectory, isSafeFile, pathMatchesPrefix, shouldSkip, walk } from "./shared.js";
-import { FeatureSeed, SeedFileRef, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { isSafeFile, pathMatchesPrefix, shouldSkip } from "./shared.js";
+import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 
 type SourceGroup = {
   label: string;
@@ -53,7 +54,7 @@ type RouteCall = {
   args: string[];
 };
 
-export async function laravelSeeds(root: string): Promise<FeatureSeed[]> {
+export async function laravelSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const composer = await readComposerJson(root);
   const isLaravel = await isLaravelProject(root, composer);
   if (!isLaravel && composer === null) {
@@ -61,22 +62,22 @@ export async function laravelSeeds(root: string): Promise<FeatureSeed[]> {
   }
 
   const testCommand = await laravelTestCommand(root, composer);
-  const testFiles = await phpTestFiles(root);
-  const routes = await laravelRoutes(root);
+  const testFiles = phpTestFiles(context);
+  const routes = await laravelRoutes(root, context);
   const seeds: FeatureSeed[] = [
     ...(isLaravel ? await projectSeeds(root, composer) : []),
     ...composerScriptSeeds(composer),
-    ...(isLaravel ? await controllerSeeds(root, routes, testFiles, testCommand) : []),
-    ...(isLaravel ? await requestSeeds(root, testFiles, testCommand) : []),
-    ...(isLaravel ? await commandSeeds(root, testFiles, testCommand) : []),
-    ...(isLaravel ? await jobSeeds(root, testFiles, testCommand) : []),
-    ...(isLaravel ? await serviceSeeds(root, testFiles, testCommand) : []),
-    ...(isLaravel ? await modelSeeds(root, testFiles, testCommand) : []),
+    ...(isLaravel ? await controllerSeeds(root, context, routes, testFiles, testCommand) : []),
+    ...(isLaravel ? await requestSeeds(root, context, testFiles, testCommand) : []),
+    ...(isLaravel ? await commandSeeds(root, context, testFiles, testCommand) : []),
+    ...(isLaravel ? await jobSeeds(root, context, testFiles, testCommand) : []),
+    ...(isLaravel ? await serviceSeeds(root, context, testFiles, testCommand) : []),
+    ...(isLaravel ? await modelSeeds(root, context, testFiles, testCommand) : []),
     ...(isLaravel
-      ? await groupedPhpSeeds(root, "database/migrations", "Laravel migrations", "migration")
+      ? groupedPhpSeeds(context, "database/migrations", "Laravel migrations", "migration")
       : []),
     ...(isLaravel
-      ? await groupedPhpSeeds(root, "database/seeders", "Laravel seeders", "seeder")
+      ? groupedPhpSeeds(context, "database/seeders", "Laravel seeders", "seeder")
       : []),
     ...testSuiteSeeds(testFiles, testCommand, isLaravel ? "Laravel" : "PHP"),
   ];
@@ -157,11 +158,12 @@ function composerScriptSeeds(composer: ComposerJson | null): FeatureSeed[] {
 
 async function controllerSeeds(
   root: string,
+  context: MapperContext,
   routes: RouteRef[],
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
-  const controllerFiles = await phpFilesUnder(root, "app/Http/Controllers");
+  const controllerFiles = phpFilesUnder(context, "app/Http/Controllers");
   const controllerByClass = new Map(controllerFiles.map((path) => [basename(path, ".php"), path]));
   return Promise.all(
     controllerFiles.map(async (path) => {
@@ -205,11 +207,13 @@ async function controllerSeeds(
 
 async function requestSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
   return phpClassSeeds(
     root,
+    context,
     "app/Http/Requests",
     "Laravel request",
     "laravel-request",
@@ -223,10 +227,11 @@ async function requestSeeds(
 
 async function commandSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
-  const files = await phpFilesUnder(root, "app/Console/Commands");
+  const files = phpFilesUnder(context, "app/Console/Commands");
   return Promise.all(
     files.map(async (path) => {
       const className = basename(path, ".php");
@@ -262,11 +267,13 @@ async function commandSeeds(
 
 async function jobSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
   return phpClassSeeds(
     root,
+    context,
     "app/Jobs",
     "Laravel job",
     "laravel-job",
@@ -280,10 +287,11 @@ async function jobSeeds(
 
 async function serviceSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
-  const files = await phpFilesUnder(root, "app/Services");
+  const files = phpFilesUnder(context, "app/Services");
   return Promise.all(
     files.map(async (path) => {
       const className = basename(path, ".php");
@@ -315,11 +323,13 @@ async function serviceSeeds(
 
 async function modelSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
   return phpClassSeeds(
     root,
+    context,
     "app/Models",
     "Laravel model",
     "laravel-model",
@@ -333,6 +343,7 @@ async function modelSeeds(
 
 async function phpClassSeeds(
   root: string,
+  context: MapperContext,
   prefix: string,
   titlePrefix: string,
   source: string,
@@ -342,7 +353,7 @@ async function phpClassSeeds(
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
-  const files = await phpFilesUnder(root, prefix);
+  const files = phpFilesUnder(context, prefix);
   return Promise.all(
     files.map(async (path) => {
       const className = basename(path, ".php");
@@ -372,13 +383,13 @@ async function phpClassSeeds(
   );
 }
 
-async function groupedPhpSeeds(
-  root: string,
+function groupedPhpSeeds(
+  context: MapperContext,
   prefix: string,
   titlePrefix: string,
   tag: string,
-): Promise<FeatureSeed[]> {
-  const files = await phpFilesUnder(root, prefix);
+): FeatureSeed[] {
+  const files = phpFilesUnder(context, prefix);
   const groups = partitionSourceFiles(prefix, files, groupedMaxOwnedFiles);
   return groups.map((group) => ({
     title: `${titlePrefix} ${group.label}`,
@@ -399,8 +410,8 @@ async function groupedPhpSeeds(
   }));
 }
 
-async function laravelRoutes(root: string): Promise<RouteRef[]> {
-  const routeFiles = await phpFilesUnder(root, "routes");
+async function laravelRoutes(root: string, context: MapperContext): Promise<RouteRef[]> {
+  const routeFiles = phpFilesUnder(context, "routes");
   const routes: RouteRef[] = [];
   for (const file of routeFiles) {
     const source = stripPhpComments(await readFile(join(root, file), "utf8"));
@@ -948,8 +959,10 @@ async function laravelTestCommand(
   return null;
 }
 
-async function phpTestFiles(root: string): Promise<string[]> {
-  return (await walk(root, ["tests"])).filter((path) => path.endsWith("Test.php")).slice(0, 300);
+function phpTestFiles(context: MapperContext): string[] {
+  return repoFilesUnderAny(context.repoIndex, ["tests"])
+    .filter((path) => path.endsWith("Test.php"))
+    .slice(0, 300);
 }
 
 function testSuiteSeeds(
@@ -1021,11 +1034,8 @@ function associatedPhpTests(
     .map((path) => ({ path, command }));
 }
 
-async function phpFilesUnder(root: string, prefix: string): Promise<string[]> {
-  if (!(await isSafeDirectory(root, join(root, prefix)))) {
-    return [];
-  }
-  return (await walk(root, [prefix]))
+function phpFilesUnder(context: MapperContext, prefix: string): string[] {
+  return repoFilesUnderAny(context.repoIndex, [prefix])
     .filter((path) => path.endsWith(".php"))
     .filter((path) => !laravelShouldSkip(path));
 }

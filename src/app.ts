@@ -144,6 +144,7 @@ export async function mapCommand(
     source,
     provider,
     providerOptions: providerOptions(config),
+    ...(heuristic.repoIndex === undefined ? {} : { repoIndex: heuristic.repoIndex }),
     onProgress: (event, fields) => {
       emitProgress(context, "map", event, fields);
     },
@@ -320,8 +321,9 @@ export async function reviewCommand(
     await readFeatures(loaded.paths),
   );
   const reviewedFindings = await readFindings(loaded.paths);
+  const reviewedFindingIds = new Set(findingIds);
   const nextReviewedFinding = nextFinding(
-    reviewedFindings.filter((finding) => findingIds.includes(finding.findingId)),
+    reviewedFindings.filter((finding) => reviewedFindingIds.has(finding.findingId)),
   );
   return {
     run: currentRunId,
@@ -385,7 +387,8 @@ export async function showCommand(
     readPatchAttempts(loaded.paths),
   ]);
   const record = assertDefined(finding, `finding not found: ${findingId}`);
-  const feature = features.find((candidate) => candidate.featureId === record.featureId) ?? null;
+  const featuresById = new Map(features.map((candidate) => [candidate.featureId, candidate]));
+  const feature = featuresById.get(record.featureId) ?? null;
   const linkedPatches = patches.filter((patch) => patch.findingIds.includes(record.findingId));
   const validation = validationCommandsForFeature(feature, loaded.config.commands);
   if (context.options.json) {
@@ -425,7 +428,8 @@ export async function nextCommand(
   if (selected === null) {
     return { finding: null, status, next: "codenuke report --status open" };
   }
-  const feature = features.find((candidate) => candidate.featureId === selected.featureId) ?? null;
+  const featuresById = new Map(features.map((candidate) => [candidate.featureId, candidate]));
+  const feature = featuresById.get(selected.featureId) ?? null;
   if (context.options.json) {
     return {
       finding: findingSummary(selected, feature),
@@ -473,7 +477,7 @@ export async function triageCommand(
     },
   );
   await writeFinding(loaded.paths, updated);
-  await refreshFeatureStatus(loaded.paths, finding.featureId);
+  await refreshFeatureStatuses(loaded.paths, [finding.featureId]);
   return {
     finding: findingId,
     status,
@@ -620,6 +624,7 @@ export async function revalidateCommand(
   await writeRun(loaded.paths, run);
   const results: Array<{ finding: string; outcome: FindingRecord["status"]; reasoning: string }> =
     [];
+  const affectedFeatureIds = new Set<string>();
   emitProgress(context, "revalidate", "start", {
     run: currentRunId,
     findings: findings.length,
@@ -652,7 +657,7 @@ export async function revalidateCommand(
         },
       );
       await writeFinding(loaded.paths, updated);
-      await refreshFeatureStatus(loaded.paths, finding.featureId);
+      affectedFeatureIds.add(finding.featureId);
       results.push({
         finding: finding.findingId,
         outcome: output.outcome,
@@ -666,6 +671,7 @@ export async function revalidateCommand(
         elapsed: `${Math.round((Date.now() - started) / 1000)}s`,
       });
     }
+    await refreshFeatureStatuses(loaded.paths, affectedFeatureIds);
     await writeRun(loaded.paths, {
       ...run,
       status: "completed",
@@ -730,8 +736,9 @@ export async function fixCommand(
     `finding not found: ${findingId}`,
   );
   const features = await readFeatures(loaded.paths);
+  const featuresById = new Map(features.map((candidate) => [candidate.featureId, candidate]));
   const feature = assertDefined(
-    features.find((candidate) => candidate.featureId === finding.featureId),
+    featuresById.get(finding.featureId),
     `feature not found: ${finding.featureId}`,
   );
   const patchAttemptId = stableId("pat", [finding.findingId, nowIso()]);
@@ -1004,23 +1011,39 @@ async function selectRevalidationFindings(
   );
 }
 
-async function refreshFeatureStatus(
+async function refreshFeatureStatuses(
   paths: ReturnType<typeof statePaths>,
-  featureId: string,
+  featureIds: Iterable<string>,
 ): Promise<void> {
-  const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
-  const feature = features.find((candidate) => candidate.featureId === featureId);
-  if (feature === undefined) {
+  const uniqueFeatureIds = new Set(featureIds);
+  if (uniqueFeatureIds.size === 0) {
     return;
   }
-  const featureFindings = findings.filter((finding) => finding.featureId === featureId);
-  const hasUnresolved = featureFindings.some((finding) =>
-    ["open", "uncertain"].includes(finding.status),
-  );
-  if (!hasUnresolved && featureFindings.length > 0) {
-    await writeFeature(paths, { ...feature, status: "fixed", updatedAt: nowIso() });
-  } else if (hasUnresolved && ["fixed", "revalidated", "reviewed"].includes(feature.status)) {
-    await writeFeature(paths, { ...feature, status: "needs-fix", updatedAt: nowIso() });
+  const [features, findings] = await Promise.all([readFeatures(paths), readFindings(paths)]);
+  const findingsByFeatureId = new Map<string, FindingRecord[]>();
+  for (const finding of findings) {
+    if (!uniqueFeatureIds.has(finding.featureId)) {
+      continue;
+    }
+    const grouped = findingsByFeatureId.get(finding.featureId) ?? [];
+    grouped.push(finding);
+    findingsByFeatureId.set(finding.featureId, grouped);
+  }
+  const featuresById = new Map(features.map((feature) => [feature.featureId, feature]));
+  for (const featureId of uniqueFeatureIds) {
+    const feature = featuresById.get(featureId);
+    if (feature === undefined) {
+      continue;
+    }
+    const featureFindings = findingsByFeatureId.get(featureId) ?? [];
+    const hasUnresolved = featureFindings.some((finding) =>
+      ["open", "uncertain"].includes(finding.status),
+    );
+    if (!hasUnresolved && featureFindings.length > 0) {
+      await writeFeature(paths, { ...feature, status: "fixed", updatedAt: nowIso() });
+    } else if (hasUnresolved && ["fixed", "revalidated", "reviewed"].includes(feature.status)) {
+      await writeFeature(paths, { ...feature, status: "needs-fix", updatedAt: nowIso() });
+    }
   }
 }
 

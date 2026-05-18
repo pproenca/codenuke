@@ -39,6 +39,7 @@ export type MapResult = {
   created: number;
   changed: number;
   stale: number;
+  repoIndex?: RepoIndex;
 };
 
 export type MapProgressEvent = {
@@ -221,7 +222,7 @@ export async function mapFeatures(
   options: MapOptions = {},
 ): Promise<MapResult> {
   const { seeds, repoIndex } = await collectSeeds(root, options);
-  return mapFeatureSeeds(root, project, existing, seeds, { repoIndex });
+  return { ...(await mapFeatureSeeds(root, project, existing, seeds, { repoIndex })), repoIndex };
 }
 
 export async function mapFeatureSeeds(

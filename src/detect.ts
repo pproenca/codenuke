@@ -37,10 +37,11 @@ export async function detectProject(root: string): Promise<ProjectRecord> {
   const git = await discoverGit(root);
   const pkg = await readPackageJson(root);
   const composer = await readComposerJson(root);
-  const packageManagers = await detectPackageManagers(root);
-  const frameworks = await detectFrameworks(root, pkg, composer);
+  const pythonInfo = await pythonProjectInfo(root);
+  const packageManagers = await detectPackageManagers(root, pythonInfo);
+  const frameworks = await detectFrameworks(root, pkg, composer, pythonInfo);
   const languages = await detectLanguages(root);
-  const commands = await detectCommands(root, pkg, composer, languages, packageManagers);
+  const commands = await detectCommands(root, pkg, composer, languages, packageManagers, pythonInfo);
   const name =
     typeof pkg?.name === "string"
       ? pkg.name
@@ -153,10 +154,11 @@ async function detectCommands(
   composer: ComposerJson | null,
   languages: string[],
   packageManagers: string[],
+  pythonInfo: PythonProjectInfo,
 ): Promise<ProjectCommands> {
   const scripts = packageScripts(pkg);
   const composerScriptMap = composerScripts(composer);
-  const defaults = await languageDefaultCommands(root, languages, composer);
+  const defaults = await languageDefaultCommands(root, languages, composer, pythonInfo);
   const packageManager = packageScriptManager(packageManagers);
   const composerTestCommand = composerValidationCommand(composerScriptMap, ["test"]);
   return {
@@ -192,6 +194,7 @@ async function languageDefaultCommands(
   root: string,
   languages: string[],
   composer: ComposerJson | null,
+  pythonInfo: PythonProjectInfo,
 ): Promise<ProjectCommands> {
   if (languages.includes("go")) {
     return {
@@ -218,7 +221,7 @@ async function languageDefaultCommands(
     };
   }
   if (languages.includes("python")) {
-    return pythonDefaultCommands(root);
+    return pythonDefaultCommands(root, pythonInfo);
   }
   if (languages.includes("php")) {
     return phpDefaultCommands(root, composer);
@@ -260,7 +263,7 @@ function packageRunCommand(packageManager: string, script: string): string {
   return `npm run ${script}`;
 }
 
-async function detectPackageManagers(root: string): Promise<string[]> {
+async function detectPackageManagers(root: string, pythonInfo: PythonProjectInfo): Promise<string[]> {
   const found: string[] = [];
   const nodeChecks: Array<[string, string]> = [
     ["pnpm", "pnpm-lock.yaml"],
@@ -332,11 +335,14 @@ async function detectPackageManagers(root: string): Promise<string[]> {
     }
   }
   for (const tool of ["uv", "poetry", "pdm", "hatch"]) {
-    if (!found.includes(tool) && (await pyprojectHasToolSection(root, tool))) {
+    if (!found.includes(tool) && pythonInfo.tools.has(tool)) {
       found.push(tool);
     }
   }
-  if (!found.some((name) => pythonPackageManagers.has(name)) && (await isPythonProject(root))) {
+  if (
+    !found.some((name) => pythonPackageManagers.has(name)) &&
+    (await isPythonProject(root, pythonInfo))
+  ) {
     found.push((await pathExists(join(root, "requirements.txt"))) ? "pip" : "python");
   }
   if ((await isRubyProject(root)) && !found.some((name) => rubyPackageManagers.has(name))) {
@@ -395,9 +401,11 @@ async function phpDefaultCommands(
   };
 }
 
-async function pythonDefaultCommands(root: string): Promise<ProjectCommands> {
-  const info = await pythonProjectInfo(root);
-  const runner = await pythonRunner(root);
+async function pythonDefaultCommands(
+  root: string,
+  info: PythonProjectInfo,
+): Promise<ProjectCommands> {
+  const runner = await pythonRunner(root, info);
   const hasPytest =
     info.hasPytestConfig ||
     info.dependencies.has("pytest") ||
@@ -424,35 +432,20 @@ async function pythonDefaultCommands(root: string): Promise<ProjectCommands> {
   };
 }
 
-async function pythonRunner(root: string): Promise<string | null> {
-  if ((await pathExists(join(root, "uv.lock"))) || (await pyprojectHasToolSection(root, "uv"))) {
+async function pythonRunner(root: string, info: PythonProjectInfo): Promise<string | null> {
+  if ((await pathExists(join(root, "uv.lock"))) || info.tools.has("uv")) {
     return "uv";
   }
-  if (
-    (await pathExists(join(root, "poetry.lock"))) ||
-    (await pyprojectHasToolSection(root, "poetry"))
-  ) {
+  if ((await pathExists(join(root, "poetry.lock"))) || info.tools.has("poetry")) {
     return "poetry";
   }
-  if ((await pathExists(join(root, "pdm.lock"))) || (await pyprojectHasToolSection(root, "pdm"))) {
+  if ((await pathExists(join(root, "pdm.lock"))) || info.tools.has("pdm")) {
     return "pdm";
   }
-  if (
-    (await pathExists(join(root, "hatch.toml"))) ||
-    (await pyprojectHasToolSection(root, "hatch"))
-  ) {
+  if ((await pathExists(join(root, "hatch.toml"))) || info.tools.has("hatch")) {
     return "hatch";
   }
   return null;
-}
-
-async function pyprojectHasToolSection(root: string, tool: string): Promise<boolean> {
-  if (!(await pathExists(join(root, "pyproject.toml")))) {
-    return false;
-  }
-  const source = await readFile(join(root, "pyproject.toml"), "utf8");
-  const escaped = tool.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`^\\s*\\[\\[?tool\\.${escaped}(?:\\.|\\])`, "mu").test(source);
 }
 
 function pythonRunCommand(runner: string | null, command: string): string {
@@ -876,6 +869,7 @@ async function detectFrameworks(
   root: string,
   pkg: PackageJson | null,
   composer: ComposerJson | null,
+  pythonInfo: PythonProjectInfo,
 ): Promise<string[]> {
   const deps = dependencyNames(pkg);
   const composerDeps = composerDependencyNames(composer);
@@ -894,10 +888,9 @@ async function detectFrameworks(
   if (composerDeps.has("slim/slim")) {
     frameworks.push("slim");
   }
-  if (await isPythonProject(root)) {
-    const info = await pythonProjectInfo(root);
+  if (await isPythonProject(root, pythonInfo)) {
     for (const name of ["flask", "fastapi", "django", "pytest"]) {
-      if (info.dependencies.has(name)) {
+      if (pythonInfo.dependencies.has(name)) {
         frameworks.push(name);
       }
     }
@@ -1039,12 +1032,21 @@ async function containsReviewableJvmFile(root: string, extension: string): Promi
   return false;
 }
 
-async function isPythonProject(root: string): Promise<boolean> {
+async function isPythonProject(
+  root: string,
+  info: PythonProjectInfo = {
+    dependencies: new Set(),
+    tools: new Set(),
+    hasPytestConfig: false,
+  },
+): Promise<boolean> {
   return (
     (await pathExists(join(root, "pyproject.toml"))) ||
     (await pathExists(join(root, "setup.py"))) ||
     (await pathExists(join(root, "setup.cfg"))) ||
     (await pathExists(join(root, "requirements.txt"))) ||
+    info.dependencies.size > 0 ||
+    info.tools.size > 0 ||
     (await containsReviewablePythonFile(root))
   );
 }

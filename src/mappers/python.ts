@@ -9,9 +9,9 @@ import {
   packageTrustBoundaries,
   pathMatchesPrefix,
   shouldSkip,
-  walk,
 } from "./shared.js";
-import { FeatureSeed, SeedFileRef, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 import type { FileGroup } from "./grouping.js";
 
 type PythonScript = {
@@ -70,14 +70,14 @@ const flaskRootEntryFiles = [
   "main.py",
 ] as const;
 
-export async function pythonSeeds(root: string): Promise<FeatureSeed[]> {
-  if (!(await isPythonProject(root))) {
+export async function pythonSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
+  if (!(await isPythonProject(root, context))) {
     return [];
   }
   const metadata = await readPythonProjectMetadata(root);
   const metadataFiles = await pythonMetadataFiles(root);
-  const testCommand = await pythonTestCommand(root, metadata);
-  const testFiles = await pythonTestFiles(root);
+  const testFiles = await pythonTestFiles(root, context);
+  const testCommand = await pythonTestCommand(root, metadata, testFiles);
   const seeds: FeatureSeed[] = [];
 
   if (metadataFiles.length > 0) {
@@ -131,15 +131,15 @@ export async function pythonSeeds(root: string): Promise<FeatureSeed[]> {
     });
   }
 
-  for (const route of await flaskRouteSeeds(root, testFiles, testCommand)) {
+  for (const route of await flaskRouteSeeds(root, context, testFiles, testCommand)) {
     seeds.push(route);
   }
 
-  for (const route of await fastApiRouteSeeds(root, testFiles, testCommand)) {
+  for (const route of await fastApiRouteSeeds(root, context, testFiles, testCommand)) {
     seeds.push(route);
   }
 
-  for (const group of await pythonSourceGroups(root)) {
+  for (const group of await pythonSourceGroups(root, context)) {
     const tests = associatedTests(group.files, testFiles, testCommand);
     seeds.push({
       title: `Python source ${group.label}`,
@@ -171,13 +171,13 @@ export async function pythonSeeds(root: string): Promise<FeatureSeed[]> {
   return seeds;
 }
 
-async function isPythonProject(root: string): Promise<boolean> {
+async function isPythonProject(root: string, context: MapperContext): Promise<boolean> {
   return (
     (await pathExists(join(root, "pyproject.toml"))) ||
     (await pathExists(join(root, "setup.py"))) ||
     (await pathExists(join(root, "setup.cfg"))) ||
     (await pathExists(join(root, "requirements.txt"))) ||
-    (await containsReviewablePythonSource(root))
+    containsReviewablePythonSource(context)
   );
 }
 
@@ -219,11 +219,15 @@ async function pythonMetadataFiles(root: string): Promise<string[]> {
   return files;
 }
 
-async function pythonTestCommand(root: string, pyproject: PyprojectInfo): Promise<string | null> {
+async function pythonTestCommand(
+  root: string,
+  pyproject: PyprojectInfo,
+  testFiles: string[],
+): Promise<string | null> {
   if (
     !pyproject.hasPytest &&
     !(await dependencyFileHas(root, "pytest")) &&
-    (await pythonTestFiles(root)).length === 0
+    testFiles.length === 0
   ) {
     return null;
   }
@@ -273,16 +277,18 @@ async function dependencyFileHas(root: string, dependency: string): Promise<bool
   return false;
 }
 
-async function pythonSourceGroups(root: string): Promise<FileGroup[]> {
+async function pythonSourceGroups(root: string, context: MapperContext): Promise<FileGroup[]> {
   const groups: FileGroup[] = [];
-  groups.push(...(await rootPythonSourceGroups(root)));
+  groups.push(...rootPythonSourceGroups(context));
   const seenRoots = new Set<string>();
   for (const sourceRoot of await pythonSourceRoots(root)) {
     if (seenRoots.has(sourceRoot)) {
       continue;
     }
     seenRoots.add(sourceRoot);
-    const files = (await walk(root, [sourceRoot])).filter(isReviewablePythonSourceFile);
+    const files = repoFilesUnderAny(context.repoIndex, [sourceRoot]).filter(
+      isReviewablePythonSourceFile,
+    );
     for (const group of partitionFileGroups(sourceRoot, files, sourceGroupMaxOwnedFiles)) {
       groups.push(group);
     }
@@ -290,15 +296,14 @@ async function pythonSourceGroups(root: string): Promise<FileGroup[]> {
   return groups;
 }
 
-async function rootPythonSourceGroups(root: string): Promise<FileGroup[]> {
-  return partitionFileGroups("root", await rootPythonSourceFiles(root), sourceGroupMaxOwnedFiles);
+function rootPythonSourceGroups(context: MapperContext): FileGroup[] {
+  return partitionFileGroups("root", rootPythonSourceFiles(context), sourceGroupMaxOwnedFiles);
 }
 
-async function rootPythonSourceFiles(root: string): Promise<string[]> {
-  return (await readdir(root, { withFileTypes: true }).catch(() => []))
-    .filter((entry) => entry.isFile() && isReviewablePythonSourceFile(entry.name))
-    .map((entry) => entry.name)
-    .toSorted();
+function rootPythonSourceFiles(context: MapperContext): string[] {
+  return context.repoIndex.files
+    .filter((path) => !path.includes("/"))
+    .filter(isReviewablePythonSourceFile);
 }
 
 async function pythonSourceRoots(root: string): Promise<string[]> {
@@ -321,20 +326,20 @@ async function pythonSourceRoots(root: string): Promise<string[]> {
   return roots.toSorted();
 }
 
-async function pythonTestFiles(root: string): Promise<string[]> {
-  const rootTests = await rootPythonTestFiles(root);
-  const nestedTests = (await walk(root, ["tests", "test", ...(await pythonSourceRoots(root))]))
+async function pythonTestFiles(root: string, context: MapperContext): Promise<string[]> {
+  const rootTests = rootPythonTestFiles(context);
+  const nestedTests = repoFilesUnderAny(context.repoIndex, [
+    "tests",
+    "test",
+    ...(await pythonSourceRoots(root)),
+  ])
     .filter(isPythonTestPath)
     .filter((path) => !pythonShouldSkip(path) && !isPythonFixturePath(path));
   return uniquePaths([...rootTests, ...nestedTests]).slice(0, 200);
 }
 
-async function rootPythonTestFiles(root: string): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
-  return entries
-    .filter((entry) => entry.isFile() && isPythonTestPath(entry.name))
-    .map((entry) => entry.name)
-    .toSorted();
+function rootPythonTestFiles(context: MapperContext): string[] {
+  return context.repoIndex.files.filter((path) => !path.includes("/")).filter(isPythonTestPath);
 }
 
 async function pythonProjectContextFiles(
@@ -377,12 +382,15 @@ async function resolvePythonScript(
 
 async function fastApiRouteSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
   const routeFiles = uniquePaths([
-    ...(await rootPythonSourceFiles(root)),
-    ...(await walk(root, await pythonSourceRoots(root))).filter(isReviewablePythonSourceFile),
+    ...rootPythonSourceFiles(context),
+    ...repoFilesUnderAny(context.repoIndex, await pythonSourceRoots(root)).filter(
+      isReviewablePythonSourceFile,
+    ),
   ]);
   const seeds: FeatureSeed[] = [];
   for (const filePath of routeFiles) {
@@ -513,11 +521,12 @@ function parseFastApiPath(args: string): string | null {
 
 async function flaskRouteSeeds(
   root: string,
+  context: MapperContext,
   testFiles: string[],
   testCommand: string | null,
 ): Promise<FeatureSeed[]> {
   const hasFlaskDependency = await pythonDependencyHas(root, "flask");
-  const routeFiles = await flaskRouteFiles(root);
+  const routeFiles = await flaskRouteFiles(root, context);
   const seeds: FeatureSeed[] = [];
   for (const filePath of routeFiles) {
     const source = await readFile(join(root, filePath), "utf8");
@@ -551,14 +560,14 @@ async function flaskRouteSeeds(
   return seeds;
 }
 
-async function flaskRouteFiles(root: string): Promise<string[]> {
+async function flaskRouteFiles(root: string, context: MapperContext): Promise<string[]> {
   const rootEntries: string[] = [];
   for (const filePath of flaskRootEntryFiles) {
     if (isReviewablePythonSourceFile(filePath) && (await isSafeFile(root, join(root, filePath)))) {
       rootEntries.push(filePath);
     }
   }
-  const rootedFiles = (await walk(root, await pythonSourceRoots(root))).filter(
+  const rootedFiles = repoFilesUnderAny(context.repoIndex, await pythonSourceRoots(root)).filter(
     isReviewablePythonSourceFile,
   );
   return uniquePaths([...rootEntries, ...rootedFiles]);
@@ -861,51 +870,12 @@ function pythonShouldSkip(path: string): boolean {
   );
 }
 
-async function containsReviewablePythonSource(root: string): Promise<boolean> {
-  if ((await rootPythonSourceFiles(root)).length > 0) {
+function containsReviewablePythonSource(context: MapperContext): boolean {
+  if (rootPythonSourceFiles(context).length > 0) {
     return true;
   }
-  for (const sourceRoot of sourceRoots) {
-    if (await containsPythonSourceInDirectory(root, sourceRoot, 4)) {
-      return true;
-    }
-  }
-  for (const entry of await readdir(root, { withFileTypes: true }).catch(() => [])) {
-    if (
-      entry.isDirectory() &&
-      !pythonShouldSkip(entry.name) &&
-      (await pathExists(join(root, entry.name, "__init__.py")))
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-async function containsPythonSourceInDirectory(
-  root: string,
-  prefix: string,
-  remainingDepth: number,
-): Promise<boolean> {
-  if (remainingDepth < 0 || pythonShouldSkip(prefix)) {
-    return false;
-  }
-  const dir = join(root, prefix);
-  if (!(await isSafeDirectory(root, dir))) {
-    return false;
-  }
-  for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
-    const rel = `${prefix}/${entry.name}`;
-    if (pythonShouldSkip(rel)) {
-      continue;
-    }
-    if (entry.isFile() && isReviewablePythonSourceFile(rel)) {
-      return true;
-    }
-    if (
-      entry.isDirectory() &&
-      (await containsPythonSourceInDirectory(root, rel, remainingDepth - 1))
-    ) {
+  for (const file of context.repoIndex.files) {
+    if (isReviewablePythonSourceFile(file)) {
       return true;
     }
   }

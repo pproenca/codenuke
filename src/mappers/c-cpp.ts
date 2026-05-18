@@ -8,14 +8,15 @@ import {
   packageTrustBoundaries,
   shouldSkip,
   stripLineComments,
-  walk,
 } from "./shared.js";
-import { FeatureSeed, SeedFileRef } from "./types.js";
+import { FeatureSeed, MapperContext, SeedFileRef } from "./types.js";
 
-export async function cCppSeeds(root: string): Promise<FeatureSeed[]> {
-  const files = (await walk(root, [""], shouldSkipCOrCppPath)).filter(
+export async function cCppSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
+  const files = context.repoIndex.files.filter(
     (path) =>
-      !isSampleProjectPath(path) && (isCOrCppSource(path) || isMakefile(path) || isCMake(path)),
+      !shouldSkipCOrCppPath(path) &&
+      !isSampleProjectPath(path) &&
+      (isCOrCppSource(path) || isMakefile(path) || isCMake(path)),
   );
   if (files.length === 0) {
     return [];

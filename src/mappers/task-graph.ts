@@ -1,4 +1,4 @@
-import type { NodeProjectInfo } from "./projects.js";
+import type { NodeProjectInfo } from "./node-project-types.js";
 
 export type WorkspaceTaskName = "build" | "test" | "lint" | "typecheck" | "format" | string;
 

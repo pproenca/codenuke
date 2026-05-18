@@ -46,6 +46,7 @@ import {
   writeFinding,
 } from "./state.js";
 import { buildFixPrompt, buildReviewPrompt } from "./prompt.js";
+import { repoIndexFromFiles } from "./mappers/repo-index.js";
 import type { Provider } from "./provider.js";
 import { fixtureRoot, testOptions, writeFixture } from "./test-helpers.js";
 import { findingRecordSchema } from "./types.js";
@@ -1228,6 +1229,40 @@ describe("workflow", () => {
     expect(second.features).toHaveLength(1);
     expect(second.features[0]?.featureId).toBe(first.features[0]?.featureId);
     expect(second.stale).toBe(0);
+  });
+
+  it("uses the heuristic repo index for agent-map inventory", async () => {
+    const root = await fixtureRoot("codenuke-agent-map-index-");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "agent-map-index" }));
+    const context = await makeContext(testOptions(root));
+    await initCommand(context, {});
+    const paths = statePaths(join(root, ".codenuke"));
+    const project = await readProject(paths);
+    if (project === null) {
+      throw new Error("missing project");
+    }
+
+    const result = await mapWithSource(
+      root,
+      project,
+      [],
+      {
+        features: [],
+        created: 0,
+        changed: 0,
+        stale: 0,
+        repoIndex: repoIndexFromFiles(["src/from-index.ts", "tests/from-index.test.ts"]),
+      },
+      {
+        source: "heuristic",
+        provider: null,
+        providerOptions: { model: null, reasoningEffort: null },
+      },
+    );
+
+    expect(result.decision.inventory.files).toBe(2);
+    expect(result.decision.inventory.sourceFiles).toBe(1);
+    expect(result.decision.inventory.testFiles).toBe(1);
   });
 
   it("augments deterministic features when forced agent mapping returns partial coverage", async () => {

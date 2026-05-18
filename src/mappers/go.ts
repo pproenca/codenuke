@@ -2,15 +2,15 @@ import { spawn } from "node:child_process";
 import { readdir, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
 import { pathExists } from "../fs.js";
-import { packageKind, packageTrustBoundaries, normalize, shouldSkip, walk } from "./shared.js";
-import { FeatureSeed, SeedFileRef, SeedTestRef } from "./types.js";
+import { packageKind, packageTrustBoundaries, normalize, shouldSkip } from "./shared.js";
+import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 
-export async function goSeeds(root: string): Promise<FeatureSeed[]> {
+export async function goSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   if (!(await pathExists(join(root, "go.mod")))) {
     return [];
   }
   const modulePath = await goModulePath(root);
-  const packages = await goPackages(root, modulePath);
+  const packages = await goPackages(root, context, modulePath);
   const packageByImport = new Map(packages.map((pkg) => [pkg.importPath, pkg]));
   const packageFiles = new Map<string, Promise<GoPackageFiles>>();
   const getPackageFiles = (dir: string): Promise<GoPackageFiles> => {
@@ -52,12 +52,16 @@ type GoPackageFiles = {
   generated: string[];
 };
 
-async function goPackages(root: string, modulePath: string | null): Promise<GoPackage[]> {
+async function goPackages(
+  root: string,
+  context: MapperContext,
+  modulePath: string | null,
+): Promise<GoPackage[]> {
   const listed = await goListPackages(root);
   if (listed.length > 0) {
     return listed;
   }
-  return fallbackGoPackages(root, modulePath);
+  return fallbackGoPackages(root, context, modulePath);
 }
 
 async function goListPackages(root: string): Promise<GoPackage[]> {
@@ -82,9 +86,13 @@ async function goListPackages(root: string): Promise<GoPackage[]> {
   return packages;
 }
 
-async function fallbackGoPackages(root: string, modulePath: string | null): Promise<GoPackage[]> {
+async function fallbackGoPackages(
+  root: string,
+  context: MapperContext,
+  modulePath: string | null,
+): Promise<GoPackage[]> {
   const dirs = new Set<string>();
-  for (const file of await walk(root, [""])) {
+  for (const file of context.repoIndex.files) {
     if (!file.endsWith(".go")) {
       continue;
     }

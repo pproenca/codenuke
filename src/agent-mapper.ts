@@ -5,6 +5,7 @@ import { stableFeatureJson } from "./feature-equivalence.js";
 import { Provider, ProviderOptions } from "./provider.js";
 import { AgentMapOutput, FeatureRecord, ProjectRecord } from "./types.js";
 import { mapFeatureSeeds, MapResult } from "./mapper.js";
+import type { RepoIndex } from "./mappers/repo-index.js";
 import { FeatureSeed, SeedFileRef, SeedTestRef } from "./mappers/types.js";
 import { isSafeFile, normalize, walk } from "./mappers/shared.js";
 
@@ -25,6 +26,7 @@ type AgentMapOptions = {
   source: AgentMapMode;
   provider: Provider | null;
   providerOptions: ProviderOptions;
+  repoIndex?: RepoIndex;
   onProgress?: (event: string, fields: Record<string, string | number | boolean>) => void;
 };
 
@@ -97,7 +99,7 @@ export async function mapWithSource(
 ): Promise<AgentMapResult> {
   const inventoryStarted = Date.now();
   options.onProgress?.("inventory-start", {});
-  const inventory = await repoInventory(root, heuristic.features);
+  const inventory = await repoInventory(root, heuristic.features, options.repoIndex ?? heuristic.repoIndex);
   options.onProgress?.("inventory-done", {
     files: inventory.files,
     sourceFiles: inventory.sourceFiles,
@@ -350,8 +352,12 @@ async function validRelativeFile(root: string, path: string): Promise<boolean> {
   return isSafeFile(root, join(root, path));
 }
 
-async function repoInventory(root: string, features: FeatureRecord[]): Promise<RepoInventory> {
-  const files = await walk(root, [""]);
+async function repoInventory(
+  root: string,
+  features: FeatureRecord[],
+  repoIndex: RepoIndex | undefined,
+): Promise<RepoInventory> {
+  const files = repoIndex?.files ?? (await walk(root, [""]));
   const sourceFiles = files.filter(isSourceFile).filter((path) => !isTestFile(path));
   const testFiles = files.filter(isTestFile);
   const ownedSource = new Set(

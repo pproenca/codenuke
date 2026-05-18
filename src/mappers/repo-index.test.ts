@@ -21,4 +21,20 @@ describe("repo index queries", () => {
       "src/routes/home.tsx",
     ]);
   });
+
+  it("matches prefixes exactly without scanning sibling prefixes", () => {
+    const index = repoIndexFromFiles([
+      "src/route.ts",
+      "src/routes/home.ts",
+      "src/routes-admin/home.ts",
+      "src/routes",
+      "src/routes/deep/file.ts",
+    ]);
+
+    expect(repoFilesUnderAny(index, ["src/routes"])).toEqual([
+      "src/routes",
+      "src/routes/deep/file.ts",
+      "src/routes/home.ts",
+    ]);
+  });
 });

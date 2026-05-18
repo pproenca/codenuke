@@ -8,22 +8,26 @@ import {
   pathMatchesPrefix,
   shouldSkip,
   stripSwiftComments,
-  walk,
 } from "./shared.js";
-import { FeatureSeed, SeedFileRef, SeedTestRef } from "./types.js";
+import { repoFilesUnderAny } from "./repo-index.js";
+import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 
-export async function swiftSeeds(root: string): Promise<FeatureSeed[]> {
+export async function swiftSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const packageRoots = await discoverSwiftPackageRoots(root);
   const seeds: FeatureSeed[] = [];
   for (const packageRoot of packageRoots) {
     const packagePath = packageRoot === "." ? root : join(root, packageRoot);
-    const packageSeeds = await swiftPackageSeeds(packagePath);
+    const packageSeeds = await swiftPackageSeeds(packagePath, context, packageRoot);
     seeds.push(...packageSeeds.map((seed) => prefixSwiftSeed(seed, packageRoot)));
   }
   return seeds;
 }
 
-async function swiftPackageSeeds(root: string): Promise<FeatureSeed[]> {
+async function swiftPackageSeeds(
+  root: string,
+  context: MapperContext,
+  packageRoot: string,
+): Promise<FeatureSeed[]> {
   const seeds: FeatureSeed[] = [];
   const manifestTargets = await swiftManifestTargets(root);
   const swiftTestCommand = "swift test";
@@ -35,7 +39,10 @@ async function swiftPackageSeeds(root: string): Promise<FeatureSeed[]> {
     );
   const customSourcePathPrefixes = manifestTargets.sourcePaths.flatMap(swiftPathPrefixes);
   const testPathPrefixes = ["Tests", ...customTestPathPrefixes];
-  const sourceFiles = (await walk(root, ["Sources", ...customSourcePathPrefixes])).filter(
+  const sourceFiles = packageRepoFiles(context, packageRoot, [
+    "Sources",
+    ...customSourcePathPrefixes,
+  ]).filter(
     (file) =>
       file.endsWith(".swift") &&
       file !== "Package.swift" &&
@@ -81,7 +88,10 @@ async function swiftPackageSeeds(root: string): Promise<FeatureSeed[]> {
       ),
     });
   }
-  const testFiles = (await walk(root, ["Tests", ...customTestPathPrefixes])).filter(
+  const testFiles = packageRepoFiles(context, packageRoot, [
+    "Tests",
+    ...customTestPathPrefixes,
+  ]).filter(
     (file) =>
       file.endsWith(".swift") &&
       !sourcePathClaimsFile(file) &&
@@ -113,6 +123,19 @@ async function swiftPackageSeeds(root: string): Promise<FeatureSeed[]> {
     });
   }
   return seeds;
+}
+
+function packageRepoFiles(
+  context: MapperContext,
+  packageRoot: string,
+  prefixes: readonly string[],
+): string[] {
+  const repoPrefixes = prefixes.map((prefix) =>
+    packageRoot === "." ? prefix : normalize(join(packageRoot, prefix)),
+  );
+  return repoFilesUnderAny(context.repoIndex, repoPrefixes).map((file) =>
+    packageRoot === "." ? file : file.slice(packageRoot.length + 1),
+  );
 }
 
 async function discoverSwiftPackageRoots(root: string): Promise<string[]> {
