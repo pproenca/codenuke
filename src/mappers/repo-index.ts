@@ -28,8 +28,10 @@ export function repoIndexFromFiles(files: string[]): RepoIndex {
         extensions.add(extension.toLowerCase());
       }
     }
-    for (let index = 1; index < parts.length; index += 1) {
-      directories.add(parts.slice(0, index).join("/"));
+    let directory = "";
+    for (const part of parts.slice(0, -1)) {
+      directory = directory.length === 0 ? part : `${directory}/${part}`;
+      directories.add(directory);
     }
   }
   return {
@@ -66,4 +68,25 @@ export function repoHasDirectory(index: RepoIndex, path: string): boolean {
 
 export function repoHasDirectoryEnding(index: RepoIndex, suffix: string): boolean {
   return [...index.directories].some((directory) => directory.endsWith(suffix));
+}
+
+export function repoFilesUnderAny(index: RepoIndex, prefixes: readonly string[]): string[] {
+  const normalizedPrefixes = prefixes.map(normalizePrefix);
+  return index.files.filter((file) =>
+    normalizedPrefixes.some(
+      (prefix) => prefix.length === 0 || file === prefix || file.startsWith(`${prefix}/`),
+    ),
+  );
+}
+
+export function repoFilesWithAnyExtension(
+  index: RepoIndex,
+  extensions: readonly string[],
+): string[] {
+  const extensionSet = new Set(extensions.map((extension) => extension.toLowerCase()));
+  return index.files.filter((file) => extensionSet.has(extname(file).toLowerCase()));
+}
+
+function normalizePrefix(prefix: string): string {
+  return prefix.replace(/\\/gu, "/").replace(/\/$/u, "");
 }

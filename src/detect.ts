@@ -1353,21 +1353,20 @@ async function containsFileMatching(
   if (!dirInfo.isDirectory() || dirInfo.isSymbolicLink()) {
     return false;
   }
-  for (const entry of await readdir(dir)) {
-    const relativePath = relativeDir.length === 0 ? entry : `${relativeDir}/${entry}`;
-    if (skipEntry(entry, relativePath)) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const relativePath = relativeDir.length === 0 ? entry.name : `${relativeDir}/${entry.name}`;
+    if (skipEntry(entry.name, relativePath)) {
       continue;
     }
-    const full = join(dir, entry);
-    const info = await lstat(full);
-    if (info.isSymbolicLink()) {
+    const full = join(dir, entry.name);
+    if (entry.isSymbolicLink()) {
       continue;
     }
-    if (info.isFile() && predicate(entry)) {
+    if (entry.isFile() && predicate(entry.name)) {
       return true;
     }
     if (
-      info.isDirectory() &&
+      entry.isDirectory() &&
       (await containsFileMatching(full, remainingDepth - 1, predicate, skipEntry, relativePath))
     ) {
       return true;

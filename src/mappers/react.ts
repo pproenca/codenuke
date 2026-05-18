@@ -11,9 +11,9 @@ import {
   pathMatchesPrefix,
   pathInsideRoot,
   shouldSkip,
-  walk,
 } from "./shared.js";
 import { projectTargetCommand } from "./projects.js";
+import { repoFilesUnderAny } from "./repo-index.js";
 import {
   FeatureSeed,
   MapperContext,
@@ -28,6 +28,7 @@ import {
   workspacePatternExcludes,
 } from "./workspaces.js";
 import type { NodeProjectInfo } from "./projects.js";
+import type { RepoIndex } from "./repo-index.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 
 type PackageJson = {
@@ -45,6 +46,7 @@ type ReactPackage = {
   packageJsonPath: string;
   packageJson: PackageJson;
   packageManager: string;
+  repoIndex: RepoIndex;
   testCommand: string | null;
   suppressConfiguredTest: boolean;
 };
@@ -88,7 +90,12 @@ const contextImportExtensions = new Set([
 
 export async function reactSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   syncFileCache.clear();
-  const packages = await discoverReactPackages(root, context.projects, context.taskGraph);
+  const packages = await discoverReactPackages(
+    root,
+    context.projects,
+    context.repoIndex,
+    context.taskGraph,
+  );
   const seeds: FeatureSeed[] = [];
   for (const info of packages) {
     seeds.push(...(await routeSeeds(root, info)));
@@ -98,12 +105,12 @@ export async function reactSeeds(root: string, context: MapperContext): Promise<
 }
 
 async function routeSeeds(root: string, info: ReactPackage): Promise<FeatureSeed[]> {
-  const files = await packageSourceFiles(root, info, sourceRoots);
+  const files = await packageSourceFiles(info, sourceRoots);
   const routeFiles = files
     .filter((file) => /\.(tsx|jsx|ts|js)$/u.test(file))
     .filter((file) => !isJsTestPath(file));
   const testCommand = packageTestCommand(info);
-  const tests = await packageTestFiles(root, info);
+  const tests = await packageTestFiles(info);
   const seeds: FeatureSeed[] = [];
 
   for (const file of routeFiles) {
@@ -175,13 +182,13 @@ async function componentSeeds(
       .filter((seed) => seed.source === "react-router-route")
       .flatMap((seed) => (seed.ownedFiles ?? [{ path: seed.entryPath }]).map((file) => file.path)),
   );
-  const files = await packageSourceFiles(root, info, componentRoots);
+  const files = await packageSourceFiles(info, componentRoots);
   const componentFiles = files
     .filter(isReactComponentFile)
     .filter((file) => !routeOwnedFiles.has(file))
     .slice(0, 100);
   const testCommand = packageTestCommand(info);
-  const tests = await packageTestFiles(root, info);
+  const tests = await packageTestFiles(info);
 
   return componentFiles.map((file) => {
     const componentName = basename(file).replace(/\.[^.]+$/u, "");
@@ -218,6 +225,7 @@ async function componentSeeds(
 async function discoverReactPackages(
   root: string,
   projects: NodeProjectInfo[],
+  repoIndex: RepoIndex,
   taskGraph: WorkspaceTaskGraph,
 ): Promise<ReactPackage[]> {
   const packages: ReactPackage[] = [];
@@ -239,6 +247,7 @@ async function discoverReactPackages(
       packageJsonPath,
       packageJson,
       packageManager,
+      repoIndex,
       testCommand:
         projectTestCommand !== undefined
           ? projectTestCommand
@@ -358,27 +367,19 @@ function dependencyFieldHas(field: unknown, name: string): boolean {
   return typeof field === "object" && field !== null && Object.hasOwn(field, name);
 }
 
-async function packageSourceFiles(
-  root: string,
-  info: ReactPackage,
-  prefixes: string[],
-): Promise<string[]> {
-  return (
-    await walk(
-      root,
-      prefixes.map((prefix) => packageRelativePath(info.root, prefix)),
-    )
+async function packageSourceFiles(info: ReactPackage, prefixes: string[]): Promise<string[]> {
+  return repoFilesUnderAny(
+    info.repoIndex,
+    prefixes.map((prefix) => packageRelativePath(info.root, prefix)),
   )
     .filter((file) => pathMatchesPrefix(file, info.root === "." ? "" : info.root))
     .filter(isReviewableReactSourceFile);
 }
 
-async function packageTestFiles(root: string, info: ReactPackage): Promise<string[]> {
-  return (
-    await walk(
-      root,
-      testRoots.map((prefix) => packageRelativePath(info.root, prefix)),
-    )
+async function packageTestFiles(info: ReactPackage): Promise<string[]> {
+  return repoFilesUnderAny(
+    info.repoIndex,
+    testRoots.map((prefix) => packageRelativePath(info.root, prefix)),
   )
     .filter(isJsTestPath)
     .slice(0, 200);

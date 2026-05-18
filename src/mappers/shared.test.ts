@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureRoot, writeFixture } from "../test-helpers.js";
-import { walk } from "./shared.js";
+import { nearbyTests, walk } from "./shared.js";
 
 describe("walk", () => {
   it("returns the same sorted files for overlapping directory prefixes", async () => {
@@ -28,5 +28,23 @@ describe("walk", () => {
     );
 
     expect(files).toEqual(["src/generated/foo/a.test.ts", "src/other.test.ts"]);
+  });
+});
+
+describe("nearby tests", () => {
+  it("can discover tests from indexed candidate files", async () => {
+    const root = await fixtureRoot("codenuke-nearby-index-");
+    await writeFixture(root, "src/app.ts", "export const app = true;\n");
+
+    const tests = await nearbyTests(
+      root,
+      "src/app.ts",
+      "pnpm test",
+      [],
+      [],
+      ["src/app.test.ts", "src/other.test.ts", "docs/app.test.md"],
+    );
+
+    expect(tests).toEqual([{ path: "src/app.test.ts", command: "pnpm test" }]);
   });
 });

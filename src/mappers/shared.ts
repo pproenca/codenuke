@@ -1,8 +1,7 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { pathExists } from "../fs.js";
-import { TrustBoundary } from "../types.js";
-import { FeatureSeed } from "./types.js";
+import { FeatureRecord, TrustBoundary } from "../types.js";
 
 export type TestRef = {
   path: string;
@@ -22,6 +21,7 @@ export async function nearbyTests(
   testCommand: string | null,
   seedTestPrefixes: string[],
   seedTestNames: string[] = [],
+  candidateFiles?: readonly string[],
 ): Promise<TestRef[]> {
   const dir = dirname(entryPath);
   const base = entryPath.replace(/\.[^.]+$/u, "");
@@ -29,20 +29,30 @@ export async function nearbyTests(
   const isRustEntry = entryPath.endsWith(".rs");
   const isSwiftEntry = entryPath.endsWith(".swift");
   const isCOrCppEntry = isCOrCppPath(entryPath);
-  const all = await walk(
-    root,
-    [
-      dir === "." ? "" : dir,
-      "test",
-      "Tests",
-      "tests",
-      "__tests__",
-      "src",
-      ...rustTestPrefixes,
-      ...seedTestPrefixes,
-    ],
-    isCOrCppEntry ? shouldSkipCOrCppNearbyPath : shouldSkip,
-  );
+  const prefixes = [
+    dir === "." ? "" : dir,
+    "test",
+    "Tests",
+    "tests",
+    "__tests__",
+    "src",
+    ...rustTestPrefixes,
+    ...seedTestPrefixes,
+  ];
+  const skipPath = isCOrCppEntry ? shouldSkipCOrCppNearbyPath : shouldSkip;
+  const all =
+    candidateFiles === undefined
+      ? await walk(root, prefixes, skipPath)
+      : candidateFiles.filter(
+          (path) =>
+            !skipPath(path) &&
+            prefixes.some((prefix) => {
+              const normalized = normalize(prefix).replace(/\/$/u, "");
+              return (
+                normalized.length === 0 || path === normalized || path.startsWith(`${normalized}/`)
+              );
+            }),
+        );
   const stem =
     entryPath
       .split("/")
@@ -190,21 +200,20 @@ async function walkDir(
   if (skipPath(relDir)) {
     return;
   }
-  const entries = await readdir(dir);
+  const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
-    const full = join(dir, entry);
+    const full = join(dir, entry.name);
     const rel = normalize(relative(root, full));
     if (seen.has(rel) || skipPath(rel)) {
       continue;
     }
     seen.add(rel);
-    const info = await lstat(full);
-    if (info.isSymbolicLink()) {
+    if (entry.isSymbolicLink()) {
       continue;
     }
-    if (info.isDirectory()) {
+    if (entry.isDirectory()) {
       await walkDir(root, full, files, seen, skipPath);
-    } else if (info.isFile()) {
+    } else if (entry.isFile()) {
       files.push(rel);
     }
   }
@@ -258,7 +267,7 @@ export function isSampleProjectPath(path: string): boolean {
   return /(^|\/)(fixtures|__fixtures__|testdata)(\/|$)/u.test(path);
 }
 
-export function packageKind(name: string): FeatureSeed["kind"] {
+export function packageKind(name: string): FeatureRecord["kind"] {
   if (/config|store|db|github|openai|sync/iu.test(name)) {
     return "service";
   }

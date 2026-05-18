@@ -4,13 +4,8 @@ import { packageBins, packageScripts } from "../detect.js";
 import { pathExists } from "../fs.js";
 import { rubyDependencyNames, rubyGemspecPaths, stripRubyComments } from "../ruby.js";
 import { partitionFileGroups } from "./grouping.js";
-import {
-  normalize,
-  packageKind,
-  packageTrustBoundaries,
-  pathMatchesPrefix,
-  walk,
-} from "./shared.js";
+import { normalize, packageKind, packageTrustBoundaries, pathMatchesPrefix } from "./shared.js";
+import { repoFilesUnderAny } from "./repo-index.js";
 import {
   packageRelativePath,
   projectContextFiles,
@@ -19,6 +14,7 @@ import {
   projectTargetCommand,
 } from "./projects.js";
 import type { NodePackageJson, NodeProjectInfo } from "./projects.js";
+import type { RepoIndex } from "./repo-index.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 import {
   FeatureSeed,
@@ -69,8 +65,8 @@ export async function nodeSeeds(root: string, context: MapperContext): Promise<F
   const seeds: FeatureSeed[] = [];
 
   for (const info of packages) {
-    seeds.push(...(await packageSeeds(root, info, context.taskGraph)));
-    seeds.push(...(await sourceGroupSeeds(root, info, context.taskGraph)));
+    seeds.push(...(await packageSeeds(root, info, context.repoIndex, context.taskGraph)));
+    seeds.push(...(await sourceGroupSeeds(root, info, context.repoIndex, context.taskGraph)));
   }
 
   return seeds;
@@ -83,6 +79,7 @@ function hasNodePackage(project: NodeProjectInfo): project is PackageInfo {
 async function packageSeeds(
   root: string,
   info: PackageInfo,
+  repoIndex: RepoIndex,
   taskGraph: WorkspaceTaskGraph,
 ): Promise<FeatureSeed[]> {
   const seeds: FeatureSeed[] = [];
@@ -100,7 +97,7 @@ async function packageSeeds(
   }
 
   const packageOwnedFiles = await packageOwnedMetadataFiles(root, info);
-  const packageOverviewContext = await packageOverviewContextFiles(root, info);
+  const packageOverviewContext = await packageOverviewContextFiles(root, info, repoIndex);
   const manifestSource = isExtensionPackage(info) ? "node-extension-package" : "node-package";
   const packageSummary = isExtensionPackage(info)
     ? `Extension package ${packageName} with package metadata, source, tests, and docs rooted at ${info.root}.`
@@ -189,11 +186,12 @@ async function packageSeeds(
 async function sourceGroupSeeds(
   root: string,
   info: PackageInfo,
+  repoIndex: RepoIndex,
   taskGraph: WorkspaceTaskGraph,
 ): Promise<FeatureSeed[]> {
   const packageName = projectDisplayName(info);
   const testCommand = projectTargetCommand(info, "test", taskGraph);
-  const testFiles = await packageTestFiles(root, info);
+  const testFiles = await packageTestFiles(root, info, repoIndex);
   const railsPackage = await isRailsPackage(root, info.root);
   const seeds: FeatureSeed[] = [];
 
@@ -201,7 +199,7 @@ async function sourceGroupSeeds(
     if (!(await pathExists(join(root, sourceRoot)))) {
       continue;
     }
-    const files = (await walk(root, [sourceRoot])).filter(
+    const files = repoFilesUnderAny(repoIndex, [sourceRoot]).filter(
       (path) =>
         isReviewableNodeSourceFile(path) &&
         !isRailsExcludedNodeSourcePath(info, railsPackage, sourceRoot, path),
@@ -268,6 +266,7 @@ async function packageOwnedMetadataFiles(root: string, info: PackageInfo): Promi
 async function packageOverviewContextFiles(
   root: string,
   info: PackageInfo,
+  repoIndex: RepoIndex,
 ): Promise<SeedFileRef[]> {
   const docs = await existingFileRefs(root, [
     { path: packageRelativePath(info.root, "README.md"), reason: "package documentation" },
@@ -275,8 +274,8 @@ async function packageOverviewContextFiles(
     { path: packageRelativePath(info.root, "CHANGELOG.md"), reason: "package changelog" },
   ]);
   const entryRefs = await packageEntryContextFiles(root, info);
-  const sourceRefs = await packageSourceOverviewRefs(root, info);
-  const testRefs = (await packageTestFiles(root, info))
+  const sourceRefs = await packageSourceOverviewRefs(root, info, repoIndex);
+  const testRefs = (await packageTestFiles(root, info, repoIndex))
     .slice(0, 12)
     .map((path) => ({ path, reason: "package test" }));
   return uniqueFileRefs([...docs, ...entryRefs, ...sourceRefs, ...testRefs]).slice(
@@ -343,21 +342,22 @@ function collectExportPaths(value: unknown, output: string[]): void {
   }
 }
 
-async function packageSourceOverviewRefs(root: string, info: PackageInfo): Promise<SeedFileRef[]> {
+async function packageSourceOverviewRefs(
+  root: string,
+  info: PackageInfo,
+  repoIndex: RepoIndex,
+): Promise<SeedFileRef[]> {
   const railsPackage = await isRailsPackage(root, info.root);
   const sourceRoots = packageSourceRoots(info, railsPackage);
-  const files = (
-    await Promise.all(
-      sourceRoots.map(async (sourceRoot) =>
-        (await walk(root, [sourceRoot])).filter(
-          (path) =>
-            isReviewableNodeSourceFile(path) &&
-            !isRailsExcludedNodeSourcePath(info, railsPackage, sourceRoot, path),
-        ),
+  const files = repoFilesUnderAny(repoIndex, sourceRoots)
+    .filter((path) =>
+      sourceRoots.some(
+        (sourceRoot) =>
+          pathMatchesPrefix(path, sourceRoot) &&
+          isReviewableNodeSourceFile(path) &&
+          !isRailsExcludedNodeSourcePath(info, railsPackage, sourceRoot, path),
       ),
     )
-  )
-    .flat()
     .filter(uniqueInOrder())
     .slice(0, 24);
   return files.map((path) => ({ path, reason: "package source overview" }));
@@ -406,13 +406,17 @@ function isRailsExcludedNodeSourcePath(
   );
 }
 
-async function packageTestFiles(root: string, info: PackageInfo): Promise<string[]> {
+async function packageTestFiles(
+  root: string,
+  info: PackageInfo,
+  repoIndex: RepoIndex,
+): Promise<string[]> {
   const railsPackage = await isRailsPackage(root, info.root);
   const prefixes = [
     ...packageSourceRoots(info, railsPackage),
     ...testDirectories.map((dir) => packageRelativePath(info.root, dir)),
   ];
-  return (await walk(root, prefixes)).filter(isNodeTestPath).slice(0, 200);
+  return repoFilesUnderAny(repoIndex, prefixes).filter(isNodeTestPath).slice(0, 200);
 }
 
 async function isRailsPackage(root: string, packageRoot: string): Promise<boolean> {

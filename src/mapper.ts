@@ -25,6 +25,7 @@ import {
   repoHasDirectory,
   repoHasDirectoryEnding,
 } from "./mappers/repo-index.js";
+import type { RepoIndex } from "./mappers/repo-index.js";
 import { rubySeeds } from "./mappers/ruby.js";
 import { rustSeeds } from "./mappers/rust.js";
 import { nearbyTests } from "./mappers/shared.js";
@@ -49,6 +50,10 @@ export type MapProgressEvent = {
 
 export type MapOptions = {
   onProgress?: (event: MapProgressEvent) => void;
+};
+
+export type MapFeatureSeedOptions = {
+  repoIndex?: RepoIndex;
 };
 
 type GatedFeatureMapper = FeatureMapper & {
@@ -215,8 +220,8 @@ export async function mapFeatures(
   existing: FeatureRecord[],
   options: MapOptions = {},
 ): Promise<MapResult> {
-  const seeds = await collectSeeds(root, options);
-  return mapFeatureSeeds(root, project, existing, seeds);
+  const { seeds, repoIndex } = await collectSeeds(root, options);
+  return mapFeatureSeeds(root, project, existing, seeds, { repoIndex });
 }
 
 export async function mapFeatureSeeds(
@@ -224,6 +229,7 @@ export async function mapFeatureSeeds(
   project: ProjectRecord,
   existing: FeatureRecord[],
   seeds: FeatureSeed[],
+  options: MapFeatureSeedOptions = {},
 ): Promise<MapResult> {
   const existingById = new Map(existing.map((feature) => [feature.featureId, feature]));
   const features: FeatureRecord[] = [];
@@ -247,6 +253,7 @@ export async function mapFeatureSeeds(
             [seed.command, seed.identityKey].filter(
               (name): name is string => typeof name === "string",
             ),
+            options.repoIndex?.files,
           );
     const tests = uniqueTests([...(seed.tests ?? []), ...discoveredTests]);
     const contextFiles = uniqueFileRefs([
@@ -378,7 +385,10 @@ function uniqueTests(tests: Array<{ path: string; command: string | null }>): Ar
   return output;
 }
 
-async function collectSeeds(root: string, options: MapOptions): Promise<FeatureSeed[]> {
+async function collectSeeds(
+  root: string,
+  options: MapOptions,
+): Promise<{ seeds: FeatureSeed[]; repoIndex: RepoIndex }> {
   const repoIndex = await buildRepoIndex(root);
   const projects = await discoverNodeProjects(root);
   const context: MapperContext = {
@@ -401,7 +411,7 @@ async function collectSeeds(root: string, options: MapOptions): Promise<FeatureS
       return seeds;
     }),
   );
-  return dedupeSeeds(groups.flat());
+  return { seeds: dedupeSeeds(groups.flat()), repoIndex };
 }
 
 function dedupeSeeds(seeds: FeatureSeed[]): FeatureSeed[] {

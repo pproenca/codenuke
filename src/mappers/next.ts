@@ -1,5 +1,3 @@
-import { join } from "node:path";
-import { pathExists } from "../fs.js";
 import {
   dependencyFieldHas,
   packageRelativePath,
@@ -7,14 +5,15 @@ import {
   projectTags,
   projectTargetCommand,
 } from "./projects.js";
-import { walk } from "./shared.js";
+import { repoFilesUnderAny, repoHasDirectory } from "./repo-index.js";
 import type { NodeProjectInfo } from "./projects.js";
+import type { RepoIndex } from "./repo-index.js";
 import type { WorkspaceTaskGraph } from "./task-graph.js";
 import { FeatureSeed, MapperContext, suppressedTestCommandTag } from "./types.js";
 
 export async function nextSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const seedGroups = await Promise.all(
-    context.projects.map(async (project) => projectNextSeeds(root, project, context.taskGraph)),
+    context.projects.map(async (project) => projectNextSeeds(root, project, context)),
   );
   return seedGroups.flat();
 }
@@ -22,13 +21,13 @@ export async function nextSeeds(root: string, context: MapperContext): Promise<F
 async function projectNextSeeds(
   root: string,
   project: NodeProjectInfo,
-  taskGraph: WorkspaceTaskGraph,
+  context: { repoIndex: RepoIndex; taskGraph: WorkspaceTaskGraph },
 ): Promise<FeatureSeed[]> {
-  const prefixes = await nextPrefixes(root, project);
+  const prefixes = nextPrefixes(project, context.repoIndex);
   if (prefixes.length === 0) {
     return [];
   }
-  const files = await walk(root, prefixes);
+  const files = repoFilesUnderAny(context.repoIndex, prefixes);
   const routeFiles = files.flatMap((file) => {
     const projectRelativePath = projectRelativeRoutePath(project, file);
     if (projectRelativePath === null) {
@@ -37,7 +36,7 @@ async function projectNextSeeds(
     const kind = nextRouteKind(projectRelativePath);
     return kind === null ? [] : [{ file, projectRelativePath, kind }];
   });
-  const testCommand = projectTargetCommand(project, "test", taskGraph);
+  const testCommand = projectTargetCommand(project, "test", context.taskGraph);
   const contextFiles = await projectContextFiles(root, project);
 
   return routeFiles.map(({ file, projectRelativePath, kind }) => {
@@ -68,8 +67,8 @@ async function projectNextSeeds(
   });
 }
 
-async function nextPrefixes(root: string, project: NodeProjectInfo): Promise<string[]> {
-  const hasSignal = await isNextProject(root, project);
+function nextPrefixes(project: NodeProjectInfo, index: RepoIndex): string[] {
+  const hasSignal = isNextProject(project, index);
   const projectPrefixes = new Set(
     hasSignal ? ["app", "pages", "src/app", "src/pages"] : ["app", "pages"],
   );
@@ -80,7 +79,7 @@ async function nextPrefixes(root: string, project: NodeProjectInfo): Promise<str
   for (const prefix of [...projectPrefixes].map((path) =>
     packageRelativePath(project.root, path),
   )) {
-    if (await pathExists(join(root, prefix))) {
+    if (repoHasDirectory(index, prefix)) {
       existing.push(prefix);
     }
   }
@@ -108,7 +107,7 @@ function sourceRootRoutePrefixes(project: NodeProjectInfo): string[] {
   );
 }
 
-async function isNextProject(root: string, project: NodeProjectInfo): Promise<boolean> {
+function isNextProject(project: NodeProjectInfo, index: RepoIndex): boolean {
   const pkg = project.packageJson;
   if (
     dependencyFieldHas(pkg?.dependencies, "next") ||
@@ -117,7 +116,7 @@ async function isNextProject(root: string, project: NodeProjectInfo): Promise<bo
     return true;
   }
   for (const file of ["next.config.js", "next.config.mjs", "next.config.ts"]) {
-    if (await pathExists(join(root, packageRelativePath(project.root, file)))) {
+    if (index.fileSet.has(packageRelativePath(project.root, file))) {
       return true;
     }
   }
