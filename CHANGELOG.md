@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.2.1 - Unreleased
+## 0.2.1 - 2026-05-18
 
+- Added the companion `codenuke` agent skill for `npx skills` installation and simple `npx --yes codenuke@latest` review/fix-loop dogfooding.
 - Added explicit Codex reasoning effort selection via `--reasoning-effort`, `CODENUKE_REASONING_EFFORT`, and provider config, with `doctor` reporting the active setting.
 - Improved `codenuke fix` handoff context and patch-attempt changed-file auditing for dirty-worktree fixes.
 - Improved Node workspace mapping with richer package overview features, generic extension package context, semantic large-source splits, and stricter generated/build ownership hygiene.
