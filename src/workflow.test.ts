@@ -1770,6 +1770,11 @@ describe("workflow", () => {
     expect(prompt).toContain("--- src/index.ts");
     expect(prompt).toContain("--- src/helper.ts");
     expect(prompt).toContain("--- src/index.test.ts");
+    expect(prompt.match(/^--- .+$/gmu)).toEqual([
+      "--- src/index.ts",
+      "--- src/helper.ts",
+      "--- src/index.test.ts",
+    ]);
     expect(prompt).not.toContain("SECRET=do-not-send");
     delete process.env["CODENUKE_PROVIDER"];
   });
@@ -1827,6 +1832,11 @@ describe("workflow", () => {
     });
 
     expect(prompt).toContain("expect(value).toBe(true);");
+    expect(prompt.match(/^--- .+$/gmu)).toEqual([
+      "--- src/index.ts",
+      "--- src/helper.ts",
+      "--- src/index.test.ts",
+    ]);
     expect(prompt.match(/^--- src\/index\.test\.ts$/gmu) ?? []).toHaveLength(1);
     expect(prompt.match(/^--- src\/helper\.ts$/gmu) ?? []).toHaveLength(1);
   });

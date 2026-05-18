@@ -62,25 +62,14 @@ export async function buildReviewPrompt(
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);
   const context = feature.contextFiles.slice(0, config.review.maxContextFiles);
   const tests = feature.tests.slice(0, config.review.maxContextFiles);
-  const paths: string[] = [];
-  const push = (path: string): void => {
-    if (!paths.includes(path)) {
-      paths.push(path);
-    }
-  };
-  for (const ref of owned) {
-    push(ref.path);
-  }
-  for (const ref of context) {
-    push(ref.path);
-  }
-  for (const test of tests) {
-    push(test.path);
-  }
-  const fileBlocks: string[] = [];
-  for (const path of paths) {
-    fileBlocks.push(await fileBlock(root, path));
-  }
+  const fileBlocks = await fileBlocksForPaths(
+    root,
+    uniquePaths(
+      owned.map((ref) => ref.path),
+      context.map((ref) => ref.path),
+      tests.map((test) => test.path),
+    ),
+  );
   return `You are reviewing one semantic feature for codenuke.
 
 Return strict JSON only. No markdown fences.
@@ -186,10 +175,7 @@ export async function buildFixPrompt(
   feature: FeatureRecord,
   config: CodenukeConfig,
 ): Promise<string> {
-  const fileBlocks: string[] = [];
-  for (const path of fixPromptPaths(finding, feature, config)) {
-    fileBlocks.push(await fileBlock(root, path));
-  }
+  const fileBlocks = await fileBlocksForPaths(root, fixPromptPaths(finding, feature, config));
   const testRequirement = requiresChangedTestForFix(finding, feature)
     ? `\nTDD requirement:\n- This is a trusted-refactor finding with no linked feature tests.\n- Add or update a focused behavior test before changing production code.\n- The fix will be rejected unless the patch changes at least one test file.\n`
     : "";
@@ -227,7 +213,6 @@ function fixPromptPaths(
   feature: FeatureRecord,
   config: CodenukeConfig,
 ): string[] {
-  const paths: string[] = [];
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);
   const context = feature.contextFiles.slice(0, config.review.maxContextFiles);
   const tests = feature.tests.slice(0, config.review.maxContextFiles);
@@ -237,34 +222,37 @@ function fixPromptPaths(
     ...feature.tests.map((test) => test.path),
     ...feature.entrypoints.map((entrypoint) => entrypoint.path),
   ]);
-  const push = (path: string): void => {
-    if (!paths.includes(path)) {
-      paths.push(path);
-    }
-  };
-  for (const evidence of finding.evidence) {
-    if (allowed.has(evidence.path)) {
-      push(evidence.path);
-    }
-  }
-  for (const ref of owned) {
-    push(ref.path);
-  }
-  for (const ref of context) {
-    push(ref.path);
-  }
-  for (const test of tests) {
-    push(test.path);
-  }
-  return paths;
+  return uniquePaths(
+    finding.evidence.flatMap((evidence) => (allowed.has(evidence.path) ? [evidence.path] : [])),
+    owned.map((ref) => ref.path),
+    context.map((ref) => ref.path),
+    tests.map((test) => test.path),
+  );
 }
 
-async function fileBlock(root: string, path: string): Promise<string> {
+function uniquePaths(...groups: Array<Iterable<string>>): string[] {
+  const paths = new Set<string>();
+  for (const group of groups) {
+    for (const path of group) {
+      paths.add(path);
+    }
+  }
+  return [...paths];
+}
+
+async function fileBlocksForPaths(root: string, paths: string[]): Promise<string[]> {
+  if (paths.length === 0) {
+    return [];
+  }
+  const realRoot = await realpath(root).catch(() => root);
+  return Promise.all(paths.map((path) => fileBlock(root, realRoot, path)));
+}
+
+async function fileBlock(root: string, realRoot: string, path: string): Promise<string> {
   const full = resolve(root, path);
   if (!isInside(root, full)) {
     return `--- ${path}\n[skipped: path escapes repository root]`;
   }
-  const realRoot = await realpath(root).catch(() => root);
   const realFull = await realpath(full).catch(() => full);
   if (!isInside(realRoot, realFull)) {
     return `--- ${path}\n[skipped: path escapes repository root]`;
