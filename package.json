@@ -20,6 +20,7 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "vitest run",
+    "eval": "pnpm -s build && node evals/scripts/run-all.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },
   "dependencies": {

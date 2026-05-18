@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "mock-bug",
+  "name": "Mock bug marker",
+  "description": "A deterministic fixture where the mock provider should report one medium bug finding.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 1,
+    "findings": [
+      {
+        "title": "Marker bug found",
+        "category": "bug",
+        "severity": "medium",
+        "confidence": "high",
+        "evidencePath": "src/index.ts"
+      }
+    ]
+  }
+}

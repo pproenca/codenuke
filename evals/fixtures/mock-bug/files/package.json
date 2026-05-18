@@ -1,0 +1,10 @@
+{
+  "name": "eval-mock-bug",
+  "bin": {
+    "eval-bug": "src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  }
+}

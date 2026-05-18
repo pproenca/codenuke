@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "mock-simplify",
+  "name": "Mock simplification marker",
+  "description": "A deterministic fixture where the mock provider should report one maintainability finding.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 1,
+    "findings": [
+      {
+        "title": "Dead code marker can be removed",
+        "category": "maintainability",
+        "severity": "low",
+        "confidence": "high",
+        "evidencePath": "src/index.ts"
+      }
+    ]
+  }
+}

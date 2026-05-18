@@ -1,0 +1,10 @@
+{
+  "name": "eval-mock-clean",
+  "bin": {
+    "eval-clean": "src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  }
+}

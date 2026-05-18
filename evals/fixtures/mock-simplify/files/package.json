@@ -1,0 +1,10 @@
+{
+  "name": "eval-mock-simplify",
+  "bin": {
+    "eval-simplify": "src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  }
+}

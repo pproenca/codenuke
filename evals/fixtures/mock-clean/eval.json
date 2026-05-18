@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "mock-clean",
+  "name": "Mock clean package",
+  "description": "A deterministic fixture where the mock provider should report no findings.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 0,
+    "findings": []
+  }
+}
