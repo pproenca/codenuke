@@ -469,6 +469,18 @@ describe("extractAcpxJson", () => {
     expect(extractAcpxJson(stdout)).toEqual({ ok: true });
   });
 
+  it("skips blank, malformed, and non-record NDJSON lines in order", () => {
+    const stdout = [
+      "",
+      "not json",
+      JSON.stringify(["not", "a", "record"]),
+      textChunk("agent_message_chunk", '{"ok":'),
+      textChunk("agent_message_chunk", "true}"),
+    ].join("\n");
+
+    expect(extractAcpxJson(stdout)).toEqual({ ok: true });
+  });
+
   it("survives a 256-line NDJSON fixture over 8KB", () => {
     const filler = Array.from({ length: 255 }, (_, idx) =>
       updateEnvelope({
@@ -539,6 +551,18 @@ describe("extractOpencodeJson", () => {
       findings: [],
       inspected: { files: [], symbols: [], notes: [] },
     });
+  });
+
+  it("skips blank, malformed, and non-record NDJSON lines in order", () => {
+    const stdout = [
+      "",
+      "not json",
+      JSON.stringify(["not", "a", "record"]),
+      JSON.stringify({ type: "text", part: { text: '{"ok":' } }),
+      JSON.stringify({ type: "text", part: { text: "true}" } }),
+    ].join("\n");
+
+    expect(extractOpencodeJson(stdout)).toEqual({ ok: true });
   });
 
   it("extracts fenced JSON from opencode text events", () => {

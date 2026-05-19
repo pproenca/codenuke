@@ -623,23 +623,28 @@ ${JSON.stringify(schema, null, 2)}
 Return only one JSON object matching the schema.`;
 }
 
-export function extractOpencodeJson(stdout: string): unknown {
-  const textParts: string[] = [];
-  const observedKinds = new Set<string>();
+function* jsonLineRecords(stdout: string): Generator<Record<string, unknown>> {
   for (const line of stdout.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.length === 0) {
       continue;
     }
-    let event: unknown;
+    let value: unknown;
     try {
-      event = JSON.parse(trimmed);
+      value = JSON.parse(trimmed);
     } catch {
       continue;
     }
-    if (!record(event)) {
-      continue;
+    if (record(value)) {
+      yield value;
     }
+  }
+}
+
+export function extractOpencodeJson(stdout: string): unknown {
+  const textParts: string[] = [];
+  const observedKinds = new Set<string>();
+  for (const event of jsonLineRecords(stdout)) {
     if (typeof event["type"] === "string") {
       observedKinds.add(event["type"]);
     }
@@ -759,18 +764,8 @@ export function extractAcpxJson(stdout: string): unknown {
   const messageChunks: string[] = [];
   const thoughtChunks: string[] = [];
   const observedKinds = new Set<string>();
-  for (const line of stdout.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-    let env: unknown;
-    try {
-      env = JSON.parse(trimmed);
-    } catch {
-      continue;
-    }
-    if (!record(env) || env["method"] !== "session/update") {
+  for (const env of jsonLineRecords(stdout)) {
+    if (env["method"] !== "session/update") {
       continue;
     }
     const params = env["params"];
@@ -966,20 +961,7 @@ function acpxFailureMessage(stdout: string, stderr: string, exitCode: number | n
 }
 
 function extractAcpxError(stdout: string): string | null {
-  for (const line of stdout.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-    let env: unknown;
-    try {
-      env = JSON.parse(trimmed);
-    } catch {
-      continue;
-    }
-    if (!record(env)) {
-      continue;
-    }
+  for (const env of jsonLineRecords(stdout)) {
     const error = env["error"];
     if (!record(error)) {
       continue;
