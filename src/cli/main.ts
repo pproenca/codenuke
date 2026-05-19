@@ -150,7 +150,11 @@ const flagDefinitions = {
 type FlagName = keyof typeof flagDefinitions;
 
 export function globalFlagNames(): readonly string[] {
-  return Object.keys(flagDefinitions).filter(isGlobalFlag).map(kebab);
+  return globalFlagDefinitionNames().map(kebab);
+}
+
+function globalFlagDefinitionNames(): readonly FlagName[] {
+  return Object.keys(flagDefinitions).filter(isGlobalFlag);
 }
 
 const shortFlagNames = new Map<string, FlagName>(
@@ -463,6 +467,13 @@ ${flags.map((line) => `  ${line}`).join("\n")}
   const commands = Object.keys(commandRegistry)
     .map((name) => `  ${name}`)
     .join("\n");
+  const globalFlagHelp = [
+    ...globalFlagDefinitionNames().map(renderFlagHelp),
+    "-h, --help",
+    "--version",
+  ]
+    .map((line) => `  ${line}`)
+    .join("\n");
   process.stdout.write(`codenuke: automated code review for reliable, trusted refactoring
 
 Usage:
@@ -472,18 +483,7 @@ Commands:
 ${commands}
 
 Global flags:
-  ${renderFlagHelp("root")}
-  ${renderFlagHelp("stateDir")}
-  ${renderFlagHelp("config")}
-  ${renderFlagHelp("json")}
-  ${renderFlagHelp("plain")}
-  ${renderFlagHelp("quiet")}
-  ${renderFlagHelp("verbose")}
-  ${renderFlagHelp("debug")}
-  ${renderFlagHelp("noColor")}
-  ${renderFlagHelp("noInput")}
-  -h, --help
-  --version
+${globalFlagHelp}
 `);
 }
 

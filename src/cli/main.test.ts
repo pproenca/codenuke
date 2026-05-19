@@ -37,6 +37,13 @@ function commandNames(output: string): string[] {
   return helpSection(output, "Commands");
 }
 
+function globalHelpFlags(output: string): string[] {
+  return helpSection(output, "Global flags").flatMap((line) => {
+    const longFlag = /--([a-z-]+)(?:\s+<[^>]+>)?/u.exec(line);
+    return longFlag?.[1] === undefined ? [] : [longFlag[1]];
+  });
+}
+
 type HelpFlag = {
   name: string;
   shortName?: string;
@@ -80,6 +87,7 @@ describe("cli metadata", () => {
       "doctor",
       "clean-locks",
     ]);
+    expect(globalHelpFlags(help)).toEqual([...globalFlagNames(), "help", "version"]);
 
     const commandFlags = new Map<string, HelpFlag[]>();
     const advertisedFlags = new Map<string, HelpFlag[]>();
