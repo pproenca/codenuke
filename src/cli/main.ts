@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
+import { runCliEntrypoint } from "./bootstrap.js";
 import {
   cleanLocksCommand,
   doctorCommand,
@@ -483,26 +482,4 @@ Global flags:
 `);
 }
 
-if (isMainModule()) {
-  main(process.argv.slice(2)).then(
-    () => undefined,
-    (error: unknown) => {
-      if (error instanceof CodenukeError) {
-        process.stderr.write(`error: ${error.message}\n`);
-        process.exitCode = error.exitCode;
-        return;
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`error: ${message}\n`);
-      process.exitCode = 1;
-    },
-  );
-}
-
-function isMainModule(): boolean {
-  const entry = process.argv[1];
-  if (entry === undefined) {
-    return false;
-  }
-  return import.meta.url === pathToFileURL(realpathSync(entry)).href;
-}
+void runCliEntrypoint(import.meta.url, process.argv, main);
