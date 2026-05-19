@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { main as cliMain, parseArgs } from "./main.js";
+import { globalFlagNames, main as cliMain, parseArgs } from "./main.js";
 
 async function helpFor(argv: string[]): Promise<string> {
   let stdout = "";
@@ -61,12 +61,11 @@ function helpFlags(output: string): HelpFlag[] {
   });
 }
 
-const globalFlags = new Set(["json", "quiet"]);
-
 describe("cli metadata", () => {
   it("keeps command help flags aligned with argument validation", async () => {
     const help = await helpFor(["--help"]);
     const commands = commandNames(help);
+    const globalFlags = new Set(globalFlagNames());
     expect(commands).toEqual([
       "init",
       "map",

@@ -148,6 +148,11 @@ const flagDefinitions = {
 } satisfies Record<string, FlagDefinition>;
 
 type FlagName = keyof typeof flagDefinitions;
+
+export function globalFlagNames(): readonly string[] {
+  return Object.keys(flagDefinitions).filter(isGlobalFlag).map(kebab);
+}
+
 const shortFlagNames = new Map<string, FlagName>(
   Object.entries(flagDefinitions).flatMap(([name, definition]) =>
     flagAliases(definition).map((alias): [string, FlagName] => [alias, name as FlagName]),
