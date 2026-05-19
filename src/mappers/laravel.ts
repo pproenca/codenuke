@@ -54,6 +54,20 @@ type RouteCall = {
   args: string[];
 };
 
+type PhpClassSeedSpec = {
+  prefix: string;
+  titlePrefix: string;
+  source: string;
+  kind: FeatureSeed["kind"];
+  tags: string[];
+  trustBoundaries: TrustBoundary[];
+};
+
+type PhpClassSeedRun = {
+  testFiles: string[];
+  testCommand: string | null;
+};
+
 export async function laravelSeeds(root: string, context: MapperContext): Promise<FeatureSeed[]> {
   const composer = await readComposerJson(root);
   const isLaravel = await isLaravelProject(root, composer);
@@ -212,14 +226,15 @@ async function requestSeeds(
   return phpClassSeeds(
     root,
     context,
-    "app/Http/Requests",
-    "Laravel request",
-    "laravel-request",
-    "route",
-    ["php", "laravel", "request", "validation"],
-    ["user-input", "auth"],
-    testFiles,
-    testCommand,
+    {
+      prefix: "app/Http/Requests",
+      titlePrefix: "Laravel request",
+      source: "laravel-request",
+      kind: "route",
+      tags: ["php", "laravel", "request", "validation"],
+      trustBoundaries: ["user-input", "auth"],
+    },
+    { testFiles, testCommand },
   );
 }
 
@@ -272,14 +287,15 @@ async function jobSeeds(
   return phpClassSeeds(
     root,
     context,
-    "app/Jobs",
-    "Laravel job",
-    "laravel-job",
-    "job",
-    ["php", "laravel", "job"],
-    ["database", "concurrency", "external-api"],
-    testFiles,
-    testCommand,
+    {
+      prefix: "app/Jobs",
+      titlePrefix: "Laravel job",
+      source: "laravel-job",
+      kind: "job",
+      tags: ["php", "laravel", "job"],
+      trustBoundaries: ["database", "concurrency", "external-api"],
+    },
+    { testFiles, testCommand },
   );
 }
 
@@ -328,29 +344,26 @@ async function modelSeeds(
   return phpClassSeeds(
     root,
     context,
-    "app/Models",
-    "Laravel model",
-    "laravel-model",
-    "service",
-    ["php", "laravel", "model", "eloquent"],
-    ["database", "serialization"],
-    testFiles,
-    testCommand,
+    {
+      prefix: "app/Models",
+      titlePrefix: "Laravel model",
+      source: "laravel-model",
+      kind: "service",
+      tags: ["php", "laravel", "model", "eloquent"],
+      trustBoundaries: ["database", "serialization"],
+    },
+    { testFiles, testCommand },
   );
 }
 
 async function phpClassSeeds(
   root: string,
   context: MapperContext,
-  prefix: string,
-  titlePrefix: string,
-  source: string,
-  kind: FeatureSeed["kind"],
-  tags: string[],
-  trustBoundaries: TrustBoundary[],
-  testFiles: string[],
-  testCommand: string | null,
+  spec: PhpClassSeedSpec,
+  run: PhpClassSeedRun,
 ): Promise<FeatureSeed[]> {
+  const { prefix, titlePrefix, source, kind, tags, trustBoundaries } = spec;
+  const { testFiles, testCommand } = run;
   const files = phpFilesUnder(context, prefix);
   return Promise.all(
     files.map(async (path) => {

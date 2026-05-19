@@ -9862,6 +9862,22 @@ add_executable(headerapp include/headers.hpp)
     const service = result.features.find(
       (feature) => feature.title === "Laravel service TrackUploadService",
     );
+    const classSliceMetadata = (title: string) => {
+      const feature = result.features.find((candidate) => candidate.title === title);
+      if (feature === undefined) {
+        throw new Error(`expected mapped feature ${title}`);
+      }
+      return {
+        source: feature.source,
+        kind: feature.kind,
+        entrypoints: feature.entrypoints,
+        ownedFiles: feature.ownedFiles,
+        contextFiles: feature.contextFiles,
+        tests: feature.tests,
+        tags: feature.tags,
+        trustBoundaries: feature.trustBoundaries,
+      };
+    };
 
     expect(project.detected.languages).toContain("php");
     expect(project.detected.frameworks).toContain("laravel");
@@ -9897,6 +9913,91 @@ add_executable(headerapp include/headers.hpp)
     expect(service?.tests).toEqual([
       { path: "tests/Unit/TrackUploadServiceTest.php", command: "composer test" },
     ]);
+    expect({
+      request: classSliceMetadata("Laravel request StoreTrackRequest"),
+      job: classSliceMetadata("Laravel job RunSubmissionAnalysis"),
+      service: classSliceMetadata("Laravel service TrackUploadService"),
+      model: classSliceMetadata("Laravel model Track"),
+    }).toEqual({
+      request: {
+        source: "laravel-request",
+        kind: "route",
+        entrypoints: [
+          {
+            path: "app/Http/Requests/StoreTrackRequest.php",
+            symbol: "StoreTrackRequest",
+            route: null,
+            command: null,
+          },
+        ],
+        ownedFiles: [
+          { path: "app/Http/Requests/StoreTrackRequest.php", reason: "laravel request" },
+        ],
+        contextFiles: [],
+        tests: [],
+        tags: ["php", "laravel", "request", "validation"],
+        trustBoundaries: ["user-input", "auth"],
+      },
+      job: {
+        source: "laravel-job",
+        kind: "job",
+        entrypoints: [
+          {
+            path: "app/Jobs/RunSubmissionAnalysis.php",
+            symbol: "RunSubmissionAnalysis",
+            route: null,
+            command: null,
+          },
+        ],
+        ownedFiles: [{ path: "app/Jobs/RunSubmissionAnalysis.php", reason: "laravel job" }],
+        contextFiles: [],
+        tests: [],
+        tags: ["php", "laravel", "job"],
+        trustBoundaries: ["database", "concurrency", "external-api"],
+      },
+      service: {
+        source: "laravel-service",
+        kind: "service",
+        entrypoints: [
+          {
+            path: "app/Services/TrackUploadService.php",
+            symbol: "TrackUploadService",
+            route: null,
+            command: null,
+          },
+        ],
+        ownedFiles: [{ path: "app/Services/TrackUploadService.php", reason: "service" }],
+        contextFiles: [
+          { path: "tests/Unit/TrackUploadServiceTest.php", reason: "associated test" },
+        ],
+        tests: [{ path: "tests/Unit/TrackUploadServiceTest.php", command: "composer test" }],
+        tags: ["php", "laravel", "service"],
+        trustBoundaries: ["database", "serialization", "filesystem"],
+      },
+      model: {
+        source: "laravel-model",
+        kind: "service",
+        entrypoints: [
+          {
+            path: "app/Models/Track.php",
+            symbol: "Track",
+            route: null,
+            command: null,
+          },
+        ],
+        ownedFiles: [{ path: "app/Models/Track.php", reason: "laravel model" }],
+        contextFiles: [
+          { path: "tests/Feature/TrackControllerTest.php", reason: "associated test" },
+          { path: "tests/Unit/TrackUploadServiceTest.php", reason: "associated test" },
+        ],
+        tests: [
+          { path: "tests/Feature/TrackControllerTest.php", command: "composer test" },
+          { path: "tests/Unit/TrackUploadServiceTest.php", command: "composer test" },
+        ],
+        tags: ["php", "laravel", "model", "eloquent"],
+        trustBoundaries: ["database", "serialization"],
+      },
+    });
   });
 
   it("keeps Laravel routes scoped to same-basename controller namespaces", async () => {
