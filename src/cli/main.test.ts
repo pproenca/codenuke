@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { CodenukeError } from "../platform/errors.js";
 import { globalFlagNames, main as cliMain, parseArgs } from "./main.js";
 
 async function helpFor(argv: string[]): Promise<string> {
@@ -66,6 +67,16 @@ function helpFlags(output: string): HelpFlag[] {
       },
     ];
   });
+}
+
+function invalidUsageFor(argv: string[]): CodenukeError {
+  try {
+    parseArgs(argv);
+  } catch (error) {
+    expect(error).toBeInstanceOf(CodenukeError);
+    return error as CodenukeError;
+  }
+  throw new Error(`expected parseArgs(${argv.join(" ")}) to throw`);
 }
 
 describe("cli metadata", () => {
@@ -142,6 +153,22 @@ describe("cli metadata", () => {
 });
 
 describe("parseArgs", () => {
+  it("rejects unknown commands with invalid usage", () => {
+    expect(invalidUsageFor(["does-not-exist"])).toMatchObject({
+      code: "invalid-usage",
+      exitCode: 2,
+      message: "unknown command: does-not-exist",
+    });
+  });
+
+  it("rejects unsupported flags for known commands", () => {
+    expect(invalidUsageFor(["show", "--status", "open"])).toMatchObject({
+      code: "invalid-usage",
+      exitCode: 2,
+      message: "unsupported flag for show: --status",
+    });
+  });
+
   it("rejects empty revalidate selector values", () => {
     expect(() => parseArgs(["revalidate", "--finding", ""])).toThrow(
       "missing --finding, --all, or --since",

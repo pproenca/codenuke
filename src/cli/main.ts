@@ -41,10 +41,8 @@ async function dispatch(
   command: string,
   flags: Record<string, string | boolean>,
 ): Promise<unknown> {
-  if (!isKnownCommand(command)) {
-    throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
-  }
-  return commandRegistry[command].handler(context, flags);
+  const spec = requireCommandSpec(command);
+  return spec.handler(context, flags);
 }
 
 type ParsedArgs = {
@@ -100,8 +98,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
   if (command === "") {
     command = "status";
   }
-  validateCommandFlags(command, flags);
-  validateCommandRequirements(command, flags);
+  const spec = requireCommandSpec(command);
+  validateCommandFlags(command, spec, flags);
+  validateCommandRequirements(spec, flags);
   return { command, flags, global, help: false, version: false };
 }
 
@@ -302,11 +301,19 @@ export function packageVersion(): string {
   return "0.0.0";
 }
 
-function validateCommandFlags(command: string, flags: Record<string, string | boolean>): void {
+function requireCommandSpec(command: string): CommandSpec {
   if (!isKnownCommand(command)) {
     throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
   }
-  const allowed = commandRegistry[command].flags.map(flagName);
+  return commandRegistry[command];
+}
+
+function validateCommandFlags(
+  command: string,
+  spec: CommandSpec,
+  flags: Record<string, string | boolean>,
+): void {
+  const allowed = spec.flags.map(flagName);
   for (const flag of Object.keys(flags)) {
     if (!allowed.includes(flag as FlagName)) {
       throw new CodenukeError(
@@ -319,13 +326,9 @@ function validateCommandFlags(command: string, flags: Record<string, string | bo
 }
 
 function validateCommandRequirements(
-  command: string,
+  spec: CommandSpec,
   flags: Record<string, string | boolean>,
 ): void {
-  if (!isKnownCommand(command)) {
-    throw new CodenukeError(`unknown command: ${command}`, 2, "invalid-usage");
-  }
-  const spec = commandRegistry[command];
   const required = "required" in spec ? spec.required : [];
   for (const flag of required) {
     if (typeof flags[flag] !== "string" || flags[flag].length === 0) {
