@@ -37,4 +37,34 @@ describe("repo index queries", () => {
       "src/routes/home.ts",
     ]);
   });
+
+  it("deduplicates overlapping prefixes while preserving sorted repo order", () => {
+    const index = repoIndexFromFiles([
+      "docs/readme.md",
+      "packages/app/src/index.ts",
+      "packages/app/src/server.ts",
+      "packages/app/src/server.test.ts",
+      "packages/app/src/server",
+      "packages/app/src/server/handler.ts",
+      "packages/app/src/server/handler.test.ts",
+      "packages/app/src/server.generated.ts",
+      "packages/app/test/server.test.ts",
+    ]);
+
+    expect(
+      repoFilesUnderAny(index, [
+        "packages/app/src/server",
+        "packages/app/src",
+        "packages/app/src/server/",
+      ]),
+    ).toEqual([
+      "packages/app/src/index.ts",
+      "packages/app/src/server",
+      "packages/app/src/server.generated.ts",
+      "packages/app/src/server.test.ts",
+      "packages/app/src/server.ts",
+      "packages/app/src/server/handler.test.ts",
+      "packages/app/src/server/handler.ts",
+    ]);
+  });
 });

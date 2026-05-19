@@ -98,7 +98,7 @@ export function repoFilesUnderAny(index: RepoIndex, prefixes: readonly string[])
       break;
     }
   }
-  return index.files.filter((file) => matched.has(file));
+  return [...matched].toSorted();
 }
 
 export function repoFilesWithAnyExtension(
