@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-18T12:39:43.877Z",
-  "startedAt": "2026-05-18T12:39:42.546Z",
+  "generatedAt": "2026-05-19T15:41:48.464Z",
+  "startedAt": "2026-05-19T15:41:45.839Z",
   "cli": "node dist/cli.js",
   "totals": {
     "fixtures": 3,
@@ -14,8 +14,8 @@
       "slug": "mock-bug",
       "name": "Mock bug marker",
       "ok": true,
-      "summary": "1 open finding(s)",
-      "durationMs": 422,
+      "summary": "1 open finding(s), 1 patch attempt(s)",
+      "durationMs": 1801,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -47,6 +47,98 @@
           }
         ]
       },
+      "finalReport": {
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-b47463a2a2-_fbb6a9855e",
+            "title": "Marker bug found",
+            "category": "bug",
+            "severity": "medium",
+            "confidence": "high",
+            "status": "uncertain",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": null,
+                "endLine": null,
+                "symbol": null
+              }
+            ]
+          }
+        ]
+      },
+      "fix": {
+        "findingId": "fnd_sig-feat-cli-command-b47463a2a2-_fbb6a9855e",
+        "status": "applied",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-b47463a_5fb0893047",
+        "filesChanged": 0,
+        "changedFiles": "none",
+        "commands": 2,
+        "validation": "npm run typecheck => 0; npm run test => 0"
+      },
+      "revalidate": {
+        "findingId": "fnd_sig-feat-cli-command-b47463a2a2-_fbb6a9855e",
+        "outcome": "uncertain",
+        "reasoning": "mock provider cannot inspect fixes"
+      },
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 1,
+          "finalFindings": 1
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 1,
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 1,
+          "withGuidanceApplication": 1,
+          "appliedResources": 1,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {
+            "low": 1
+          }
+        },
+        "patchBoundary": {
+          "patchAttempts": 1,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 2,
+          "findings": 1,
+          "findingsByStatus": {
+            "uncertain": 1
+          },
+          "patchAttempts": 1,
+          "patchAttemptsByStatus": {
+            "applied": 1
+          },
+          "validationCommands": 2,
+          "revalidationOutcomes": {
+            "uncertain": 1
+          }
+        }
+      },
       "errors": []
     },
     {
@@ -54,8 +146,8 @@
       "slug": "mock-clean",
       "name": "Mock clean package",
       "ok": true,
-      "summary": "0 open finding(s)",
-      "durationMs": 472,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 383,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -70,6 +162,61 @@
         "findings": 0,
         "items": []
       },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 1,
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
       "errors": []
     },
     {
@@ -77,8 +224,8 @@
       "slug": "mock-simplify",
       "name": "Mock simplification marker",
       "ok": true,
-      "summary": "1 open finding(s)",
-      "durationMs": 423,
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 429,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -109,6 +256,80 @@
             ]
           }
         ]
+      },
+      "finalReport": {
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-31346196d4-_bec2e5358e",
+            "title": "Dead code marker can be removed",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": null,
+                "endLine": null,
+                "symbol": null
+              }
+            ]
+          }
+        ]
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 1,
+          "finalFindings": 1
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 1,
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
       },
       "errors": []
     }

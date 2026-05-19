@@ -73,22 +73,34 @@ function runFixture(fixtureName) {
     const provider = definition.review?.provider ?? "mock";
     const limit = String(definition.review?.limit ?? 1);
 
+    if (definition.fix?.enabled === true) {
+      initGitWorktree(worktree);
+    }
     runCli(worktree, ["init", "--force", "--json"]);
     const map = parseJson(runCli(worktree, ["map", "--json"]));
     const review = parseJson(
       runCli(worktree, ["review", "--provider", provider, "--limit", limit, "--json"]),
     );
     const report = parseJson(runCli(worktree, ["report", "--status", "open", "--json"]));
+    const fix = runFixStep(worktree, provider, definition, report);
+    const revalidate = runRevalidateStep(worktree, provider, definition, fix?.findingId ?? null);
+    const finalReport =
+      fix === null && revalidate === null
+        ? report
+        : parseJson(runCli(worktree, ["report", "--json"]));
+    const baseline = baselineFromState(worktree, report, finalReport);
     const score = scoreReport(definition.expect, report);
+    const baselineScore = scoreBaseline(definition.expect?.baseline, baseline);
 
     return {
       schemaVersion: 1,
       slug: definition.slug ?? fixtureName,
       name: definition.name ?? fixtureName,
-      ok: score.ok,
-      summary: score.ok
-        ? `${report.findings} open finding(s)`
-        : `${score.errors.length} expectation failure(s)`,
+      ok: score.ok && baselineScore.ok,
+      summary:
+        score.ok && baselineScore.ok
+          ? `${report.findings} open finding(s), ${baseline.workflow.patchAttempts} patch attempt(s)`
+          : `${score.errors.length + baselineScore.errors.length} expectation failure(s)`,
       durationMs: Date.now() - started,
       provider,
       map: {
@@ -104,7 +116,14 @@ function runFixture(fixtureName) {
         findings: report.findings,
         items: normalizeItems(report.items ?? []),
       },
-      errors: score.errors,
+      finalReport: {
+        findings: finalReport.findings,
+        items: normalizeItems(finalReport.items ?? []),
+      },
+      fix,
+      revalidate,
+      baseline,
+      errors: [...score.errors, ...baselineScore.errors],
     };
   } catch (error) {
     return {
@@ -121,6 +140,55 @@ function runFixture(fixtureName) {
   }
 }
 
+function runFixStep(worktree, provider, definition, report) {
+  if (definition.fix?.enabled !== true) {
+    return null;
+  }
+  const finding = selectFinding(report.items ?? [], definition.fix);
+  if (finding === null) {
+    throw new Error(`fix requested but no matching finding was found`);
+  }
+  const fixOutput = parseJson(
+    runCli(worktree, ["fix", "--provider", provider, "--finding", finding.id, "--json"]),
+  );
+  return {
+    findingId: finding.id,
+    status: fixOutput.status,
+    patchAttempt: fixOutput.patchAttempt,
+    filesChanged: fixOutput.filesChanged,
+    changedFiles: fixOutput.changedFiles,
+    commands: fixOutput.commands,
+    validation: fixOutput.validation,
+  };
+}
+
+function runRevalidateStep(worktree, provider, definition, findingId) {
+  if (definition.revalidate?.enabled !== true) {
+    return null;
+  }
+  if (findingId === null) {
+    throw new Error("revalidate requested but no fixed finding id is available");
+  }
+  const revalidateOutput = parseJson(
+    runCli(worktree, ["revalidate", "--provider", provider, "--finding", findingId, "--json"]),
+  );
+  return {
+    findingId,
+    outcome: revalidateOutput.outcome,
+    reasoning: revalidateOutput.reasoning,
+  };
+}
+
+function selectFinding(items, fixDefinition) {
+  if (fixDefinition.findingTitle !== undefined) {
+    return items.find((item) => item.title === fixDefinition.findingTitle) ?? null;
+  }
+  if (fixDefinition.findingId !== undefined) {
+    return items.find((item) => item.id === fixDefinition.findingId) ?? null;
+  }
+  return items[0] ?? null;
+}
+
 function runCli(root, args) {
   return execFileSync(process.execPath, [cli, "--root", root, ...args], {
     cwd: repoRoot,
@@ -132,6 +200,36 @@ function runCli(root, args) {
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
+}
+
+function initGitWorktree(root) {
+  execFileSync("git", ["init"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  execFileSync("git", ["add", "."], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=codenuke eval",
+      "-c",
+      "user.email=eval@example.invalid",
+      "commit",
+      "-m",
+      "fixture baseline",
+    ],
+    {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
 }
 
 function scoreReport(expectation, report) {
@@ -150,6 +248,181 @@ function scoreReport(expectation, report) {
   }
 
   return { ok: errors.length === 0, errors };
+}
+
+function scoreBaseline(expectation, baseline) {
+  const errors = [];
+  if (expectation === undefined) {
+    return { ok: true, errors };
+  }
+  if (
+    expectation.guidanceSelectionAudits !== undefined &&
+    baseline.guidanceSelection.audits !== expectation.guidanceSelectionAudits
+  ) {
+    errors.push(
+      `expected ${expectation.guidanceSelectionAudits} guidance selection audit(s), got ${baseline.guidanceSelection.audits}`,
+    );
+  }
+  for (const resourceId of expectation.selectedResources ?? []) {
+    if (!baseline.guidanceSelection.selectedResources.includes(resourceId)) {
+      errors.push(`missing selected guidance resource ${resourceId}`);
+    }
+  }
+  if (
+    expectation.patchAttempts !== undefined &&
+    baseline.workflow.patchAttempts !== expectation.patchAttempts
+  ) {
+    errors.push(
+      `expected ${expectation.patchAttempts} patch attempt(s), got ${baseline.workflow.patchAttempts}`,
+    );
+  }
+  if (
+    expectation.guidanceApplications !== undefined &&
+    baseline.guidanceApplication.withGuidanceApplication !== expectation.guidanceApplications
+  ) {
+    errors.push(
+      `expected ${expectation.guidanceApplications} guidance application(s), got ${baseline.guidanceApplication.withGuidanceApplication}`,
+    );
+  }
+  if (
+    expectation.patchBoundaryUnexpectedFiles !== undefined &&
+    baseline.patchBoundary.unexpectedFiles !== expectation.patchBoundaryUnexpectedFiles
+  ) {
+    errors.push(
+      `expected ${expectation.patchBoundaryUnexpectedFiles} unexpected patch boundary file(s), got ${baseline.patchBoundary.unexpectedFiles}`,
+    );
+  }
+  for (const [status, count] of Object.entries(expectation.findingsByStatus ?? {})) {
+    const actual = baseline.workflow.findingsByStatus[status] ?? 0;
+    if (actual !== count) {
+      errors.push(`expected ${count} ${status} finding(s), got ${actual}`);
+    }
+  }
+  for (const [status, count] of Object.entries(expectation.patchAttemptsByStatus ?? {})) {
+    const actual = baseline.workflow.patchAttemptsByStatus[status] ?? 0;
+    if (actual !== count) {
+      errors.push(`expected ${count} ${status} patch attempt(s), got ${actual}`);
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+function baselineFromState(worktree, initialReport, finalReport) {
+  const state = readState(worktree);
+  const guidanceSelectionAudits = state.runs.flatMap((run) => run.guidanceSelectionAudits ?? []);
+  const patchesWithGuidance = state.patches.filter((patch) => patch.guidanceApplication !== null);
+  const patchFailures = state.patches
+    .map((patch) => patch.failure)
+    .filter((failure) => failure !== null && failure !== undefined);
+  return {
+    schemaVersion: 1,
+    deterministicEval: {
+      initialOpenFindings: initialReport.findings,
+      finalFindings: finalReport.findings,
+    },
+    guidanceSelection: {
+      audits: guidanceSelectionAudits.length,
+      detectedShapes: sum(guidanceSelectionAudits, (audit) => audit.detectedShapes?.length ?? 0),
+      selectedResources: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.selected ?? []).map((resource) => resource.resourceId),
+        ),
+      ),
+      promptedResources: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.promptedResources ?? []).map((resource) => resource.resourceId),
+        ),
+      ),
+      rejectedResources: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.rejected ?? []).map((resource) => resource.resourceId),
+        ),
+      ),
+      promptProofs: guidanceSelectionAudits.filter((audit) => typeof audit.promptHash === "string")
+        .length,
+    },
+    guidanceApplication: {
+      patchAttempts: state.patches.length,
+      withGuidanceApplication: patchesWithGuidance.length,
+      appliedResources: countGuidanceActions(patchesWithGuidance, "applied"),
+      adaptedResources: countGuidanceActions(patchesWithGuidance, "adapted"),
+      notUsedResources: countGuidanceActions(patchesWithGuidance, "not-used"),
+      deviations: sum(
+        patchesWithGuidance,
+        (patch) => patch.guidanceApplication?.deviations?.length ?? 0,
+      ),
+      risks: countBy(
+        patchesWithGuidance.map((patch) => patch.guidanceApplication?.risk).filter(Boolean),
+      ),
+    },
+    patchBoundary: {
+      patchAttempts: state.patches.length,
+      filesChanged: sum(state.patches, (patch) => patch.filesChanged?.length ?? 0),
+      failures: patchFailures.filter((failure) => failure.code === "out-of-scope-changes").length,
+      unexpectedFiles: sum(patchFailures, (failure) => failure.unexpectedFiles?.length ?? 0),
+    },
+    workflow: {
+      runs: state.runs.length,
+      findings: state.findings.length,
+      findingsByStatus: countBy(state.findings.map((finding) => finding.status)),
+      patchAttempts: state.patches.length,
+      patchAttemptsByStatus: countBy(state.patches.map((patch) => patch.status)),
+      validationCommands: sum(state.patches, (patch) => patch.commandsRun?.length ?? 0),
+      revalidationOutcomes: countBy(
+        state.findings.flatMap((finding) =>
+          (finding.history ?? [])
+            .filter((entry) => entry.kind === "revalidate")
+            .map((entry) => entry.status),
+        ),
+      ),
+    },
+  };
+}
+
+function readState(worktree) {
+  const stateRoot = join(worktree, ".codenuke");
+  return {
+    runs: readJsonRecords(join(stateRoot, "runs")),
+    findings: readJsonRecords(join(stateRoot, "findings")),
+    patches: readJsonRecords(join(stateRoot, "patches")),
+  };
+}
+
+function readJsonRecords(dir) {
+  if (!existsSync(dir)) {
+    return [];
+  }
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+    .map((entry) => readJson(join(dir, entry.name)));
+}
+
+function countGuidanceActions(patches, action) {
+  return sum(
+    patches,
+    (patch) =>
+      patch.guidanceApplication?.appliedResources?.filter((resource) => resource.action === action)
+        .length ?? 0,
+  );
+}
+
+function countBy(values) {
+  const counts = {};
+  for (const value of values) {
+    if (typeof value !== "string" || value.length === 0) {
+      continue;
+    }
+    counts[value] = (counts[value] ?? 0) + 1;
+  }
+  return Object.fromEntries(Object.entries(counts).toSorted(([a], [b]) => a.localeCompare(b)));
+}
+
+function sum(items, value) {
+  return items.reduce((total, item) => total + value(item), 0);
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values)].toSorted();
 }
 
 function matchesFinding(item, expected) {

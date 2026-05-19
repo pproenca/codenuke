@@ -7,6 +7,13 @@
     "provider": "mock",
     "limit": 1
   },
+  "fix": {
+    "enabled": true,
+    "findingTitle": "Marker bug found"
+  },
+  "revalidate": {
+    "enabled": true
+  },
   "expect": {
     "openFindings": 1,
     "findings": [
@@ -17,6 +24,19 @@
         "confidence": "high",
         "evidencePath": "src/index.ts"
       }
-    ]
+    ],
+    "baseline": {
+      "guidanceSelectionAudits": 1,
+      "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+      "patchAttempts": 1,
+      "guidanceApplications": 1,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {
+        "uncertain": 1
+      },
+      "patchAttemptsByStatus": {
+        "applied": 1
+      }
+    }
   }
 }

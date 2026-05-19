@@ -16,6 +16,10 @@ _Avoid_: smell finding, automatic cleanup target
 A repeated codenuke loop that reviews, fixes, validates, and revalidates bounded refactoring findings until the selected scope is exhausted.
 _Avoid_: cleanup sprint, one-off refactor
 
+**Agent Quality Baseline**:
+A reference measurement of how well a Trusted Refactoring Workflow performs on agreed examples before changes are made.
+_Avoid_: vibe check, one-off run result, generic quality score
+
 **Change Scope**:
 The subset of repository behavior considered during a refactoring campaign.
 _Avoid_: campaign type, separate workflow
@@ -73,6 +77,7 @@ _Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
 - A **Trusted Refactoring Workflow** depends on evidence that the target code can be changed without altering intended behavior.
 - A **Refactoring Signal** can support a finding, but is not itself a finding.
 - A **Refactoring Campaign** runs the **Trusted Refactoring Workflow** repeatedly.
+- An **Agent Quality Baseline** measures a **Trusted Refactoring Workflow** before guidance, prompt, provider, or workflow changes are judged.
 - A **Change Scope** limits which features or findings a **Refactoring Campaign** considers.
 - A **Feature Slice** is the review unit for a **Refactoring Campaign**.
 - A **Refactoring Finding** is the fix unit for a **Refactoring Campaign**.
@@ -129,3 +134,4 @@ _Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
 - "resource migration" was considered an all-at-once copy of existing docs; resolved: first implementation should use a smaller guidance-ready subset, then expand coverage without lowering curation quality.
 - "whether the agent looked at the right docs" was treated as a finding-level question; resolved: evaluate pre-provider **Guidance Selection** with a **Guidance Selection Audit**, then evaluate provider use with the finding-level **Guidance Trace**.
 - "churn" was used broadly; resolved: unrelated fix edits are **Patch Boundary** violations, while formatter rewrites are a validation-command policy problem.
+- "baseline" was used broadly; resolved: an **Agent Quality Baseline** is a reference measurement for comparing Trusted Refactoring Workflow changes, not a single ad hoc run.

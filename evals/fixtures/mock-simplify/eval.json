@@ -17,6 +17,17 @@
         "confidence": "high",
         "evidencePath": "src/index.ts"
       }
-    ]
+    ],
+    "baseline": {
+      "guidanceSelectionAudits": 1,
+      "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+      "patchAttempts": 0,
+      "guidanceApplications": 0,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {
+        "open": 1
+      },
+      "patchAttemptsByStatus": {}
+    }
   }
 }
