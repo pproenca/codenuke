@@ -40,7 +40,7 @@ describe("laravelSeeds", () => {
           "<?php",
           "use App\\Http\\Controllers\\QuoteController;",
           "",
-          'Route::get(\'/literal,;{}\', [QuoteController::class, "show\\\\\\"detail"]);',
+          'Route::get(\'/literal,;[ignored]{}\', [QuoteController::class, "show\\\\\\"detail"]);',
         ].join("\n"),
       ),
       writeFixture(
@@ -76,8 +76,8 @@ describe("laravelSeeds", () => {
 
     expect(controllerRoutes).toEqual([
       {
-        route: "/api/literal,;{}",
-        summary: 'Laravel HTTP controller for GET /api/literal,;{}#show\\\\\\"detail.',
+        route: "/api/literal,;[ignored]{}",
+        summary: 'Laravel HTTP controller for GET /api/literal,;[ignored]{}#show\\\\\\"detail.',
         symbol: "QuoteController",
       },
       {

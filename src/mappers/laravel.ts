@@ -59,6 +59,13 @@ type PhpStringScan = {
   escaped: boolean;
 };
 
+type PhpTopLevelScan = {
+  string: PhpStringScan;
+  parens: number;
+  brackets: number;
+  braces: number;
+};
+
 type PhpClassSeedSpec = {
   prefix: string;
   titlePrefix: string;
@@ -554,31 +561,13 @@ function routeStatements(source: string): string[] {
 }
 
 function statementEnd(source: string, start: number): number | null {
-  const stringScan: PhpStringScan = { quote: null, escaped: false };
-  let parens = 0;
-  let brackets = 0;
-  let braces = 0;
+  const scan = phpTopLevelScan();
   for (let index = start; index < source.length; index += 1) {
     const char = source[index];
     if (char === undefined) {
       continue;
     }
-    if (scanPhpStringLiteral(stringScan, char)) {
-      continue;
-    }
-    if (char === "(") {
-      parens += 1;
-    } else if (char === ")") {
-      parens = Math.max(0, parens - 1);
-    } else if (char === "[") {
-      brackets += 1;
-    } else if (char === "]") {
-      brackets = Math.max(0, brackets - 1);
-    } else if (char === "{") {
-      braces += 1;
-    } else if (char === "}") {
-      braces = Math.max(0, braces - 1);
-    } else if (char === ";" && parens === 0 && brackets === 0 && braces === 0) {
+    if (scanPhpTopLevel(scan, char) && char === ";") {
       return index;
     }
   }
@@ -635,32 +624,14 @@ function skipWhitespace(source: string, offset: number): number {
 
 function splitTopLevelArgs(source: string): string[] {
   const args: string[] = [];
-  const stringScan: PhpStringScan = { quote: null, escaped: false };
-  let parens = 0;
-  let brackets = 0;
-  let braces = 0;
+  const scan = phpTopLevelScan();
   let start = 0;
   for (let index = 0; index < source.length; index += 1) {
     const char = source[index];
     if (char === undefined) {
       continue;
     }
-    if (scanPhpStringLiteral(stringScan, char)) {
-      continue;
-    }
-    if (char === "(") {
-      parens += 1;
-    } else if (char === ")") {
-      parens = Math.max(0, parens - 1);
-    } else if (char === "[") {
-      brackets += 1;
-    } else if (char === "]") {
-      brackets = Math.max(0, brackets - 1);
-    } else if (char === "{") {
-      braces += 1;
-    } else if (char === "}") {
-      braces = Math.max(0, braces - 1);
-    } else if (char === "," && parens === 0 && brackets === 0 && braces === 0) {
+    if (scanPhpTopLevel(scan, char) && char === ",") {
       args.push(source.slice(start, index).trim());
       start = index + 1;
     }
@@ -695,6 +666,35 @@ function matchingDelimiter(
     }
   }
   return null;
+}
+
+function phpTopLevelScan(): PhpTopLevelScan {
+  return {
+    string: { quote: null, escaped: false },
+    parens: 0,
+    brackets: 0,
+    braces: 0,
+  };
+}
+
+function scanPhpTopLevel(state: PhpTopLevelScan, char: string): boolean {
+  if (scanPhpStringLiteral(state.string, char)) {
+    return false;
+  }
+  if (char === "(") {
+    state.parens += 1;
+  } else if (char === ")") {
+    state.parens = Math.max(0, state.parens - 1);
+  } else if (char === "[") {
+    state.brackets += 1;
+  } else if (char === "]") {
+    state.brackets = Math.max(0, state.brackets - 1);
+  } else if (char === "{") {
+    state.braces += 1;
+  } else if (char === "}") {
+    state.braces = Math.max(0, state.braces - 1);
+  }
+  return state.parens === 0 && state.brackets === 0 && state.braces === 0;
 }
 
 function scanPhpStringLiteral(state: PhpStringScan, char: string): boolean {
