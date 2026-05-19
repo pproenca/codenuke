@@ -54,6 +54,11 @@ type RouteCall = {
   args: string[];
 };
 
+type PhpStringScan = {
+  quote: "'" | '"' | null;
+  escaped: boolean;
+};
+
 type PhpClassSeedSpec = {
   prefix: string;
   titlePrefix: string;
@@ -549,8 +554,7 @@ function routeStatements(source: string): string[] {
 }
 
 function statementEnd(source: string, start: number): number | null {
-  let quote: "'" | '"' | null = null;
-  let escaped = false;
+  const stringScan: PhpStringScan = { quote: null, escaped: false };
   let parens = 0;
   let brackets = 0;
   let braces = 0;
@@ -559,19 +563,10 @@ function statementEnd(source: string, start: number): number | null {
     if (char === undefined) {
       continue;
     }
-    if (quote !== null) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === quote) {
-        quote = null;
-      }
+    if (scanPhpStringLiteral(stringScan, char)) {
       continue;
     }
-    if (char === "'" || char === '"') {
-      quote = char;
-    } else if (char === "(") {
+    if (char === "(") {
       parens += 1;
     } else if (char === ")") {
       parens = Math.max(0, parens - 1);
@@ -640,8 +635,7 @@ function skipWhitespace(source: string, offset: number): number {
 
 function splitTopLevelArgs(source: string): string[] {
   const args: string[] = [];
-  let quote: "'" | '"' | null = null;
-  let escaped = false;
+  const stringScan: PhpStringScan = { quote: null, escaped: false };
   let parens = 0;
   let brackets = 0;
   let braces = 0;
@@ -651,19 +645,10 @@ function splitTopLevelArgs(source: string): string[] {
     if (char === undefined) {
       continue;
     }
-    if (quote !== null) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === quote) {
-        quote = null;
-      }
+    if (scanPhpStringLiteral(stringScan, char)) {
       continue;
     }
-    if (char === "'" || char === '"') {
-      quote = char;
-    } else if (char === "(") {
+    if (char === "(") {
       parens += 1;
     } else if (char === ")") {
       parens = Math.max(0, parens - 1);
@@ -690,27 +675,17 @@ function matchingDelimiter(
   open: "(" | "{" | "[",
   close: ")" | "}" | "]",
 ): number | null {
-  let quote: "'" | '"' | null = null;
-  let escaped = false;
+  const stringScan: PhpStringScan = { quote: null, escaped: false };
   let depth = 0;
   for (let index = openIndex; index < source.length; index += 1) {
     const char = source[index];
     if (char === undefined) {
       continue;
     }
-    if (quote !== null) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === quote) {
-        quote = null;
-      }
+    if (scanPhpStringLiteral(stringScan, char)) {
       continue;
     }
-    if (char === "'" || char === '"') {
-      quote = char;
-    } else if (char === open) {
+    if (char === open) {
       depth += 1;
     } else if (char === close) {
       depth -= 1;
@@ -720,6 +695,24 @@ function matchingDelimiter(
     }
   }
   return null;
+}
+
+function scanPhpStringLiteral(state: PhpStringScan, char: string): boolean {
+  if (state.quote !== null) {
+    if (state.escaped) {
+      state.escaped = false;
+    } else if (char === "\\") {
+      state.escaped = true;
+    } else if (char === state.quote) {
+      state.quote = null;
+    }
+    return true;
+  }
+  if (char === "'" || char === '"') {
+    state.quote = char;
+    return true;
+  }
+  return false;
 }
 
 function routePrefixesFromCalls(calls: RouteCall[]): string[] {
