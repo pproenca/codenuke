@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -19,7 +19,19 @@ function write(path, contents) {
 }
 
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
+  return execFileSync(command, args, runOptions(command, options, options.stdio ?? "pipe"));
+}
+
+function runResult(command, args, options = {}) {
+  const result = spawnSync(command, args, runOptions(command, options, "pipe"));
+  if (result.error) {
+    throw result.error;
+  }
+  return result;
+}
+
+function runOptions(command, options, stdio) {
+  return {
     cwd: options.cwd ?? root,
     encoding: "utf8",
     env: {
@@ -29,8 +41,8 @@ function run(command, args, options = {}) {
       npm_config_update_notifier: "false",
     },
     shell: needsWindowsShell(command) ? (process.env.ComSpec ?? true) : false,
-    stdio: options.stdio ?? "pipe",
-  });
+    stdio,
+  };
 }
 
 function needsWindowsShell(command) {
@@ -109,6 +121,24 @@ try {
     ".bin",
     process.platform === "win32" ? "codenuke.cmd" : "codenuke",
   );
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const version = run(bin, ["--version"]).trim();
+  if (version !== packageJson.version) {
+    throw new Error(`expected packaged CLI version ${packageJson.version}, got ${version}`);
+  }
+  const invalidCommand = runResult(bin, ["does-not-exist"]);
+  if (invalidCommand.status !== 2) {
+    throw new Error(
+      `expected packaged CLI invalid command to exit 2, got ${invalidCommand.status}`,
+    );
+  }
+  if (!invalidCommand.stderr.startsWith("error: unknown command: does-not-exist\n")) {
+    throw new Error(
+      `expected packaged CLI invalid command stderr to start with error:, got ${JSON.stringify(
+        invalidCommand.stderr,
+      )}`,
+    );
+  }
   run(bin, ["--root", fixtureRoot, "init", "--force", "--json"]);
   const mapped = JSON.parse(run(bin, ["--root", fixtureRoot, "map", "--json"]));
   const features = JSON.parse(
