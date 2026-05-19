@@ -34,6 +34,16 @@ type FastApiRoute = {
   methods: string[];
 };
 
+type PythonRouteDecorator = {
+  routePath: string;
+  methods: string[];
+};
+
+type PythonDecoratedRoute = PythonRouteDecorator & {
+  filePath: string;
+  functionName: string;
+};
+
 type PyprojectInfo = {
   name: string | null;
   scripts: PythonScript[];
@@ -438,66 +448,19 @@ function sourceLooksFastApi(source: string): boolean {
 }
 
 function parseFastApiRoutes(filePath: string, source: string): FastApiRoute[] {
-  const routes: FastApiRoute[] = [];
-  let pending: Array<{ routePath: string; methods: string[] }> = [];
-  let decoratorSource: string | null = null;
-  let decoratorDepth = 0;
-  for (const line of source.split("\n")) {
-    const trimmed = line.trim();
-    if (decoratorSource !== null) {
-      decoratorSource = `${decoratorSource} ${trimmed}`;
-      decoratorDepth += parenDelta(trimmed);
-      if (decoratorDepth <= 0) {
-        const route = parseFastApiRouteDecorator(decoratorSource);
-        if (route !== null) {
-          pending.push(route);
-        }
-        decoratorSource = null;
-        decoratorDepth = 0;
-      }
-      continue;
-    }
-
-    if (startsFastApiRouteDecorator(trimmed)) {
-      decoratorSource = trimmed;
-      decoratorDepth = parenDelta(trimmed);
-      if (decoratorDepth <= 0) {
-        const route = parseFastApiRouteDecorator(decoratorSource);
-        if (route !== null) {
-          pending.push(route);
-        }
-        decoratorSource = null;
-        decoratorDepth = 0;
-      }
-      continue;
-    }
-
-    const functionName = /^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/u.exec(line)?.[1];
-    if (functionName !== undefined && pending.length > 0) {
-      for (const item of pending) {
-        routes.push({ filePath, functionName, ...item });
-      }
-      pending = [];
-      continue;
-    }
-
-    if (
-      pending.length > 0 &&
-      trimmed !== "" &&
-      !trimmed.startsWith("@") &&
-      !trimmed.startsWith("#")
-    ) {
-      pending = [];
-    }
-  }
-  return routes;
+  return parsePythonDecoratedRoutes(
+    filePath,
+    source,
+    startsFastApiRouteDecorator,
+    parseFastApiRouteDecorator,
+  );
 }
 
 function startsFastApiRouteDecorator(line: string): boolean {
   return fastApiRouteDecoratorStartPattern.test(line);
 }
 
-function parseFastApiRouteDecorator(line: string): { routePath: string; methods: string[] } | null {
+function parseFastApiRouteDecorator(line: string): PythonRouteDecorator | null {
   const match = fastApiRouteDecoratorPattern.exec(line);
   const method = match?.[1];
   const args = match?.[2];
@@ -592,8 +555,22 @@ function sourceLooksFlask(source: string): boolean {
 }
 
 function parseFlaskRoutes(filePath: string, source: string): FlaskRoute[] {
-  const routes: FlaskRoute[] = [];
-  let pending: Array<{ routePath: string; methods: string[] }> = [];
+  return parsePythonDecoratedRoutes(
+    filePath,
+    source,
+    startsFlaskRouteDecorator,
+    parseFlaskRouteDecorator,
+  );
+}
+
+function parsePythonDecoratedRoutes(
+  filePath: string,
+  source: string,
+  startsDecorator: (line: string) => boolean,
+  parseDecorator: (line: string) => PythonRouteDecorator | null,
+): PythonDecoratedRoute[] {
+  const routes: PythonDecoratedRoute[] = [];
+  let pending: PythonRouteDecorator[] = [];
   let decoratorSource: string | null = null;
   let decoratorDepth = 0;
   for (const line of source.split("\n")) {
@@ -602,7 +579,7 @@ function parseFlaskRoutes(filePath: string, source: string): FlaskRoute[] {
       decoratorSource = `${decoratorSource} ${trimmed}`;
       decoratorDepth += parenDelta(trimmed);
       if (decoratorDepth <= 0) {
-        const route = parseFlaskRouteDecorator(decoratorSource);
+        const route = parseDecorator(decoratorSource);
         if (route !== null) {
           pending.push(route);
         }
@@ -612,11 +589,11 @@ function parseFlaskRoutes(filePath: string, source: string): FlaskRoute[] {
       continue;
     }
 
-    if (startsFlaskRouteDecorator(trimmed)) {
+    if (startsDecorator(trimmed)) {
       decoratorSource = trimmed;
       decoratorDepth = parenDelta(trimmed);
       if (decoratorDepth <= 0) {
-        const route = parseFlaskRouteDecorator(decoratorSource);
+        const route = parseDecorator(decoratorSource);
         if (route !== null) {
           pending.push(route);
         }
@@ -651,7 +628,7 @@ function startsFlaskRouteDecorator(line: string): boolean {
   return /^@[A-Za-z_][A-Za-z0-9_.]*\.route\(/u.test(line);
 }
 
-function parseFlaskRouteDecorator(line: string): { routePath: string; methods: string[] } | null {
+function parseFlaskRouteDecorator(line: string): PythonRouteDecorator | null {
   const match = /^\s*@[A-Za-z_][A-Za-z0-9_.]*\.route\(\s*(["'])(.*?)\1(.*)\)\s*(?:#.*)?$/u.exec(
     line,
   );
