@@ -96,4 +96,88 @@ describe("cCppSeeds", () => {
       },
     ]);
   });
+
+  it("keeps reused included CMake files scoped to each project context", async () => {
+    const root = await fixtureRoot("codenuke-cmake-reused-include-");
+    const files = [
+      "CMakeLists.txt",
+      "apps/one/CMakeLists.txt",
+      "apps/one/main.cpp",
+      "apps/one/support.cpp",
+      "apps/two/CMakeLists.txt",
+      "apps/two/main.cpp",
+      "apps/two/support.cpp",
+      "cmake/shared.cmake",
+    ];
+    await writeFixture(
+      root,
+      "CMakeLists.txt",
+      ["add_subdirectory(apps/one)", "add_subdirectory(apps/two)"].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "apps/one/CMakeLists.txt",
+      [
+        "project(One)",
+        "include(../../cmake/shared)",
+        "add_executable(${PROJECT_NAME}_tool main.cpp)",
+      ].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "apps/two/CMakeLists.txt",
+      [
+        "project(Two)",
+        "include(../../cmake/shared)",
+        "add_executable(${PROJECT_NAME}_tool main.cpp)",
+      ].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "cmake/shared.cmake",
+      "target_sources(${PROJECT_NAME}_tool PRIVATE ${PROJECT_SOURCE_DIR}/support.cpp)\n",
+    );
+    await writeFixture(root, "apps/one/main.cpp", "int main() { return 0; }\n");
+    await writeFixture(root, "apps/one/support.cpp", "int one_support() { return 1; }\n");
+    await writeFixture(root, "apps/two/main.cpp", "int main() { return 0; }\n");
+    await writeFixture(root, "apps/two/support.cpp", "int two_support() { return 2; }\n");
+    const context: MapperContext = {
+      projects: [],
+      repoIndex: repoIndexFromFiles(files),
+      taskGraph: emptyTaskGraph(),
+    };
+
+    const seeds = (await cCppSeeds(root, context))
+      .filter((seed) => seed.source === "cmake-bin")
+      .map((seed) => ({
+        title: seed.title,
+        ownedFiles: seed.ownedFiles,
+        contextFiles: seed.contextFiles,
+      }));
+
+    expect(seeds).toEqual([
+      {
+        title: "CMake binary One_tool",
+        ownedFiles: [
+          { path: "apps/one/main.cpp", reason: "target source" },
+          { path: "apps/one/support.cpp", reason: "target source" },
+        ],
+        contextFiles: [
+          { path: "apps/one/CMakeLists.txt", reason: "CMake target declaration" },
+          { path: "cmake/shared.cmake", reason: "CMake target source declaration" },
+        ],
+      },
+      {
+        title: "CMake binary Two_tool",
+        ownedFiles: [
+          { path: "apps/two/main.cpp", reason: "target source" },
+          { path: "apps/two/support.cpp", reason: "target source" },
+        ],
+        contextFiles: [
+          { path: "apps/two/CMakeLists.txt", reason: "CMake target declaration" },
+          { path: "cmake/shared.cmake", reason: "CMake target source declaration" },
+        ],
+      },
+    ]);
+  });
 });

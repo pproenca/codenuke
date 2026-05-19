@@ -128,8 +128,9 @@ async function autotoolsTargets(root: string, files: string[]): Promise<FeatureS
 
 async function cmakeTargets(root: string, files: string[]): Promise<FeatureSeed[]> {
   const seeds: FeatureSeed[] = [];
-  const { contexts } = await referencedCMakeFiles(root, files);
-  const extraSourceSets = await cmakeTargetSources(root, contexts);
+  const cmakeBody = cachedCMakeBodyLoader(root);
+  const { contexts } = await referencedCMakeFiles(root, files, cmakeBody);
+  const extraSourceSets = await cmakeTargetSources(root, contexts, cmakeBody);
   for (const {
     file: cmakeFile,
     sourceDir: dir,
@@ -139,11 +140,7 @@ async function cmakeTargets(root: string, files: string[]): Promise<FeatureSeed[
     projectName,
   } of contexts) {
     const listDir = parentDir(cmakeFile);
-    const source = await readFile(join(root, cmakeFile), "utf8").then(
-      (value) => value,
-      () => "",
-    );
-    const body = stripCMakeComments(source);
+    const body = await cmakeBody(cmakeFile);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const args of cmakeCommandArgs(body, "add_executable")) {
@@ -275,7 +272,34 @@ type ResolvedCMakeTargetSources = {
   sourcePaths: string[];
 };
 
-async function referencedCMakeFiles(root: string, files: string[]): Promise<CMakeDiscovery> {
+type CMakeBodyLoader = (file: string) => Promise<string>;
+
+function cachedCMakeBodyLoader(root: string): CMakeBodyLoader {
+  const bodies = new Map<string, Promise<string>>();
+  return (file: string): Promise<string> => {
+    const cached = bodies.get(file);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const body = readCMakeBody(root, file);
+    bodies.set(file, body);
+    return body;
+  };
+}
+
+async function readCMakeBody(root: string, file: string): Promise<string> {
+  const source = await readFile(join(root, file), "utf8").then(
+    (value) => value,
+    () => "",
+  );
+  return stripCMakeComments(source);
+}
+
+async function referencedCMakeFiles(
+  root: string,
+  files: string[],
+  cmakeBody: CMakeBodyLoader,
+): Promise<CMakeDiscovery> {
   const cmakeFileSet = new Set(files.filter(isCMake));
   const contexts = new Map<string, CMakeContext>();
   const pending: CMakeContext[] = [];
@@ -308,11 +332,7 @@ async function referencedCMakeFiles(root: string, files: string[]): Promise<CMak
       projectName,
     } = context;
     const listDir = parentDir(cmakeFile);
-    const source = await readFile(join(root, cmakeFile), "utf8").then(
-      (value) => value,
-      () => "",
-    );
-    const body = stripCMakeComments(source);
+    const body = await cmakeBody(cmakeFile);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const include of cmakeIncludes(body)) {
@@ -424,6 +444,7 @@ function cmakeContextKey(context: CMakeContext): string {
 async function cmakeTargetSources(
   root: string,
   contexts: CMakeContext[],
+  cmakeBody: CMakeBodyLoader,
 ): Promise<Map<string, CMakeTargetSources>> {
   const sources = new Map<string, CMakeTargetSources>();
   for (const {
@@ -435,11 +456,7 @@ async function cmakeTargetSources(
     projectName,
   } of contexts) {
     const listDir = parentDir(cmakeFile);
-    const source = await readFile(join(root, cmakeFile), "utf8").then(
-      (value) => value,
-      () => "",
-    );
-    const body = stripCMakeComments(source);
+    const body = await cmakeBody(cmakeFile);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const args of cmakeCommandArgs(body, "target_sources")) {
