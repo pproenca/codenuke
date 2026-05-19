@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run Eval Baseline"
+  short_description: "Run and summarize codenuke eval baselines"
+  default_prompt: "Use $run-eval-baseline to run the codenuke eval baseline and report regressions."
