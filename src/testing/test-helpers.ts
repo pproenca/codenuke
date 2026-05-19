@@ -1,5 +1,5 @@
 import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { GlobalOptions } from "../platform/config.js";
 
@@ -9,7 +9,7 @@ export async function fixtureRoot(prefix: string): Promise<string> {
 
 export async function writeFixture(root: string, path: string, contents: string): Promise<void> {
   const full = join(root, path);
-  await mkdir(join(full, ".."), { recursive: true });
+  await mkdir(dirname(full), { recursive: true });
   await writeFile(full, contents, "utf8");
 }
 
