@@ -830,7 +830,7 @@ function testSuiteRoot(path: string): string {
 
 function associatedTests(files: string[], tests: string[], command: string | null): SeedTestRef[] {
   const fileStems = new Set(files.map((file) => basename(file).replace(/\.py$/u, "")));
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   return tests
     .filter((test) => {
       const testStem = basename(test)
@@ -838,7 +838,7 @@ function associatedTests(files: string[], tests: string[], command: string | nul
         .replace(/_test\.py$/u, "")
         .replace(/\.py$/u, "");
       return (
-        [...dirs].some((dir) => pathMatchesPrefix(test, dir)) ||
+        dirs.some((dir) => pathMatchesPrefix(test, dir)) ||
         (fileStems.has(testStem) && (/^(tests?|__tests__)\//u.test(test) || !test.includes("/")))
       );
     })

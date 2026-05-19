@@ -896,11 +896,11 @@ function associatedTests(
   commandForTest: (path: string) => string | null,
 ): SeedTestRef[] {
   const fileStems = new Set(files.map((file) => basename(file).replace(/\.rb$/u, "")));
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   return tests
     .filter((test) => {
       const testStem = rubyTestStem(test);
-      return [...dirs].some((dir) => pathMatchesPrefix(test, dir)) || fileStems.has(testStem);
+      return dirs.some((dir) => pathMatchesPrefix(test, dir)) || fileStems.has(testStem);
     })
     .slice(0, sourceGroupMaxTests)
     .map((path) => ({ path, command: commandForTest(path) }));

@@ -232,13 +232,13 @@ async function appleContextFiles(
 
 function associatedSwiftTests(files: string[], testFiles: string[]): SeedTestRef[] {
   const stems = new Set(files.map((file) => basename(file).replace(/\.swift$/u, "")));
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   return testFiles
     .filter((test) => {
       const testStem = basename(test)
         .replace(/Tests?\.swift$/u, "")
         .replace(/\.swift$/u, "");
-      return stems.has(testStem) || [...dirs].some((dir) => pathMatchesPrefix(test, dir));
+      return stems.has(testStem) || dirs.some((dir) => pathMatchesPrefix(test, dir));
     })
     .slice(0, maxTests)
     .map((path) => ({ path, command: null }));

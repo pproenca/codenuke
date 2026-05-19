@@ -493,11 +493,11 @@ async function hasRailsDependency(root: string): Promise<boolean> {
 
 function associatedTests(files: string[], tests: string[], command: string | null): SeedTestRef[] {
   const fileStems = new Set(files.map((file) => basename(file).replace(/\.[^.]+$/u, "")));
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   return tests
     .filter((test) => {
       const testStem = basename(test).replace(/\.(test|spec)\.[^.]+$/u, "");
-      return fileStems.has(testStem) || [...dirs].some((dir) => pathMatchesPrefix(test, dir));
+      return fileStems.has(testStem) || dirs.some((dir) => pathMatchesPrefix(test, dir));
     })
     .slice(0, sourceGroupMaxTests)
     .map((path) => ({ path, command }));

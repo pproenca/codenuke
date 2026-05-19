@@ -2007,13 +2007,13 @@ async function gradleContextFiles(
 
 function associatedGradleTests(files: string[], testFiles: string[]): SeedTestRef[] {
   const stems = new Set(files.map((file) => basename(file).replace(/\.[^.]+$/u, "")));
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   return testFiles
     .filter((test) => {
       const stem = basename(test)
         .replace(/\.[^.]+$/u, "")
         .replace(/(?:Test|Spec)$/u, "");
-      return stems.has(stem) || [...dirs].some((dir) => pathMatchesPrefix(test, dir));
+      return stems.has(stem) || dirs.some((dir) => pathMatchesPrefix(test, dir));
     })
     .slice(0, maxTests)
     .map((path) => ({ path, command: null }));

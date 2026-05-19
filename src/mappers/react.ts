@@ -1088,11 +1088,11 @@ function realPathInsideRoot(root: string, path: string): boolean {
 }
 
 function associatedTests(files: string[], tests: string[], command: string | null): SeedTestRef[] {
-  const dirs = new Set(files.map((file) => dirname(file)));
+  const dirs = [...new Set(files.map((file) => dirname(file)))];
   const exact = tests.filter((test) => files.some((file) => isExactTestForFile(file, test)));
   const exactSet = new Set(exact);
   const nearby = tests.filter(
-    (test) => !exactSet.has(test) && [...dirs].some((dir) => pathMatchesPrefix(test, dir)),
+    (test) => !exactSet.has(test) && dirs.some((dir) => pathMatchesPrefix(test, dir)),
   );
   return [...exact, ...nearby].slice(0, 8).map((path) => ({ path, command }));
 }

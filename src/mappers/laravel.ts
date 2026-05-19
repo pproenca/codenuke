@@ -1018,14 +1018,15 @@ function associatedPhpTests(
   command: string | null,
 ): SeedTestRef[] {
   const stems = new Set(files.map((file) => basename(file, ".php")));
-  const directories = new Set(files.map((file) => dirname(file)));
+  const stemList = [...stems];
+  const directories = [...new Set(files.map((file) => dirname(file)))];
   return tests
     .filter((test) => {
       const testStem = basename(test, ".php").replace(/Test$/u, "");
       return (
         stems.has(testStem) ||
-        [...stems].some((stem) => testStem.includes(stem)) ||
-        [...directories].some((dir) => pathMatchesPrefix(test, dir))
+        stemList.some((stem) => testStem.includes(stem)) ||
+        directories.some((dir) => pathMatchesPrefix(test, dir))
       );
     })
     .slice(0, maxAssociatedTests)
