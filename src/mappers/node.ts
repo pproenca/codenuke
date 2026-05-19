@@ -347,20 +347,10 @@ async function packageOverviewContextFiles(
 
 async function packageEntryContextFiles(root: string, info: PackageInfo): Promise<SeedFileRef[]> {
   const entries = new Set<string>();
-  for (const path of Object.values(packageBins(info.packageJson))) {
-    const normalized = normalizePackagePath(path);
-    if (normalized === null) {
-      continue;
-    }
-    const sourceCandidates = sourceCandidatesForGeneratedOutput(normalized);
-    for (const candidate of sourceCandidates) {
-      entries.add(packageRelativePath(info.root, candidate));
-    }
-    if (sourceCandidates.length === 0) {
-      entries.add(packageRelativePath(info.root, normalized));
-    }
-  }
-  for (const path of packageExportPaths(info.packageJson)) {
+  for (const path of [
+    ...Object.values(packageBins(info.packageJson)),
+    ...packageExportPaths(info.packageJson),
+  ]) {
     const normalized = normalizePackagePath(path);
     if (normalized === null) {
       continue;

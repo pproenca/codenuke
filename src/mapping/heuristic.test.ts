@@ -657,6 +657,44 @@ describe("mapFeatures", () => {
     expect(paths).not.toContain(`../${outside}`);
   });
 
+  it("orders package manifest context from generated bin and export source entries", async () => {
+    const root = await fixtureRoot("codenuke-map-package-entry-context-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "entry-context",
+          bin: { cli: "./dist/cli.js" },
+          exports: {
+            ".": "./dist/index.js",
+            "./cli": "./dist/cli.js",
+            "./missing": "./dist/missing.js",
+            "./unsafe": "../outside.js",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    await writeFixture(root, "src/cli.ts", "export function cli() {}\n");
+    await writeFixture(root, "src/index.ts", "export function index() {}\n");
+    await writeFixture(root, "dist/cli.js", "export {};\n");
+    await writeFixture(root, "dist/index.js", "export {};\n");
+    await writeFixture(root, "dist/missing.js", "export {};\n");
+
+    const project = await detectProject(root);
+    const result = await mapFeatures(root, project, []);
+    const nodePackage = result.features.find(
+      (feature) => feature.title === "Node package entry-context",
+    );
+
+    expect(nodePackage?.contextFiles).toEqual([
+      { path: "src/cli.ts", reason: "package entrypoint" },
+      { path: "src/index.ts", reason: "package entrypoint" },
+    ]);
+  });
+
   it("maps generated module and declaration entries back to source files", async () => {
     const root = await fixtureRoot("codenuke-map-bin-module-source-");
     await writeFixture(
