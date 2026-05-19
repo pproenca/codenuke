@@ -1,6 +1,6 @@
 # Codex GPT-5.5 Model Eval Comparison
 
-Generated: 2026-05-19T17:10:44.429Z
+Generated: 2026-05-19T17:28:07.779Z
 
 ## Runs
 
@@ -20,6 +20,14 @@ Generated: 2026-05-19T17:10:44.429Z
 - Model unexpected files: 0
 - Baseline boundary failures: 0
 - Model boundary failures: 0
+
+## Performance
+
+- Baseline total duration: 12151ms
+- Model total duration: 227725ms
+- Baseline median / p95 fixture duration: 1008ms / 1932ms
+- Model median / p95 fixture duration: 19322ms / 28372ms
+- Token usage: unavailable (Codex CLI eval output does not expose token usage in codenuke result records yet.)
 
 ## Workflow
 
@@ -41,4 +49,6 @@ Generated: 2026-05-19T17:10:44.429Z
 | guidance-duplicate | 0 | 1 | 1 |
 | guidance-long-method | 0 | 1 | 1 |
 | guidance-long-parameters | 0 | 1 | 1 |
+| guidance-message-chain | 0 | 1 | 1 |
 | guidance-middle-man | 0 | 1 | 1 |
+| mock-clean | 0 | 1 | 1 |

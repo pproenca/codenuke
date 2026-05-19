@@ -37,13 +37,14 @@ const fixtureNames = readdirSync(fixturesRoot, { withFileTypes: true })
 
 const startedAt = new Date().toISOString();
 const results = [];
-let failed = 0;
+let fixtureFailures = 0;
+const suiteFailures = [];
 
 for (const fixtureName of fixtureNames) {
   const result = runFixture(fixtureName);
   results.push(result);
   if (!result.ok) {
-    failed += 1;
+    fixtureFailures += 1;
   }
   const status = result.ok ? "PASS" : "FAIL";
   console.log(`${status} ${result.slug}: ${result.summary}`);
@@ -51,12 +52,13 @@ for (const fixtureName of fixtureNames) {
 
 const guidanceCoverageMatrix = guidanceCoverageMatrixFromResults(results);
 if (expectationMode !== "record" && guidanceCoverageMatrix.totals.unownedResources > 0) {
-  failed += 1;
   const unowned = guidanceCoverageMatrix.resources
     .filter((resource) => resource.status === "unowned")
     .map((resource) => resource.id)
     .join(", ");
-  console.log(`FAIL guidance-coverage-matrix: unowned guidance resource(s): ${unowned}`);
+  const message = `unowned guidance resource(s): ${unowned}`;
+  suiteFailures.push({ check: "guidance-coverage-matrix", message });
+  console.log(`FAIL guidance-coverage-matrix: ${message}`);
 }
 
 const output = {
@@ -72,8 +74,12 @@ const output = {
   },
   totals: {
     fixtures: results.length,
-    passed: results.length - failed,
-    failed,
+    passed: results.length - fixtureFailures,
+    failed: fixtureFailures,
+  },
+  suite: {
+    ok: suiteFailures.length === 0,
+    failures: suiteFailures,
   },
   guidanceCoverageMatrix,
   results,
@@ -86,7 +92,7 @@ writeFileSync(
   `${JSON.stringify(guidanceCoverageMatrix, null, 2)}\n`,
 );
 
-if (failed > 0 && expectationMode !== "record") {
+if ((fixtureFailures > 0 || suiteFailures.length > 0) && expectationMode !== "record") {
   process.exitCode = 1;
 }
 
@@ -255,6 +261,7 @@ function runCli(root, args) {
     env: {
       ...process.env,
       CODENUKE_PROVIDER: "mock",
+      CODENUKE_CODEX_SKIP_GIT_REPO_CHECK: "1",
       NO_COLOR: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],

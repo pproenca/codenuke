@@ -463,7 +463,9 @@ async function runCodexJson(
   const outputPath = join(dir, "output.json");
   await writeFile(schemaPath, JSON.stringify(schema), "utf8");
   try {
-    const args = codexExecArgs(root, sandbox, schemaPath, outputPath);
+    const args = codexExecArgs(root, sandbox, schemaPath, outputPath, {
+      skipGitRepoCheck: process.env["CODENUKE_CODEX_SKIP_GIT_REPO_CHECK"] === "1",
+    });
     addCodexModelArgs(args, options);
     args.push("-");
     const result = await runCommandArgs("codex", args, root, codexPrompt(prompt));
@@ -504,19 +506,24 @@ function codexExecArgs(
   sandbox: string,
   schemaPath: string,
   outputPath: string,
+  options: { skipGitRepoCheck?: boolean } = {},
 ): string[] {
-  return [
+  return compactArgs([
     "exec",
     "--cd",
     root,
-    "--skip-git-repo-check",
+    options.skipGitRepoCheck === true ? "--skip-git-repo-check" : null,
     "--sandbox",
     sandbox,
     "--output-schema",
     schemaPath,
     "--output-last-message",
     outputPath,
-  ];
+  ]);
+}
+
+function compactArgs(args: Array<string | null>): string[] {
+  return args.filter((arg): arg is string => arg !== null);
 }
 
 function codexPrompt(prompt: string): string {

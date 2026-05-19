@@ -49,6 +49,11 @@ function compareResults(baselineRun, modelRun) {
     generatedAt: new Date().toISOString(),
     baseline: runSummary(baselineRun, baselineFile),
     model: runSummary(modelRun, modelFile),
+    performance: {
+      baseline: performanceSummary(baselineRun.results ?? []),
+      model: performanceSummary(modelRun.results ?? []),
+      tokenUsage: tokenUsageSummary(baselineRun, modelRun),
+    },
     guidanceCoverage: {
       baseline: baselineRun.guidanceCoverageMatrix?.totals ?? null,
       model: modelRun.guidanceCoverageMatrix?.totals ?? null,
@@ -64,6 +69,43 @@ function compareResults(baselineRun, modelRun) {
           .map((delta) => String(delta)),
       ),
     },
+  };
+}
+
+function performanceSummary(results) {
+  const durations = results
+    .map((result) => result.durationMs)
+    .filter((duration) => typeof duration === "number" && Number.isFinite(duration))
+    .toSorted((left, right) => left - right);
+  if (durations.length === 0) {
+    return {
+      fixturesMeasured: 0,
+      totalDurationMs: null,
+      medianDurationMs: null,
+      p95DurationMs: null,
+    };
+  }
+  return {
+    fixturesMeasured: durations.length,
+    totalDurationMs: sum(durations, (duration) => duration),
+    medianDurationMs: percentile(durations, 0.5),
+    p95DurationMs: percentile(durations, 0.95),
+  };
+}
+
+function tokenUsageSummary(...runs) {
+  const usageRecords = runs.flatMap((run) =>
+    (run.results ?? []).flatMap((result) => (result.usage === undefined ? [] : [result.usage])),
+  );
+  if (usageRecords.length === 0) {
+    return {
+      status: "unavailable",
+      reason: "Codex CLI eval output does not expose token usage in codenuke result records yet.",
+    };
+  }
+  return {
+    status: "available",
+    records: usageRecords.length,
   };
 }
 
@@ -138,6 +180,14 @@ function markdownReport(report) {
     `- Baseline boundary failures: ${report.baseline.patchBoundary.failures}`,
     `- Model boundary failures: ${report.model.patchBoundary.failures}`,
     "",
+    "## Performance",
+    "",
+    `- Baseline total duration: ${durationText(report.performance.baseline.totalDurationMs)}`,
+    `- Model total duration: ${durationText(report.performance.model.totalDurationMs)}`,
+    `- Baseline median / p95 fixture duration: ${durationText(report.performance.baseline.medianDurationMs)} / ${durationText(report.performance.baseline.p95DurationMs)}`,
+    `- Model median / p95 fixture duration: ${durationText(report.performance.model.medianDurationMs)} / ${durationText(report.performance.model.p95DurationMs)}`,
+    `- Token usage: ${report.performance.tokenUsage.status} (${report.performance.tokenUsage.reason ?? `${report.performance.tokenUsage.records} record(s)`})`,
+    "",
     "## Workflow",
     "",
     `- Baseline patch attempts: ${report.baseline.workflow.patchAttempts}`,
@@ -171,6 +221,15 @@ function readResult(path) {
 
 function sum(items, value) {
   return items.reduce((total, item) => total + value(item), 0);
+}
+
+function percentile(sortedValues, percentileValue) {
+  const index = Math.ceil(sortedValues.length * percentileValue) - 1;
+  return sortedValues[Math.max(0, Math.min(sortedValues.length - 1, index))] ?? null;
+}
+
+function durationText(durationMs) {
+  return typeof durationMs === "number" ? `${durationMs}ms` : "n/a";
 }
 
 function uniqueSorted(values) {

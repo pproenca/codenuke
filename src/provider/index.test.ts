@@ -114,12 +114,11 @@ describe("parseCodexJson", () => {
 });
 
 describe("Codex provider args", () => {
-  it("skips Codex trusted-directory checks for temporary eval worktrees", () => {
+  it("keeps Codex trusted-directory checks enabled by default", () => {
     expect(codexExecArgs("/repo", "read-only", "/tmp/schema.json", "/tmp/output.json")).toEqual([
       "exec",
       "--cd",
       "/repo",
-      "--skip-git-repo-check",
       "--sandbox",
       "read-only",
       "--output-schema",
@@ -127,6 +126,14 @@ describe("Codex provider args", () => {
       "--output-last-message",
       "/tmp/output.json",
     ]);
+  });
+
+  it("skips Codex trusted-directory checks only when explicitly requested", () => {
+    expect(
+      codexExecArgs("/repo", "read-only", "/tmp/schema.json", "/tmp/output.json", {
+        skipGitRepoCheck: true,
+      }),
+    ).toContain("--skip-git-repo-check");
   });
 
   it("passes model and reasoning effort through explicit CLI config", () => {

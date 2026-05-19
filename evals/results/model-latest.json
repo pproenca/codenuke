@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-19T17:09:02.548Z",
-  "startedAt": "2026-05-19T17:05:30.369Z",
+  "generatedAt": "2026-05-19T17:28:07.749Z",
+  "startedAt": "2026-05-19T17:24:19.989Z",
   "cli": "node dist/cli.js",
   "mode": {
     "expectations": "record",
@@ -14,9 +14,13 @@
     "passed": 11,
     "failed": 1
   },
+  "suite": {
+    "ok": true,
+    "failures": []
+  },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-19T17:09:02.548Z",
+    "generatedAt": "2026-05-19T17:28:07.749Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -435,7 +439,7 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 5537,
+      "durationMs": 8293,
       "provider": "codex",
       "map": {
         "features": 6,
@@ -517,7 +521,7 @@
       "name": "Guidance comments fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 23755,
+      "durationMs": 22327,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -532,8 +536,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_7894e46ed8",
-            "title": "Stale procedural comment obscures the normalize contract",
+            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_0f69462448",
+            "title": "Misleading normalization comment duplicates the code and claims unused title-casing behavior",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -542,7 +546,7 @@
               {
                 "path": "src/index.ts",
                 "startLine": 2,
-                "endLine": 5,
+                "endLine": 4,
                 "symbol": "normalize"
               }
             ]
@@ -553,8 +557,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_7894e46ed8",
-            "title": "Stale procedural comment obscures the normalize contract",
+            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_0f69462448",
+            "title": "Misleading normalization comment duplicates the code and claims unused title-casing behavior",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -563,7 +567,7 @@
               {
                 "path": "src/index.ts",
                 "startLine": 2,
-                "endLine": 5,
+                "endLine": 4,
                 "symbol": "normalize"
               }
             ]
@@ -653,7 +657,7 @@
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 24275,
+      "durationMs": 28372,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -668,23 +672,17 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-66392fd4d1-_fcef864b93",
-            "title": "Package bin points directly at an unprepared TypeScript module",
-            "category": "build-release",
-            "severity": "medium",
+            "id": "fnd_sig-feat-cli-command-66392fd4d1-_7c55439736",
+            "title": "Replace status switch with a label lookup table",
+            "category": "maintainability",
+            "severity": "low",
             "confidence": "high",
             "status": "open",
             "evidence": [
               {
-                "path": "package.json",
-                "startLine": 5,
-                "endLine": 5,
-                "symbol": "bin.guidance-conditional"
-              },
-              {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 1,
+                "endLine": 16,
                 "symbol": "shippingLabel"
               }
             ]
@@ -695,23 +693,17 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-66392fd4d1-_fcef864b93",
-            "title": "Package bin points directly at an unprepared TypeScript module",
-            "category": "build-release",
-            "severity": "medium",
+            "id": "fnd_sig-feat-cli-command-66392fd4d1-_7c55439736",
+            "title": "Replace status switch with a label lookup table",
+            "category": "maintainability",
+            "severity": "low",
             "confidence": "high",
             "status": "open",
             "evidence": [
               {
-                "path": "package.json",
-                "startLine": 5,
-                "endLine": 5,
-                "symbol": "bin.guidance-conditional"
-              },
-              {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 1,
+                "endLine": 16,
                 "symbol": "shippingLabel"
               }
             ]
@@ -804,7 +796,7 @@
       "name": "Guidance duplicate-code fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 25536,
+      "durationMs": 17417,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -819,8 +811,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-e28dacc394-_e31c1e2811",
-            "title": "Duplicate invoice summary calculation in CLI entrypoint",
+            "id": "fnd_sig-feat-cli-command-e28dacc394-_cd20dd4bf3",
+            "title": "Duplicate invoice total calculation can be extracted once",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -829,13 +821,13 @@
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 5,
+                "endLine": 6,
                 "symbol": "summarizeInvoice"
               },
               {
                 "path": "src/index.ts",
                 "startLine": 8,
-                "endLine": 12,
+                "endLine": 13,
                 "symbol": "summarizePreview"
               }
             ]
@@ -846,8 +838,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-e28dacc394-_e31c1e2811",
-            "title": "Duplicate invoice summary calculation in CLI entrypoint",
+            "id": "fnd_sig-feat-cli-command-e28dacc394-_cd20dd4bf3",
+            "title": "Duplicate invoice total calculation can be extracted once",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -856,13 +848,13 @@
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 5,
+                "endLine": 6,
                 "symbol": "summarizeInvoice"
               },
               {
                 "path": "src/index.ts",
                 "startLine": 8,
-                "endLine": 12,
+                "endLine": 13,
                 "symbol": "summarizePreview"
               }
             ]
@@ -953,7 +945,7 @@
       "name": "Guidance long-method fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 21190,
+      "durationMs": 17930,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -968,8 +960,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-30206027e2-_064decc3b6",
-            "title": "Repeated fixed-index summation obscures the summary contract",
+            "id": "fnd_sig-feat-cli-command-30206027e2-_96650332a5",
+            "title": "Unrolled fixed-index summation obscures the summary contract",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -978,7 +970,7 @@
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 47,
+                "endLine": 48,
                 "symbol": "buildAccountSummary"
               }
             ]
@@ -989,8 +981,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-30206027e2-_064decc3b6",
-            "title": "Repeated fixed-index summation obscures the summary contract",
+            "id": "fnd_sig-feat-cli-command-30206027e2-_96650332a5",
+            "title": "Unrolled fixed-index summation obscures the summary contract",
             "category": "maintainability",
             "severity": "low",
             "confidence": "high",
@@ -999,7 +991,7 @@
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 47,
+                "endLine": 48,
                 "symbol": "buildAccountSummary"
               }
             ]
@@ -1092,7 +1084,7 @@
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 19346,
+      "durationMs": 26215,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -1107,8 +1099,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-d3abedacff-_7b98f611fb",
-            "title": "quoteOrder mixes two stable parameter groups in a five-argument API",
+            "id": "fnd_sig-feat-cli-command-d3abedacff-_39c8193ad0",
+            "title": "Exported quote calculation uses an ungrouped five-parameter call surface",
             "category": "maintainability",
             "severity": "low",
             "confidence": "medium",
@@ -1128,8 +1120,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-d3abedacff-_7b98f611fb",
-            "title": "quoteOrder mixes two stable parameter groups in a five-argument API",
+            "id": "fnd_sig-feat-cli-command-d3abedacff-_39c8193ad0",
+            "title": "Exported quote calculation uses an ungrouped five-parameter call surface",
             "category": "maintainability",
             "severity": "low",
             "confidence": "medium",
@@ -1230,8 +1222,8 @@
       "slug": "guidance-message-chain",
       "name": "Guidance message-chain fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 13606,
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 19322,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -1240,23 +1232,57 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-a2f3eaa4ce-_adba474e25",
+            "title": "CLI helper exposes the full invoice customer/account/plan chain",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 10,
+                "endLine": 12,
+                "symbol": "planName"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-a2f3eaa4ce-_adba474e25",
+            "title": "CLI helper exposes the full invoice customer/account/plan chain",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 10,
+                "endLine": 12,
+                "symbol": "planName"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -1312,8 +1338,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -1328,7 +1356,7 @@
       "name": "Guidance middle-man fixture",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 31970,
+      "durationMs": 27620,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -1343,22 +1371,16 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-c5ab110005-_ec1759a954",
-            "title": "AccountPresenter is only a pass-through wrapper around the account object",
+            "id": "fnd_sig-feat-cli-command-c5ab110005-_057bdeffc3",
+            "title": "AccountPresenter is only a delegating middle man",
             "category": "maintainability",
             "severity": "low",
-            "confidence": "medium",
+            "confidence": "high",
             "status": "open",
             "evidence": [
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 1,
-                "symbol": "AccountPresenter.constructor"
-              },
-              {
-                "path": "src/index.ts",
-                "startLine": 3,
                 "endLine": 13,
                 "symbol": "AccountPresenter"
               }
@@ -1370,22 +1392,16 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-c5ab110005-_ec1759a954",
-            "title": "AccountPresenter is only a pass-through wrapper around the account object",
+            "id": "fnd_sig-feat-cli-command-c5ab110005-_057bdeffc3",
+            "title": "AccountPresenter is only a delegating middle man",
             "category": "maintainability",
             "severity": "low",
-            "confidence": "medium",
+            "confidence": "high",
             "status": "open",
             "evidence": [
               {
                 "path": "src/index.ts",
                 "startLine": 1,
-                "endLine": 1,
-                "symbol": "AccountPresenter.constructor"
-              },
-              {
-                "path": "src/index.ts",
-                "startLine": 3,
                 "endLine": 13,
                 "symbol": "AccountPresenter"
               }
@@ -1479,7 +1495,7 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 8589,
+      "durationMs": 7868,
       "provider": "codex",
       "map": {
         "features": 5,
@@ -1568,8 +1584,8 @@
       "slug": "mock-clean",
       "name": "Mock clean package",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 8789,
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 24147,
       "provider": "codex",
       "map": {
         "features": 7,
@@ -1578,23 +1594,81 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-58ef7527ac-_e2ef4ef63b",
+            "title": "Package bin points directly at a non-executable TypeScript module",
+            "category": "build-release",
+            "severity": "high",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "package.json",
+                "startLine": 3,
+                "endLine": 3,
+                "symbol": "bin.eval-clean"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": null
+              },
+              {
+                "path": "package.json",
+                "startLine": 6,
+                "endLine": 9,
+                "symbol": "scripts"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-58ef7527ac-_e2ef4ef63b",
+            "title": "Package bin points directly at a non-executable TypeScript module",
+            "category": "build-release",
+            "severity": "high",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "package.json",
+                "startLine": 3,
+                "endLine": 3,
+                "symbol": "bin.eval-clean"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": null
+              },
+              {
+                "path": "package.json",
+                "startLine": 6,
+                "endLine": 9,
+                "symbol": "scripts"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -1643,8 +1717,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -1659,7 +1735,7 @@
       "name": "Mock refactoring marker",
       "ok": false,
       "summary": "fix requested but no matching finding was found",
-      "durationMs": 6415,
+      "durationMs": 5678,
       "errors": [
         "fix requested but no matching finding was found"
       ]
@@ -1670,7 +1746,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 23122,
+      "durationMs": 22536,
       "provider": "codex",
       "map": {
         "features": 7,
@@ -1685,8 +1761,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-31346196d4-_8aaaeaf7d3",
-            "title": "Placeholder export in CLI entrypoint needs focused coverage before removal",
+            "id": "fnd_sig-feat-cli-command-31346196d4-_1fa7a26ba4",
+            "title": "Add a focused CLI smoke test before removing the placeholder entrypoint export",
             "category": "test-gap",
             "severity": "low",
             "confidence": "high",
@@ -1700,15 +1776,9 @@
               },
               {
                 "path": "package.json",
-                "startLine": 4,
-                "endLine": 4,
+                "startLine": 3,
+                "endLine": 3,
                 "symbol": "bin.eval-simplify"
-              },
-              {
-                "path": "package.json",
-                "startLine": 7,
-                "endLine": 7,
-                "symbol": "scripts.test"
               }
             ]
           }
@@ -1718,8 +1788,8 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-31346196d4-_8aaaeaf7d3",
-            "title": "Placeholder export in CLI entrypoint needs focused coverage before removal",
+            "id": "fnd_sig-feat-cli-command-31346196d4-_1fa7a26ba4",
+            "title": "Add a focused CLI smoke test before removing the placeholder entrypoint export",
             "category": "test-gap",
             "severity": "low",
             "confidence": "high",
@@ -1733,15 +1803,9 @@
               },
               {
                 "path": "package.json",
-                "startLine": 4,
-                "endLine": 4,
+                "startLine": 3,
+                "endLine": 3,
                 "symbol": "bin.eval-simplify"
-              },
-              {
-                "path": "package.json",
-                "startLine": 7,
-                "endLine": 7,
-                "symbol": "scripts.test"
               }
             ]
           }
