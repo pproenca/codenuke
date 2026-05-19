@@ -6,6 +6,85 @@ import { emptyTaskGraph } from "./task-graph.js";
 import type { MapperContext } from "./types.js";
 
 describe("nodeSeeds", () => {
+  it("chunks oversized semantic source buckets with sorted file slices", async () => {
+    const root = await fixtureRoot("codenuke-node-semantic-chunks-");
+    const sourceFiles = [
+      "src/config-zeta.ts",
+      "src/config-alpha.ts",
+      "src/config-beta.ts",
+      "src/config-delta.ts",
+      "src/config-epsilon.ts",
+      "src/config-eta.ts",
+      "src/config-gamma.ts",
+      "src/config-iota.ts",
+      "src/config-kappa.ts",
+      "src/config-lambda.ts",
+      "src/config-mu.ts",
+      "src/config-nu.ts",
+      "src/config-theta.ts",
+    ];
+    const files = ["package.json", ...sourceFiles];
+    await Promise.all(
+      files.map((path) =>
+        writeFixture(
+          root,
+          path,
+          path === "package.json" ? JSON.stringify({ scripts: { test: "vitest" } }) : "",
+        ),
+      ),
+    );
+    const context: MapperContext = {
+      projects: [
+        {
+          root: ".",
+          name: "root",
+          workspaceMember: true,
+          packageJsonPath: "package.json",
+          packageJson: { scripts: { test: "vitest" } },
+          projectJsonPath: null,
+          sourceRoot: null,
+          projectType: null,
+          targets: {},
+          packageManager: "pnpm",
+          nxPackageManager: "pnpm",
+        },
+      ],
+      repoIndex: repoIndexFromFiles(files),
+      taskGraph: emptyTaskGraph(),
+    };
+
+    const semanticGroups = (await nodeSeeds(root, context))
+      .filter((seed) => seed.source === "node-source-group")
+      .map((seed) => ({
+        symbol: seed.symbol,
+        ownedFiles: seed.ownedFiles?.map((file) => file.path),
+      }));
+
+    expect(semanticGroups).toEqual([
+      {
+        symbol: "src/:config#1",
+        ownedFiles: [
+          "src/config-alpha.ts",
+          "src/config-beta.ts",
+          "src/config-delta.ts",
+          "src/config-epsilon.ts",
+          "src/config-eta.ts",
+          "src/config-gamma.ts",
+          "src/config-iota.ts",
+          "src/config-kappa.ts",
+          "src/config-lambda.ts",
+          "src/config-mu.ts",
+          "src/config-nu.ts",
+          "src/config-theta.ts",
+        ],
+      },
+      {
+        symbol: "src/:config#2",
+        ownedFiles: ["src/config-zeta.ts"],
+      },
+    ]);
+  });
+
   it("keeps associated source-group tests ordered, capped, and command-preserving", async () => {
     const root = await fixtureRoot("codenuke-node-associated-tests-");
     const files = [

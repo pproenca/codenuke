@@ -3,7 +3,7 @@ import { basename, dirname, extname, join } from "node:path";
 import { packageBins, packageScripts } from "../platform/detect.js";
 import { pathExists } from "../platform/fs.js";
 import { rubyDependencyNames, rubyGemspecPaths, stripRubyComments } from "../platform/ruby.js";
-import { partitionFileGroups } from "./grouping.js";
+import { chunkFiles, partitionFileGroups } from "./grouping.js";
 import { normalize, packageKind, packageTrustBoundaries, pathMatchesPrefix } from "./shared.js";
 import { repoFilesUnderAny } from "./repo-index.js";
 import {
@@ -669,9 +669,9 @@ function partitionNodeFileGroups(
     left.localeCompare(right),
   )) {
     output.push(
-      ...chunkSemanticGroup(
+      ...chunkFiles(
         semanticFileGroupLabel(sourceRoot, segment, fallbackLabels),
-        bucketFiles,
+        bucketFiles.toSorted(),
         maxFiles,
       ),
     );
@@ -692,25 +692,6 @@ function semanticFileGroupLabel(
     index += 1;
   }
   return label;
-}
-
-function chunkSemanticGroup(
-  label: string,
-  files: string[],
-  maxFiles: number,
-): ReturnType<typeof partitionFileGroups> {
-  const sortedFiles = files.toSorted();
-  if (sortedFiles.length <= maxFiles) {
-    return [{ label, files: sortedFiles }];
-  }
-  const groups: ReturnType<typeof partitionFileGroups> = [];
-  for (let index = 0; index < sortedFiles.length; index += maxFiles) {
-    groups.push({
-      label: `${label}#${Math.floor(index / maxFiles) + 1}`,
-      files: sortedFiles.slice(index, index + maxFiles),
-    });
-  }
-  return groups;
 }
 
 function semanticSegmentForFile(path: string): string | null {
