@@ -1,0 +1,6 @@
+{
+  "name": "eval-mock-refactor",
+  "bin": {
+    "eval-refactor": "src/index.ts"
+  }
+}

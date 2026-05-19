@@ -170,13 +170,13 @@ codenuke review --model claude-opus-4-20250514 --limit 5
 ### Review with explicit Codex reasoning effort
 
 ```bash
-codenuke review --model gpt-5.5 --reasoning-effort xhigh --limit 5
+codenuke review --model gpt-5.5 --reasoning-effort medium --limit 5
 ```
 
 ### Filter report by category
 
 ```bash
-codenuke report --category security
+codenuke report --category maintainability
 ```
 
 ### Check provider status

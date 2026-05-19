@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "slug": "mock-bug",
-  "name": "Mock bug marker",
-  "description": "A deterministic fixture where the mock provider should report one medium bug finding.",
+  "slug": "mock-refactor",
+  "name": "Mock refactoring marker",
+  "description": "A deterministic fixture where the mock provider should report one low maintainability finding.",
   "review": {
     "provider": "mock",
     "limit": 1
   },
   "fix": {
     "enabled": true,
-    "findingTitle": "Marker bug found"
+    "findingTitle": "Placeholder marker can be removed"
   },
   "revalidate": {
     "enabled": true
@@ -18,16 +18,16 @@
     "openFindings": 1,
     "findings": [
       {
-        "title": "Marker bug found",
-        "category": "bug",
-        "severity": "medium",
+        "title": "Placeholder marker can be removed",
+        "category": "maintainability",
+        "severity": "low",
         "confidence": "high",
         "evidencePath": "src/index.ts"
       }
     ],
     "baseline": {
       "guidanceSelectionAudits": 1,
-      "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+      "selectedResources": [],
       "patchAttempts": 1,
       "guidanceApplications": 1,
       "patchBoundaryUnexpectedFiles": 0,

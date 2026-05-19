@@ -310,15 +310,15 @@ const mockProvider: Provider = {
         inspected: { files: ["src/index.ts"], symbols: [], notes: ["mock simplification"] },
       };
     }
-    if (!prompt.includes("TODO_BUG") && !prompt.includes("BUG:")) {
+    if (!prompt.includes("TODO_REFACTOR")) {
       return { findings: [], inspected: { files: [], symbols: [], notes: ["mock clean"] } };
     }
     return {
       findings: [
         {
-          title: "Marker bug found",
-          category: "bug",
-          severity: "medium",
+          title: "Placeholder marker can be removed",
+          category: "maintainability",
+          severity: "low",
           confidence: "high",
           evidence: [
             {
@@ -326,16 +326,16 @@ const mockProvider: Provider = {
               startLine: null,
               endLine: null,
               symbol: null,
-              quote: "TODO_BUG",
+              quote: "TODO_REFACTOR",
             },
           ],
-          reasoning: "Mock provider found an explicit bug marker.",
+          reasoning: "Mock provider found an explicit refactoring marker.",
           reproduction: null,
-          recommendation: "Replace marker with real handling.",
+          recommendation: "Remove the placeholder while preserving exported behavior.",
           whyTestsDoNotAlreadyCoverThis:
-            "Mock fixtures do not encode this marker as intended behavior.",
-          suggestedRegressionTest: "Add a focused test that fails when TODO_BUG is present.",
-          minimumFixScope: "Replace the marker in the owning feature file.",
+            "Mock fixtures do not encode this marker as required runtime behavior.",
+          suggestedRegressionTest: "Run the focused tests after removing the marked code.",
+          minimumFixScope: "Remove only the marked refactoring target.",
           guidance: {
             applied: [
               {
@@ -343,7 +343,7 @@ const mockProvider: Provider = {
                 title: "Duplicate Code",
                 kind: "signal",
                 role: "supporting",
-                reason: "Mock bug findings include a placeholder guidance trace.",
+                reason: "Mock refactoring findings include a placeholder guidance trace.",
                 use: "Use the trace only as schema-compatible mock output.",
               },
             ],

@@ -116,9 +116,9 @@ describe("changed-file selection", () => {
 });
 
 describe("nextFinding", () => {
-  it("prioritizes trusted refactoring findings before confirmed bugs", () => {
+  it("prioritizes high-confidence simplification findings first", () => {
     const next = nextFinding([
-      finding("bug", "bug", "critical", "high", "confirmed-bug"),
+      finding("validation", "build-release", "critical", "high"),
       finding("simplify", "maintainability", "medium", "high"),
       finding("complexity", "performance", "high", "medium"),
     ]);
@@ -126,20 +126,20 @@ describe("nextFinding", () => {
     expect(next?.findingId).toBe("simplify");
   });
 
-  it("keeps low-confidence refactoring findings behind material safety findings", () => {
+  it("keeps low-confidence simplification findings behind validation blockers", () => {
     const next = nextFinding([
       finding("maybe-simplify", "maintainability", "high", "low"),
-      finding("security", "security", "medium", "medium", "confirmed-bug"),
+      finding("validation", "build-release", "medium", "medium"),
     ]);
 
-    expect(next?.findingId).toBe("security");
+    expect(next?.findingId).toBe("validation");
   });
 
   it("keeps the first equal-rank finding without sorting the full list", () => {
     const findings = [
       finding("first", "performance", "medium", "high"),
       finding("second", "performance", "medium", "high"),
-      finding("lower-priority", "bug", "critical", "high", "confirmed-bug"),
+      finding("lower-priority", "build-release", "critical", "low"),
     ];
     Object.defineProperty(findings, "toSorted", {
       value: () => {

@@ -13,6 +13,13 @@ export const findingCategories = [
   "maintainability",
 ] as const;
 
+export const reviewFindingCategories = [
+  "performance",
+  "maintainability",
+  "test-gap",
+  "build-release",
+] as const;
+
 export const findingTriages = [
   "confirmed-bug",
   "contract-mismatch",
@@ -455,7 +462,7 @@ export const reviewOutputSchema = z.object({
   findings: z.array(
     z.object({
       title: z.string(),
-      category: z.enum(findingCategories),
+      category: z.enum(reviewFindingCategories),
       severity: z.enum(["critical", "high", "medium", "low"]),
       confidence: z.enum(["high", "medium", "low"]),
       evidence: z.array(evidenceRefSchema),

@@ -40,13 +40,15 @@ CODENUKE_MODEL=<model> codenuke review
 Reasoning effort selection:
 
 ```bash
-codenuke review --model gpt-5.5 --reasoning-effort xhigh
-CODENUKE_REASONING_EFFORT=xhigh codenuke review
+codenuke review --model gpt-5.5 --reasoning-effort medium
+CODENUKE_REASONING_EFFORT=medium codenuke review
 ```
 
 When `reasoningEffort` is unset, Codenuke does not pass a reasoning override
 and Codex uses its own configured default. Explicit values are passed to Codex
-as `model_reasoning_effort`.
+as `model_reasoning_effort`. For GPT-5.5, start with `medium` for balanced
+review quality or `low` for cheaper iterative runs; use `high`/`xhigh` only
+when evals show a clear improvement.
 
 ## OpenCode
 

@@ -419,7 +419,7 @@ Initial config:
   ],
   "provider": {
     "name": "openai",
-    "model": "gpt-5.2"
+    "model": "gpt-5.5"
   },
   "commands": {
     "typecheck": null,
@@ -624,14 +624,8 @@ type FindingRecord = {
 
 Categories:
 
-- `bug`
-- `security`
 - `performance`
-- `concurrency`
-- `api-contract`
-- `data-loss`
 - `test-gap`
-- `docs-gap`
 - `build-release`
 - `maintainability`
 
@@ -772,8 +766,8 @@ Review mission:
 - Prioritize reliable, trusted refactoring.
 - Prefer behavior-preserving simplification and algorithmic/render-path
   complexity reduction.
-- Report bugs and safety issues only when concrete evidence shows material
-  risk.
+- Ignore unrelated product-risk concerns unless they directly block validating a
+  specific behavior-preserving refactor.
 
 Review categories:
 
@@ -781,20 +775,11 @@ Review categories:
 - behavior-preserving simplification
 - trusted-refactor test gaps
 - build/release hazards that block validation
-- correctness bugs with concrete evidence
-- security issues
-- race/concurrency bugs
-- data loss/corruption
-- resource leaks
-- bad error handling
-- permission/auth gaps
-- API contract mismatches
-- missing/weak tests
-- release/build hazards
-- maintainability risks with concrete impact
 
 Codenuke prioritizes algorithmic/render-path complexity as `performance` and
-specific behavior-preserving reductions as `maintainability`.
+specific behavior-preserving reductions as `maintainability`. Provider review
+outputs use only `performance`, `maintainability`, `test-gap`, and
+`build-release` categories.
 
 Review output schema:
 
@@ -802,7 +787,7 @@ Review output schema:
 type ReviewOutput = {
   findings: Array<{
     title: string;
-    category: FindingCategory;
+    category: "performance" | "maintainability" | "test-gap" | "build-release";
     severity: "critical" | "high" | "medium" | "low";
     confidence: "high" | "medium" | "low";
     evidence: EvidenceRef[];

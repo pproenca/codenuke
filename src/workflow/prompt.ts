@@ -92,12 +92,11 @@ export async function buildReviewPromptWithGuidance(
 Return strict JSON only. No markdown fences.
 
 Mission:
-- codenuke's primary mission is reliable, trusted refactoring.
-- Find behavior-preserving opportunities to reduce algorithmic complexity, code volume, duplicated
-  structure, derived state, and accidental abstraction.
-- Report correctness, security, data-loss, or concurrency bugs only when they are directly
-  evidenced, material, and relevant to safely changing or trusting this feature.
-- Do not turn this review into a broad bug hunt or style review.
+- Identify bounded, evidence-backed refactoring findings for simplification and complexity
+  reduction.
+- Prefer findings that can be fixed with a small behavior-preserving patch and validated with
+  existing or focused tests.
+- Ignore unrelated product-risk concerns unless they directly block validating the refactor.
 
 Project:
 ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}
@@ -110,20 +109,8 @@ Review categories:
 - behavior-preserving simplification
 - trusted-refactor test gaps
 - build/release hazards that block validation
-- correctness bugs with concrete evidence
-- security issues
-- race/concurrency bugs
-- data loss/corruption
-- resource leaks
-- bad error handling
-- permission/auth gaps
-- API contract mismatches
-- missing/weak tests
-- release/build hazards
-- maintainability risks with concrete impact
 
 Codenuke focus:
-- Prioritize concrete simplification and complexity-reduction findings over bugfixing.
 - Report algorithmic or render-path complexity under "performance". Strong examples include nested
   lookup loops, repeated membership checks inside loops, sorting inside loops, pairwise comparisons
   that can use sorting/sweep-line/indexing, N+1 database/API/file calls, and repeated expensive
@@ -144,11 +131,10 @@ Codenuke focus:
 ${guidance.prompt}
 
 Inspect owned files, context files, and linked tests. Treat included tests as first-class
-evidence of intended behavior. If tests contradict a suspected issue, either skip it or
-downgrade confidence and explain the uncertainty. Avoid reporting behavior as a bug
-solely because a helper name implies a broader contract. Deduplicate sibling/root-cause
-issues: when the same pattern appears in multiple owned files, emit one finding with
-multiple evidence refs instead of separate one-off findings.
+evidence of intended behavior. If tests contradict a possible refactor, either skip it or
+downgrade confidence and explain the uncertainty. Deduplicate sibling/root-cause refactoring
+signals: when the same pattern appears in multiple owned files, emit one finding with multiple
+evidence refs instead of separate one-off findings.
 
 Avoid speculative low-evidence findings. Evidence must point at included files.
 
@@ -157,7 +143,7 @@ JSON shape:
   "findings": [
     {
       "title": "string",
-      "category": "bug|security|performance|concurrency|api-contract|data-loss|test-gap|docs-gap|build-release|maintainability",
+      "category": "performance|maintainability|test-gap|build-release",
       "severity": "critical|high|medium|low",
       "confidence": "high|medium|low",
       "evidence": [{"path":"string","startLine":1,"endLine":1,"symbol":null,"quote":null}],

@@ -68,14 +68,32 @@ async function sinceFixture(prefix: string): Promise<string> {
       scripts: { test: "vitest run" },
     }),
   );
-  await writeFixture(root, "src/one.ts", "export const one = 'TODO_BUG';\n");
-  await writeFixture(root, "src/two.ts", "export const two = 'TODO_BUG';\n");
-  await writeFixture(root, "src/three.ts", "export const three = 'TODO_BUG';\n");
+  await writeFixture(root, "src/one.ts", "export const one = 'TODO_REFACTOR';\n");
+  await writeFixture(root, "src/two.ts", "export const two = 'TODO_REFACTOR';\n");
+  await writeFixture(root, "src/three.ts", "export const three = 'TODO_REFACTOR';\n");
   await writeFixture(root, "tests/one.test.ts", "expect('one').toBe('one');\n");
   await initGit(root);
   await commitAll(root, "base");
   await checkCommand(root, "git tag --no-sign base");
   return root;
+}
+
+async function attachFeatureTest(
+  paths: ReturnType<typeof statePaths>,
+  findingId: string,
+  path: string,
+): Promise<void> {
+  const finding = await readFinding(paths, findingId);
+  const feature = (await readFeatures(paths)).find(
+    (candidate) => candidate.featureId === finding?.featureId,
+  );
+  if (feature === undefined) {
+    throw new Error(`feature not found for finding ${findingId}`);
+  }
+  await writeFeature(paths, {
+    ...feature,
+    tests: [{ path, command: null }],
+  });
 }
 
 function agentMapProvider(title: () => string): Provider {
@@ -314,8 +332,8 @@ describe("workflow", () => {
       "package.json",
       JSON.stringify(
         {
-          name: "buggy-cli",
-          bin: { buggy: "src/index.ts" },
+          name: "refactor-cli",
+          bin: { refactorable: "src/index.ts" },
           scripts: { test: "vitest run", typecheck: "tsc --noEmit" },
         },
         null,
@@ -323,7 +341,7 @@ describe("workflow", () => {
       ),
     );
     await writeFixture(root, "tsconfig.json", "{}");
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -341,7 +359,7 @@ describe("workflow", () => {
     const report = await reportCommand(context, {});
     const jsonReport = await reportCommand(
       { ...context, options: { ...context.options, json: true } },
-      { status: "open", severity: "medium" },
+      { status: "open", severity: "low" },
     );
 
     expect(mapped).toMatchObject({ new: expect.any(Number) });
@@ -355,7 +373,7 @@ describe("workflow", () => {
       items: [
         {
           id: expect.stringMatching(/^fnd_/u),
-          severity: "medium",
+          severity: "low",
           status: "open",
           evidence: [{ path: "src/index.ts", startLine: 1 }],
           whyTestsDoNotAlreadyCoverThis: expect.any(String),
@@ -683,7 +701,7 @@ describe("workflow", () => {
         scripts: { test: "vitest run" },
       }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -734,15 +752,15 @@ describe("workflow", () => {
       [
         "export function guided(a: string, b: string, c: string, d: string) {",
         "  if (a) {",
-        "    const marker = 'TODO_BUG';",
-        "    console.log('TODO_BUG');",
+        "    const marker = 'TODO_REFACTOR';",
+        "    console.log('TODO_REFACTOR');",
         "    return marker;",
-        "    console.log('TODO_BUG');",
+        "    console.log('TODO_REFACTOR');",
         "  } else if (b) {",
-        "    const marker = 'TODO_BUG';",
-        "    console.log('TODO_BUG');",
+        "    const marker = 'TODO_REFACTOR';",
+        "    console.log('TODO_REFACTOR');",
         "    return marker;",
-        "    console.log('TODO_BUG');",
+        "    console.log('TODO_REFACTOR');",
         "  }",
         "  return a + b + c + d;",
         "}",
@@ -816,7 +834,7 @@ describe("workflow", () => {
     delete process.env["CODENUKE_PROVIDER"];
   });
 
-  it("suggests simplification findings before bug findings after review", async () => {
+  it("suggests simplification findings after review", async () => {
     const root = await fixtureRoot("codenuke-refactor-next-");
     await writeFixture(
       root,
@@ -824,13 +842,13 @@ describe("workflow", () => {
       JSON.stringify({
         name: "refactor-next",
         bin: {
-          buggy: "src/bug.ts",
+          refactor: "src/refactor.ts",
           simplify: "src/simplify.ts",
         },
         scripts: { test: "vitest run" },
       }),
     );
-    await writeFixture(root, "src/bug.ts", "export const problem = 'TODO_BUG';\n");
+    await writeFixture(root, "src/refactor.ts", "export const marker = 'TODO_REFACTOR';\n");
     await writeFixture(root, "src/simplify.ts", "export const dead = 'TODO_SIMPLIFY';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
@@ -846,8 +864,8 @@ describe("workflow", () => {
     const queuedNext = (await nextCommand(context, {})) as { finding: string };
     const queuedFinding = await readFinding(paths, queuedNext.finding);
 
-    expect(findings.some((finding) => finding.category === "bug")).toBe(true);
-    expect(findings.some((finding) => finding.category === "maintainability")).toBe(true);
+    expect(findings.length).toBeGreaterThanOrEqual(2);
+    expect(findings.every((finding) => finding.category === "maintainability")).toBe(true);
     expect(reviewedNext?.category).toBe("maintainability");
     expect(queuedFinding?.category).toBe("maintainability");
     delete process.env["CODENUKE_PROVIDER"];
@@ -868,10 +886,10 @@ describe("workflow", () => {
         },
       }),
     );
-    await writeFixture(root, "src/fixed.ts", "export const fixed = 'TODO_BUG';\n");
-    await writeFixture(root, "src/open.ts", "export const open = 'TODO_BUG';\n");
-    await writeFixture(root, "src/falsey.ts", "export const falsey = 'TODO_BUG';\n");
-    await writeFixture(root, "src/uncertain.ts", "export const uncertain = 'TODO_BUG';\n");
+    await writeFixture(root, "src/fixed.ts", "export const fixed = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/open.ts", "export const open = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/falsey.ts", "export const falsey = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/uncertain.ts", "export const uncertain = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -932,7 +950,7 @@ describe("workflow", () => {
       "package.json",
       JSON.stringify({ name: "reval-fail", bin: { fail: "src/fail.ts" } }),
     );
-    await writeFixture(root, "src/fail.ts", "export const fail = 'TODO_BUG';\n");
+    await writeFixture(root, "src/fail.ts", "export const fail = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -963,8 +981,8 @@ describe("workflow", () => {
       "package.json",
       JSON.stringify({ name: "parallel", bin: { one: "src/one.ts", two: "src/two.ts" } }),
     );
-    await writeFixture(root, "src/one.ts", "export const one = 'TODO_BUG';\n");
-    await writeFixture(root, "src/two.ts", "export const two = 'TODO_BUG';\n");
+    await writeFixture(root, "src/one.ts", "export const one = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/two.ts", "export const two = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -1491,11 +1509,12 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
     await runCommand(
-      "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
+      "git add package.json src/index.ts src/index.test.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
     );
     process.env["CODENUKE_PROVIDER"] = "mock";
@@ -1748,9 +1767,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await runCommand(
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
@@ -1762,8 +1781,10 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".codenuke"));
+    await attachFeatureTest(paths, finding, "src/index.test.ts");
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
+    const patches = await readPatchAttempts(paths);
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
@@ -1847,9 +1868,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -1915,9 +1936,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await writeFixture(root, "src/helper.ts", "export const helper = true;\n");
     await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
     await writeFixture(root, ".env", "SECRET=do-not-send\n");
@@ -2053,18 +2074,22 @@ describe("workflow", () => {
       root,
       "package.json",
       JSON.stringify({
-        name: "buggy",
-        bin: { buggy: "src/index.ts" },
+        name: "refactorable",
+        bin: { refactorable: "src/index.ts" },
         scripts: {},
       }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
+    await checkCommand(
+      root,
+      "git add codenuke.config.json package.json src/index.ts src/index.test.ts",
+    );
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(
       root,
       "src/index.ts",
-      "export const value = 'TODO_BUG';\n// pre-existing user change\n",
+      "export const value = 'TODO_REFACTOR';\n// pre-existing user change\n",
     );
     const context = await makeContext(testOptions(root));
 
@@ -2072,8 +2097,10 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".codenuke"));
+    await attachFeatureTest(paths, finding, "src/index.test.ts");
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
+    const patches = await readPatchAttempts(paths);
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
     expect(patches[0]?.filesChanged).toEqual(["src/index.ts"]);
@@ -2103,10 +2130,14 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" }, scripts: {} }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
+    await checkCommand(
+      root,
+      "git add codenuke.config.json package.json src/index.ts src/index.test.ts",
+    );
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(root, "src/scratch.txt", "temporary user work\n");
     const context = await makeContext(testOptions(root));
@@ -2154,10 +2185,14 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" }, scripts: {} }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
-    await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
+    await writeFixture(root, "src/index.test.ts", "expect(true).toBe(true);\n");
+    await checkCommand(
+      root,
+      "git add codenuke.config.json package.json src/index.ts src/index.test.ts",
+    );
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await writeFixture(root, "scratch/note.txt", "pre-existing user work\n");
     const context = await makeContext(testOptions(root));
@@ -2205,9 +2240,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" }, scripts: {} }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await writeFixture(root, "script.sh", "#!/bin/sh\necho before\n");
     await checkCommand(root, "git add codenuke.config.json package.json src/index.ts script.sh");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
@@ -2262,9 +2297,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" }, scripts: {} }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" }, scripts: {} }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await checkCommand(root, "git add codenuke.config.json package.json src/index.ts");
     await checkCommand(root, 'git -c commit.gpgsign=false commit -q -m "base"');
     await symlink(externalPath, join(root, "src/link.txt"));
@@ -2274,8 +2309,10 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
+    const paths = statePaths(join(root, ".codenuke"));
+    await attachFeatureTest(paths, finding, "src/index.test.ts");
     const fixed = await fixCommand(context, { finding });
-    const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
+    const patches = await readPatchAttempts(paths);
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
@@ -2288,15 +2325,15 @@ describe("workflow", () => {
       root,
       "package.json",
       JSON.stringify({
-        name: "buggy",
-        bin: { buggy: "src/index.ts" },
+        name: "refactorable",
+        bin: { refactorable: "src/index.ts" },
         scripts: {
           format: 'node -e "process.exit(0)"',
           test: 'node -e "process.exit(9)"',
         },
       }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -2326,9 +2363,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await runCommand(
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
@@ -2370,8 +2407,8 @@ describe("workflow", () => {
       root,
       "package.json",
       JSON.stringify({
-        name: "buggy",
-        bin: { buggy: "src/index.ts" },
+        name: "refactorable",
+        bin: { refactorable: "src/index.ts" },
         scripts: {
           format: 'node -e "process.exit(0)"',
           "format:check": 'node -e "process.exit(0)"',
@@ -2379,7 +2416,7 @@ describe("workflow", () => {
         },
       }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await runCommand(
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
@@ -2419,9 +2456,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -2446,12 +2483,12 @@ describe("workflow", () => {
       root,
       "package.json",
       JSON.stringify({
-        name: "buggy",
-        bin: { buggy: "src/index.ts" },
+        name: "refactorable",
+        bin: { refactorable: "src/index.ts" },
         scripts: { test: "exit 1" },
       }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await runCommand(
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,
@@ -2537,7 +2574,7 @@ describe("workflow", () => {
       "package.json",
       JSON.stringify({ name: "merge-finding", bin: { merge: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     process.env["CODENUKE_PROVIDER"] = "mock";
     const context = await makeContext(testOptions(root));
 
@@ -2644,9 +2681,9 @@ describe("workflow", () => {
     await writeFixture(
       root,
       "package.json",
-      JSON.stringify({ name: "buggy", bin: { buggy: "src/index.ts" } }),
+      JSON.stringify({ name: "refactorable", bin: { refactorable: "src/index.ts" } }),
     );
-    await writeFixture(root, "src/index.ts", "export const value = 'TODO_BUG';\n");
+    await writeFixture(root, "src/index.ts", "export const value = 'TODO_REFACTOR';\n");
     await runCommand(
       "git add package.json src/index.ts && git -c commit.gpgsign=false commit -q -m init",
       root,

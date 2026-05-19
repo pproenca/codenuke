@@ -183,12 +183,9 @@ function findingRank(finding: FindingRecord): number {
   const bucket =
     ["performance", "maintainability"].includes(finding.category) && finding.confidence !== "low"
       ? 0
-      : ["security", "data-loss", "concurrency"].includes(finding.category) &&
-          finding.confidence !== "low"
+      : ["test-gap", "build-release"].includes(finding.category) && finding.confidence !== "low"
         ? 1
-        : finding.triage === "confirmed-bug" && finding.confidence !== "low"
-          ? 2
-          : 3;
+        : 2;
   return bucket * 1000 + confidenceRank * 100 + severityRank;
 }
 

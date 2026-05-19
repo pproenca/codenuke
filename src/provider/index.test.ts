@@ -144,6 +144,17 @@ describe("providerJsonSchema", () => {
       ]),
     );
   });
+
+  it("keeps provider review categories focused on refactoring", () => {
+    const schemaText = JSON.stringify(reviewJsonSchema);
+
+    expect(schemaText).toContain("maintainability");
+    expect(schemaText).toContain("performance");
+    expect(schemaText).not.toContain('"bug"');
+    expect(schemaText).not.toContain("security");
+    expect(schemaText).not.toContain("data-loss");
+    expect(schemaText).not.toContain("concurrency");
+  });
 });
 
 describe("withProviderOperations", () => {
