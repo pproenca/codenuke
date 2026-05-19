@@ -76,9 +76,7 @@ export async function laravelSeeds(root: string, context: MapperContext): Promis
     ...(isLaravel
       ? groupedPhpSeeds(context, "database/migrations", "Laravel migrations", "migration")
       : []),
-    ...(isLaravel
-      ? groupedPhpSeeds(context, "database/seeders", "Laravel seeders", "seeder")
-      : []),
+    ...(isLaravel ? groupedPhpSeeds(context, "database/seeders", "Laravel seeders", "seeder") : []),
     ...testSuiteSeeds(testFiles, testCommand, isLaravel ? "Laravel" : "PHP"),
   ];
 

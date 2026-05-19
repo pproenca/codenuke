@@ -3,6 +3,7 @@
 Source: actual PR review comments from `sst/opencode` core maintainers.
 
 Reviewers studied:
+
 - **thdxr** (Dax Raad) -- top contributor, 1949 commits. Repo owner. Reviews naming, consistency, architecture.
 - **adamdotdevin** (Adam) -- second contributor, 1848 commits. Reviews UI/app code, package scope, existing library reuse.
 - **kitlangton** -- core contributor. Reviews Effect-TS patterns, type safety, code correctness, naming in services.
@@ -327,7 +328,7 @@ const current = (db: DbClient) => {
 > "I don't think we want a default at this time."
 
 ```ts
-const serverDefault = "https://web-14275-d60e67f5-pyqs0590.onporter.run"
+const serverDefault = "https://web-14275-d60e67f5-pyqs0590.onporter.run";
 ```
 
 **Rule**: Effect services follow a specific pattern in this codebase. Look at existing services (`account/effect.ts`, `account/index.ts`) before writing new ones. Use `Effect.cached` for deduplication. Use existing Effect services rather than raw calls.
@@ -474,23 +475,23 @@ Preferred:
 
 ## Summary of Rejection Patterns
 
-| Pattern | Frequency | Who catches it |
-|---------|-----------|----------------|
-| Wrong naming convention (`projectId` vs `projectID`) | High | thdxr, kitlangton |
-| Touching unrelated files | High | adamdotdevin, rekram1-node |
-| `as any` casts | Immediate reject | kitlangton |
-| Custom hooks that duplicate community primitives | High | adamdotdevin |
-| Hardcoding provider info instead of using models.dev | Very high | rekram1-node |
-| Promoting third-party services | High | rekram1-node |
-| Removing code without explaining why | Medium | adamdotdevin, kitlangton |
-| Unexplained changes (the "???" pattern) | High | kitlangton |
-| Logic that cannot work as written | Medium | rekram1-node |
-| Not following Effect-TS service patterns | Medium | kitlangton |
-| Unnecessary test complexity | Medium | kitlangton |
-| Wrong UI component variants | Medium | adamdotdevin |
-| Platform-specific assumptions | Medium | rekram1-node |
-| Raw console output in CLI commands | Low | rekram1-node |
-| Vague or imprecise documentation | Low | rekram1-node |
+| Pattern                                              | Frequency        | Who catches it             |
+| ---------------------------------------------------- | ---------------- | -------------------------- |
+| Wrong naming convention (`projectId` vs `projectID`) | High             | thdxr, kitlangton          |
+| Touching unrelated files                             | High             | adamdotdevin, rekram1-node |
+| `as any` casts                                       | Immediate reject | kitlangton                 |
+| Custom hooks that duplicate community primitives     | High             | adamdotdevin               |
+| Hardcoding provider info instead of using models.dev | Very high        | rekram1-node               |
+| Promoting third-party services                       | High             | rekram1-node               |
+| Removing code without explaining why                 | Medium           | adamdotdevin, kitlangton   |
+| Unexplained changes (the "???" pattern)              | High             | kitlangton                 |
+| Logic that cannot work as written                    | Medium           | rekram1-node               |
+| Not following Effect-TS service patterns             | Medium           | kitlangton                 |
+| Unnecessary test complexity                          | Medium           | kitlangton                 |
+| Wrong UI component variants                          | Medium           | adamdotdevin               |
+| Platform-specific assumptions                        | Medium           | rekram1-node               |
+| Raw console output in CLI commands                   | Low              | rekram1-node               |
+| Vague or imprecise documentation                     | Low              | rekram1-node               |
 
 ---
 

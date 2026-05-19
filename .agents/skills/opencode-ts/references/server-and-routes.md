@@ -11,62 +11,76 @@ Hono app with layered middleware. `ControlPlaneRoutes` is the top-level app; `In
 ```typescript
 export namespace Server {
   export const ControlPlaneRoutes = (opts?: { cors?: string[] }): Hono => {
-    const app = new Hono()
-    return app
-      .onError(errorHandler(log))
-      // Basic auth guard (skips OPTIONS for CORS preflight)
-      .use((c, next) => {
-        if (c.req.method === "OPTIONS") return next()
-        const password = Flag.OPENCODE_SERVER_PASSWORD
-        if (!password) return next()
-        const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
-        return basicAuth({ username, password })(c, next)
-      })
-      // Request logging + timing
-      .use(async (c, next) => {
-        const skip = c.req.path === "/log"
-        if (!skip) log.info("request", { method: c.req.method, path: c.req.path })
-        const timer = log.time("request", { method: c.req.method, path: c.req.path })
-        await next()
-        if (!skip) timer.stop()
-      })
-      // CORS whitelist
-      .use(cors({
-        maxAge: 86_400,
-        origin(input) {
-          if (!input) return
-          if (input.startsWith("http://localhost:")) return input
-          if (input.startsWith("http://127.0.0.1:")) return input
-          if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input
-          if (opts?.cors?.includes(input)) return input
-        },
-      }))
-      // Selective compression (skip SSE and streaming endpoints)
-      .use((c, next) => {
-        if (skipCompress(c.req.path, c.req.method)) return next()
-        return zipped(c, next)
-      })
-      .route("/global", GlobalRoutes())
-      // ... auth routes, log route
-      .use(WorkspaceRouterMiddleware)
-  }
+    const app = new Hono();
+    return (
+      app
+        .onError(errorHandler(log))
+        // Basic auth guard (skips OPTIONS for CORS preflight)
+        .use((c, next) => {
+          if (c.req.method === "OPTIONS") return next();
+          const password = Flag.OPENCODE_SERVER_PASSWORD;
+          if (!password) return next();
+          const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode";
+          return basicAuth({ username, password })(c, next);
+        })
+        // Request logging + timing
+        .use(async (c, next) => {
+          const skip = c.req.path === "/log";
+          if (!skip) log.info("request", { method: c.req.method, path: c.req.path });
+          const timer = log.time("request", { method: c.req.method, path: c.req.path });
+          await next();
+          if (!skip) timer.stop();
+        })
+        // CORS whitelist
+        .use(
+          cors({
+            maxAge: 86_400,
+            origin(input) {
+              if (!input) return;
+              if (input.startsWith("http://localhost:")) return input;
+              if (input.startsWith("http://127.0.0.1:")) return input;
+              if (/^https:\/\/([a-z0-9-]+\.)*opencode\.ai$/.test(input)) return input;
+              if (opts?.cors?.includes(input)) return input;
+            },
+          }),
+        )
+        // Selective compression (skip SSE and streaming endpoints)
+        .use((c, next) => {
+          if (skipCompress(c.req.path, c.req.method)) return next();
+          return zipped(c, next);
+        })
+        .route("/global", GlobalRoutes())
+        // ... auth routes, log route
+        .use(WorkspaceRouterMiddleware)
+    );
+  };
 
   export function listen(opts: { port; hostname; mdns?; mdnsDomain?; cors? }) {
-    url = new URL(`http://${opts.hostname}:${opts.port}`)
-    const app = ControlPlaneRoutes({ cors: opts.cors })
+    url = new URL(`http://${opts.hostname}:${opts.port}`);
+    const app = ControlPlaneRoutes({ cors: opts.cors });
     const tryServe = (port: number) => {
-      try { return Bun.serve({ hostname: opts.hostname, idleTimeout: 0, fetch: app.fetch, websocket, port }) }
-      catch { return undefined }
-    }
-    const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port)
-    if (!server) throw new Error(`Failed to start server on port ${opts.port}`)
-    if (shouldPublishMDNS) MDNS.publish(server.port!, opts.mdnsDomain)
-    return server
+      try {
+        return Bun.serve({
+          hostname: opts.hostname,
+          idleTimeout: 0,
+          fetch: app.fetch,
+          websocket,
+          port,
+        });
+      } catch {
+        return undefined;
+      }
+    };
+    const server = opts.port === 0 ? (tryServe(4096) ?? tryServe(0)) : tryServe(opts.port);
+    if (!server) throw new Error(`Failed to start server on port ${opts.port}`);
+    if (shouldPublishMDNS) MDNS.publish(server.port!, opts.mdnsDomain);
+    return server;
   }
 }
 ```
 
 Middleware execution order per request:
+
 1. `errorHandler` (catches everything below)
 2. Basic auth (skipped for OPTIONS)
 3. Request logging + timing
@@ -86,13 +100,15 @@ export const InstanceRoutes = (app?: Hono) =>
     .onError(errorHandler(log))
     // Instance context injection middleware
     .use(async (c, next) => {
-      const raw = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
-      const directory = Filesystem.resolve(decodeURIComponent(raw))
+      const raw = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd();
+      const directory = Filesystem.resolve(decodeURIComponent(raw));
       return Instance.provide({
         directory,
         init: InstanceBootstrap,
-        async fn() { return next() },
-      })
+        async fn() {
+          return next();
+        },
+      });
     })
     // Sub-route mounting
     .route("/project", ProjectRoutes())
@@ -108,24 +124,24 @@ export const InstanceRoutes = (app?: Hono) =>
     .route("/mcp", McpRoutes())
     .route("/tui", TuiRoutes())
     // Direct instance endpoints
-    .post("/instance/dispose", /* ... */)
-    .get("/path", /* ... */)
-    .get("/vcs", /* ... */)
-    .get("/command", /* ... */)
-    .get("/agent", /* ... */)
-    .get("/skill", /* ... */)
-    .get("/lsp", /* ... */)
-    .get("/formatter", /* ... */)
+    .post("/instance/dispose" /* ... */)
+    .get("/path" /* ... */)
+    .get("/vcs" /* ... */)
+    .get("/command" /* ... */)
+    .get("/agent" /* ... */)
+    .get("/skill" /* ... */)
+    .get("/lsp" /* ... */)
+    .get("/formatter" /* ... */)
     // Fallback: embedded web UI or proxy to app.opencode.ai
     .all("/*", async (c) => {
-      const embeddedWebUI = await embeddedUIPromise
+      const embeddedWebUI = await embeddedUIPromise;
       if (embeddedWebUI) {
-        const match = embeddedWebUI[path.replace(/^\//, "")] ?? embeddedWebUI["index.html"]
+        const match = embeddedWebUI[path.replace(/^\//, "")] ?? embeddedWebUI["index.html"];
         // serve static file with CSP headers
       } else {
         // proxy to https://app.opencode.ai
       }
-    })
+    });
 ```
 
 Directory resolution priority: `?directory=` query > `x-opencode-directory` header > `process.cwd()`.
@@ -140,37 +156,37 @@ Every route file exports a `lazy(() => new Hono().METHOD(...))` factory. Each en
 
 ```typescript
 export function lazy<T>(fn: () => T) {
-  let value: T | undefined
-  let loaded = false
+  let value: T | undefined;
+  let loaded = false;
 
   const result = (): T => {
-    if (loaded) return value as T
+    if (loaded) return value as T;
     try {
-      value = fn()
-      loaded = true
-      return value as T
+      value = fn();
+      loaded = true;
+      return value as T;
     } catch (e) {
-      throw e
+      throw e;
     }
-  }
+  };
 
   result.reset = () => {
-    loaded = false
-    value = undefined
-  }
+    loaded = false;
+    value = undefined;
+  };
 
-  return result
+  return result;
 }
 ```
 
 ### Imports used in route files
 
 ```typescript
-import { Hono } from "hono"
-import { describeRoute } from "hono-openapi"
-import { resolver, validator } from "hono-openapi/zod"
-import { errors } from "../error"
-import { lazy } from "@opencode-ai/util/lazy"
+import { Hono } from "hono";
+import { describeRoute } from "hono-openapi";
+import { resolver, validator } from "hono-openapi/zod";
+import { errors } from "../error";
+import { lazy } from "@opencode-ai/util/lazy";
 ```
 
 ### Complete Example: Config Routes (`server/routes/config.ts`)
@@ -178,7 +194,8 @@ import { lazy } from "@opencode-ai/util/lazy"
 ```typescript
 export const ConfigRoutes = lazy(() =>
   new Hono()
-    .get("/",
+    .get(
+      "/",
       describeRoute({
         summary: "Get configuration",
         operationId: "config.get",
@@ -190,10 +207,11 @@ export const ConfigRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        return c.json(await Config.get())
+        return c.json(await Config.get());
       },
     )
-    .patch("/",
+    .patch(
+      "/",
       describeRoute({
         summary: "Update configuration",
         operationId: "config.update",
@@ -207,53 +225,56 @@ export const ConfigRoutes = lazy(() =>
       }),
       validator("json", Config.Info),
       async (c) => {
-        const config = c.req.valid("json")
-        await Config.update(config)
-        return c.json(config)
+        const config = c.req.valid("json");
+        await Config.update(config);
+        return c.json(config);
       },
-    )
-)
+    ),
+);
 ```
 
 ### Complete Example: Session Routes (`server/routes/session.ts`)
 
 ```typescript
 export const SessionRoutes = lazy(() =>
-  new Hono()
-    .get("/",
-      describeRoute({
-        summary: "List sessions",
-        operationId: "session.list",
-        responses: {
-          200: {
-            description: "Sessions list",
-            content: { "application/json": { schema: resolver(z.array(Session.Info)) } },
-          },
+  new Hono().get(
+    "/",
+    describeRoute({
+      summary: "List sessions",
+      operationId: "session.list",
+      responses: {
+        200: {
+          description: "Sessions list",
+          content: { "application/json": { schema: resolver(z.array(Session.Info)) } },
         },
-      }),
-      validator("query", z.object({
+      },
+    }),
+    validator(
+      "query",
+      z.object({
         directory: z.string().optional(),
         roots: z.coerce.boolean().optional(),
         start: z.coerce.number().optional(),
         search: z.string().optional(),
         limit: z.coerce.number().optional(),
-      })),
-      async (c) => {
-        const query = c.req.valid("query")
-        const sessions: Session.Info[] = []
-        for await (const session of Session.list({
-          directory: query.directory,
-          roots: query.roots,
-          start: query.start,
-          search: query.search,
-          limit: query.limit,
-        })) {
-          sessions.push(session)
-        }
-        return c.json(sessions)
-      },
-    )
-)
+      }),
+    ),
+    async (c) => {
+      const query = c.req.valid("query");
+      const sessions: Session.Info[] = [];
+      for await (const session of Session.list({
+        directory: query.directory,
+        roots: query.roots,
+        start: query.start,
+        search: query.search,
+        limit: query.limit,
+      })) {
+        sessions.push(session);
+      }
+      return c.json(sessions);
+    },
+  ),
+);
 ```
 
 ### Pattern Summary
@@ -281,6 +302,7 @@ export const XxxRoutes = lazy(() =>
 ```
 
 Key rules:
+
 - Route files call domain modules directly -- no controller layer.
 - `resolver(schema)` wraps a Zod schema for OpenAPI doc generation.
 - `validator("json", schema)` validates + parses the request body; `"query"` for query params, `"param"` for URL params.
@@ -297,8 +319,8 @@ Key rules:
 
 ```typescript
 export abstract class NamedError extends Error {
-  abstract schema(): z.core.$ZodType
-  abstract toObject(): { name: string; data: any }
+  abstract schema(): z.core.$ZodType;
+  abstract toObject(): { name: string; data: any };
 
   static create<Name extends string, Data extends z.core.$ZodType>(name: Name, data: Data) {
     const schema = z
@@ -306,34 +328,38 @@ export abstract class NamedError extends Error {
         name: z.literal(name),
         data,
       })
-      .meta({ ref: name })
+      .meta({ ref: name });
     const result = class extends NamedError {
-      public static readonly Schema = schema
-      public override readonly name = name as Name
+      public static readonly Schema = schema;
+      public override readonly name = name as Name;
 
       constructor(
         public readonly data: z.input<Data>,
         options?: ErrorOptions,
       ) {
-        super(name, options)
-        this.name = name
+        super(name, options);
+        this.name = name;
       }
 
       static isInstance(input: any): input is InstanceType<typeof result> {
-        return typeof input === "object" && "name" in input && input.name === name
+        return typeof input === "object" && "name" in input && input.name === name;
       }
 
-      schema() { return schema }
-      toObject() { return { name: name, data: this.data } }
-    }
-    Object.defineProperty(result, "name", { value: name })
-    return result
+      schema() {
+        return schema;
+      }
+      toObject() {
+        return { name: name, data: this.data };
+      }
+    };
+    Object.defineProperty(result, "name", { value: name });
+    return result;
   }
 
   public static readonly Unknown = NamedError.create(
     "UnknownError",
     z.object({ message: z.string() }),
-  )
+  );
 }
 ```
 
@@ -342,18 +368,20 @@ export abstract class NamedError extends Error {
 ```typescript
 export function errorHandler(log: Log.Logger): ErrorHandler {
   return (err, c) => {
-    log.error("failed", { error: err })
+    log.error("failed", { error: err });
     if (err instanceof NamedError) {
-      let status: ContentfulStatusCode
-      if (err instanceof NotFoundError) status = 404
-      else if (err instanceof Provider.ModelNotFoundError) status = 400
-      else if (err.name.startsWith("Worktree")) status = 400
-      else status = 500
-      return c.json(err.toObject(), { status })
+      let status: ContentfulStatusCode;
+      if (err instanceof NotFoundError) status = 404;
+      else if (err instanceof Provider.ModelNotFoundError) status = 400;
+      else if (err.name.startsWith("Worktree")) status = 400;
+      else status = 500;
+      return c.json(err.toObject(), { status });
     }
-    if (err instanceof HTTPException) return err.getResponse()
-    return c.json(new NamedError.Unknown({ message: err.stack ?? err.toString() }).toObject(), { status: 500 })
-  }
+    if (err instanceof HTTPException) return err.getResponse();
+    return c.json(new NamedError.Unknown({ message: err.stack ?? err.toString() }).toObject(), {
+      status: 500,
+    });
+  };
 }
 ```
 
@@ -366,11 +394,13 @@ export const ERRORS = {
     content: {
       "application/json": {
         schema: resolver(
-          z.object({
-            data: z.any(),
-            errors: z.array(z.record(z.string(), z.any())),
-            success: z.literal(false),
-          }).meta({ ref: "BadRequestError" }),
+          z
+            .object({
+              data: z.any(),
+              errors: z.array(z.record(z.string(), z.any())),
+              success: z.literal(false),
+            })
+            .meta({ ref: "BadRequestError" }),
         ),
       },
     },
@@ -383,24 +413,24 @@ export const ERRORS = {
       },
     },
   },
-} as const
+} as const;
 
 export function errors(...codes: number[]) {
-  return Object.fromEntries(codes.map((code) => [code, ERRORS[code as keyof typeof ERRORS]]))
+  return Object.fromEntries(codes.map((code) => [code, ERRORS[code as keyof typeof ERRORS]]));
 }
 ```
 
 ### Error-to-HTTP Status Mapping
 
-| Error | HTTP Status |
-|---|---|
-| `NotFoundError` | 404 |
-| `Provider.ModelNotFoundError` | 400 |
-| `ProviderAuthValidationFailed` | 400 |
-| Any `Worktree*` error (name starts with "Worktree") | 400 |
-| Any other `NamedError` subclass | 500 |
-| Hono `HTTPException` | exception's own status |
-| Any other `Error` | 500 (wrapped as `UnknownError`) |
+| Error                                               | HTTP Status                     |
+| --------------------------------------------------- | ------------------------------- |
+| `NotFoundError`                                     | 404                             |
+| `Provider.ModelNotFoundError`                       | 400                             |
+| `ProviderAuthValidationFailed`                      | 400                             |
+| Any `Worktree*` error (name starts with "Worktree") | 400                             |
+| Any other `NamedError` subclass                     | 500                             |
+| Hono `HTTPException`                                | exception's own status          |
+| Any other `Error`                                   | 500 (wrapped as `UnknownError`) |
 
 All error responses are `{ name: string, data: any }` -- the `toObject()` shape.
 
@@ -413,14 +443,14 @@ All error responses are `{ name: string, data: any }` -- the `toObject()` shape.
 ```typescript
 export namespace ConfigPaths {
   export async function projectFiles(name: string, directory: string, worktree: string) {
-    const files: string[] = []
+    const files: string[] = [];
     for (const file of [`${name}.jsonc`, `${name}.json`]) {
-      const found = await Filesystem.findUp(file, directory, worktree)
+      const found = await Filesystem.findUp(file, directory, worktree);
       for (const resolved of found.toReversed()) {
-        files.push(resolved)
+        files.push(resolved);
       }
     }
-    return files
+    return files;
   }
 
   export async function directories(directory: string, worktree: string) {
@@ -443,11 +473,11 @@ export namespace ConfigPaths {
         }),
       )),
       ...(Flag.OPENCODE_CONFIG_DIR ? [Flag.OPENCODE_CONFIG_DIR] : []),
-    ]
+    ];
   }
 
   export function fileInDirectory(dir: string, name: string) {
-    return [path.join(dir, `${name}.jsonc`), path.join(dir, `${name}.json`)]
+    return [path.join(dir, `${name}.jsonc`), path.join(dir, `${name}.json`)];
   }
 }
 ```
@@ -464,11 +494,11 @@ export namespace ConfigPaths {
 function systemManagedConfigDir(): string {
   switch (process.platform) {
     case "darwin":
-      return "/Library/Application Support/opencode"
+      return "/Library/Application Support/opencode";
     case "win32":
-      return path.join(process.env.ProgramData || "C:\\ProgramData", "opencode")
+      return path.join(process.env.ProgramData || "C:\\ProgramData", "opencode");
     default:
-      return "/etc/opencode"
+      return "/etc/opencode";
   }
 }
 ```
@@ -479,40 +509,44 @@ TUI config merge (same principle applies to main config):
 const state = Instance.state(async () => {
   let projectFiles = Flag.OPENCODE_DISABLE_PROJECT_CONFIG
     ? []
-    : await ConfigPaths.projectFiles("tui", Instance.directory, Instance.worktree)
-  const directories = await ConfigPaths.directories(Instance.directory, Instance.worktree)
-  const custom = customPath()
-  const managed = Config.managedConfigDir()
+    : await ConfigPaths.projectFiles("tui", Instance.directory, Instance.worktree);
+  const directories = await ConfigPaths.directories(Instance.directory, Instance.worktree);
+  const custom = customPath();
+  const managed = Config.managedConfigDir();
 
-  const acc: Acc = { result: {}, entries: [] }
+  const acc: Acc = { result: {}, entries: [] };
 
   // 1. Global config
   for (const file of ConfigPaths.fileInDirectory(Global.Path.config, "tui")) {
-    await mergeFile(acc, file)
+    await mergeFile(acc, file);
   }
   // 2. Custom config
-  if (custom) { await mergeFile(acc, custom) }
+  if (custom) {
+    await mergeFile(acc, custom);
+  }
   // 3. Project files
-  for (const file of projectFiles) { await mergeFile(acc, file) }
+  for (const file of projectFiles) {
+    await mergeFile(acc, file);
+  }
   // 4. .opencode directories
   for (const dir of unique(directories)) {
-    if (!dir.endsWith(".opencode") && dir !== Flag.OPENCODE_CONFIG_DIR) continue
+    if (!dir.endsWith(".opencode") && dir !== Flag.OPENCODE_CONFIG_DIR) continue;
     for (const file of ConfigPaths.fileInDirectory(dir, "tui")) {
-      await mergeFile(acc, file)
+      await mergeFile(acc, file);
     }
   }
   // 5. Managed (enterprise) config -- highest priority
   if (existsSync(managed)) {
     for (const file of ConfigPaths.fileInDirectory(managed, "tui")) {
-      await mergeFile(acc, file)
+      await mergeFile(acc, file);
     }
   }
 
-  const merged = dedupePlugins(acc.entries)
-  acc.result.keybinds = Config.Keybinds.parse(acc.result.keybinds ?? {})
-  acc.result.plugin = merged.map((item) => item.item)
-  return { config: acc.result, deps }
-})
+  const merged = dedupePlugins(acc.entries);
+  acc.result.keybinds = Config.Keybinds.parse(acc.result.keybinds ?? {});
+  acc.result.plugin = merged.map((item) => item.item);
+  return { config: acc.result, deps };
+});
 ```
 
 ### Array Concatenation (not replacement)
@@ -521,14 +555,14 @@ const state = Instance.state(async () => {
 
 ```typescript
 function mergeConfigConcatArrays(target: Info, source: Info): Info {
-  const merged = mergeDeep(target, source)
+  const merged = mergeDeep(target, source);
   if (target.plugin && source.plugin) {
-    merged.plugin = Array.from(new Set([...target.plugin, ...source.plugin]))
+    merged.plugin = Array.from(new Set([...target.plugin, ...source.plugin]));
   }
   if (target.instructions && source.instructions) {
-    merged.instructions = Array.from(new Set([...target.instructions, ...source.instructions]))
+    merged.instructions = Array.from(new Set([...target.instructions, ...source.instructions]));
   }
-  return merged
+  return merged;
 }
 ```
 
@@ -536,19 +570,19 @@ function mergeConfigConcatArrays(target: Info, source: Info): Info {
 
 ```typescript
 export function deduplicatePlugins(plugins: PluginSpec[]): PluginSpec[] {
-  const seenNames = new Set<string>()
-  const uniqueSpecifiers: PluginSpec[] = []
+  const seenNames = new Set<string>();
+  const uniqueSpecifiers: PluginSpec[] = [];
 
   for (const specifier of plugins.toReversed()) {
-    const spec = pluginSpecifier(specifier)
-    const name = spec.startsWith("file://") ? spec : parsePluginSpecifier(spec).pkg
+    const spec = pluginSpecifier(specifier);
+    const name = spec.startsWith("file://") ? spec : parsePluginSpecifier(spec).pkg;
     if (!seenNames.has(name)) {
-      seenNames.add(name)
-      uniqueSpecifiers.push(specifier)
+      seenNames.add(name);
+      uniqueSpecifiers.push(specifier);
     }
   }
 
-  return uniqueSpecifiers.toReversed()
+  return uniqueSpecifiers.toReversed();
 }
 ```
 
@@ -559,49 +593,49 @@ Config values support variable expansion before parsing:
 ```typescript
 async function substitute(text: string, input: ParseSource, missing: "error" | "empty" = "error") {
   text = text.replace(/\{env:([^}]+)\}/g, (_, varName) => {
-    return process.env[varName] || ""
-  })
+    return process.env[varName] || "";
+  });
 
-  const fileMatches = Array.from(text.matchAll(/\{file:[^}]+\}/g))
-  if (!fileMatches.length) return text
+  const fileMatches = Array.from(text.matchAll(/\{file:[^}]+\}/g));
+  if (!fileMatches.length) return text;
 
-  const configDir = dir(input)
-  let out = ""
-  let cursor = 0
+  const configDir = dir(input);
+  let out = "";
+  let cursor = 0;
 
   for (const match of fileMatches) {
-    const token = match[0]
-    const index = match.index!
-    out += text.slice(cursor, index)
+    const token = match[0];
+    const index = match.index!;
+    out += text.slice(cursor, index);
 
     // Skip tokens inside comments
-    const lineStart = text.lastIndexOf("\n", index - 1) + 1
-    const prefix = text.slice(lineStart, index).trimStart()
+    const lineStart = text.lastIndexOf("\n", index - 1) + 1;
+    const prefix = text.slice(lineStart, index).trimStart();
     if (prefix.startsWith("//")) {
-      out += token
-      cursor = index + token.length
-      continue
+      out += token;
+      cursor = index + token.length;
+      continue;
     }
 
-    let filePath = token.replace(/^\{file:/, "").replace(/\}$/, "")
+    let filePath = token.replace(/^\{file:/, "").replace(/\}$/, "");
     if (filePath.startsWith("~/")) {
-      filePath = path.join(os.homedir(), filePath.slice(2))
+      filePath = path.join(os.homedir(), filePath.slice(2));
     }
 
-    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(configDir, filePath)
+    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(configDir, filePath);
     const fileContent = (
       await Filesystem.readText(resolvedPath).catch((error: NodeJS.ErrnoException) => {
-        if (missing === "empty") return ""
+        if (missing === "empty") return "";
         // ... error handling
       })
-    ).trim()
+    ).trim();
 
-    out += JSON.stringify(fileContent).slice(1, -1)
-    cursor = index + token.length
+    out += JSON.stringify(fileContent).slice(1, -1);
+    cursor = index + token.length;
   }
 
-  out += text.slice(cursor)
-  return out
+  out += text.slice(cursor);
+  return out;
 }
 ```
 
@@ -610,28 +644,36 @@ async function substitute(text: string, input: ParseSource, missing: "error" | "
 Config updates for plugin installation operate on raw JSONC text, not parse-serialize cycles. This preserves comments, formatting, and trailing commas:
 
 ```typescript
-export async function patchPluginConfig(input: PatchInput, dep: PatchDeps = defaultPatchDeps): Promise<PatchResult> {
-  const dir = patchDir(input)
-  const items: PatchItem[] = []
+export async function patchPluginConfig(
+  input: PatchInput,
+  dep: PatchDeps = defaultPatchDeps,
+): Promise<PatchResult> {
+  const dir = patchDir(input);
+  const items: PatchItem[] = [];
   for (const target of input.targets) {
-    const hit = await patchOne(dir, target, input.spec, Boolean(input.force), dep)
-    if (!hit.ok) return { ...hit, dir }
-    items.push(hit.item)
+    const hit = await patchOne(dir, target, input.spec, Boolean(input.force), dep);
+    if (!hit.ok) return { ...hit, dir };
+    items.push(hit.item);
   }
-  return { ok: true, dir, items }
+  return { ok: true, dir, items };
 }
 
-function patchPluginList(list: unknown[], spec: string, next: unknown, force = false): { mode: Mode; list: unknown[] } {
-  const pkg = parsePluginSpecifier(spec).pkg
-  const rows = list.map((item, i) => ({ item, i, spec: pluginSpec(item) }))
+function patchPluginList(
+  list: unknown[],
+  spec: string,
+  next: unknown,
+  force = false,
+): { mode: Mode; list: unknown[] } {
+  const pkg = parsePluginSpecifier(spec).pkg;
+  const rows = list.map((item, i) => ({ item, i, spec: pluginSpec(item) }));
   const dup = rows.filter((item) => {
-    if (!item.spec) return false
-    if (item.spec === spec) return true
-    if (item.spec.startsWith("file://")) return false
-    return parsePluginSpecifier(item.spec).pkg === pkg
-  })
-  if (!dup.length) return { mode: "add", list: [...list, next] }
-  if (!force) return { mode: "noop", list }
+    if (!item.spec) return false;
+    if (item.spec === spec) return true;
+    if (item.spec.startsWith("file://")) return false;
+    return parsePluginSpecifier(item.spec).pkg === pkg;
+  });
+  if (!dup.length) return { mode: "add", list: [...list, next] };
+  if (!force) return { mode: "noop", list };
   // ... replace logic
 }
 ```
@@ -640,35 +682,38 @@ function patchPluginList(list: unknown[], spec: string, next: unknown, force = f
 
 ```typescript
 export async function installDependencies(dir: string, input?: InstallInput) {
-  if (!(await needsInstall(dir))) return
+  if (!(await needsInstall(dir))) return;
 
   await using _ = await Flock.acquire(`config-install:${Filesystem.resolve(dir)}`, {
     signal: input?.signal,
-    onWait: (tick) => input?.waitTick?.({ dir, attempt: tick.attempt, delay: tick.delay, waited: tick.waited }),
-  })
+    onWait: (tick) =>
+      input?.waitTick?.({ dir, attempt: tick.attempt, delay: tick.delay, waited: tick.waited }),
+  });
 
-  input?.signal?.throwIfAborted()
-  if (!(await needsInstall(dir))) return
+  input?.signal?.throwIfAborted();
+  if (!(await needsInstall(dir))) return;
 
-  const pkg = path.join(dir, "package.json")
-  const target = Installation.isLocal() ? "*" : Installation.VERSION
+  const pkg = path.join(dir, "package.json");
+  const target = Installation.isLocal() ? "*" : Installation.VERSION;
 
-  const json = await Filesystem.readJson<{ dependencies?: Record<string, string> }>(pkg).catch(() => ({
-    dependencies: {},
-  }))
-  json.dependencies = { ...json.dependencies, "@opencode-ai/plugin": target }
-  await Filesystem.writeJson(pkg, json)
+  const json = await Filesystem.readJson<{ dependencies?: Record<string, string> }>(pkg).catch(
+    () => ({
+      dependencies: {},
+    }),
+  );
+  json.dependencies = { ...json.dependencies, "@opencode-ai/plugin": target };
+  await Filesystem.writeJson(pkg, json);
 
   // Serialize installs globally on win32, keep parallel on other platforms
   await using __ =
     process.platform === "win32"
       ? await Flock.acquire("config-install:bun", { signal: input?.signal })
-      : undefined
+      : undefined;
 
-  await BunProc.run(
-    ["install", ...(proxied() || process.env.CI ? ["--no-cache"] : [])],
-    { cwd: dir, abort: input?.signal },
-  )
+  await BunProc.run(["install", ...(proxied() || process.env.CI ? ["--no-cache"] : [])], {
+    cwd: dir,
+    abort: input?.signal,
+  });
 }
 ```
 
@@ -775,53 +820,53 @@ export namespace Plugin {
 ### Hook Trigger Fanout
 
 ```typescript
-      const trigger = Effect.fn("Plugin.trigger")(function* <
-        Name extends TriggerName,
-        Input = Parameters<Required<Hooks>[Name]>[0],
-        Output = Parameters<Required<Hooks>[Name]>[1],
-      >(name: Name, input: Input, output: Output) {
-        if (!name) return output
-        const state = yield* InstanceState.get(cache)
-        for (const hook of state.hooks) {
-          const fn = hook[name] as any
-          if (!fn) continue
-          yield* Effect.promise(() => fn(input, output))
-        }
-        return output
-      })
+const trigger = Effect.fn("Plugin.trigger")(function* <
+  Name extends TriggerName,
+  Input = Parameters<Required<Hooks>[Name]>[0],
+  Output = Parameters<Required<Hooks>[Name]>[1],
+>(name: Name, input: Input, output: Output) {
+  if (!name) return output;
+  const state = yield* InstanceState.get(cache);
+  for (const hook of state.hooks) {
+    const fn = hook[name] as any;
+    if (!fn) continue;
+    yield* Effect.promise(() => fn(input, output));
+  }
+  return output;
+});
 ```
 
 ### Plugin Resolution (`plugin/shared.ts`)
 
 ```typescript
 export function parsePluginSpecifier(spec: string) {
-  const lastAt = spec.lastIndexOf("@")
-  const pkg = lastAt > 0 ? spec.substring(0, lastAt) : spec
-  const version = lastAt > 0 ? spec.substring(lastAt + 1) : "latest"
-  return { pkg, version }
+  const lastAt = spec.lastIndexOf("@");
+  const pkg = lastAt > 0 ? spec.substring(0, lastAt) : spec;
+  const version = lastAt > 0 ? spec.substring(lastAt + 1) : "latest";
+  return { pkg, version };
 }
 
-export type PluginSource = "file" | "npm"
+export type PluginSource = "file" | "npm";
 
 export function pluginSource(spec: string): PluginSource {
-  return spec.startsWith("file://") ? "file" : "npm"
+  return spec.startsWith("file://") ? "file" : "npm";
 }
 
 export async function resolvePluginEntrypoint(spec: string, target: string, kind: PluginKind) {
-  const pkg = await readPluginPackage(target).catch(() => undefined)
-  if (!pkg) return target
-  if (!hasEntrypoint(pkg.json, kind)) return target
-  const exports = pkg.json.exports
-  if (!isRecord(exports)) return target
-  const raw = extractExportValue(exports[`./${kind}`])
-  if (!raw) return target
-  const resolved = resolveExportPath(raw, pkg.dir)
-  const root = Filesystem.resolve(pkg.dir)
-  const next = Filesystem.resolve(resolved)
+  const pkg = await readPluginPackage(target).catch(() => undefined);
+  if (!pkg) return target;
+  if (!hasEntrypoint(pkg.json, kind)) return target;
+  const exports = pkg.json.exports;
+  if (!isRecord(exports)) return target;
+  const raw = extractExportValue(exports[`./${kind}`]);
+  if (!raw) return target;
+  const resolved = resolveExportPath(raw, pkg.dir);
+  const root = Filesystem.resolve(pkg.dir);
+  const next = Filesystem.resolve(resolved);
   if (!Filesystem.contains(root, next)) {
-    throw new Error(`Plugin ${spec} resolved ${kind} entry outside plugin directory`)
+    throw new Error(`Plugin ${spec} resolved ${kind} entry outside plugin directory`);
   }
-  return pathToFileURL(next).href
+  return pathToFileURL(next).href;
 }
 ```
 
@@ -851,6 +896,7 @@ export async function resolvePluginEntrypoint(spec: string, target: string, kind
 ```
 
 Plugin lifecycle summary:
+
 1. Create in-process SDK client (routes through `Server.Default().fetch`, no network)
 2. Load internal auth plugins (Codex, Copilot, Gitlab, Poe)
 3. Wait for dependency installation, then load external plugins sequentially
@@ -866,62 +912,76 @@ Plugin lifecycle summary:
 
 ```typescript
 export interface InstanceContext {
-  directory: string
-  worktree: string
-  project: Project.Info
+  directory: string;
+  worktree: string;
+  project: Project.Info;
 }
 
-const context = Context.create<InstanceContext>("instance")
-const cache = new Map<string, Promise<InstanceContext>>()
+const context = Context.create<InstanceContext>("instance");
+const cache = new Map<string, Promise<InstanceContext>>();
 
 export const Instance = {
-  async provide<R>(input: { directory: string; init?: () => Promise<any>; fn: () => R }): Promise<R> {
-    const directory = Filesystem.resolve(input.directory)
-    let existing = cache.get(directory)
+  async provide<R>(input: {
+    directory: string;
+    init?: () => Promise<any>;
+    fn: () => R;
+  }): Promise<R> {
+    const directory = Filesystem.resolve(input.directory);
+    let existing = cache.get(directory);
     if (!existing) {
-      Log.Default.info("creating instance", { directory })
-      existing = track(directory, boot({ directory, init: input.init }))
+      Log.Default.info("creating instance", { directory });
+      existing = track(directory, boot({ directory, init: input.init }));
     }
-    const ctx = await existing
-    return context.provide(ctx, async () => { return input.fn() })
+    const ctx = await existing;
+    return context.provide(ctx, async () => {
+      return input.fn();
+    });
   },
 
-  get current() { return context.use() },
-  get directory() { return context.use().directory },
-  get worktree() { return context.use().worktree },
-  get project() { return context.use().project },
+  get current() {
+    return context.use();
+  },
+  get directory() {
+    return context.use().directory;
+  },
+  get worktree() {
+    return context.use().worktree;
+  },
+  get project() {
+    return context.use().project;
+  },
 
   containsPath(filepath: string) {
-    if (Filesystem.contains(Instance.directory, filepath)) return true
-    if (Instance.worktree === "/") return false
-    return Filesystem.contains(Instance.worktree, filepath)
+    if (Filesystem.contains(Instance.directory, filepath)) return true;
+    if (Instance.worktree === "/") return false;
+    return Filesystem.contains(Instance.worktree, filepath);
   },
 
   bind<F extends (...args: any[]) => any>(fn: F): F {
-    const ctx = context.use()
-    return ((...args: any[]) => context.provide(ctx, () => fn(...args))) as F
+    const ctx = context.use();
+    return ((...args: any[]) => context.provide(ctx, () => fn(...args))) as F;
   },
 
   state<S>(init: () => S, dispose?: (state: Awaited<S>) => Promise<void>): () => S {
-    return State.create(() => Instance.directory, init, dispose)
+    return State.create(() => Instance.directory, init, dispose);
   },
 
   async reload(input) {
-    const directory = Filesystem.resolve(input.directory)
-    await Promise.all([State.dispose(directory), disposeInstance(directory)])
-    cache.delete(directory)
-    const next = track(directory, boot({ ...input, directory }))
-    emit(directory)
-    return await next
+    const directory = Filesystem.resolve(input.directory);
+    await Promise.all([State.dispose(directory), disposeInstance(directory)]);
+    cache.delete(directory);
+    const next = track(directory, boot({ ...input, directory }));
+    emit(directory);
+    return await next;
   },
 
   async dispose() {
-    const directory = Instance.directory
-    await Promise.all([State.dispose(directory), disposeInstance(directory)])
-    cache.delete(directory)
-    emit(directory)
+    const directory = Instance.directory;
+    await Promise.all([State.dispose(directory), disposeInstance(directory)]);
+    cache.delete(directory);
+    emit(directory);
   },
-}
+};
 ```
 
 ### State Management (`project/state.ts`)
@@ -930,35 +990,43 @@ Per-directory state keyed by `init` function identity:
 
 ```typescript
 export namespace State {
-  const recordsByKey = new Map<string, Map<any, Entry>>()
+  const recordsByKey = new Map<string, Map<any, Entry>>();
 
-  export function create<S>(root: () => string, init: () => S, dispose?: (state: Awaited<S>) => Promise<void>) {
+  export function create<S>(
+    root: () => string,
+    init: () => S,
+    dispose?: (state: Awaited<S>) => Promise<void>,
+  ) {
     return () => {
-      const key = root()
-      let entries = recordsByKey.get(key)
+      const key = root();
+      let entries = recordsByKey.get(key);
       if (!entries) {
-        entries = new Map<string, Entry>()
-        recordsByKey.set(key, entries)
+        entries = new Map<string, Entry>();
+        recordsByKey.set(key, entries);
       }
-      const exists = entries.get(init)
-      if (exists) return exists.state as S
-      const state = init()
-      entries.set(init, { state, dispose })
-      return state
-    }
+      const exists = entries.get(init);
+      if (exists) return exists.state as S;
+      const state = init();
+      entries.set(init, { state, dispose });
+      return state;
+    };
   }
 
   export async function dispose(key: string) {
-    const entries = recordsByKey.get(key)
-    if (!entries) return
-    const tasks: Promise<void>[] = []
+    const entries = recordsByKey.get(key);
+    if (!entries) return;
+    const tasks: Promise<void>[] = [];
     for (const [init, entry] of entries) {
-      if (!entry.dispose) continue
-      tasks.push(Promise.resolve(entry.state).then((state) => entry.dispose!(state)).catch(/* ... */))
+      if (!entry.dispose) continue;
+      tasks.push(
+        Promise.resolve(entry.state)
+          .then((state) => entry.dispose!(state))
+          .catch(/* ... */),
+      );
     }
-    await Promise.all(tasks)
-    entries.clear()
-    recordsByKey.delete(key)
+    await Promise.all(tasks);
+    entries.clear();
+    recordsByKey.delete(key);
   }
 }
 ```
@@ -967,21 +1035,21 @@ export namespace State {
 
 ```typescript
 export async function InstanceBootstrap() {
-  Log.Default.info("bootstrapping", { directory: Instance.directory })
-  await Plugin.init()
-  ShareNext.init()
-  Format.init()
-  await LSP.init()
-  File.init()
-  FileWatcher.init()
-  Vcs.init()
-  Snapshot.init()
+  Log.Default.info("bootstrapping", { directory: Instance.directory });
+  await Plugin.init();
+  ShareNext.init();
+  Format.init();
+  await LSP.init();
+  File.init();
+  FileWatcher.init();
+  Vcs.init();
+  Snapshot.init();
 
   Bus.subscribe(Command.Event.Executed, async (payload) => {
     if (payload.properties.name === Command.Default.INIT) {
-      Project.setInitialized(Instance.project.id)
+      Project.setInitialized(Instance.project.id);
     }
-  })
+  });
 }
 ```
 
@@ -994,17 +1062,18 @@ export async function bootstrap<T>(directory: string, cb: () => Promise<T>) {
     init: InstanceBootstrap,
     fn: async () => {
       try {
-        const result = await cb()
-        return result
+        const result = await cb();
+        return result;
       } finally {
-        await Instance.dispose()
+        await Instance.dispose();
       }
     },
-  })
+  });
 }
 ```
 
 Full lifecycle:
+
 1. `Instance.provide({ directory, init: InstanceBootstrap, fn })` resolves/caches the context
 2. `boot()` discovers the project (git info, worktree, DB upsert), then calls `init`
 3. `InstanceBootstrap` runs: Plugin.init -> ShareNext -> Format -> LSP -> File -> FileWatcher -> Vcs -> Snapshot

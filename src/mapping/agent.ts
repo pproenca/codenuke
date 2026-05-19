@@ -99,7 +99,11 @@ export async function mapWithSource(
 ): Promise<AgentMapResult> {
   const inventoryStarted = Date.now();
   options.onProgress?.("inventory-start", {});
-  const inventory = await repoInventory(root, heuristic.features, options.repoIndex ?? heuristic.repoIndex);
+  const inventory = await repoInventory(
+    root,
+    heuristic.features,
+    options.repoIndex ?? heuristic.repoIndex,
+  );
   options.onProgress?.("inventory-done", {
     files: inventory.files,
     sourceFiles: inventory.sourceFiles,

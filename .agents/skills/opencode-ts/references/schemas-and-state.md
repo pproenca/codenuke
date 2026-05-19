@@ -14,7 +14,7 @@ Every table spreads this into its column definitions:
 
 ```typescript
 // packages/opencode/src/storage/schema.sql.ts
-import { integer } from "drizzle-orm/sqlite-core"
+import { integer } from "drizzle-orm/sqlite-core";
 
 export const Timestamps = {
   time_created: integer()
@@ -23,7 +23,7 @@ export const Timestamps = {
   time_updated: integer()
     .notNull()
     .$onUpdate(() => Date.now()),
-}
+};
 ```
 
 `$default` runs at insert time. `$onUpdate` runs on every update. Both produce epoch-millisecond integers.
@@ -51,7 +51,12 @@ export const SessionTable = sqliteTable(
     summary_deletions: integer(),
     summary_files: integer(),
     summary_diffs: text({ mode: "json" }).$type<Snapshot.FileDiff[]>(),
-    revert: text({ mode: "json" }).$type<{ messageID: MessageID; partID?: PartID; snapshot?: string; diff?: string }>(),
+    revert: text({ mode: "json" }).$type<{
+      messageID: MessageID;
+      partID?: PartID;
+      snapshot?: string;
+      diff?: string;
+    }>(),
     permission: text({ mode: "json" }).$type<Permission.Ruleset>(),
     ...Timestamps,
     time_compacting: integer(),
@@ -62,10 +67,11 @@ export const SessionTable = sqliteTable(
     index("session_workspace_idx").on(table.workspace_id),
     index("session_parent_idx").on(table.parent_id),
   ],
-)
+);
 ```
 
 Patterns to note:
+
 - `text().$type<BrandedID>().primaryKey()` -- typed primary key with branded string
 - `.references(() => ProjectTable.id, { onDelete: "cascade" })` -- always a function reference, never a direct value
 - `text({ mode: "json" }).$type<T>()` -- JSON columns with TypeScript overlay
@@ -92,7 +98,7 @@ export const PartTable = sqliteTable(
     index("part_message_id_id_idx").on(table.message_id, table.id),
     index("part_session_idx").on(table.session_id),
   ],
-)
+);
 ```
 
 The `data` column stores everything except IDs: `type PartData = Omit<MessageV2.Part, "id" | "sessionID" | "messageID">`. IDs are extracted into indexed columns for fast lookups while the JSON column allows flexible schema evolution.
@@ -118,7 +124,7 @@ export const TodoTable = sqliteTable(
     primaryKey({ columns: [table.session_id, table.position] }),
     index("todo_session_idx").on(table.session_id),
   ],
-)
+);
 ```
 
 No auto-increment ID. Composite primary key on `(session_id, position)`.
@@ -127,12 +133,12 @@ No auto-increment ID. Composite primary key on `(session_id, position)`.
 
 ```typescript
 // packages/opencode/src/sync/event.sql.ts
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const EventSequenceTable = sqliteTable("event_sequence", {
   aggregate_id: text().notNull().primaryKey(),
   seq: integer().notNull(),
-})
+});
 
 export const EventTable = sqliteTable("event", {
   id: text().primaryKey(),
@@ -142,7 +148,7 @@ export const EventTable = sqliteTable("event", {
   seq: integer().notNull(),
   type: text().notNull(),
   data: text({ mode: "json" }).$type<Record<string, unknown>>().notNull(),
-})
+});
 ```
 
 Two tables: `event_sequence` tracks the latest sequence number per aggregate, `event` stores all events. Deleting a sequence cascades to all its events.
@@ -164,13 +170,15 @@ const schema = z
   })
   .meta({
     ref: name,
-  })
+  });
 ```
 
 ```typescript
 // util/log.ts
-export const Level = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]).meta({ ref: "LogLevel", description: "Log level" })
-export type Level = z.infer<typeof Level>
+export const Level = z
+  .enum(["DEBUG", "INFO", "WARN", "ERROR"])
+  .meta({ ref: "LogLevel", description: "Log level" });
+export type Level = z.infer<typeof Level>;
 ```
 
 The `ref` becomes the `$ref` name in generated OpenAPI specs. Every schema that appears in API responses or events gets a `.meta({ ref })`.
@@ -182,43 +190,43 @@ Messages use discriminated unions on `"type"` for parts, `"status"` for tool sta
 ```typescript
 // session/message-v2.ts -- Part types (12 variants)
 export const Part = z.discriminatedUnion("type", [
-  TextPart,        // text with optional synthetic/ignored flags
-  SubtaskPart,     // agent delegation
-  ReasoningPart,   // model thinking
-  FilePart,        // attached files with mime, url, optional source
-  ToolPart,        // tool calls with full lifecycle state
-  StepStartPart,   // marks beginning of an LLM step (with snapshot)
-  StepFinishPart,  // marks end with tokens/cost
-  SnapshotPart,    // git snapshot reference
-  PatchPart,       // file changes since last snapshot
-  AgentPart,       // agent reference
-  RetryPart,       // retry tracking
-  CompactionPart,  // context compaction marker
-])
+  TextPart, // text with optional synthetic/ignored flags
+  SubtaskPart, // agent delegation
+  ReasoningPart, // model thinking
+  FilePart, // attached files with mime, url, optional source
+  ToolPart, // tool calls with full lifecycle state
+  StepStartPart, // marks beginning of an LLM step (with snapshot)
+  StepFinishPart, // marks end with tokens/cost
+  SnapshotPart, // git snapshot reference
+  PatchPart, // file changes since last snapshot
+  AgentPart, // agent reference
+  RetryPart, // retry tracking
+  CompactionPart, // context compaction marker
+]);
 
 // session/message-v2.ts -- Tool lifecycle (4-state machine)
 export const ToolState = z.discriminatedUnion("status", [
-  ToolStatePending,   // { status: "pending", input: {}, raw: "" }
-  ToolStateRunning,   // { status: "running", input: {}, title?, metadata?, time: { start } }
+  ToolStatePending, // { status: "pending", input: {}, raw: "" }
+  ToolStateRunning, // { status: "running", input: {}, title?, metadata?, time: { start } }
   ToolStateCompleted, // { status: "completed", input: {}, output, title, metadata, time: { start, end, compacted? }, attachments? }
-  ToolStateError,     // { status: "error", input: {}, error, metadata?, time: { start, end } }
-])
+  ToolStateError, // { status: "error", input: {}, error, metadata?, time: { start, end } }
+]);
 
 // session/message-v2.ts -- Error variants on assistant messages
 export const Assistant = Base.extend({
   role: z.literal("assistant"),
   error: z
     .discriminatedUnion("name", [
-      AuthError.Schema,           // { name: "ProviderAuthError", data: { providerID, message } }
-      NamedError.Unknown.Schema,  // { name: "UnknownError", data: { message } }
-      OutputLengthError.Schema,   // { name: "MessageOutputLengthError", data: {} }
-      AbortedError.Schema,        // { name: "MessageAbortedError", data: { message } }
+      AuthError.Schema, // { name: "ProviderAuthError", data: { providerID, message } }
+      NamedError.Unknown.Schema, // { name: "UnknownError", data: { message } }
+      OutputLengthError.Schema, // { name: "MessageOutputLengthError", data: {} }
+      AbortedError.Schema, // { name: "MessageAbortedError", data: { message } }
       StructuredOutputError.Schema, // { name: "StructuredOutputError", data: { message, retries } }
       ContextOverflowError.Schema, // { name: "ContextOverflowError", data: { message, responseBody? } }
-      APIError.Schema,            // { name: "APIError", data: { message, statusCode?, isRetryable, ... } }
+      APIError.Schema, // { name: "APIError", data: { message, statusCode?, isRetryable, ... } }
     ])
     .optional(),
-})
+});
 ```
 
 ### Schema Extension with .extend()
@@ -229,8 +237,12 @@ export const Assistant = Base.extend({
 // session/message-v2.ts
 export const Assistant = Base.extend({
   role: z.literal("assistant"),
-  error: z.discriminatedUnion("name", [/* ... */]).optional(),
-})
+  error: z
+    .discriminatedUnion("name", [
+      /* ... */
+    ])
+    .optional(),
+});
 ```
 
 For partial updates, `updateSchema()` wraps all fields as optional+nullable, then `.extend()` adds nested partial fields:
@@ -265,28 +277,28 @@ IDs are branded Effect Schema strings with dual Zod representations. The `Newtyp
 // util/schema.ts
 export function Newtype<Self>() {
   return <const Tag extends string, S extends Schema.Top>(tag: Tag, schema: S) => {
-    type Branded = NewtypeBrand<Tag>
+    type Branded = NewtypeBrand<Tag>;
 
     abstract class Base {
-      declare readonly [NewtypeBrand]: Tag
+      declare readonly [NewtypeBrand]: Tag;
 
       static makeUnsafe(value: Schema.Schema.Type<S>): Self {
-        return value as unknown as Self
+        return value as unknown as Self;
       }
     }
 
-    Object.setPrototypeOf(Base, schema)
+    Object.setPrototypeOf(Base, schema);
 
     return Base as unknown as (abstract new (_: never) => Branded) & {
-      readonly makeUnsafe: (value: Schema.Schema.Type<S>) => Self
-    } & Omit<Schema.Opaque<Self, S, {}>, "makeUnsafe">
-  }
+      readonly makeUnsafe: (value: Schema.Schema.Type<S>) => Self;
+    } & Omit<Schema.Opaque<Self, S, {}>, "makeUnsafe">;
+  };
 }
 
 export const withStatics =
   <S extends object, M extends Record<string, unknown>>(methods: (schema: S) => M) =>
   (schema: S): S & M =>
-    Object.assign(schema, methods(schema))
+    Object.assign(schema, methods(schema));
 ```
 
 Applied to create branded IDs:
@@ -300,7 +312,7 @@ export const SessionID = Schema.String.pipe(
     descending: (id?: string) => s.makeUnsafe(Identifier.descending("session", id)),
     zod: Identifier.schema("session").pipe(z.custom<Schema.Schema.Type<typeof s>>()),
   })),
-)
+);
 
 export const MessageID = Schema.String.pipe(
   Schema.brand("MessageID"),
@@ -309,7 +321,7 @@ export const MessageID = Schema.String.pipe(
     ascending: (id?: string) => s.makeUnsafe(Identifier.ascending("message", id)),
     zod: Identifier.schema("message").pipe(z.custom<Schema.Schema.Type<typeof s>>()),
   })),
-)
+);
 ```
 
 SessionIDs are **descending** (newest first in DB ordering). MessageIDs are **ascending** (oldest first within a session). Each has both an Effect Schema representation and a `.zod` property for Zod interop.
@@ -330,39 +342,43 @@ export namespace Identifier {
     pty: "pty",
     tool: "tool",
     workspace: "wrk",
-  } as const
+  } as const;
 
   export function schema(prefix: keyof typeof prefixes) {
-    return z.string().startsWith(prefixes[prefix])
+    return z.string().startsWith(prefixes[prefix]);
   }
 
   export function ascending(prefix: keyof typeof prefixes, given?: string) {
-    return generateID(prefix, false, given)
+    return generateID(prefix, false, given);
   }
 
   export function descending(prefix: keyof typeof prefixes, given?: string) {
-    return generateID(prefix, true, given)
+    return generateID(prefix, true, given);
   }
 
-  export function create(prefix: keyof typeof prefixes, descending: boolean, timestamp?: number): string {
-    const currentTimestamp = timestamp ?? Date.now()
+  export function create(
+    prefix: keyof typeof prefixes,
+    descending: boolean,
+    timestamp?: number,
+  ): string {
+    const currentTimestamp = timestamp ?? Date.now();
 
     if (currentTimestamp !== lastTimestamp) {
-      lastTimestamp = currentTimestamp
-      counter = 0
+      lastTimestamp = currentTimestamp;
+      counter = 0;
     }
-    counter++
+    counter++;
 
-    let now = BigInt(currentTimestamp) * BigInt(0x1000) + BigInt(counter)
+    let now = BigInt(currentTimestamp) * BigInt(0x1000) + BigInt(counter);
 
-    now = descending ? ~now : now
+    now = descending ? ~now : now;
 
-    const timeBytes = Buffer.alloc(6)
+    const timeBytes = Buffer.alloc(6);
     for (let i = 0; i < 6; i++) {
-      timeBytes[i] = Number((now >> BigInt(40 - 8 * i)) & BigInt(0xff))
+      timeBytes[i] = Number((now >> BigInt(40 - 8 * i)) & BigInt(0xff));
     }
 
-    return prefixes[prefix] + "_" + timeBytes.toString("hex") + randomBase62(LENGTH - 12)
+    return prefixes[prefix] + "_" + timeBytes.toString("hex") + randomBase62(LENGTH - 12);
   }
 }
 ```
@@ -379,15 +395,21 @@ Effect Schema is used for domain error classes and branded types. Zod is used fo
 
 ```typescript
 // account/schema.ts
-export class AccountRepoError extends Schema.TaggedErrorClass<AccountRepoError>()("AccountRepoError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Defect),
-}) {}
+export class AccountRepoError extends Schema.TaggedErrorClass<AccountRepoError>()(
+  "AccountRepoError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
-export class AccountServiceError extends Schema.TaggedErrorClass<AccountServiceError>()("AccountServiceError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Defect),
-}) {}
+export class AccountServiceError extends Schema.TaggedErrorClass<AccountServiceError>()(
+  "AccountServiceError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Defect),
+  },
+) {}
 
 // filesystem/index.ts
 export class FileSystemError extends Schema.TaggedErrorClass<FileSystemError>()("FileSystemError", {
@@ -402,27 +424,43 @@ export class AuthError extends Schema.TaggedErrorClass<AuthError>()("AuthError",
 }) {}
 
 // question/index.ts
-export class RejectedError extends Schema.TaggedErrorClass<RejectedError>()("QuestionRejectedError", {}) {
-  override get message() { return "The user dismissed this question" }
+export class RejectedError extends Schema.TaggedErrorClass<RejectedError>()(
+  "QuestionRejectedError",
+  {},
+) {
+  override get message() {
+    return "The user dismissed this question";
+  }
 }
 
 // permission/index.ts
-export class RejectedError extends Schema.TaggedErrorClass<RejectedError>()("PermissionRejectedError", {}) {
-  override get message() { return "The user rejected permission to use this specific tool call." }
+export class RejectedError extends Schema.TaggedErrorClass<RejectedError>()(
+  "PermissionRejectedError",
+  {},
+) {
+  override get message() {
+    return "The user rejected permission to use this specific tool call.";
+  }
 }
 
-export class CorrectedError extends Schema.TaggedErrorClass<CorrectedError>()("PermissionCorrectedError", {
-  feedback: Schema.String,
-}) {}
+export class CorrectedError extends Schema.TaggedErrorClass<CorrectedError>()(
+  "PermissionCorrectedError",
+  {
+    feedback: Schema.String,
+  },
+) {}
 
 export class DeniedError extends Schema.TaggedErrorClass<DeniedError>()("PermissionDeniedError", {
   ruleset: Schema.Any,
 }) {}
 
 // installation/index.ts
-export class UpgradeFailedError extends Schema.TaggedErrorClass<UpgradeFailedError>()("UpgradeFailedError", {
-  stderr: Schema.String,
-}) {}
+export class UpgradeFailedError extends Schema.TaggedErrorClass<UpgradeFailedError>()(
+  "UpgradeFailedError",
+  {
+    stderr: Schema.String,
+  },
+) {}
 ```
 
 Pattern: `Schema.TaggedErrorClass<Self>()(tag, fields)`. The double invocation is required -- first call binds the self type, second call provides the tag and schema fields. These are used in Effect error channels, not in Zod discriminated unions.
@@ -438,7 +476,7 @@ export const EventID = Schema.String.pipe(
     ascending: (id?: string) => s.makeUnsafe(Identifier.ascending("event", id)),
     zod: Identifier.schema("event").pipe(z.custom<Schema.Schema.Type<typeof s>>()),
   })),
-)
+);
 ```
 
 Every branded ID has `.zod` for cross-system compatibility. The `.zod` property creates a Zod schema that validates the prefix and casts to the branded type.
@@ -450,15 +488,15 @@ The `util/effect-zod.ts` module converts Effect Schema AST to Zod schemas by wal
 ```typescript
 // util/effect-zod.ts
 export function zod<S extends Schema.Top>(schema: S): z.ZodType<Schema.Schema.Type<S>> {
-  return walk(schema.ast) as z.ZodType<Schema.Schema.Type<S>>
+  return walk(schema.ast) as z.ZodType<Schema.Schema.Type<S>>;
 }
 
 function walk(ast: SchemaAST.AST): z.ZodTypeAny {
-  const out = body(ast)
-  const desc = SchemaAST.resolveDescription(ast)
-  const ref = SchemaAST.resolveIdentifier(ast)
-  const next = desc ? out.describe(desc) : out
-  return ref ? next.meta({ ref }) : next
+  const out = body(ast);
+  const desc = SchemaAST.resolveDescription(ast);
+  const ref = SchemaAST.resolveIdentifier(ast);
+  const next = desc ? out.describe(desc) : out;
+  return ref ? next.meta({ ref }) : next;
 }
 ```
 
@@ -500,7 +538,7 @@ export const Event = {
       info: Info,
     }),
   }),
-}
+};
 ```
 
 `define()` registers the event in a global registry and tracks the latest version number per type. Once `SyncEvent.init()` is called, the registry freezes -- no more definitions allowed.
@@ -511,24 +549,24 @@ export const Event = {
 // sync/index.ts
 export namespace SyncEvent {
   export type Definition = {
-    type: string
-    version: number
-    aggregate: string
-    schema: z.ZodObject
-    properties: z.ZodObject  // Bus compat
-  }
+    type: string;
+    version: number;
+    aggregate: string;
+    schema: z.ZodObject;
+    properties: z.ZodObject; // Bus compat
+  };
 
-  export const registry = new Map<string, Definition>()
-  let projectors: Map<Definition, ProjectorFunc> | undefined
-  const versions = new Map<string, number>()
-  let frozen = false
+  export const registry = new Map<string, Definition>();
+  let projectors: Map<Definition, ProjectorFunc> | undefined;
+  const versions = new Map<string, number>();
+  let frozen = false;
 
   export function define<Type, Agg, Schema, BusSchema>(input) {
-    if (frozen) throw new Error("sync system has been frozen")
-    const def = { ...input, properties: input.busSchema || input.schema }
-    versions.set(def.type, Math.max(def.version, versions.get(def.type) || 0))
-    registry.set(versionedType(def.type, def.version), def)
-    return def
+    if (frozen) throw new Error("sync system has been frozen");
+    const def = { ...input, properties: input.busSchema || input.schema };
+    versions.set(def.type, Math.max(def.version, versions.get(def.type) || 0));
+    registry.set(versionedType(def.type, def.version), def);
+    return def;
   }
 }
 ```
@@ -543,22 +581,22 @@ Projectors are pure functions that translate events to DB operations:
 // session/projectors.ts
 export default [
   SyncEvent.project(Session.Event.Created, (db, data) => {
-    db.insert(SessionTable).values(Session.toRow(data.info)).run()
+    db.insert(SessionTable).values(Session.toRow(data.info)).run();
   }),
 
   SyncEvent.project(Session.Event.Updated, (db, data) => {
-    const info = data.info
+    const info = data.info;
     const row = db
       .update(SessionTable)
       .set(toPartialRow(info))
       .where(eq(SessionTable.id, data.sessionID))
       .returning()
-      .get()
-    if (!row) throw new NotFoundError({ message: `Session not found: ${data.sessionID}` })
+      .get();
+    if (!row) throw new NotFoundError({ message: `Session not found: ${data.sessionID}` });
   }),
 
   SyncEvent.project(MessageV2.Event.PartUpdated, (db, data) => {
-    const { id, messageID, sessionID, ...rest } = data.part
+    const { id, messageID, sessionID, ...rest } = data.part;
     try {
       db.insert(PartTable)
         .values({
@@ -569,13 +607,13 @@ export default [
           data: rest,
         })
         .onConflictDoUpdate({ target: PartTable.id, set: { data: rest } })
-        .run()
+        .run();
     } catch (err) {
-      if (!foreign(err)) throw err
-      log.warn("ignored late part update", { partID: id, messageID, sessionID })
+      if (!foreign(err)) throw err;
+      log.warn("ignored late part update", { partID: id, messageID, sessionID });
     }
   }),
-]
+];
 ```
 
 Projectors handle foreign key failures gracefully -- a late part update after session deletion is logged and ignored, not thrown. The `foreign(err)` helper detects SQLite foreign key constraint violations.
@@ -633,14 +671,16 @@ export function initProjectors() {
     projectors: sessionProjectors,
     convertEvent: (type, data) => {
       if (type === "session.updated") {
-        const id = (data as z.infer<typeof Session.Event.Updated.schema>).sessionID
-        const row = Database.use((db) => db.select().from(SessionTable).where(eq(SessionTable.id, id)).get())
-        if (!row) return data
-        return { sessionID: id, info: Session.fromRow(row) }
+        const id = (data as z.infer<typeof Session.Event.Updated.schema>).sessionID;
+        const row = Database.use((db) =>
+          db.select().from(SessionTable).where(eq(SessionTable.id, id)).get(),
+        );
+        if (!row) return data;
+        return { sessionID: id, info: Session.fromRow(row) };
       }
-      return data
+      return data;
     },
-  })
+  });
 }
 ```
 
@@ -649,8 +689,8 @@ export function initProjectors() {
 In tests, projectors must be initialized before any SyncEvent operations:
 
 ```typescript
-const { initProjectors } = await import("../src/server/projectors")
-initProjectors()
+const { initProjectors } = await import("../src/server/projectors");
+initProjectors();
 ```
 
 ### SyncEvent.replay -- Idempotent Event Replay
@@ -677,8 +717,8 @@ The codebase has two parallel error systems: `NamedError` (Zod-based, for API/st
 ```typescript
 // packages/util/src/error.ts
 export abstract class NamedError extends Error {
-  abstract schema(): z.core.$ZodType
-  abstract toObject(): { name: string; data: any }
+  abstract schema(): z.core.$ZodType;
+  abstract toObject(): { name: string; data: any };
 
   static create<Name extends string, Data extends z.core.$ZodType>(name: Name, data: Data) {
     const schema = z
@@ -688,37 +728,37 @@ export abstract class NamedError extends Error {
       })
       .meta({
         ref: name,
-      })
+      });
     const result = class extends NamedError {
-      public static readonly Schema = schema
+      public static readonly Schema = schema;
 
-      public override readonly name = name as Name
+      public override readonly name = name as Name;
 
       constructor(
         public readonly data: z.input<Data>,
         options?: ErrorOptions,
       ) {
-        super(name, options)
-        this.name = name
+        super(name, options);
+        this.name = name;
       }
 
       static isInstance(input: any): input is InstanceType<typeof result> {
-        return typeof input === "object" && "name" in input && input.name === name
+        return typeof input === "object" && "name" in input && input.name === name;
       }
 
       schema() {
-        return schema
+        return schema;
       }
 
       toObject() {
         return {
           name: name,
           data: this.data,
-        }
+        };
       }
-    }
-    Object.defineProperty(result, "name", { value: name })
-    return result
+    };
+    Object.defineProperty(result, "name", { value: name });
+    return result;
   }
 
   public static readonly Unknown = NamedError.create(
@@ -726,11 +766,12 @@ export abstract class NamedError extends Error {
     z.object({
       message: z.string(),
     }),
-  )
+  );
 }
 ```
 
 Each `NamedError.create()` call produces a class with:
+
 - `.Schema` -- a Zod schema with `{ name: z.literal(tag), data: ... }` for discriminated unions
 - `.isInstance()` -- runtime type check using the `name` discriminator
 - `.toObject()` -- serialization for JSON responses and event storage
@@ -738,10 +779,14 @@ Each `NamedError.create()` call produces a class with:
 ### Real NamedError Subclasses
 
 **Message errors** (session/message-v2.ts):
-```typescript
-export const OutputLengthError = NamedError.create("MessageOutputLengthError", z.object({}))
 
-export const AbortedError = NamedError.create("MessageAbortedError", z.object({ message: z.string() }))
+```typescript
+export const OutputLengthError = NamedError.create("MessageOutputLengthError", z.object({}));
+
+export const AbortedError = NamedError.create(
+  "MessageAbortedError",
+  z.object({ message: z.string() }),
+);
 
 export const StructuredOutputError = NamedError.create(
   "StructuredOutputError",
@@ -749,7 +794,7 @@ export const StructuredOutputError = NamedError.create(
     message: z.string(),
     retries: z.number(),
   }),
-)
+);
 
 export const AuthError = NamedError.create(
   "ProviderAuthError",
@@ -757,7 +802,7 @@ export const AuthError = NamedError.create(
     providerID: z.string(),
     message: z.string(),
   }),
-)
+);
 
 export const APIError = NamedError.create(
   "APIError",
@@ -769,25 +814,27 @@ export const APIError = NamedError.create(
     responseBody: z.string().optional(),
     metadata: z.record(z.string(), z.string()).optional(),
   }),
-)
+);
 
 export const ContextOverflowError = NamedError.create(
   "ContextOverflowError",
   z.object({ message: z.string(), responseBody: z.string().optional() }),
-)
+);
 ```
 
 **Storage errors** (storage/db.ts):
+
 ```typescript
 export const NotFoundError = NamedError.create(
   "NotFoundError",
   z.object({
     message: z.string(),
   }),
-)
+);
 ```
 
 **Provider errors** (provider/provider.ts):
+
 ```typescript
 export const ModelNotFoundError = NamedError.create(
   "ProviderModelNotFoundError",
@@ -796,28 +843,38 @@ export const ModelNotFoundError = NamedError.create(
     modelID: ModelID.zod,
     suggestions: z.array(z.string()).optional(),
   }),
-)
+);
 
 export const InitError = NamedError.create(
   "ProviderInitError",
   z.object({
     providerID: ProviderID.zod,
   }),
-)
+);
 ```
 
 **Provider auth errors** (provider/auth.ts):
+
 ```typescript
-export const OauthMissing = NamedError.create("ProviderAuthOauthMissing", z.object({ providerID: ProviderID.zod }))
-export const OauthCodeMissing = NamedError.create("ProviderAuthOauthCodeMissing", z.object({ providerID: ProviderID.zod }))
-export const OauthCallbackFailed = NamedError.create("ProviderAuthOauthCallbackFailed", z.object({}))
+export const OauthMissing = NamedError.create(
+  "ProviderAuthOauthMissing",
+  z.object({ providerID: ProviderID.zod }),
+);
+export const OauthCodeMissing = NamedError.create(
+  "ProviderAuthOauthCodeMissing",
+  z.object({ providerID: ProviderID.zod }),
+);
+export const OauthCallbackFailed = NamedError.create(
+  "ProviderAuthOauthCallbackFailed",
+  z.object({}),
+);
 export const ValidationFailed = NamedError.create(
   "ProviderAuthValidationFailed",
   z.object({
     field: z.string(),
     message: z.string(),
   }),
-)
+);
 ```
 
 ### Error Flow: Provider -> parseAPICallError -> MessageV2.fromError -> HTTP Status
@@ -828,31 +885,38 @@ export const ValidationFailed = NamedError.create(
 // provider/error.ts
 export namespace ProviderError {
   const OVERFLOW_PATTERNS = [
-    /prompt is too long/i,                        // Anthropic
-    /input is too long for requested model/i,     // Amazon Bedrock
-    /exceeds the context window/i,                // OpenAI
-    /input token count.*exceeds the maximum/i,    // Google (Gemini)
-    /maximum prompt length is \d+/i,              // xAI (Grok)
-    /reduce the length of the messages/i,         // Groq
-    /maximum context length is \d+ tokens/i,      // OpenRouter, DeepSeek, vLLM
-    /exceeds the limit of \d+/i,                  // GitHub Copilot
-    /exceeds the available context size/i,        // llama.cpp
-    /greater than the context length/i,           // LM Studio
-    /context window exceeds limit/i,              // MiniMax
-    /exceeded model token limit/i,                // Kimi/Moonshot
-    /context[_ ]length[_ ]exceeded/i,             // Generic fallback
-    /request entity too large/i,                  // HTTP 413
-    /context length is only \d+ tokens/i,         // vLLM
-    /input length.*exceeds.*context length/i,     // vLLM
-  ]
+    /prompt is too long/i, // Anthropic
+    /input is too long for requested model/i, // Amazon Bedrock
+    /exceeds the context window/i, // OpenAI
+    /input token count.*exceeds the maximum/i, // Google (Gemini)
+    /maximum prompt length is \d+/i, // xAI (Grok)
+    /reduce the length of the messages/i, // Groq
+    /maximum context length is \d+ tokens/i, // OpenRouter, DeepSeek, vLLM
+    /exceeds the limit of \d+/i, // GitHub Copilot
+    /exceeds the available context size/i, // llama.cpp
+    /greater than the context length/i, // LM Studio
+    /context window exceeds limit/i, // MiniMax
+    /exceeded model token limit/i, // Kimi/Moonshot
+    /context[_ ]length[_ ]exceeded/i, // Generic fallback
+    /request entity too large/i, // HTTP 413
+    /context length is only \d+ tokens/i, // vLLM
+    /input length.*exceeds.*context length/i, // vLLM
+  ];
 
-  export function parseAPICallError(input: { providerID: ProviderID; error: APICallError }): ParsedAPICallError {
-    const m = message(input.providerID, input.error)
-    const body = json(input.error.responseBody)
-    if (isOverflow(m) || input.error.statusCode === 413 || body?.error?.code === "context_length_exceeded") {
-      return { type: "context_overflow", message: m, responseBody: input.error.responseBody }
+  export function parseAPICallError(input: {
+    providerID: ProviderID;
+    error: APICallError;
+  }): ParsedAPICallError {
+    const m = message(input.providerID, input.error);
+    const body = json(input.error.responseBody);
+    if (
+      isOverflow(m) ||
+      input.error.statusCode === 413 ||
+      body?.error?.code === "context_length_exceeded"
+    ) {
+      return { type: "context_overflow", message: m, responseBody: input.error.responseBody };
     }
-    const metadata = input.error.url ? { url: input.error.url } : undefined
+    const metadata = input.error.url ? { url: input.error.url } : undefined;
     return {
       type: "api_error",
       message: m,
@@ -863,7 +927,7 @@ export namespace ProviderError {
       responseHeaders: input.error.responseHeaders,
       responseBody: input.error.responseBody,
       metadata,
-    }
+    };
   }
 }
 ```
@@ -878,60 +942,88 @@ export function fromError(
 ): NonNullable<Assistant["error"]> {
   switch (true) {
     case e instanceof DOMException && e.name === "AbortError":
-      return new MessageV2.AbortedError({ message: e.message }, { cause: e }).toObject()
+      return new MessageV2.AbortedError({ message: e.message }, { cause: e }).toObject();
 
     case MessageV2.OutputLengthError.isInstance(e):
-      return e
+      return e;
 
     case LoadAPIKeyError.isInstance(e):
       return new MessageV2.AuthError(
         { providerID: ctx.providerID, message: e.message },
         { cause: e },
-      ).toObject()
+      ).toObject();
 
     case (e as SystemError)?.code === "ECONNRESET":
       return new MessageV2.APIError(
         {
           message: "Connection reset by server",
           isRetryable: true,
-          metadata: { code: (e as SystemError).code ?? "", syscall: (e as SystemError).syscall ?? "", message: (e as SystemError).message ?? "" },
+          metadata: {
+            code: (e as SystemError).code ?? "",
+            syscall: (e as SystemError).syscall ?? "",
+            message: (e as SystemError).message ?? "",
+          },
         },
         { cause: e },
-      ).toObject()
+      ).toObject();
 
     case e instanceof Error && (e as FetchDecompressionError).code === "ZlibError":
       if (ctx.aborted) {
-        return new MessageV2.AbortedError({ message: e.message }, { cause: e }).toObject()
+        return new MessageV2.AbortedError({ message: e.message }, { cause: e }).toObject();
       }
       return new MessageV2.APIError(
-        { message: "Response decompression failed", isRetryable: true, metadata: { code: (e as FetchDecompressionError).code, message: e.message } },
+        {
+          message: "Response decompression failed",
+          isRetryable: true,
+          metadata: { code: (e as FetchDecompressionError).code, message: e.message },
+        },
         { cause: e },
-      ).toObject()
+      ).toObject();
 
     case APICallError.isInstance(e):
-      const parsed = ProviderError.parseAPICallError({ providerID: ctx.providerID, error: e })
+      const parsed = ProviderError.parseAPICallError({ providerID: ctx.providerID, error: e });
       if (parsed.type === "context_overflow") {
-        return new MessageV2.ContextOverflowError({ message: parsed.message, responseBody: parsed.responseBody }, { cause: e }).toObject()
+        return new MessageV2.ContextOverflowError(
+          { message: parsed.message, responseBody: parsed.responseBody },
+          { cause: e },
+        ).toObject();
       }
       return new MessageV2.APIError(
-        { message: parsed.message, statusCode: parsed.statusCode, isRetryable: parsed.isRetryable, responseHeaders: parsed.responseHeaders, responseBody: parsed.responseBody, metadata: parsed.metadata },
+        {
+          message: parsed.message,
+          statusCode: parsed.statusCode,
+          isRetryable: parsed.isRetryable,
+          responseHeaders: parsed.responseHeaders,
+          responseBody: parsed.responseBody,
+          metadata: parsed.metadata,
+        },
         { cause: e },
-      ).toObject()
+      ).toObject();
 
     case e instanceof Error:
-      return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject()
+      return new NamedError.Unknown({ message: errorMessage(e) }, { cause: e }).toObject();
 
     default:
       try {
-        const parsed = ProviderError.parseStreamError(e)
+        const parsed = ProviderError.parseStreamError(e);
         if (parsed) {
           if (parsed.type === "context_overflow") {
-            return new MessageV2.ContextOverflowError({ message: parsed.message, responseBody: parsed.responseBody }, { cause: e }).toObject()
+            return new MessageV2.ContextOverflowError(
+              { message: parsed.message, responseBody: parsed.responseBody },
+              { cause: e },
+            ).toObject();
           }
-          return new MessageV2.APIError({ message: parsed.message, isRetryable: parsed.isRetryable, responseBody: parsed.responseBody }, { cause: e }).toObject()
+          return new MessageV2.APIError(
+            {
+              message: parsed.message,
+              isRetryable: parsed.isRetryable,
+              responseBody: parsed.responseBody,
+            },
+            { cause: e },
+          ).toObject();
         }
       } catch {}
-      return new NamedError.Unknown({ message: JSON.stringify(e) }, { cause: e }).toObject()
+      return new NamedError.Unknown({ message: JSON.stringify(e) }, { cause: e }).toObject();
   }
 }
 ```
@@ -942,34 +1034,34 @@ export function fromError(
 // server/middleware.ts
 export function errorHandler(log: Log.Logger): ErrorHandler {
   return (err, c) => {
-    log.error("failed", { error: err })
+    log.error("failed", { error: err });
     if (err instanceof NamedError) {
-      let status: ContentfulStatusCode
-      if (err instanceof NotFoundError) status = 404
-      else if (err instanceof Provider.ModelNotFoundError) status = 400
-      else if (err.name === "ProviderAuthValidationFailed") status = 400
-      else if (err.name.startsWith("Worktree")) status = 400
-      else status = 500
-      return c.json(err.toObject(), { status })
+      let status: ContentfulStatusCode;
+      if (err instanceof NotFoundError) status = 404;
+      else if (err instanceof Provider.ModelNotFoundError) status = 400;
+      else if (err.name === "ProviderAuthValidationFailed") status = 400;
+      else if (err.name.startsWith("Worktree")) status = 400;
+      else status = 500;
+      return c.json(err.toObject(), { status });
     }
-    if (err instanceof HTTPException) return err.getResponse()
-    const message = err instanceof Error && err.stack ? err.stack : err.toString()
-    return c.json(new NamedError.Unknown({ message }).toObject(), { status: 500 })
-  }
+    if (err instanceof HTTPException) return err.getResponse();
+    const message = err instanceof Error && err.stack ? err.stack : err.toString();
+    return c.json(new NamedError.Unknown({ message }).toObject(), { status: 500 });
+  };
 }
 ```
 
 **Error-to-HTTP mapping:**
 
-| Error class / name | HTTP status |
-|---|---|
-| `NotFoundError` | 404 |
-| `Provider.ModelNotFoundError` | 400 |
-| `ProviderAuthValidationFailed` | 400 |
-| Any `Worktree*` error | 400 |
-| Any other `NamedError` | 500 |
-| `HTTPException` (Hono) | exception's own status |
-| Any other `Error` | 500 (wrapped as `UnknownError`) |
+| Error class / name             | HTTP status                     |
+| ------------------------------ | ------------------------------- |
+| `NotFoundError`                | 404                             |
+| `Provider.ModelNotFoundError`  | 400                             |
+| `ProviderAuthValidationFailed` | 400                             |
+| Any `Worktree*` error          | 400                             |
+| Any other `NamedError`         | 500                             |
+| `HTTPException` (Hono)         | exception's own status          |
+| Any other `Error`              | 500 (wrapped as `UnknownError`) |
 
 ---
 
@@ -981,21 +1073,23 @@ export function errorHandler(log: Log.Logger): ErrorHandler {
 // storage/db.ts
 export namespace Database {
   export const Path = iife(() => {
-    if (Flag.OPENCODE_DB) { /* custom path */ }
-    return getChannelPath()
-  })
+    if (Flag.OPENCODE_DB) {
+      /* custom path */
+    }
+    return getChannelPath();
+  });
 
   export const Client = lazy(() => {
-    const db = init(Path)
-    db.run("PRAGMA journal_mode = WAL")
-    db.run("PRAGMA synchronous = NORMAL")
-    db.run("PRAGMA busy_timeout = 5000")
-    db.run("PRAGMA cache_size = -64000")
-    db.run("PRAGMA foreign_keys = ON")
-    db.run("PRAGMA wal_checkpoint(PASSIVE)")
+    const db = init(Path);
+    db.run("PRAGMA journal_mode = WAL");
+    db.run("PRAGMA synchronous = NORMAL");
+    db.run("PRAGMA busy_timeout = 5000");
+    db.run("PRAGMA cache_size = -64000");
+    db.run("PRAGMA foreign_keys = ON");
+    db.run("PRAGMA wal_checkpoint(PASSIVE)");
     // Apply migrations
-    return db
-  })
+    return db;
+  });
 }
 ```
 
@@ -1005,19 +1099,19 @@ export namespace Database {
 
 ```typescript
 // storage/db.ts
-const ctx = Context.create<{ tx: TxOrDb; effects: (() => void | Promise<void>)[] }>("database")
+const ctx = Context.create<{ tx: TxOrDb; effects: (() => void | Promise<void>)[] }>("database");
 
 export function use<T>(callback: (trx: TxOrDb) => T): T {
   try {
-    return callback(ctx.use().tx)
+    return callback(ctx.use().tx);
   } catch (err) {
     if (err instanceof Context.NotFound) {
-      const effects: (() => void | Promise<void>)[] = []
-      const result = ctx.provide({ effects, tx: Client() }, () => callback(Client()))
-      for (const effect of effects) effect()
-      return result
+      const effects: (() => void | Promise<void>)[] = [];
+      const result = ctx.provide({ effects, tx: Client() }, () => callback(Client()));
+      for (const effect of effects) effect();
+      return result;
     }
-    throw err
+    throw err;
   }
 }
 ```
@@ -1033,18 +1127,18 @@ export function transaction<T>(
   options?: { behavior?: "deferred" | "immediate" | "exclusive" },
 ): NotPromise<T> {
   try {
-    return callback(ctx.use().tx)
+    return callback(ctx.use().tx);
   } catch (err) {
     if (err instanceof Context.NotFound) {
-      const effects: (() => void | Promise<void>)[] = []
+      const effects: (() => void | Promise<void>)[] = [];
       const result = Client().transaction(
         (tx: TxOrDb) => ctx.provide({ tx, effects }, () => callback(tx)),
         { behavior: options?.behavior },
-      )
-      for (const effect of effects) effect()
-      return result as NotPromise<T>
+      );
+      for (const effect of effects) effect();
+      return result as NotPromise<T>;
     }
-    throw err
+    throw err;
   }
 }
 ```
@@ -1058,8 +1152,11 @@ export function transaction<T>(
 ```typescript
 // storage/db.ts
 export function effect(fn: () => any | Promise<any>) {
-  try { ctx.use().effects.push(fn) }
-  catch { fn() }
+  try {
+    ctx.use().effects.push(fn);
+  } catch {
+    fn();
+  }
 }
 ```
 
@@ -1085,24 +1182,24 @@ The `Context` module wraps `AsyncLocalStorage`:
 export namespace Context {
   export class NotFound extends Error {
     constructor(public override readonly name: string) {
-      super(`No context found for ${name}`)
+      super(`No context found for ${name}`);
     }
   }
 
   export function create<T>(name: string) {
-    const storage = new AsyncLocalStorage<T>()
+    const storage = new AsyncLocalStorage<T>();
     return {
       use() {
-        const result = storage.getStore()
+        const result = storage.getStore();
         if (!result) {
-          throw new NotFound(name)
+          throw new NotFound(name);
         }
-        return result
+        return result;
       },
       provide<R>(value: T, fn: () => R) {
-        return storage.run(value, fn)
+        return storage.run(value, fn);
       },
-    }
+    };
   }
 }
 ```

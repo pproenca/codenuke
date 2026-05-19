@@ -5,15 +5,15 @@ interpreting ambiguous evidence.
 
 ## Tool Guide
 
-| Tool | Use for | Notes |
-| --- | --- | --- |
-| `sample <pid> <seconds> -file <path>` | CPU stacks, blocked stacks, hot JavaScript/native frames | Start here. Usually works without sudo for your own processes. |
-| `spindump <pid> <seconds> 1 -file <path>` | Hangs, scheduler states, cross-process waiting | Often needs administrator privileges. More intrusive than `sample`. |
-| `fs_usage -w -f filesys <pid>` | File open/read/write/stat churn | Scope to the PID. System-wide capture can be noisy and may require sudo. |
-| `dtruss -p <pid>` / DTrace | Syscall-level questions | SIP and permissions often block useful tracing. Use only for a narrow hypothesis. |
-| `vm_stat`, `memory_pressure`, `top`, `ps` | Memory pressure, RSS growth, process tree, thread counts | Low risk and useful in every run. |
-| `powermetrics` | Thermal throttling, CPU frequency, power states | Requires sudo. Use when timing changes across repeated runs without code changes. |
-| Instruments Time Profiler/System Trace | Visual timeline after text artifacts identify a hotspot | Useful for phase ordering, child processes, and wait vs run time. |
+| Tool                                      | Use for                                                  | Notes                                                                             |
+| ----------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `sample <pid> <seconds> -file <path>`     | CPU stacks, blocked stacks, hot JavaScript/native frames | Start here. Usually works without sudo for your own processes.                    |
+| `spindump <pid> <seconds> 1 -file <path>` | Hangs, scheduler states, cross-process waiting           | Often needs administrator privileges. More intrusive than `sample`.               |
+| `fs_usage -w -f filesys <pid>`            | File open/read/write/stat churn                          | Scope to the PID. System-wide capture can be noisy and may require sudo.          |
+| `dtruss -p <pid>` / DTrace                | Syscall-level questions                                  | SIP and permissions often block useful tracing. Use only for a narrow hypothesis. |
+| `vm_stat`, `memory_pressure`, `top`, `ps` | Memory pressure, RSS growth, process tree, thread counts | Low risk and useful in every run.                                                 |
+| `powermetrics`                            | Thermal throttling, CPU frequency, power states          | Requires sudo. Use when timing changes across repeated runs without code changes. |
+| Instruments Time Profiler/System Trace    | Visual timeline after text artifacts identify a hotspot  | Useful for phase ordering, child processes, and wait vs run time.                 |
 
 ## codenuke-Specific Reading
 

@@ -33,11 +33,11 @@ Avoid unnecessary destructuring. Use dot notation to preserve context.
 
 ```ts
 // Good
-obj.a
-obj.b
+obj.a;
+obj.b;
 
 // Bad
-const { a, b } = obj
+const { a, b } = obj;
 ```
 
 ### Variables
@@ -65,44 +65,44 @@ Use snake_case for field names so column names don't need to be redefined as str
 
 Single-word preference runs deep. These are real variable names from the codebase:
 
-| Variable | Context | What a typical codebase would call it |
-|----------|---------|--------------------------------------|
-| `state` | in-memory service state object | `serviceState`, `currentState` |
-| `pending` | `Map<ID, PendingEntry>` of unresolved requests | `pendingRequests`, `pendingMap` |
-| `existing` | result of a `.get()` lookup | `existingEntry`, `foundItem` |
-| `info` | typed request/response payload | `requestInfo`, `questionData` |
-| `deferred` | Effect `Deferred` for async coordination | `deferredResult`, `responseDeferred` |
-| `rule` | single permission rule from evaluation | `matchedRule`, `evaluatedRule` |
-| `row` | database row from Drizzle query | `dbRow`, `accountRow` |
-| `decode` | `Schema.decodeUnknownSync(Info)` | `decoder`, `infoDecoder` |
-| `norm` | normalized key (`key.replace(/\/+$/, "")`) | `normalizedKey` |
-| `lock` | acquired lock reference | `acquiredLock`, `lockHandle` |
-| `file` | path string to a file | `filePath`, `authFile` |
-| `prefix` | joined token prefix for arity matching | `commandPrefix` |
-| `query` | database query helper function | `executeQuery`, `dbQuery` |
-| `tx` | database transaction helper | `transaction`, `dbTransaction` |
-| `cfg` | resolved config object | `config`, `resolvedConfig` |
-| `cache` | `ScopedCache` instance | `stateCache`, `instanceCache` |
+| Variable   | Context                                        | What a typical codebase would call it |
+| ---------- | ---------------------------------------------- | ------------------------------------- |
+| `state`    | in-memory service state object                 | `serviceState`, `currentState`        |
+| `pending`  | `Map<ID, PendingEntry>` of unresolved requests | `pendingRequests`, `pendingMap`       |
+| `existing` | result of a `.get()` lookup                    | `existingEntry`, `foundItem`          |
+| `info`     | typed request/response payload                 | `requestInfo`, `questionData`         |
+| `deferred` | Effect `Deferred` for async coordination       | `deferredResult`, `responseDeferred`  |
+| `rule`     | single permission rule from evaluation         | `matchedRule`, `evaluatedRule`        |
+| `row`      | database row from Drizzle query                | `dbRow`, `accountRow`                 |
+| `decode`   | `Schema.decodeUnknownSync(Info)`               | `decoder`, `infoDecoder`              |
+| `norm`     | normalized key (`key.replace(/\/+$/, "")`)     | `normalizedKey`                       |
+| `lock`     | acquired lock reference                        | `acquiredLock`, `lockHandle`          |
+| `file`     | path string to a file                          | `filePath`, `authFile`                |
+| `prefix`   | joined token prefix for arity matching         | `commandPrefix`                       |
+| `query`    | database query helper function                 | `executeQuery`, `dbQuery`             |
+| `tx`       | database transaction helper                    | `transaction`, `dbTransaction`        |
+| `cfg`      | resolved config object                         | `config`, `resolvedConfig`            |
+| `cache`    | `ScopedCache` instance                         | `stateCache`, `instanceCache`         |
 
 Inline when used once:
 
 ```ts
 // This codebase
-const journal = await Bun.file(path.join(dir, "journal.json")).json()
+const journal = await Bun.file(path.join(dir, "journal.json")).json();
 
 // NOT this
-const journalPath = path.join(dir, "journal.json")
-const journal = await Bun.file(journalPath).json()
+const journalPath = path.join(dir, "journal.json");
+const journal = await Bun.file(journalPath).json();
 ```
 
 ```ts
 // This codebase
-return prefixes[prefix] + "_" + timeBytes.toString("hex") + randomBase62(LENGTH - 12)
+return prefixes[prefix] + "_" + timeBytes.toString("hex") + randomBase62(LENGTH - 12);
 
 // NOT this
-const hexPart = timeBytes.toString("hex")
-const randomPart = randomBase62(LENGTH - 12)
-return prefixes[prefix] + "_" + hexPart + randomPart
+const hexPart = timeBytes.toString("hex");
+const randomPart = randomBase62(LENGTH - 12);
+return prefixes[prefix] + "_" + hexPart + randomPart;
 ```
 
 ---
@@ -115,30 +115,30 @@ From `permission/index.ts` -- the `reply` method:
 
 ```ts
 const reply = Effect.fn("Permission.reply")(function* (input: z.infer<typeof ReplyInput>) {
-  const { approved, pending } = yield* InstanceState.get(state)
-  const existing = pending.get(input.requestID)
-  if (!existing) return                          // early return, no else
+  const { approved, pending } = yield* InstanceState.get(state);
+  const existing = pending.get(input.requestID);
+  if (!existing) return; // early return, no else
 
-  pending.delete(input.requestID)
+  pending.delete(input.requestID);
   void Bus.publish(Event.Replied, {
     sessionID: existing.info.sessionID,
     requestID: existing.info.id,
     reply: input.reply,
-  })
+  });
 
   if (input.reply === "reject") {
     yield* Deferred.fail(
       existing.deferred,
       input.message ? new CorrectedError({ feedback: input.message }) : new RejectedError(),
-    )
+    );
     // cascade rejections...
-    return                                       // early return from branch
+    return; // early return from branch
   }
 
-  yield* Deferred.succeed(existing.deferred, undefined)
-  if (input.reply === "once") return             // early return again
+  yield* Deferred.succeed(existing.deferred, undefined);
+  if (input.reply === "once") return; // early return again
   // "always" logic follows...
-})
+});
 ```
 
 ### Ternary over reassignment
@@ -146,20 +146,20 @@ const reply = Effect.fn("Permission.reply")(function* (input: z.infer<typeof Rep
 From `permission/index.ts`:
 
 ```ts
-input.message ? new CorrectedError({ feedback: input.message }) : new RejectedError()
+input.message ? new CorrectedError({ feedback: input.message }) : new RejectedError();
 ```
 
 From `effect/run-service.ts`:
 
 ```ts
-const getRuntime = () => (rt ??= ManagedRuntime.make(layer, { memoMap }))
+const getRuntime = () => (rt ??= ManagedRuntime.make(layer, { memoMap }));
 ```
 
 From `effect/cross-spawn-spawner.ts`:
 
 ```ts
 const pipe = (x: NodeChildProcess.IOType | undefined) =>
-  process.platform === "win32" && x === "pipe" ? "overlapped" : x
+  process.platform === "win32" && x === "pipe" ? "overlapped" : x;
 ```
 
 ### Guard-clause chains (no else, no nesting)
@@ -176,11 +176,11 @@ From `permission/index.ts`:
 
 ```ts
 function expand(pattern: string): string {
-  if (pattern.startsWith("~/")) return os.homedir() + pattern.slice(1)
-  if (pattern === "~") return os.homedir()
-  if (pattern.startsWith("$HOME/")) return os.homedir() + pattern.slice(5)
-  if (pattern.startsWith("$HOME")) return os.homedir() + pattern.slice(5)
-  return pattern
+  if (pattern.startsWith("~/")) return os.homedir() + pattern.slice(1);
+  if (pattern === "~") return os.homedir();
+  if (pattern.startsWith("$HOME/")) return os.homedir() + pattern.slice(5);
+  if (pattern.startsWith("$HOME")) return os.homedir() + pattern.slice(5);
+  return pattern;
 }
 ```
 
@@ -189,25 +189,29 @@ function expand(pattern: string): string {
 From `question/index.ts`:
 
 ```ts
-return Array.from(pending.values(), (x) => x.info)
+return Array.from(pending.values(), (x) => x.info);
 ```
 
 From `permission/index.ts`:
 
 ```ts
-const rules = rulesets.flat()
+const rules = rulesets.flat();
 const match = rules.findLast(
   (rule) => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern),
-)
-return match ?? { action: "ask", permission, pattern: "*" }
+);
+return match ?? { action: "ask", permission, pattern: "*" };
 ```
 
 From `permission/index.ts`:
 
 ```ts
 ruleset.push(
-  ...Object.entries(value).map(([pattern, action]) => ({ permission: key, pattern: expand(pattern), action })),
-)
+  ...Object.entries(value).map(([pattern, action]) => ({
+    permission: key,
+    pattern: expand(pattern),
+    action,
+  })),
+);
 ```
 
 ---
@@ -218,27 +222,27 @@ ruleset.push(
 
 ```ts
 // 1. Node.js builtins
-import path from "path"
-import os from "os"
-import { randomBytes } from "crypto"
+import path from "path";
+import os from "os";
+import { randomBytes } from "crypto";
 
 // 2. Effect ecosystem (effect, effect/unstable/*)
-import { Deferred, Effect, Layer, Schema, ServiceMap } from "effect"
+import { Deferred, Effect, Layer, Schema, ServiceMap } from "effect";
 
 // 3. External packages
-import z from "zod"
-import launch from "cross-spawn"
+import z from "zod";
+import launch from "cross-spawn";
 
 // 4. Internal @/ absolute imports (deep -> shallow)
-import { Bus } from "@/bus"
-import { BusEvent } from "@/bus/bus-event"
-import { InstanceState } from "@/effect/instance-state"
-import { makeRuntime } from "@/effect/run-service"
-import { SessionID, MessageID } from "@/session/schema"
-import { Log } from "@/util/log"
+import { Bus } from "@/bus";
+import { BusEvent } from "@/bus/bus-event";
+import { InstanceState } from "@/effect/instance-state";
+import { makeRuntime } from "@/effect/run-service";
+import { SessionID, MessageID } from "@/session/schema";
+import { Log } from "@/util/log";
 
 // 5. Relative sibling imports (always last)
-import { QuestionID } from "./schema"
+import { QuestionID } from "./schema";
 ```
 
 ### Key conventions
@@ -343,13 +347,13 @@ export namespace Question {
 
 ### The 5-layer cake (never skip a layer)
 
-| Layer | Purpose |
-|-------|---------|
-| **Interface** | Pure method signatures with `Effect.Effect<A, E>` returns |
-| **Service class** | `ServiceMap.Service<Self, Interface>()("@opencode/Name")` |
-| **Layer** | `Layer.effect(Service, Effect.gen(function* () { ... return Service.of({...}) }))` |
-| **makeRuntime** | `const { runPromise } = makeRuntime(Service, layer)` |
-| **Public facade** | `export async function name() { return runPromise((s) => s.name()) }` |
+| Layer             | Purpose                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **Interface**     | Pure method signatures with `Effect.Effect<A, E>` returns                          |
+| **Service class** | `ServiceMap.Service<Self, Interface>()("@opencode/Name")`                          |
+| **Layer**         | `Layer.effect(Service, Effect.gen(function* () { ... return Service.of({...}) }))` |
+| **makeRuntime**   | `const { runPromise } = makeRuntime(Service, layer)`                               |
+| **Public facade** | `export async function name() { return runPromise((s) => s.name()) }`              |
 
 ### Namespace naming
 
@@ -372,15 +376,15 @@ export const Option = z
     label: z.string().describe("Display text (1-5 words, concise)"),
     description: z.string().describe("Explanation of choice"),
   })
-  .meta({ ref: "QuestionOption" })
-export type Option = z.infer<typeof Option>
+  .meta({ ref: "QuestionOption" });
+export type Option = z.infer<typeof Option>;
 ```
 
 ```ts
 export const Action = z.enum(["allow", "deny", "ask"]).meta({
   ref: "PermissionAction",
-})
-export type Action = z.infer<typeof Action>
+});
+export type Action = z.infer<typeof Action>;
 ```
 
 ### Effect Schema -- internal domain types
@@ -402,14 +406,14 @@ export class Oauth extends Schema.Class<Oauth>("OAuth")({
 ```ts
 export class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.String) {
   static make(id: string): QuestionID {
-    return this.makeUnsafe(id)
+    return this.makeUnsafe(id);
   }
 
   static ascending(id?: string): QuestionID {
-    return this.makeUnsafe(Identifier.ascending("question", id))
+    return this.makeUnsafe(Identifier.ascending("question", id));
   }
 
-  static readonly zod = Identifier.schema("question") as unknown as z.ZodType<QuestionID>
+  static readonly zod = Identifier.schema("question") as unknown as z.ZodType<QuestionID>;
 }
 ```
 
@@ -419,8 +423,8 @@ export class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.Strin
 export const AccountID = Schema.String.pipe(
   Schema.brand("AccountID"),
   withStatics((s) => ({ make: (id: string) => s.makeUnsafe(id) })),
-)
-export type AccountID = Schema.Schema.Type<typeof AccountID>
+);
+export type AccountID = Schema.Schema.Type<typeof AccountID>;
 ```
 
 ### Drizzle tables -- snake_case, $type for brands
@@ -434,7 +438,7 @@ export const AccountTable = sqliteTable("account", {
   refresh_token: text().$type<RefreshToken>().notNull(),
   token_expiry: integer(),
   ...Timestamps,
-})
+});
 ```
 
 Never do this:
@@ -461,18 +465,17 @@ export class RejectedError extends Schema.TaggedErrorClass<RejectedError>()(
   {},
 ) {
   override get message() {
-    return "The user dismissed this question"
+    return "The user dismissed this question";
   }
 }
 ```
 
 ```ts
-export class DeniedError extends Schema.TaggedErrorClass<DeniedError>()(
-  "PermissionDeniedError",
-  { ruleset: Schema.Any },
-) {
+export class DeniedError extends Schema.TaggedErrorClass<DeniedError>()("PermissionDeniedError", {
+  ruleset: Schema.Any,
+}) {
   override get message() {
-    return `The user has specified a rule which prevents you from using this specific tool call. Here are some of the relevant rules ${JSON.stringify(this.ruleset)}`
+    return `The user has specified a rule which prevents you from using this specific tool call. Here are some of the relevant rules ${JSON.stringify(this.ruleset)}`;
   }
 }
 ```
@@ -485,29 +488,29 @@ export class DeniedError extends Schema.TaggedErrorClass<DeniedError>()(
 
 ```ts
 // REJECTED
-if (condition) return 1
-else return 2
+if (condition) return 1;
+else return 2;
 
 // ACCEPTED
-if (condition) return 1
-return 2
+if (condition) return 1;
+return 2;
 ```
 
 ### Destructuring when dot notation works
 
 ```ts
 // REJECTED
-const { pending } = yield* InstanceState.get(state)
+const { pending } = yield * InstanceState.get(state);
 
 // ACCEPTED (when accessing multiple times, the codebase does permit destructuring from yield*)
-const pending = (yield* InstanceState.get(state)).pending
+const pending = (yield * InstanceState.get(state)).pending;
 ```
 
 Note: the codebase does use destructuring from `yield*` when accessing multiple fields:
 
 ```ts
 // ACCEPTED -- multiple fields from same source
-const { approved, pending } = yield* InstanceState.get(state)
+const { approved, pending } = yield * InstanceState.get(state);
 ```
 
 ### Introducing intermediate variables for single-use values
@@ -525,22 +528,22 @@ const lock = await acquireLockDir(path.join(dir, Hash.fast(key) + ".lock"), ...)
 
 ```ts
 // REJECTED
-let foo
-if (condition) foo = 1
-else foo = 2
+let foo;
+if (condition) foo = 1;
+else foo = 2;
 
 // ACCEPTED
-const foo = condition ? 1 : 2
+const foo = condition ? 1 : 2;
 ```
 
 ### Forgetting `.meta({ ref })` on Zod schemas used in the API
 
 ```ts
 // REJECTED -- no ref means no stable name in generated SDK
-export const Info = z.object({ question: z.string() })
+export const Info = z.object({ question: z.string() });
 
 // ACCEPTED
-export const Info = z.object({ question: z.string() }).meta({ ref: "QuestionInfo" })
+export const Info = z.object({ question: z.string() }).meta({ ref: "QuestionInfo" });
 ```
 
 ### Using camelCase in Drizzle table fields
@@ -557,12 +560,12 @@ project_id: text().notNull(),
 
 ```ts
 // REJECTED
-const requestID = QuestionID.ascending()
-const pendingMap = new Map()
+const requestID = QuestionID.ascending();
+const pendingMap = new Map();
 
 // ACCEPTED
-const id = QuestionID.ascending()
-const pending = new Map()
+const id = QuestionID.ascending();
+const pending = new Map();
 ```
 
 ### Forgetting `Effect.fn("Namespace.method")` wrapper
@@ -579,12 +582,12 @@ const ask = Effect.fn("Question.ask")(function* (input) { ... })
 
 ```ts
 // REJECTED -- each runtime creates isolated layer instances
-export const memoMap = Layer.makeMemoMapUnsafe() // must exist at module level
+export const memoMap = Layer.makeMemoMapUnsafe(); // must exist at module level
 // ...
-ManagedRuntime.make(layer)                       // missing { memoMap }
+ManagedRuntime.make(layer); // missing { memoMap }
 
 // ACCEPTED
-ManagedRuntime.make(layer, { memoMap })
+ManagedRuntime.make(layer, { memoMap });
 ```
 
 ### Using `Effect.tryPromise` where `Effect.try` suffices
@@ -595,75 +598,75 @@ const query = (f) =>
   Effect.tryPromise({
     try: async () => Database.use(f),
     catch: (cause) => new Error(cause),
-  })
+  });
 
 // ACCEPTED
 const query = (f) =>
   Effect.try({
     try: () => Database.use(f),
     catch: (cause) => new RepoError({ message: "Database operation failed", cause }),
-  })
+  });
 ```
 
 ### Missing `void` on fire-and-forget Bus.publish
 
 ```ts
 // ACCEPTED (both forms appear in the codebase)
-Bus.publish(Event.Asked, info)
-void Bus.publish(Event.Asked, info)
+Bus.publish(Event.Asked, info);
+void Bus.publish(Event.Asked, info);
 ```
 
 ### Using `Math.random()` for IDs
 
 ```ts
 // REJECTED
-const id = Math.random().toString(36)
+const id = Math.random().toString(36);
 
 // ACCEPTED
-const bytes = randomBytes(length)  // crypto.randomBytes
+const bytes = randomBytes(length); // crypto.randomBytes
 ```
 
 ### Not wrapping ScopedCache access in `Effect.suspend`
 
 ```ts
 // REJECTED -- directory captured at construction, not execution
-export const get = (self) => ScopedCache.get(self.cache, Instance.directory)
+export const get = (self) => ScopedCache.get(self.cache, Instance.directory);
 
 // ACCEPTED
-export const get = (self) => Effect.suspend(() => ScopedCache.get(self.cache, Instance.directory))
+export const get = (self) => Effect.suspend(() => ScopedCache.get(self.cache, Instance.directory));
 ```
 
 ### Using `Promise.all` for disposers (one failure kills the rest)
 
 ```ts
 // REJECTED
-await Promise.all([...disposers].map((d) => d(directory)))
+await Promise.all([...disposers].map((d) => d(directory)));
 
 // ACCEPTED
-await Promise.allSettled([...disposers].map((d) => d(directory)))
+await Promise.allSettled([...disposers].map((d) => d(directory)));
 ```
 
 ### Explicit type annotations where inference works
 
 ```ts
 // REJECTED
-const id: QuestionID = QuestionID.ascending()
-const pending: Map<QuestionID, PendingEntry> = new Map<QuestionID, PendingEntry>()
+const id: QuestionID = QuestionID.ascending();
+const pending: Map<QuestionID, PendingEntry> = new Map<QuestionID, PendingEntry>();
 
 // ACCEPTED
-const id = QuestionID.ascending()
-const pending = new Map<QuestionID, PendingEntry>()
+const id = QuestionID.ascending();
+const pending = new Map<QuestionID, PendingEntry>();
 ```
 
 ### Using `for` loops when functional methods work
 
 ```ts
 // REJECTED
-const infos = []
+const infos = [];
 for (const entry of pending.values()) {
-  infos.push(entry.info)
+  infos.push(entry.info);
 }
 
 // ACCEPTED
-return Array.from(pending.values(), (x) => x.info)
+return Array.from(pending.values(), (x) => x.info);
 ```

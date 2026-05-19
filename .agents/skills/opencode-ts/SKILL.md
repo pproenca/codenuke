@@ -16,6 +16,7 @@ Follow these phases in order:
 ### 1. Orient — where does this go?
 
 Load [architecture.md](references/architecture.md). Find:
+
 - Which module owns this behavior
 - What the dependency direction allows
 - What file naming convention to follow
@@ -24,6 +25,7 @@ Load [architecture.md](references/architecture.md). Find:
 ### 2. Gather — what already exists?
 
 Load [helpers-deep-dive.md](references/helpers-deep-dive.md). Before writing ANY utility:
+
 - Check if it already exists in `util/`, `effect/`, `bus/`, `sync/`
 - Check the usage matrix to see how other modules use it
 - If it exists, use it. If it doesn't, inline first — extract only when awkwardness repeats.
@@ -34,13 +36,13 @@ For quick lookups: [primitives.md](references/primitives.md) (shorter, import pa
 
 Load the reference that matches what you're building:
 
-| Building... | Load this |
-|---|---|
-| Service module (namespace + Effect service + schemas + events) | [service-module.md](references/service-module.md) |
-| Tool or modifying tool behavior | [tool-module.md](references/tool-module.md) |
-| Database tables, schemas, events, error types | [schemas-and-state.md](references/schemas-and-state.md) |
-| Server routes, config, plugins, project lifecycle | [server-and-routes.md](references/server-and-routes.md) |
-| Tests | [test-writing.md](references/test-writing.md) |
+| Building...                                                    | Load this                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------- |
+| Service module (namespace + Effect service + schemas + events) | [service-module.md](references/service-module.md)       |
+| Tool or modifying tool behavior                                | [tool-module.md](references/tool-module.md)             |
+| Database tables, schemas, events, error types                  | [schemas-and-state.md](references/schemas-and-state.md) |
+| Server routes, config, plugins, project lifecycle              | [server-and-routes.md](references/server-and-routes.md) |
+| Tests                                                          | [test-writing.md](references/test-writing.md)           |
 
 ### 4. CHECK GATE — code MUST pass all of these before proceeding
 
@@ -78,6 +80,7 @@ Load [architecture.md](references/architecture.md). Map the blast radius before 
 ### 2. Study — which pattern applies here?
 
 Load [refactoring-patterns.md](references/refactoring-patterns.md). **Start with the Decision Matrix at the top** — match the code smell you see to the correct pattern. Then read the specific pattern section for real before/after diffs:
+
 - Simplification patterns (removing unnecessary abstraction)
 - Consolidation patterns (Bun → Node migration)
 - Extraction patterns (pulling reusable utilities)
@@ -109,16 +112,16 @@ Same as implement phases 4-5: [style-dna.md](references/style-dna.md) then [revi
 
 ## Reference index
 
-| File | Size | What it contains |
-|------|------|-----------------|
-| [style-dna.md](references/style-dna.md) | 18K | Mandatory style rules, naming, control flow, 14 review traps |
-| [primitives.md](references/primitives.md) | 22K | Quick-lookup: every utility with import path + signature |
-| [helpers-deep-dive.md](references/helpers-deep-dive.md) | ~40K | Full deep-dive: every utility, every usage site, when NOT to use |
-| [architecture.md](references/architecture.md) | ~30K | Module map, dependency graph, data flow, file conventions |
-| [service-module.md](references/service-module.md) | 27K | Complete Question + Permission implementations |
-| [tool-module.md](references/tool-module.md) | 28K | Full tool implementations, registry, prompt loop |
-| [test-writing.md](references/test-writing.md) | 42K | 5 complete test files with all fixture patterns |
-| [schemas-and-state.md](references/schemas-and-state.md) | 36K | SQL tables, Zod/Effect schemas, SyncEvent flow, errors |
-| [server-and-routes.md](references/server-and-routes.md) | 32K | Routes, config, plugins, project lifecycle |
-| [review-voice.md](references/review-voice.md) | ~25K | Real PR review comments from Dax + Aiden |
-| [refactoring-patterns.md](references/refactoring-patterns.md) | ~25K | Real before/after diffs from cleanup commits |
+| File                                                          | Size | What it contains                                                 |
+| ------------------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| [style-dna.md](references/style-dna.md)                       | 18K  | Mandatory style rules, naming, control flow, 14 review traps     |
+| [primitives.md](references/primitives.md)                     | 22K  | Quick-lookup: every utility with import path + signature         |
+| [helpers-deep-dive.md](references/helpers-deep-dive.md)       | ~40K | Full deep-dive: every utility, every usage site, when NOT to use |
+| [architecture.md](references/architecture.md)                 | ~30K | Module map, dependency graph, data flow, file conventions        |
+| [service-module.md](references/service-module.md)             | 27K  | Complete Question + Permission implementations                   |
+| [tool-module.md](references/tool-module.md)                   | 28K  | Full tool implementations, registry, prompt loop                 |
+| [test-writing.md](references/test-writing.md)                 | 42K  | 5 complete test files with all fixture patterns                  |
+| [schemas-and-state.md](references/schemas-and-state.md)       | 36K  | SQL tables, Zod/Effect schemas, SyncEvent flow, errors           |
+| [server-and-routes.md](references/server-and-routes.md)       | 32K  | Routes, config, plugins, project lifecycle                       |
+| [review-voice.md](references/review-voice.md)                 | ~25K | Real PR review comments from Dax + Aiden                         |
+| [refactoring-patterns.md](references/refactoring-patterns.md) | ~25K | Real before/after diffs from cleanup commits                     |

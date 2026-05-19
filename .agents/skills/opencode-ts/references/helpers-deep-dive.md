@@ -20,24 +20,25 @@
 **What it does:** Creates AbortControllers that auto-abort after a timeout, with optional signal composition.
 
 **Implementation:**
+
 ```typescript
 export function abortAfter(ms: number) {
-  const controller = new AbortController()
-  const id = setTimeout(controller.abort.bind(controller), ms)
+  const controller = new AbortController();
+  const id = setTimeout(controller.abort.bind(controller), ms);
   return {
     controller,
     signal: controller.signal,
     clearTimeout: () => globalThis.clearTimeout(id),
-  }
+  };
 }
 
 export function abortAfterAny(ms: number, ...signals: AbortSignal[]) {
-  const timeout = abortAfter(ms)
-  const signal = AbortSignal.any([timeout.signal, ...signals])
+  const timeout = abortAfter(ms);
+  const signal = AbortSignal.any([timeout.signal, ...signals]);
   return {
     signal,
     clearTimeout: timeout.clearTimeout,
-  }
+  };
 }
 ```
 
@@ -54,17 +55,18 @@ export function abortAfterAny(ms: number, ...signals: AbortSignal[]) {
 **What it does:** Extracts zip files using platform-appropriate tools (PowerShell on Windows, `unzip` elsewhere).
 
 **Implementation:**
+
 ```typescript
 export namespace Archive {
   export async function extractZip(zipPath: string, destDir: string) {
     if (process.platform === "win32") {
-      const winZipPath = path.resolve(zipPath)
-      const winDestDir = path.resolve(destDir)
-      const cmd = `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path '${winZipPath}' -DestinationPath '${winDestDir}' -Force`
-      await Process.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd])
-      return
+      const winZipPath = path.resolve(zipPath);
+      const winDestDir = path.resolve(destDir);
+      const cmd = `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -Path '${winZipPath}' -DestinationPath '${winDestDir}' -Force`;
+      await Process.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd]);
+      return;
     }
-    await Process.run(["unzip", "-o", "-q", zipPath, "-d", destDir])
+    await Process.run(["unzip", "-o", "-q", zipPath, "-d", destDir]);
   }
 }
 ```
@@ -80,24 +82,25 @@ export namespace Archive {
 **What it does:** Validates hex color strings, converts to RGB, and creates ANSI bold escape sequences.
 
 **Implementation:**
+
 ```typescript
 export namespace Color {
   export function isValidHex(hex?: string): hex is string {
-    if (!hex) return false
-    return /^#[0-9a-fA-F]{6}$/.test(hex)
+    if (!hex) return false;
+    return /^#[0-9a-fA-F]{6}$/.test(hex);
   }
 
   export function hexToRgb(hex: string): { r: number; g: number; b: number } {
-    const r = parseInt(hex.slice(1, 3), 16)
-    const g = parseInt(hex.slice(3, 5), 16)
-    const b = parseInt(hex.slice(5, 7), 16)
-    return { r, g, b }
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return { r, g, b };
   }
 
   export function hexToAnsiBold(hex?: string): string | undefined {
-    if (!isValidHex(hex)) return undefined
-    const { r, g, b } = hexToRgb(hex)
-    return `\x1b[38;2;${r};${g};${b}m\x1b[1m`
+    if (!isValidHex(hex)) return undefined;
+    const { r, g, b } = hexToRgb(hex);
+    return `\x1b[38;2;${r};${g};${b}m\x1b[1m`;
   }
 }
 ```
@@ -113,46 +116,49 @@ export namespace Color {
 **What it does:** Creates typed async context values using Node.js `AsyncLocalStorage`. Provides `use()` to read and `provide()` to set context.
 
 **Implementation:**
+
 ```typescript
 export namespace Context {
   export class NotFound extends Error {
     constructor(public override readonly name: string) {
-      super(`No context found for ${name}`)
+      super(`No context found for ${name}`);
     }
   }
 
   export function create<T>(name: string) {
-    const storage = new AsyncLocalStorage<T>()
+    const storage = new AsyncLocalStorage<T>();
     return {
       use() {
-        const result = storage.getStore()
-        if (!result) throw new NotFound(name)
-        return result
+        const result = storage.getStore();
+        if (!result) throw new NotFound(name);
+        return result;
       },
       provide<R>(value: T, fn: () => R) {
-        return storage.run(value, fn)
+        return storage.run(value, fn);
       },
-    }
+    };
   }
 }
 ```
 
 **Used by:**
+
 - `storage/db.ts` -- Database transaction context (`Context.create<{ tx: TxOrDb, effects: ... }>("database")`)
 - `cli/cmd/tui/thread.ts` -- TUI thread context
 - `cli/cmd/tui/plugin/runtime.ts` -- Plugin runtime context
 - `cli/cmd/tui/component/textarea-keybindings.ts` -- Keybinding context
 
 **Real call pattern:**
+
 ```typescript
 // Define context
-const ctx = Context.create<{ tx: TxOrDb; effects: (() => void)[] }>("database")
+const ctx = Context.create<{ tx: TxOrDb; effects: (() => void)[] }>("database");
 
 // Provide context
-ctx.provide({ tx, effects }, () => callback(tx))
+ctx.provide({ tx, effects }, () => callback(tx));
 
 // Use context (throws Context.NotFound if not in scope)
-const { tx } = ctx.use()
+const { tx } = ctx.use();
 ```
 
 **When NOT to use:** This is for vanilla JS/TS contexts. The Effect-based modules use Effect's own `Context` / `Layer` / `ServiceMap` system instead. Do NOT use `Context.create` inside Effect service code -- use `ServiceMap.Service` and layers.
@@ -164,18 +170,20 @@ const { tx } = ctx.use()
 **What it does:** Decodes base64 and percent-encoded data URLs to UTF-8 strings.
 
 **Implementation:**
+
 ```typescript
 export function decodeDataUrl(url: string) {
-  const idx = url.indexOf(",")
-  if (idx === -1) return ""
-  const head = url.slice(0, idx)
-  const body = url.slice(idx + 1)
-  if (head.includes(";base64")) return Buffer.from(body, "base64").toString("utf8")
-  return decodeURIComponent(body)
+  const idx = url.indexOf(",");
+  if (idx === -1) return "";
+  const head = url.slice(0, idx);
+  const body = url.slice(idx + 1);
+  if (head.includes(";base64")) return Buffer.from(body, "base64").toString("utf8");
+  return decodeURIComponent(body);
 }
 ```
 
 **Used by:**
+
 - `session/prompt.ts` -- Decoding inline data URLs in prompt content
 
 **When NOT to use:** Only returns strings (UTF-8). Not suitable for binary data URL decoding.
@@ -187,26 +195,35 @@ export function decodeDataUrl(url: string) {
 **What it does:** Creates disposable objects for `using` / `await using` syntax, wrapping cleanup functions.
 
 **Implementation:**
+
 ```typescript
 export function defer<T extends () => void | Promise<void>>(
   fn: T,
-): T extends () => Promise<void> ? { [Symbol.asyncDispose]: () => Promise<void> } : { [Symbol.dispose]: () => void } {
+): T extends () => Promise<void>
+  ? { [Symbol.asyncDispose]: () => Promise<void> }
+  : { [Symbol.dispose]: () => void } {
   return {
-    [Symbol.dispose]() { fn() },
-    [Symbol.asyncDispose]() { return Promise.resolve(fn()) },
-  } as any
+    [Symbol.dispose]() {
+      fn();
+    },
+    [Symbol.asyncDispose]() {
+      return Promise.resolve(fn());
+    },
+  } as any;
 }
 ```
 
 **Used by:**
+
 - `tool/task.ts` -- Cleanup after task tool execution
 - `cli/cmd/tui/util/editor.ts` -- Editor temp file cleanup
 
 **Real call pattern:**
+
 ```typescript
 await using _ = defer(async () => {
   // cleanup logic here
-})
+});
 ```
 
 **When NOT to use:** The `Lock` module already returns disposables. `Flock.acquire` already returns async disposables. Do not wrap these in `defer` -- they have their own `[Symbol.asyncDispose]`.
@@ -218,6 +235,7 @@ await using _ = defer(async () => {
 **What it does:** Adds transient-error retry with exponential backoff + jitter to an Effect HTTP client.
 
 **Implementation:**
+
 ```typescript
 export const withTransientReadRetry = <E, R>(client: HttpClient.HttpClient.With<E, R>) =>
   client.pipe(
@@ -226,10 +244,11 @@ export const withTransientReadRetry = <E, R>(client: HttpClient.HttpClient.With<
       times: 2,
       schedule: Schedule.exponential(200).pipe(Schedule.jittered),
     }),
-  )
+  );
 ```
 
 **Used by:**
+
 - `auth/index.ts` -- Retrying auth token fetches
 
 **When NOT to use:** Only for Effect-based HTTP clients. The codebase also uses raw `fetch()` in some places (provider SDK calls) -- those use their own retry logic.
@@ -243,14 +262,16 @@ export const withTransientReadRetry = <E, R>(client: HttpClient.HttpClient.With<
 **Implementation:** ~95 lines. Recursive AST walker that maps Effect schema nodes to Zod equivalents. Supports discriminated unions via `annotations.discriminator`.
 
 **Used by:**
+
 - `account/index.ts` -- Converting Effect schemas for API validation
 - `installation/index.ts` -- Schema conversion for installation data
 - `skill/discovery.ts` -- Schema conversion for skill discovery
 
 **Real call pattern:**
+
 ```typescript
-import { zod } from "@/util/effect-zod"
-const zodSchema = zod(effectSchema)
+import { zod } from "@/util/effect-zod";
+const zodSchema = zod(effectSchema);
 ```
 
 **When NOT to use:** Throws on unsupported schema features (tuples with elements, multiple index signatures, multi-param declarations). If your Effect schema uses those features, you need a manual Zod equivalent.
@@ -262,32 +283,40 @@ const zodSchema = zod(effectSchema)
 **What it does:** Three functions for error handling: `errorFormat` (full representation), `errorMessage` (human-readable message), `errorData` (structured data for logging).
 
 **Implementation:**
+
 ```typescript
 export function errorFormat(error: unknown): string {
-  if (error instanceof Error) return error.stack ?? `${error.name}: ${error.message}`
+  if (error instanceof Error) return error.stack ?? `${error.name}: ${error.message}`;
   if (typeof error === "object" && error !== null) {
-    try { return JSON.stringify(error, null, 2) } catch { return "Unexpected error (unserializable)" }
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return "Unexpected error (unserializable)";
+    }
   }
-  return String(error)
+  return String(error);
 }
 
 export function errorMessage(error: unknown): string {
   if (error instanceof Error) {
-    if (error.message) return error.message
-    if (error.name) return error.name
+    if (error.message) return error.message;
+    if (error.name) return error.name;
   }
-  if (isRecord(error) && typeof error.message === "string" && error.message) return error.message
-  const text = String(error)
-  if (text && text !== "[object Object]") return text
-  const formatted = errorFormat(error)
-  if (formatted && formatted !== "{}") return formatted
-  return "unknown error"
+  if (isRecord(error) && typeof error.message === "string" && error.message) return error.message;
+  const text = String(error);
+  if (text && text !== "[object Object]") return text;
+  const formatted = errorFormat(error);
+  if (formatted && formatted !== "{}") return formatted;
+  return "unknown error";
 }
 
-export function errorData(error: unknown) { /* ... structured extraction ... */ }
+export function errorData(error: unknown) {
+  /* ... structured extraction ... */
+}
 ```
 
 **Used by:** 19 files including:
+
 - `session/message-v2.ts` -- Formatting LLM errors for display
 - `server/server.ts` -- Error response formatting
 - `server/routes/*.ts` -- Route error handling (session, question, pty, provider, project, permission, mcp, config, experimental, workspace, tui)
@@ -297,10 +326,13 @@ export function errorData(error: unknown) { /* ... structured extraction ... */ 
 - `process.ts` (internal) -- `errorMessage` used in `Process.run` catch
 
 **Real call pattern:**
+
 ```typescript
-try { /* ... */ } catch (e) {
-  log.error("operation failed", errorData(e))
-  return { error: errorMessage(e) }
+try {
+  /* ... */
+} catch (e) {
+  log.error("operation failed", errorData(e));
+  return { error: errorMessage(e) };
 }
 ```
 
@@ -313,12 +345,14 @@ try { /* ... */ } catch (e) {
 **What it does:** Namespace with 20+ file operations: exists, isDir, stat, size, readText, readJson, readBytes, readArrayBuffer, write (auto-mkdir), writeJson, writeStream, mimeType, normalizePath, resolve, windowsPath, overlaps, contains, findUp, up, globUp.
 
 **Implementation:** ~200 lines. Key features:
+
 - `write()` auto-creates parent directories on ENOENT
 - `resolve()` handles Git Bash / Cygwin / WSL path translation on Windows
 - `normalizePath()` canonicalizes Windows case-insensitive paths via `realpathSync.native`
 - `findUp()` / `up()` / `globUp()` walk up directory trees searching for files
 
 **Used by:** 14+ files including:
+
 - `tool/bash.ts` -- File existence checks
 - `skill/index.ts` -- Reading skill files
 - `shell/shell.ts` -- Shell detection
@@ -331,18 +365,21 @@ try { /* ... */ } catch (e) {
 - `cli/cmd/tui/thread.ts` -- File reading for thread context
 
 **Real call pattern:**
+
 ```typescript
 // Auto-mkdir write
-await Filesystem.write(path.join(dir, "config.json"), JSON.stringify(data))
+await Filesystem.write(path.join(dir, "config.json"), JSON.stringify(data));
 
 // Read JSON with type
-const config = await Filesystem.readJson<ConfigType>(filePath)
+const config = await Filesystem.readJson<ConfigType>(filePath);
 
 // Walk up directory tree
-const files = await Filesystem.findUp(".opencode", startDir)
+const files = await Filesystem.findUp(".opencode", startDir);
 
 // Check path containment
-if (Filesystem.contains(projectRoot, filePath)) { /* safe */ }
+if (Filesystem.contains(projectRoot, filePath)) {
+  /* safe */
+}
 ```
 
 **When NOT to use:** For Effect-based file operations, use `@effect/platform-node/NodeFileSystem`. This namespace is for vanilla async code only. Also: `exists()` and `isDir()` are misleadingly async (they use sync implementations internally) -- this is fine for current usage but be aware they don't truly yield.
@@ -354,6 +391,7 @@ if (Filesystem.contains(projectRoot, filePath)) { /* safe */ }
 **What it does:** Directory-based file locks with stale detection, heartbeat, exponential backoff retry, and token-based ownership verification. For cross-PROCESS synchronization (different Node.js processes).
 
 **Implementation:** ~330 lines. Uses `mkdir` atomicity for lock acquisition. Features:
+
 - Stale lock detection via heartbeat file mtime
 - Breaker pattern for safe stale lock cleanup (prevents two processes from both cleaning up simultaneously)
 - Heartbeat interval (default: staleMs/3) keeps long operations alive
@@ -361,21 +399,27 @@ if (Filesystem.contains(projectRoot, filePath)) { /* safe */ }
 - Configurable: staleMs, timeoutMs, baseDelayMs, maxDelayMs
 
 **Used by:**
+
 - `config/config.ts` -- Config file writes
 - `plugin/meta.ts` -- Plugin metadata updates
 - `plugin/install.ts` -- Plugin installation
 - `snapshot/index.ts` -- Snapshot operations
 
 **Real call pattern:**
+
 ```typescript
 // Simple usage
-await using _ = await Flock.acquire("my-operation-key")
+await using _ = await Flock.acquire("my-operation-key");
 // ... critical section ...
 
 // With options
-await Flock.withLock("config-write", async () => {
-  await writeConfig(data)
-}, { staleMs: 30_000, timeoutMs: 10_000 })
+await Flock.withLock(
+  "config-write",
+  async () => {
+    await writeConfig(data);
+  },
+  { staleMs: 30_000, timeoutMs: 10_000 },
+);
 ```
 
 **When NOT to use:** For in-process synchronization (same Node.js process), use `Lock` instead -- it is dramatically faster (no filesystem I/O). `Flock` is ONLY needed when multiple processes compete for the same resource (e.g., config file writes from multiple opencode instances).
@@ -387,28 +431,30 @@ await Flock.withLock("config-write", async () => {
 **What it does:** Wraps a function with Zod input validation. Provides `.schema` accessor and `.force()` bypass.
 
 **Implementation:**
+
 ```typescript
 export function fn<T extends z.ZodType, Result>(schema: T, cb: (input: z.infer<T>) => Result) {
   const result = (input: z.infer<T>) => {
-    let parsed
+    let parsed;
     try {
-      parsed = schema.parse(input)
+      parsed = schema.parse(input);
     } catch (e) {
-      console.trace("schema validation failure stack trace:")
+      console.trace("schema validation failure stack trace:");
       if (e instanceof z.ZodError) {
-        console.error("schema validation issues:", JSON.stringify(e.issues, null, 2))
+        console.error("schema validation issues:", JSON.stringify(e.issues, null, 2));
       }
-      throw e
+      throw e;
     }
-    return cb(parsed)
-  }
-  result.force = (input: z.infer<T>) => cb(input)
-  result.schema = schema
-  return result
+    return cb(parsed);
+  };
+  result.force = (input: z.infer<T>) => cb(input);
+  result.schema = schema;
+  return result;
 }
 ```
 
 **Used by:** 6 files:
+
 - `session/prompt.ts` -- `prompt = fn(PromptInput, async (input) => { ... })`, `loop = fn(LoopInput, async (input) => { ... })`
 - `session/summary.ts` -- Summary generation input validation
 - `session/message-v2.ts` -- Message creation validation
@@ -417,20 +463,21 @@ export function fn<T extends z.ZodType, Result>(schema: T, cb: (input: z.infer<T
 - `control-plane/workspace.ts` -- Workspace operations
 
 **Real call pattern:**
+
 ```typescript
 export const prompt = fn(PromptInput, async (input) => {
-  const session = await Session.get(input.sessionID)
+  const session = await Session.get(input.sessionID);
   // ... input is guaranteed to match PromptInput schema
-})
+});
 
 // Call normally (validates)
-await prompt({ sessionID: "ses_..." })
+await prompt({ sessionID: "ses_..." });
 
 // Bypass validation (internal/trusted callers)
-await prompt.force({ sessionID: "ses_..." })
+await prompt.force({ sessionID: "ses_..." });
 
 // Access schema for documentation/routes
-const schema = prompt.schema
+const schema = prompt.schema;
 ```
 
 **When NOT to use:** For Effect-based code, use Effect's own `Schema.decode`. For server routes, the routes use `fn.schema` to extract the Zod schema and validate separately. Do not use `fn()` for trivially typed functions that do not need runtime validation.
@@ -442,29 +489,32 @@ const schema = prompt.schema
 **What it does:** Formats a number of seconds into a human-readable string ("5s", "3m 20s", "2h 15m", "~3 days", "~2 weeks").
 
 **Implementation:**
+
 ```typescript
 export function formatDuration(secs: number) {
-  if (secs <= 0) return ""
-  if (secs < 60) return `${secs}s`
+  if (secs <= 0) return "";
+  if (secs < 60) return `${secs}s`;
   if (secs < 3600) {
-    const mins = Math.floor(secs / 60)
-    const remaining = secs % 60
-    return remaining > 0 ? `${mins}m ${remaining}s` : `${mins}m`
+    const mins = Math.floor(secs / 60);
+    const remaining = secs % 60;
+    return remaining > 0 ? `${mins}m ${remaining}s` : `${mins}m`;
   }
   // ... continues for hours, days, weeks
 }
 ```
 
 **Used by:**
+
 - `server/instance.ts` -- Displaying server uptime
 - `project/bootstrap.ts` -- Project initialization timing
 - `format/index.ts` -- Format tool output
 - `tool/write.ts`, `tool/edit.ts`, `tool/apply_patch.ts` -- Tool execution timing
 
 **IMPORTANT -- Overlap with `Locale.duration`:** There are TWO duration formatters:
+
 - `format.ts` `formatDuration(secs)` -- takes SECONDS as input
 - `locale.ts` `Locale.duration(ms)` -- takes MILLISECONDS as input
-These are NOT interchangeable. Check the input unit.
+  These are NOT interchangeable. Check the input unit.
 
 ---
 
@@ -473,8 +523,12 @@ These are NOT interchangeable. Check the input unit.
 **What it does:** Runs git commands via `Process.run` with stdin ignored (avoids pipe inheritance issues).
 
 **Implementation:**
+
 ```typescript
-export async function git(args: string[], opts: { cwd: string; env?: Record<string, string> }): Promise<GitResult> {
+export async function git(
+  args: string[],
+  opts: { cwd: string; env?: Record<string, string> },
+): Promise<GitResult> {
   return Process.run(["git", ...args], {
     cwd: opts.cwd,
     env: opts.env,
@@ -492,11 +546,12 @@ export async function git(args: string[], opts: { cwd: string; env?: Record<stri
       text: () => "",
       stdout: Buffer.alloc(0),
       stderr: Buffer.from(error instanceof Error ? error.message : String(error)),
-    }))
+    }));
 }
 ```
 
 **Used by:** 5 files:
+
 - `storage/storage.ts` -- Git root detection for project ID migration
 - `file/watcher.ts` -- Git status checks
 - `file/index.ts` -- File tracking via git
@@ -504,9 +559,15 @@ export async function git(args: string[], opts: { cwd: string; env?: Record<stri
 - `cli/cmd/github.ts` -- GitHub operations
 
 **Real call pattern:**
+
 ```typescript
-const result = await git(["rev-list", "--max-parents=0", "--all"], { cwd: worktree })
-const [id] = result.text().split("\n").filter(Boolean).map(x => x.trim()).toSorted()
+const result = await git(["rev-list", "--max-parents=0", "--all"], { cwd: worktree });
+const [id] = result
+  .text()
+  .split("\n")
+  .filter(Boolean)
+  .map((x) => x.trim())
+  .toSorted();
 ```
 
 **When NOT to use:** For Effect-based child processes, use the `cross-spawn-spawner.ts` layer. The `git()` helper is for vanilla async code only. Also note: it always uses `nothrow: true` and returns exitCode -- callers must check `result.exitCode` themselves.
@@ -518,18 +579,19 @@ const [id] = result.text().split("\n").filter(Boolean).map(x => x.trim()).toSort
 **What it does:** Wraps the `glob` and `minimatch` packages with a simplified API.
 
 **Implementation:**
+
 ```typescript
 export namespace Glob {
   export async function scan(pattern: string, options: Options = {}): Promise<string[]> {
-    return glob(pattern, toGlobOptions(options)) as Promise<string[]>
+    return glob(pattern, toGlobOptions(options)) as Promise<string[]>;
   }
 
   export function scanSync(pattern: string, options: Options = {}): string[] {
-    return globSync(pattern, toGlobOptions(options)) as string[]
+    return globSync(pattern, toGlobOptions(options)) as string[];
   }
 
   export function match(pattern: string, filepath: string): boolean {
-    return minimatch(filepath, pattern, { dot: true })
+    return minimatch(filepath, pattern, { dot: true });
   }
 }
 ```
@@ -537,15 +599,18 @@ export namespace Glob {
 **Used by:** 31 files (one of the most used utilities). Internal users include `filesystem.ts`, `log.ts`. External users span nearly every module: tool, storage, snapshot, skill, session, server, provider, mcp, lsp, file, config, cli, bus, bun, auth, worktree, index.ts.
 
 **Real call pattern:**
+
 ```typescript
 // Find files
-const matches = await Glob.scan("**/*.ts", { cwd: projectDir, include: "file", dot: true })
+const matches = await Glob.scan("**/*.ts", { cwd: projectDir, include: "file", dot: true });
 
 // Check if a path matches a pattern
-if (Glob.match("*.test.ts", filepath)) { /* ... */ }
+if (Glob.match("*.test.ts", filepath)) {
+  /* ... */
+}
 
 // Sync version for startup/config
-const files = Glob.scanSync("*.json", { cwd: configDir })
+const files = Glob.scanSync("*.json", { cwd: configDir });
 ```
 
 **When NOT to use:** For simple filename extension checks, use `path.extname()`. For directory listing without patterns, use `fs.readdir`. Glob is for actual pattern matching scenarios.
@@ -557,15 +622,17 @@ const files = Glob.scanSync("*.json", { cwd: configDir })
 **What it does:** SHA-1 hash of string or Buffer input, returned as hex.
 
 **Implementation:**
+
 ```typescript
 export namespace Hash {
   export function fast(input: string | Buffer): string {
-    return createHash("sha1").update(input).digest("hex")
+    return createHash("sha1").update(input).digest("hex");
   }
 }
 ```
 
 **Used by:**
+
 - `util/flock.ts` (internal) -- Hashing lock keys to filesystem-safe filenames
 - `snapshot/index.ts` -- Content-addressable snapshot storage
 
@@ -578,13 +645,15 @@ export namespace Hash {
 **What it does:** Executes a function immediately and returns its result. A type-safe way to use complex expressions where a simple value is expected.
 
 **Implementation:**
+
 ```typescript
 export function iife<T>(fn: () => T) {
-  return fn()
+  return fn();
 }
 ```
 
 **Used by:** 13 files:
+
 - `storage/db.ts` -- Computing `Database.Path` with conditional logic
 - `tool/task.ts`, `tool/skill.ts` -- Complex initialization expressions
 - `session/retry.ts`, `session/prompt.ts`, `session/message-v2.ts`, `session/index.ts` -- Inline computed values
@@ -594,14 +663,16 @@ export function iife<T>(fn: () => T) {
 - `config/config.ts` -- Config path resolution
 
 **Real call pattern:**
+
 ```typescript
 export const Path = iife(() => {
   if (Flag.OPENCODE_DB) {
-    if (Flag.OPENCODE_DB === ":memory:" || path.isAbsolute(Flag.OPENCODE_DB)) return Flag.OPENCODE_DB
-    return path.join(Global.Path.data, Flag.OPENCODE_DB)
+    if (Flag.OPENCODE_DB === ":memory:" || path.isAbsolute(Flag.OPENCODE_DB))
+      return Flag.OPENCODE_DB;
+    return path.join(Global.Path.data, Flag.OPENCODE_DB);
   }
-  return getChannelPath()
-})
+  return getChannelPath();
+});
 ```
 
 **When NOT to use:** For truly trivial expressions, just use the expression directly. `iife` adds readability for multi-line conditional initialization -- do not use it for single-line assignments.
@@ -615,6 +686,7 @@ export const Path = iife(() => {
 **Implementation:** ~100 lines. Handles ctrl, alt/meta/option, shift, super, leader prefix, special keys (esc->escape, del->delete, space).
 
 **Used by:**
+
 - `cli/cmd/tui/component/textarea-keybindings.ts` -- TUI keybinding configuration
 
 **When NOT to use:** TUI-specific. Not needed for non-TUI code.
@@ -626,32 +698,34 @@ export const Path = iife(() => {
 **What it does:** Creates a lazily-evaluated value that caches on first call. Supports `reset()` to invalidate the cache. Does NOT cache on error.
 
 **Implementation:**
+
 ```typescript
 export function lazy<T>(fn: () => T) {
-  let value: T | undefined
-  let loaded = false
+  let value: T | undefined;
+  let loaded = false;
 
   const result = (): T => {
-    if (loaded) return value as T
+    if (loaded) return value as T;
     try {
-      value = fn()
-      loaded = true
-      return value as T
+      value = fn();
+      loaded = true;
+      return value as T;
     } catch (e) {
-      throw e  // Don't mark as loaded if initialization failed
+      throw e; // Don't mark as loaded if initialization failed
     }
-  }
+  };
 
   result.reset = () => {
-    loaded = false
-    value = undefined
-  }
+    loaded = false;
+    value = undefined;
+  };
 
-  return result
+  return result;
 }
 ```
 
 **Used by:** 6 files:
+
 - `storage/db.ts` -- `Database.Client = lazy(() => { ... })` with `Client.reset()` used in `close()`
 - `storage/storage.ts` -- `state = lazy(async () => { ... })`
 - `tool/bash.ts` -- Lazy tree-sitter language loading
@@ -660,19 +734,20 @@ export function lazy<T>(fn: () => T) {
 - `file/watcher.ts` -- Lazy watcher initialization
 
 **Real call pattern:**
+
 ```typescript
 // Define lazy value
 export const Client = lazy(() => {
-  const db = init(Path)
-  db.run("PRAGMA journal_mode = WAL")
-  return db
-})
+  const db = init(Path);
+  db.run("PRAGMA journal_mode = WAL");
+  return db;
+});
 
 // Use (initializes on first call)
-Client().run("SELECT 1")
+Client().run("SELECT 1");
 
 // Reset (for cleanup/testing)
-Client.reset()
+Client.reset();
 ```
 
 **Key behavior:** The `reset()` method is critical for `Database.close()` -- it allows re-initialization after closing. Also: lazy does NOT cache failures -- if the factory throws, next call will retry.
@@ -686,6 +761,7 @@ Client.reset()
 **What it does:** String formatting: titlecase, time/datetime display, number abbreviation (K/M), duration (milliseconds), truncation (start/middle), pluralization.
 
 **Implementation:** ~80 lines covering:
+
 - `titlecase(str)` -- Word-initial capitalization
 - `time(ms)` -- Short time string from epoch ms
 - `datetime(ms)` -- Full date+time from epoch ms
@@ -697,6 +773,7 @@ Client.reset()
 - `pluralize(count, singular, plural)` -- Template-based pluralization with `{}` placeholder
 
 **Used by:**
+
 - `cli/cmd/tui/util/transcript.ts` -- Session transcript formatting
 
 **IMPORTANT -- Overlap with `format.ts`:** `Locale.duration(ms)` takes MILLISECONDS. `formatDuration(secs)` takes SECONDS. Do not confuse them.
@@ -710,18 +787,26 @@ Client.reset()
 **What it does:** In-memory reader-writer lock with writer priority. Returns `Disposable` for `using` syntax.
 
 **Implementation:**
+
 ```typescript
 export namespace Lock {
   export async function read(key: string): Promise<Disposable> {
-    const lock = get(key)
+    const lock = get(key);
     return new Promise((resolve) => {
       if (!lock.writer && lock.waitingWriters.length === 0) {
-        lock.readers++
-        resolve({ [Symbol.dispose]: () => { lock.readers--; process(key) } })
+        lock.readers++;
+        resolve({
+          [Symbol.dispose]: () => {
+            lock.readers--;
+            process(key);
+          },
+        });
       } else {
-        lock.waitingReaders.push(() => { /* ... */ })
+        lock.waitingReaders.push(() => {
+          /* ... */
+        });
       }
-    })
+    });
   }
 
   export async function write(key: string): Promise<Disposable> {
@@ -731,17 +816,19 @@ export namespace Lock {
 ```
 
 **Used by:**
+
 - `storage/storage.ts` -- All read/write operations use `Lock.read(target)` / `Lock.write(target)`
 
 **Real call pattern:**
+
 ```typescript
 // Read lock (multiple readers allowed)
-using _ = await Lock.read(target)
-const result = await Filesystem.readJson<T>(target)
+using _ = await Lock.read(target);
+const result = await Filesystem.readJson<T>(target);
 
 // Write lock (exclusive)
-using _ = await Lock.write(target)
-await Filesystem.writeJson(target, content)
+using _ = await Lock.write(target);
+await Filesystem.writeJson(target, content);
 ```
 
 **Key behavior:** Writer priority prevents reader starvation. Locks auto-cleanup when no waiters remain.
@@ -755,6 +842,7 @@ await Filesystem.writeJson(target, content)
 **What it does:** Creates tagged loggers that write to a log file (or stderr in print mode). Supports levels (DEBUG/INFO/WARN/ERROR), tags, cloning, and timed operations.
 
 **Implementation:** ~180 lines. Features:
+
 - Service-keyed logger caching (same service name returns same logger)
 - Auto-cleanup of old log files (keeps last 10)
 - Delta timing between log entries
@@ -763,15 +851,16 @@ await Filesystem.writeJson(target, content)
 **Used by:** 70 files (the single most-used utility). Every module in the codebase uses logging.
 
 **Real call pattern:**
-```typescript
-const log = Log.create({ service: "session" })
 
-log.info("starting prompt", { sessionID })
-log.error("prompt failed", { error: errorData(e) })
+```typescript
+const log = Log.create({ service: "session" });
+
+log.info("starting prompt", { sessionID });
+log.error("prompt failed", { error: errorData(e) });
 
 // Timed operation
-using timer = log.time("compaction")
-await doCompaction()
+using timer = log.time("compaction");
+await doCompaction();
 // timer auto-stops on scope exit, logs duration
 ```
 
@@ -784,19 +873,26 @@ await doCompaction()
 **What it does:** Two functions: `online()` checks navigator.onLine, `proxied()` checks HTTP proxy env vars.
 
 **Implementation:**
+
 ```typescript
 export function online() {
-  const nav = globalThis.navigator
-  if (!nav || typeof nav.onLine !== "boolean") return true
-  return nav.onLine
+  const nav = globalThis.navigator;
+  if (!nav || typeof nav.onLine !== "boolean") return true;
+  return nav.onLine;
 }
 
 export function proxied() {
-  return !!(process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.https_proxy)
+  return !!(
+    process.env.HTTP_PROXY ||
+    process.env.HTTPS_PROXY ||
+    process.env.http_proxy ||
+    process.env.https_proxy
+  );
 }
 ```
 
 **Used by:** 6 files:
+
 - `config/config.ts` -- Proxy-aware HTTP configuration
 - `cli/cmd/web.ts`, `cli/cmd/serve.ts`, `cli/cmd/acp.ts` -- Network-dependent features
 - `bun/registry.ts`, `bun/index.ts` -- Bun-specific network checks
@@ -808,6 +904,7 @@ export function proxied() {
 **What it does:** Spawns child processes with cross-platform support (uses `cross-spawn`). Provides `spawn()` (raw), `run()` (capture output), `text()` (string output), `lines()` (split output), and `stop()` (Windows taskkill support).
 
 **Implementation:** ~170 lines. Key features:
+
 - `cross-spawn` for reliable Windows command resolution
 - Abort signal support with SIGTERM -> SIGKILL escalation
 - `nothrow` option to return exit code instead of throwing
@@ -815,6 +912,7 @@ export function proxied() {
 - `RunFailedError` with cmd, code, stdout, stderr
 
 **Used by:** 10 files:
+
 - `util/git.ts` (internal) -- Git command execution
 - `util/archive.ts` (internal) -- Zip extraction
 - `session/prompt.ts`, `session/compaction.ts` -- Process spawning for tool execution
@@ -825,22 +923,23 @@ export function proxied() {
 - `cli/cmd/pr.ts`, `cli/cmd/github.ts` -- Git/GitHub CLI commands
 
 **Real call pattern:**
+
 ```typescript
 // Run and capture output
-const result = await Process.run(["git", "status"], { cwd: projectDir, nothrow: true })
+const result = await Process.run(["git", "status"], { cwd: projectDir, nothrow: true });
 if (result.code === 0) {
-  const output = result.stdout.toString()
+  const output = result.stdout.toString();
 }
 
 // Get text directly
-const { text } = await Process.text(["git", "branch", "--show-current"], { cwd })
+const { text } = await Process.text(["git", "branch", "--show-current"], { cwd });
 
 // Get lines
-const branches = await Process.lines(["git", "branch", "-a"], { cwd })
+const branches = await Process.lines(["git", "branch", "-a"], { cwd });
 
 // Spawn with abort
-const child = Process.spawn(["node", "server.js"], { abort: controller.signal })
-await child.exited
+const child = Process.spawn(["node", "server.js"], { abort: controller.signal });
+await child.exited;
 ```
 
 **When NOT to use:** For Effect-based process spawning, use the `cross-spawn-spawner.ts` layer which integrates with Effect's resource management. `Process` is for vanilla async code.
@@ -852,37 +951,39 @@ await child.exited
 **What it does:** Two utilities: `AsyncQueue<T>` (push/pull async queue implementing `AsyncIterable`) and `work()` (bounded-concurrency worker pool).
 
 **Implementation:**
+
 ```typescript
 export class AsyncQueue<T> implements AsyncIterable<T> {
-  private queue: T[] = []
-  private resolvers: ((value: T) => void)[] = []
+  private queue: T[] = [];
+  private resolvers: ((value: T) => void)[] = [];
 
   push(item: T) {
-    const resolve = this.resolvers.shift()
-    if (resolve) resolve(item)
-    else this.queue.push(item)
+    const resolve = this.resolvers.shift();
+    if (resolve) resolve(item);
+    else this.queue.push(item);
   }
 
   async *[Symbol.asyncIterator]() {
-    while (true) yield await this.next()
+    while (true) yield await this.next();
   }
 }
 
 export async function work<T>(concurrency: number, items: T[], fn: (item: T) => Promise<void>) {
-  const pending = [...items]
+  const pending = [...items];
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
       while (true) {
-        const item = pending.pop()
-        if (item === undefined) return
-        await fn(item)
+        const item = pending.pop();
+        if (item === undefined) return;
+        await fn(item);
       }
     }),
-  )
+  );
 }
 ```
 
 **Used by:**
+
 - `server/routes/global.ts` -- Async queue for server events
 
 **When NOT to use:** For Effect-based concurrency, use Effect's `Stream`, `PubSub`, or `Queue`. The `AsyncQueue` is for vanilla JS async iteration patterns.
@@ -894,13 +995,15 @@ export async function work<T>(concurrency: number, items: T[], fn: (item: T) => 
 **What it does:** Checks if a value is a non-null, non-array object.
 
 **Implementation:**
+
 ```typescript
 export function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value)
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 ```
 
 **Used by:**
+
 - `util/error.ts` (internal) -- Used in `errorMessage` and `errorData`
 - `plugin/shared.ts` -- Plugin data validation
 - `config/tui.ts` -- TUI config parsing
@@ -916,21 +1019,27 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 **Implementation:** ~65 lines. Uses `postMessage`/`onmessage` with JSON serialization. Supports request/response (`rpc.request`/`rpc.result`) and events (`rpc.event`).
 
 **Used by:**
+
 - `cli/cmd/tui/worker.ts` -- TUI background worker
 - `cli/cmd/tui/thread.ts` -- TUI main thread client
 
 **Real call pattern:**
+
 ```typescript
 // Worker side
 Rpc.listen({
-  async doSomething(input) { return result }
-})
-Rpc.emit("progress", { percent: 50 })
+  async doSomething(input) {
+    return result;
+  },
+});
+Rpc.emit("progress", { percent: 50 });
 
 // Main thread side
-const client = Rpc.client<WorkerDef>(worker)
-const result = await client.call("doSomething", { data })
-client.on("progress", (data) => { /* ... */ })
+const client = Rpc.client<WorkerDef>(worker);
+const result = await client.call("doSomething", { data });
+client.on("progress", (data) => {
+  /* ... */
+});
 ```
 
 ---
@@ -938,10 +1047,12 @@ client.on("progress", (data) => { /* ... */ })
 ### `schema.ts` -- Effect Schema helpers (withStatics, Newtype)
 
 **What it does:** Two helpers for Effect Schema:
+
 1. `withStatics` -- Attaches static methods to a schema via `.pipe()`
 2. `Newtype` -- Creates nominal/branded scalar types that are also valid schemas
 
 **Implementation:**
+
 ```typescript
 export const withStatics =
   <S extends object, M extends Record<string, unknown>>(methods: (schema: S) => M) =>
@@ -960,6 +1071,7 @@ export function Newtype<Self>() {
 ```
 
 **Used by (`withStatics`):** 9 files -- every schema file that defines branded IDs:
+
 - `session/schema.ts` -- SessionID, MessageID, PartID
 - `sync/schema.ts` -- EventID
 - `tool/schema.ts` -- ToolCallID
@@ -970,11 +1082,13 @@ export function Newtype<Self>() {
 - `account/schema.ts` -- AccountID
 
 **Used by (`Newtype`):** 3 files:
+
 - `question/schema.ts` -- QuestionID
 - `permission/schema.ts` -- PermissionID
 - `util/schema.ts` (definition)
 
 **Real call pattern:**
+
 ```typescript
 // withStatics: attach factory methods to a branded schema
 export const SessionID = Schema.String.pipe(
@@ -983,11 +1097,13 @@ export const SessionID = Schema.String.pipe(
     descending: (id?: string) => s.makeUnsafe(Identifier.descending("session", id)),
     zod: Identifier.schema("session").pipe(z.custom<Schema.Schema.Type<typeof s>>()),
   })),
-)
+);
 
 // Newtype: create a nominal type that IS a schema
 class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.String) {
-  static make(id: string): QuestionID { return this.makeUnsafe(id) }
+  static make(id: string): QuestionID {
+    return this.makeUnsafe(id);
+  }
 }
 ```
 
@@ -998,6 +1114,7 @@ class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.String) {
 **What it does:** Contains dummy exports (`foo`, `bar`, `dummyFunction`, `randomHelper`). This is a scratch file.
 
 **Used by:**
+
 - `cli/cmd/debug/index.ts` -- Debug command imports for testing
 
 **When NOT to use:** NEVER use in production code. This file exists only for development/debugging.
@@ -1009,14 +1126,19 @@ class QuestionID extends Newtype<QuestionID>()("QuestionID", Schema.String) {
 **What it does:** Creates a promise-based signal that can be triggered once.
 
 **Implementation:**
+
 ```typescript
 export function signal() {
-  let resolve: any
-  const promise = new Promise((r) => (resolve = r))
+  let resolve: any;
+  const promise = new Promise((r) => (resolve = r));
   return {
-    trigger() { return resolve() },
-    wait() { return promise },
-  }
+    trigger() {
+      return resolve();
+    },
+    wait() {
+      return promise;
+    },
+  };
 }
 ```
 
@@ -1031,19 +1153,24 @@ export function signal() {
 **What it does:** Races a promise against a timeout, rejecting with a descriptive error on timeout.
 
 **Implementation:**
+
 ```typescript
 export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timeout: NodeJS.Timeout
+  let timeout: NodeJS.Timeout;
   return Promise.race([
-    promise.then((result) => { clearTimeout(timeout); return result }),
-    new Promise<never>((_, reject) => {
-      timeout = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    promise.then((result) => {
+      clearTimeout(timeout);
+      return result;
     }),
-  ])
+    new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
+    }),
+  ]);
 }
 ```
 
 **Used by:**
+
 - `mcp/index.ts` -- MCP server connection timeout
 - `cli/cmd/tui/thread.ts` -- TUI operation timeout
 
@@ -1056,16 +1183,18 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 **What it does:** Estimates token count using the 4-chars-per-token heuristic.
 
 **Implementation:**
+
 ```typescript
 export namespace Token {
-  const CHARS_PER_TOKEN = 4
+  const CHARS_PER_TOKEN = 4;
   export function estimate(input: string) {
-    return Math.max(0, Math.round((input || "").length / CHARS_PER_TOKEN))
+    return Math.max(0, Math.round((input || "").length / CHARS_PER_TOKEN));
   }
 }
 ```
 
 **Used by:**
+
 - `session/compaction.ts` -- Estimating message token costs for compaction decisions
 
 ---
@@ -1075,13 +1204,14 @@ export namespace Token {
 **What it does:** Transforms a Zod object schema so every field becomes `optional(nullable(T))`. Useful for PATCH/update operations.
 
 **Implementation:**
+
 ```typescript
 export function updateSchema<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-  const next = {} as { [K in keyof T]: z.ZodOptional<z.ZodNullable<T[K]>> }
+  const next = {} as { [K in keyof T]: z.ZodOptional<z.ZodNullable<T[K]>> };
   for (const [k, v] of Object.entries(schema.required().shape)) {
-    next[k] = v.nullable() as unknown as (typeof next)[typeof k]
+    next[k] = v.nullable() as unknown as (typeof next)[typeof k];
   }
-  return z.object(next)
+  return z.object(next);
 }
 ```
 
@@ -1094,20 +1224,22 @@ export function updateSchema<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
 **What it does:** Finds the full path of a command, checking PATH plus the global bin directory.
 
 **Implementation:**
+
 ```typescript
 export function which(cmd: string, env?: NodeJS.ProcessEnv) {
-  const base = env?.PATH ?? env?.Path ?? process.env.PATH ?? process.env.Path ?? ""
-  const full = base ? base + path.delimiter + Global.Path.bin : Global.Path.bin
+  const base = env?.PATH ?? env?.Path ?? process.env.PATH ?? process.env.Path ?? "";
+  const full = base ? base + path.delimiter + Global.Path.bin : Global.Path.bin;
   const result = whichPkg.sync(cmd, {
     nothrow: true,
     path: full,
     pathExt: env?.PATHEXT ?? env?.PathExt ?? process.env.PATHEXT ?? process.env.PathExt,
-  })
-  return typeof result === "string" ? result : null
+  });
+  return typeof result === "string" ? result : null;
 }
 ```
 
 **Used by:**
+
 - `shell/shell.ts` -- Finding shell executables
 
 ---
@@ -1117,24 +1249,27 @@ export function which(cmd: string, env?: NodeJS.ProcessEnv) {
 **What it does:** Matches strings against wildcard patterns (`*` = any, `?` = single char). Includes `all()` for finding the best-matching pattern from a sorted set, and `allStructured()` for matching command head + args.
 
 **Implementation:** ~60 lines. Features:
+
 - Case-insensitive on Windows
 - `"ls *"` pattern matches both `"ls"` and `"ls -la"` (trailing wildcard is optional)
 - Patterns sorted by length (shortest first), last match wins (most specific)
 
 **Used by:**
+
 - `permission/index.ts` -- Command permission matching
 - `permission/evaluate.ts` -- Permission evaluation
 
 **Real call pattern:**
+
 ```typescript
 // Simple match
-Wildcard.match("git commit *", "git commit -m 'fix'") // true
+Wildcard.match("git commit *", "git commit -m 'fix'"); // true
 
 // Find matching permission from ruleset
 const permission = Wildcard.all("git push origin main", {
   "git *": "allow",
   "git push *": "deny",
-}) // returns "deny" (longer/more specific pattern wins)
+}); // returns "deny" (longer/more specific pattern wins)
 ```
 
 ---
@@ -1146,6 +1281,7 @@ const permission = Wildcard.all("git push origin main", {
 **What it does:** Creates a `ScopedCache` keyed by project directory. Each project instance gets its own lazily-initialized state. Automatically invalidates when an instance is disposed.
 
 **Implementation:**
+
 ```typescript
 export namespace InstanceState {
   export const make = <A, E = never, R = never>(
@@ -1178,6 +1314,7 @@ export namespace InstanceState {
 ```
 
 **Used by:** 20 files (core infrastructure):
+
 - `tool/registry.ts` -- Tool state per project
 - `snapshot/index.ts` -- Snapshot state per project
 - `skill/index.ts` -- Skill state per project
@@ -1198,17 +1335,22 @@ export namespace InstanceState {
 - `agent/agent.ts` -- Agent state per project
 
 **Real call pattern:**
+
 ```typescript
 // In layer definition
-const state = yield* InstanceState.make<MyState>(
-  Effect.fn("MyModule.state")(function* (ctx) {
-    // Initialize per-instance state
-    return { /* ... */ }
-  }),
-)
+const state =
+  yield *
+  InstanceState.make<MyState>(
+    Effect.fn("MyModule.state")(function* (ctx) {
+      // Initialize per-instance state
+      return {
+        /* ... */
+      };
+    }),
+  );
 
 // In service methods
-const s = yield* InstanceState.get(state)
+const s = yield * InstanceState.get(state);
 ```
 
 ---
@@ -1218,33 +1360,39 @@ const s = yield* InstanceState.get(state)
 **What it does:** Creates a managed runtime for an Effect service, providing `runSync`, `runPromise`, `runFork`, and `runCallback` that automatically resolve the service from its layer.
 
 **Implementation:**
+
 ```typescript
-export const memoMap = Layer.makeMemoMapUnsafe()
+export const memoMap = Layer.makeMemoMapUnsafe();
 
 export function makeRuntime<I, S, E>(service: ServiceMap.Service<I, S>, layer: Layer.Layer<I, E>) {
-  let rt: ManagedRuntime.ManagedRuntime<I, E> | undefined
-  const getRuntime = () => (rt ??= ManagedRuntime.make(layer, { memoMap }))
+  let rt: ManagedRuntime.ManagedRuntime<I, E> | undefined;
+  const getRuntime = () => (rt ??= ManagedRuntime.make(layer, { memoMap }));
   return {
-    runSync: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) => getRuntime().runSync(service.use(fn)),
+    runSync: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) =>
+      getRuntime().runSync(service.use(fn)),
     runPromise: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>, options?: Effect.RunOptions) =>
       getRuntime().runPromise(service.use(fn), options),
-    runFork: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) => getRuntime().runFork(service.use(fn)),
-    runCallback: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) => getRuntime().runCallback(service.use(fn)),
-  }
+    runFork: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) =>
+      getRuntime().runFork(service.use(fn)),
+    runCallback: <A, Err>(fn: (svc: S) => Effect.Effect<A, Err, I>) =>
+      getRuntime().runCallback(service.use(fn)),
+  };
 }
 ```
 
 **Used by:** 27 files -- every service module uses this at the bottom to export its public API:
+
 - `session/status.ts`, `mcp/auth.ts`, `question/index.ts`, `format/index.ts`, `account/index.ts`, `tool/truncate.ts`, `auth/index.ts`, `tool/registry.ts`, `permission/index.ts`, `config/config.ts`, `mcp/index.ts`, `command/index.ts`, `bus/index.ts`, `project/project.ts`, `project/vcs.ts`, `agent/agent.ts`, `lsp/index.ts`, `pty/index.ts`, `skill/index.ts`, `provider/auth.ts`, `snapshot/index.ts`, `file/time.ts`, `file/index.ts`, `file/watcher.ts`, `worktree/index.ts`, `plugin/index.ts`, `installation/index.ts`
 
 **Real call pattern:**
+
 ```typescript
 // At bottom of service module
-const { runPromise } = makeRuntime(Service, defaultLayer)
+const { runPromise } = makeRuntime(Service, defaultLayer);
 
 // Exported as public API
 export async function get(id: string) {
-  return runPromise((svc) => svc.get(id))
+  return runPromise((svc) => svc.get(id));
 }
 ```
 
@@ -1257,20 +1405,24 @@ export async function get(id: string) {
 **What it does:** Maintains a set of disposer callbacks that run when a project instance is disposed.
 
 **Implementation:**
+
 ```typescript
-const disposers = new Set<(directory: string) => Promise<void>>()
+const disposers = new Set<(directory: string) => Promise<void>>();
 
 export function registerDisposer(disposer: (directory: string) => Promise<void>) {
-  disposers.add(disposer)
-  return () => { disposers.delete(disposer) }
+  disposers.add(disposer);
+  return () => {
+    disposers.delete(disposer);
+  };
 }
 
 export async function disposeInstance(directory: string) {
-  await Promise.allSettled([...disposers].map((disposer) => disposer(directory)))
+  await Promise.allSettled([...disposers].map((disposer) => disposer(directory)));
 }
 ```
 
 **Used by:**
+
 - `effect/instance-state.ts` (internal) -- Registers cache invalidation
 - `project/instance.ts` -- Calls `disposeInstance` during cleanup
 
@@ -1281,6 +1433,7 @@ export async function disposeInstance(directory: string) {
 **What it does:** Provides an Effect `ChildProcessSpawner` layer that uses `cross-spawn` for cross-platform child process management. Handles piped commands, stdio configuration, process groups, Windows-specific taskkill, and resource cleanup.
 
 **Implementation:** ~480 lines. Full Effect-native replacement for Node.js `child_process.spawn` with:
+
 - Proper resource management via `Effect.acquireRelease`
 - Process group killing (negative PID on Unix, taskkill on Windows)
 - Piped command chains
@@ -1288,6 +1441,7 @@ export async function disposeInstance(directory: string) {
 - Overlapped pipes on Windows
 
 **Used by:** 6 files:
+
 - `worktree/index.ts`, `snapshot/index.ts` -- Git operations via Effect
 - `project/vcs.ts`, `project/project.ts` -- VCS operations
 - `mcp/index.ts` -- MCP server process management
@@ -1300,6 +1454,7 @@ export async function disposeInstance(directory: string) {
 **What it does:** Generates sortable, prefixed IDs with time-based ordering (ascending or descending). Uses a prefix registry for type safety.
 
 **Implementation:** ~85 lines. Features:
+
 - Prefixes: evt, ses, msg, per, que, usr, prt, pty, tool, wrk
 - Monotonic: same-millisecond IDs get incrementing counters
 - Descending: bitwise NOT of timestamp for reverse-chronological sorting
@@ -1307,6 +1462,7 @@ export async function disposeInstance(directory: string) {
 - `timestamp(id)` extracts creation time from ascending IDs
 
 **Used by:** 10 files -- every schema file that defines an entity ID:
+
 - `session/schema.ts` -- SessionID (descending), MessageID (ascending), PartID (ascending)
 - `sync/schema.ts` -- EventID (ascending)
 - `tool/schema.ts` -- ToolCallID (ascending)
@@ -1319,6 +1475,7 @@ export async function disposeInstance(directory: string) {
 - `account/schema.ts` -- AccountID
 
 **Real call pattern:**
+
 ```typescript
 // In schema definition
 export const SessionID = Schema.String.pipe(
@@ -1326,13 +1483,13 @@ export const SessionID = Schema.String.pipe(
   withStatics((s) => ({
     descending: (id?: string) => s.makeUnsafe(Identifier.descending("session", id)),
   })),
-)
+);
 
 // Generate a new ID
-const id = SessionID.descending()
+const id = SessionID.descending();
 
 // Extract timestamp
-const created = Identifier.timestamp(id)
+const created = Identifier.timestamp(id);
 ```
 
 **When NOT to use:** SessionIDs are DESCENDING (newest first in sorted order). All other IDs are ASCENDING. Do not mix these up -- it determines database query ordering.
@@ -1344,24 +1501,29 @@ const created = Identifier.timestamp(id)
 **What it does:** Defines typed event definitions for the pub/sub bus. Maintains a global registry for schema generation.
 
 **Implementation:**
+
 ```typescript
 export namespace BusEvent {
-  export type Definition = ReturnType<typeof define>
-  const registry = new Map<string, Definition>()
+  export type Definition = ReturnType<typeof define>;
+  const registry = new Map<string, Definition>();
 
-  export function define<Type extends string, Properties extends ZodType>(type: Type, properties: Properties) {
-    const result = { type, properties }
-    registry.set(type, result)
-    return result
+  export function define<Type extends string, Properties extends ZodType>(
+    type: Type,
+    properties: Properties,
+  ) {
+    const result = { type, properties };
+    registry.set(type, result);
+    return result;
   }
 
   export function payloads() {
-    return z.discriminatedUnion("type", /* all registered events */)
+    return z.discriminatedUnion("type" /* all registered events */);
   }
 }
 ```
 
 **Used by:** 25+ files define events. Every module that publishes events uses `BusEvent.define`:
+
 - `session/index.ts` -- Diff, Error events
 - `session/message-v2.ts` -- PartDelta
 - `session/compaction.ts` -- Compacted
@@ -1393,10 +1555,11 @@ export namespace BusEvent {
 **What it does:** Full publish/subscribe system built on Effect's `PubSub`. Per-instance state, typed subscriptions, wildcard subscriptions, and callback-based subscriptions.
 
 **Key API:**
+
 ```typescript
-Bus.publish(EventDef, properties)
-Bus.subscribe(EventDef, callback)
-Bus.subscribeAll(callback)
+Bus.publish(EventDef, properties);
+Bus.subscribe(EventDef, callback);
+Bus.subscribeAll(callback);
 ```
 
 **Used by:** The same 25+ modules that define events also subscribe to events.
@@ -1408,6 +1571,7 @@ Bus.subscribeAll(callback)
 **What it does:** Defines versioned, aggregated events with projectors. Events are stored in SQLite, replayed for state reconstruction, and published to the bus.
 
 **Used by:**
+
 - `session/message-v2.ts` -- Message events (Created, Updated, Deleted, etc.)
 - `session/index.ts` -- Session events (Created, Updated, Deleted, etc.)
 
@@ -1418,6 +1582,7 @@ Bus.subscribeAll(callback)
 **What it does:** Manages the SQLite database: connection, migrations, transactions, context-based connection sharing.
 
 **Key features:**
+
 - Uses `lazy()` for connection initialization with `reset()` for cleanup
 - Uses `Context.create()` for transaction propagation
 - `Database.use(cb)` -- auto-wraps in context or creates new one
@@ -1483,8 +1648,9 @@ SyncEvent           |   X     |      |          |         |            |        
 ### ANTI-PATTERN: Direct `createHash` instead of `Hash.fast`
 
 **Location:** `server/instance.ts:303`
+
 ```typescript
-const hash = match ? createHash("sha256").update(match[2]).digest("base64") : ""
+const hash = match ? createHash("sha256").update(match[2]).digest("base64") : "";
 ```
 
 **Verdict: CORRECT avoidance.** `Hash.fast` uses SHA-1 and hex output. This site needs SHA-256 and base64. The helper does not fit.
@@ -1498,9 +1664,12 @@ const hash = match ? createHash("sha256").update(match[2]).digest("base64") : ""
 **Verdict: CORRECT avoidance.** These are lifecycle controllers that are manually aborted on cancellation, not timeout-based. `abortAfter` is specifically for time-bounded abort and would leak timers if used for lifecycle management.
 
 **One potential anti-pattern:** `provider/provider.ts` creates an AbortController for chunk timeout:
+
 ```typescript
-const chunkAbortCtl = typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined
+const chunkAbortCtl =
+  typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined;
 ```
+
 This IS timeout-based -- it could use `abortAfter(chunkTimeout)`. However, the timeout is reset per-chunk (not a single timeout), so the manual approach is actually correct here.
 
 ---
@@ -1510,6 +1679,7 @@ This IS timeout-based -- it could use `abortAfter(chunkTimeout)`. However, the t
 **Locations:** `storage/json-migration.ts`, `storage/db.ts`, `config/tui.ts`, `config/config.ts`, `cli/cmd/tui/attach.ts`
 
 **Verdict: MIXED.**
+
 - `storage/db.ts` and `config/config.ts` use `existsSync` during synchronous initialization (e.g., inside `lazy()` or `iife()`) where `Filesystem.exists` (which is async-wrapped but sync internally) would require unnecessary awaiting. **Correct avoidance.**
 - `config/tui.ts` and `cli/cmd/tui/attach.ts` use `existsSync` in contexts where async is fine -- these COULD use `Filesystem.exists` but the difference is negligible since `Filesystem.exists` internally calls `existsSync` anyway.
 
@@ -1562,6 +1732,7 @@ These take different units (seconds vs milliseconds) and have different output f
 ### ANTI-PATTERN: `signal()`, `abort.ts`, `archive.ts`, `update-schema.ts`, `color.ts` -- Defined but barely/never used
 
 These utilities exist but have zero or near-zero direct imports in `src/`. They represent either:
+
 1. Infrastructure for features not yet built
 2. Utilities used by external consumers (SDK users)
 3. Deprecated but not yet removed
@@ -1573,6 +1744,7 @@ An LLM should still USE these rather than reinvent them if the functionality mat
 ### CORRECT PATTERN: Effect vs vanilla utility split
 
 The codebase maintains a clean split:
+
 - **Effect-based modules** use `InstanceState`, `makeRuntime`, `ServiceMap.Service`, `ScopedCache`, `PubSub`, `cross-spawn-spawner`
 - **Vanilla async modules** use `Context.create`, `lazy`, `Lock`, `Flock`, `Process`, `Filesystem`, `git`
 

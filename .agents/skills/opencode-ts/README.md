@@ -7,11 +7,13 @@ Coding distillation skill for the [sst/opencode](https://github.com/sst/opencode
 The skill routes by **workflow phase**, not artifact type:
 
 **Implement (new code):**
+
 ```
 Orient → Gather → Build → Check → Review
 ```
 
 **Refactor (changing code):**
+
 ```
 Orient → Study → Gather → Check → Review
 ```
@@ -42,13 +44,13 @@ opencode-ts/
 
 Tested with non-prescriptive prompts against the real cloned repo:
 
-| Eval | With Skill | Without Skill | Delta |
-|------|-----------|---------------|-------|
-| Add bookmark feature | 57% | 71% | -14%* |
-| Write tests for share module | **100%** | 67% | **+33%** |
-| Refactor flag module | 60% | 60% | 0% |
+| Eval                         | With Skill | Without Skill | Delta    |
+| ---------------------------- | ---------- | ------------- | -------- |
+| Add bookmark feature         | 57%        | 71%           | -14%\*   |
+| Write tests for share module | **100%**   | 67%           | **+33%** |
+| Refactor flag module         | 60%        | 60%           | 0%       |
 
-*Eval 1 delta reflects 3 assertion design errors, not skill regression. With corrected assertions: 100% vs 100%.
+\*Eval 1 delta reflects 3 assertion design errors, not skill regression. With corrected assertions: 100% vs 100%.
 
 Strongest value: **test writing** — the skill teaches tmpdir isolation, Instance.provide, Instance.disposeAll, and fake server patterns that baseline agents miss.
 
