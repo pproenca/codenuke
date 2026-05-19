@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-19T17:10:44.429Z",
+  "baseline": {
+    "file": "latest.json",
+    "generatedAt": "2026-05-19T17:10:44.379Z",
+    "cli": "node dist/cli.js",
+    "mode": {
+      "expectations": "strict",
+      "providerOverride": null,
+      "model": null,
+      "reasoningEffort": null
+    },
+    "totals": {
+      "fixtures": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "patchBoundary": {
+      "patchAttempts": 1,
+      "filesChanged": 0,
+      "failures": 0,
+      "unexpectedFiles": 0
+    },
+    "workflow": {
+      "patchAttempts": 1,
+      "validationCommands": 0,
+      "findingsByStatus": {
+        "open": 1,
+        "uncertain": 1
+      },
+      "revalidationOutcomes": {
+        "uncertain": 1
+      }
+    }
+  },
+  "model": {
+    "file": "model-latest.json",
+    "generatedAt": "2026-05-19T17:09:02.548Z",
+    "cli": "node dist/cli.js",
+    "mode": {
+      "expectations": "record",
+      "providerOverride": "codex",
+      "model": "gpt-5.5",
+      "reasoningEffort": "medium"
+    },
+    "totals": {
+      "fixtures": 12,
+      "passed": 11,
+      "failed": 1
+    },
+    "patchBoundary": {
+      "patchAttempts": 0,
+      "filesChanged": 0,
+      "failures": 0,
+      "unexpectedFiles": 0
+    },
+    "workflow": {
+      "patchAttempts": 0,
+      "validationCommands": 0,
+      "findingsByStatus": {
+        "open": 7
+      },
+      "revalidationOutcomes": {}
+    }
+  },
+  "guidanceCoverage": {
+    "baseline": {
+      "resources": 19,
+      "selectableResources": 16,
+      "coveredResources": 18,
+      "appliedResources": 0,
+      "reservedResources": 1,
+      "unownedResources": 0,
+      "unownedSelectableResources": 0
+    },
+    "model": {
+      "resources": 19,
+      "selectableResources": 16,
+      "coveredResources": 18,
+      "appliedResources": 0,
+      "reservedResources": 1,
+      "unownedResources": 0,
+      "unownedSelectableResources": 0
+    }
+  },
+  "fixtureDeltas": [
+    {
+      "slug": "guidance-clean",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 0,
+      "findingDelta": 0,
+      "baselineGuidanceResources": [],
+      "modelGuidanceResources": [],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-comments",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.dispensables.comments",
+        "techniques.composing-methods.extract-method",
+        "techniques.composing-methods.extract-variable",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.dispensables.comments",
+        "techniques.composing-methods.extract-method",
+        "techniques.composing-methods.extract-variable",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-conditional",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.dispensables.duplicate-code",
+        "catalog.object-orientation-abusers.switch-statements",
+        "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+        "techniques.simplifying-conditional-expressions.decompose-conditional",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.dispensables.duplicate-code",
+        "catalog.object-orientation-abusers.switch-statements",
+        "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+        "techniques.simplifying-conditional-expressions.decompose-conditional",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-duplicate",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.dispensables.duplicate-code",
+        "techniques.composing-methods.extract-method",
+        "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.dispensables.duplicate-code",
+        "techniques.composing-methods.extract-method",
+        "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-long-method",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.bloaters.long-method",
+        "techniques.composing-methods.extract-method",
+        "techniques.composing-methods.extract-variable",
+        "techniques.simplifying-conditional-expressions.decompose-conditional",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.bloaters.long-method",
+        "techniques.composing-methods.extract-method",
+        "techniques.composing-methods.extract-variable",
+        "techniques.simplifying-conditional-expressions.decompose-conditional",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-long-parameters",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.bloaters.long-parameter-list",
+        "techniques.simplifying-method-calls.introduce-parameter-object",
+        "techniques.simplifying-method-calls.preserve-whole-object",
+        "techniques.simplifying-method-calls.remove-parameter",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.bloaters.long-parameter-list",
+        "techniques.simplifying-method-calls.introduce-parameter-object",
+        "techniques.simplifying-method-calls.preserve-whole-object",
+        "techniques.simplifying-method-calls.remove-parameter",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-message-chain",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 0,
+      "findingDelta": 0,
+      "baselineGuidanceResources": [
+        "catalog.couplers.message-chains",
+        "techniques.simplifying-method-calls.preserve-whole-object",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.couplers.message-chains",
+        "techniques.simplifying-method-calls.preserve-whole-object",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-middle-man",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 1,
+      "findingDelta": 1,
+      "baselineGuidanceResources": [
+        "catalog.couplers.middle-man",
+        "catalog.dispensables.speculative-generality",
+        "techniques.composing-methods.inline-method",
+        "techniques.moving-features-between-objects.remove-middle-man",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "catalog.couplers.middle-man",
+        "catalog.dispensables.speculative-generality",
+        "techniques.composing-methods.inline-method",
+        "techniques.moving-features-between-objects.remove-middle-man",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "guidance-missing-tests",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 0,
+      "findingDelta": 0,
+      "baselineGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "mock-clean",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 0,
+      "modelFindings": 0,
+      "findingDelta": 0,
+      "baselineGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    },
+    {
+      "slug": "mock-refactor",
+      "baselineOk": true,
+      "modelOk": false,
+      "baselineFindings": 1,
+      "modelFindings": null,
+      "findingDelta": null,
+      "baselineGuidanceResources": [],
+      "modelGuidanceResources": [],
+      "modelErrors": [
+        "fix requested but no matching finding was found"
+      ]
+    },
+    {
+      "slug": "mock-simplify",
+      "baselineOk": true,
+      "modelOk": true,
+      "baselineFindings": 1,
+      "modelFindings": 1,
+      "findingDelta": 0,
+      "baselineGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelGuidanceResources": [
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "modelErrors": []
+    }
+  ],
+  "totals": {
+    "fixturesCompared": 12,
+    "modelExecutionFailures": 1,
+    "findingDeltas": {
+      "0": 5,
+      "1": 6
+    }
+  }
+}

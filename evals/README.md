@@ -18,6 +18,13 @@ does not return a finding. Use them for representative Refactoring Signal
 fixtures such as Duplicate Code, Long Parameter List, clean code, and
 missing-tests-only cases.
 
+Every eval run also writes `evals/results/guidance-coverage-matrix.json` from
+the manifest, fixture traces, patch guidance applications, and explicit
+reservations in `evals/guidance-coverage.json`. Strict deterministic runs fail
+when any guidance resource is neither covered, applied, nor reserved; the matrix
+separately reports unowned selectable resources so new selector resources cannot
+ship without an eval owner.
+
 Run:
 
 ```bash
@@ -32,10 +39,13 @@ pnpm eval:model
 
 Model evals default to `codex`, `gpt-5.5`, and `medium` reasoning effort, write
 `evals/results/model-latest.json`, and use record-only expectations so they do
-not become mandatory CI gates. Override with `CODENUKE_EVAL_PROVIDER`,
-`CODENUKE_EVAL_MODEL`, `CODENUKE_EVAL_REASONING_EFFORT`,
-`CODENUKE_EVAL_EXPECTATIONS`, and `CODENUKE_EVAL_RESULTS`. Interpret model evals
-by comparing prompt/model/reasoning settings, selected resources, reported
+not become mandatory CI gates. They also write
+`evals/results/model-comparison.json` and
+`evals/results/model-comparison.md` against `evals/results/latest.json`.
+Override with `CODENUKE_EVAL_PROVIDER`, `CODENUKE_EVAL_MODEL`,
+`CODENUKE_EVAL_REASONING_EFFORT`, `CODENUKE_EVAL_EXPECTATIONS`,
+`CODENUKE_EVAL_RESULTS`, and `CODENUKE_EVAL_BASELINE`. Interpret model evals by
+comparing prompt/model/reasoning settings, selected resources, reported
 findings, false positives on clean fixtures, missed representative Refactoring
 Signals, output validity, and patch/revalidation behavior. Keep deterministic
 `pnpm eval` as the package verification gate.

@@ -13,6 +13,7 @@ import { reviewOutputSchema } from "../platform/types.js";
 const {
   addCodexModelArgs,
   acpxFailureMessage,
+  codexExecArgs,
   codexPrompt,
   extractAcpxJson,
   extractOpencodeJson,
@@ -113,6 +114,21 @@ describe("parseCodexJson", () => {
 });
 
 describe("Codex provider args", () => {
+  it("skips Codex trusted-directory checks for temporary eval worktrees", () => {
+    expect(codexExecArgs("/repo", "read-only", "/tmp/schema.json", "/tmp/output.json")).toEqual([
+      "exec",
+      "--cd",
+      "/repo",
+      "--skip-git-repo-check",
+      "--sandbox",
+      "read-only",
+      "--output-schema",
+      "/tmp/schema.json",
+      "--output-last-message",
+      "/tmp/output.json",
+    ]);
+  });
+
   it("passes model and reasoning effort through explicit CLI config", () => {
     const args = ["exec"];
 

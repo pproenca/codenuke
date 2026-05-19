@@ -22,6 +22,9 @@ const modelOverride = envValue("CODENUKE_EVAL_MODEL");
 const reasoningEffortOverride = envValue("CODENUKE_EVAL_REASONING_EFFORT");
 const expectationMode = envValue("CODENUKE_EVAL_EXPECTATIONS") ?? "strict";
 const resultsFile = envValue("CODENUKE_EVAL_RESULTS") ?? "latest.json";
+const guidanceManifest = readJson(join(repoRoot, "resources", "refactoring", "manifest.json"));
+const guidanceCoverageConfig =
+  readOptionalJson(join(repoRoot, "evals", "guidance-coverage.json")) ?? {};
 
 if (!existsSync(cli)) {
   throw new Error("dist/cli.js is missing. Run pnpm build before pnpm eval.");
@@ -46,6 +49,16 @@ for (const fixtureName of fixtureNames) {
   console.log(`${status} ${result.slug}: ${result.summary}`);
 }
 
+const guidanceCoverageMatrix = guidanceCoverageMatrixFromResults(results);
+if (expectationMode !== "record" && guidanceCoverageMatrix.totals.unownedResources > 0) {
+  failed += 1;
+  const unowned = guidanceCoverageMatrix.resources
+    .filter((resource) => resource.status === "unowned")
+    .map((resource) => resource.id)
+    .join(", ");
+  console.log(`FAIL guidance-coverage-matrix: unowned guidance resource(s): ${unowned}`);
+}
+
 const output = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
@@ -62,13 +75,18 @@ const output = {
     passed: results.length - failed,
     failed,
   },
+  guidanceCoverageMatrix,
   results,
 };
 
 mkdirSync(resultsRoot, { recursive: true });
 writeFileSync(join(resultsRoot, resultsFile), `${JSON.stringify(output, null, 2)}\n`);
+writeFileSync(
+  join(resultsRoot, "guidance-coverage-matrix.json"),
+  `${JSON.stringify(guidanceCoverageMatrix, null, 2)}\n`,
+);
 
-if (failed > 0) {
+if (failed > 0 && expectationMode !== "record") {
   process.exitCode = 1;
 }
 
@@ -432,6 +450,7 @@ function baselineFromState(worktree, initialReport, finalReport) {
       appliedResources: countGuidanceActions(patchesWithGuidance, "applied"),
       adaptedResources: countGuidanceActions(patchesWithGuidance, "adapted"),
       notUsedResources: countGuidanceActions(patchesWithGuidance, "not-used"),
+      resourceActions: guidanceResourceActions(patchesWithGuidance),
       deviations: sum(
         patchesWithGuidance,
         (patch) => patch.guidanceApplication?.deviations?.length ?? 0,
@@ -488,6 +507,17 @@ function countGuidanceActions(patches, action) {
     (patch) =>
       patch.guidanceApplication?.appliedResources?.filter((resource) => resource.action === action)
         .length ?? 0,
+  );
+}
+
+function guidanceResourceActions(patches) {
+  return patches.flatMap((patch) =>
+    (patch.guidanceApplication?.appliedResources ?? []).map((resource) => ({
+      patchAttemptId: patch.patchAttemptId,
+      findingId: patch.findingId ?? null,
+      resourceId: resource.resourceId,
+      action: resource.action,
+    })),
   );
 }
 
@@ -562,8 +592,111 @@ function normalizeItems(items) {
   }));
 }
 
+function guidanceCoverageMatrixFromResults(evalResults) {
+  const coverage = new Map();
+  for (const resource of guidanceManifest.resources ?? []) {
+    coverage.set(resource.id, {
+      id: resource.id,
+      title: resource.title,
+      kind: resource.kind,
+      stages: resource.stages ?? [],
+      selectWhen: resource.selectWhen ?? [],
+      selectable: (resource.selectWhen ?? []).length > 0,
+      selectedBy: [],
+      appliedBy: [],
+      reservedBy: [],
+      status: "unowned",
+    });
+  }
+
+  for (const result of evalResults) {
+    const selection = result.baseline?.guidanceSelection;
+    for (const resourceId of selection?.selectedResources ?? []) {
+      const row = coverage.get(resourceId);
+      if (row !== undefined) {
+        row.selectedBy.push(result.slug);
+      }
+    }
+    const patches = result.baseline?.guidanceApplication;
+    if (patches === undefined) {
+      continue;
+    }
+    for (const resource of patches.resourceActions ?? []) {
+      const row = coverage.get(resource.resourceId);
+      if (row !== undefined) {
+        row.appliedBy.push({
+          fixture: result.slug,
+          action: resource.action,
+          patchAttemptId: resource.patchAttemptId,
+        });
+      }
+    }
+  }
+
+  const reservations = guidanceCoverageConfig.reservedResources ?? [];
+  for (const reservation of reservations) {
+    const row = coverage.get(reservation.resourceId);
+    if (row !== undefined) {
+      row.reservedBy.push({
+        reason: reservation.reason,
+      });
+    }
+  }
+
+  const resources = [...coverage.values()].map((row) => {
+    const selectedBy = uniqueSorted(row.selectedBy);
+    const appliedBy = row.appliedBy.toSorted(
+      (left, right) =>
+        left.fixture.localeCompare(right.fixture) || left.action.localeCompare(right.action),
+    );
+    const reservedBy = row.reservedBy;
+    const status =
+      selectedBy.length > 0
+        ? "covered"
+        : appliedBy.length > 0
+          ? "applied"
+          : reservedBy.length > 0
+            ? "reserved"
+            : "unowned";
+    return {
+      ...row,
+      selectedBy,
+      appliedBy,
+      reservedBy,
+      status,
+    };
+  });
+
+  const unownedResources = resources.filter((resource) => resource.status === "unowned").length;
+  const unownedSelectableResources = resources.filter(
+    (resource) => resource.status === "unowned" && resource.selectable,
+  ).length;
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    source: {
+      manifest: "resources/refactoring/manifest.json",
+      coverageConfig: "evals/guidance-coverage.json",
+    },
+    totals: {
+      resources: resources.length,
+      selectableResources: resources.filter((resource) => resource.selectable).length,
+      coveredResources: resources.filter((resource) => resource.status === "covered").length,
+      appliedResources: resources.filter((resource) => resource.status === "applied").length,
+      reservedResources: resources.filter((resource) => resource.status === "reserved").length,
+      unownedResources,
+      unownedSelectableResources,
+    },
+    resources,
+  };
+}
+
 function readJson(path) {
   return parseJson(readFileSync(path, "utf8"));
+}
+
+function readOptionalJson(path) {
+  return existsSync(path) ? readJson(path) : null;
 }
 
 function envValue(name) {

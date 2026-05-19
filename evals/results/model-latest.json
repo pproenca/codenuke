@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-19T17:10:44.379Z",
-  "startedAt": "2026-05-19T17:10:39.238Z",
+  "generatedAt": "2026-05-19T17:09:02.548Z",
+  "startedAt": "2026-05-19T17:05:30.369Z",
   "cli": "node dist/cli.js",
   "mode": {
-    "expectations": "strict",
-    "providerOverride": null,
-    "model": null,
-    "reasoningEffort": null
+    "expectations": "record",
+    "providerOverride": "codex",
+    "model": "gpt-5.5",
+    "reasoningEffort": "medium"
   },
   "totals": {
     "fixtures": 12,
-    "passed": 12,
-    "failed": 0
+    "passed": 11,
+    "failed": 1
   },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-19T17:10:44.379Z",
+    "generatedAt": "2026-05-19T17:09:02.548Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -50,13 +50,7 @@
           "guidance-conditional",
           "guidance-duplicate"
         ],
-        "appliedBy": [
-          {
-            "fixture": "mock-refactor",
-            "action": "applied",
-            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_aa019428bd"
-          }
-        ],
+        "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
       },
@@ -441,8 +435,8 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 383,
-      "provider": "mock",
+      "durationMs": 5537,
+      "provider": "codex",
       "map": {
         "features": 6,
         "source": "heuristic",
@@ -522,9 +516,9 @@
       "slug": "guidance-comments",
       "name": "Guidance comments fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 381,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 23755,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -532,23 +526,57 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_7894e46ed8",
+            "title": "Stale procedural comment obscures the normalize contract",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 2,
+                "endLine": 5,
+                "symbol": "normalize"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-25c16aa0bf-_7894e46ed8",
+            "title": "Stale procedural comment obscures the normalize contract",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 2,
+                "endLine": 5,
+                "symbol": "normalize"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -607,8 +635,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -622,9 +652,9 @@
       "slug": "guidance-conditional",
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 386,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 24275,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -632,23 +662,69 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-66392fd4d1-_fcef864b93",
+            "title": "Package bin points directly at an unprepared TypeScript module",
+            "category": "build-release",
+            "severity": "medium",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "package.json",
+                "startLine": 5,
+                "endLine": 5,
+                "symbol": "bin.guidance-conditional"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "shippingLabel"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-66392fd4d1-_fcef864b93",
+            "title": "Package bin points directly at an unprepared TypeScript module",
+            "category": "build-release",
+            "severity": "medium",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "package.json",
+                "startLine": 5,
+                "endLine": 5,
+                "symbol": "bin.guidance-conditional"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "shippingLabel"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -710,8 +786,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -725,9 +803,9 @@
       "slug": "guidance-duplicate",
       "name": "Guidance duplicate-code fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 383,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 25536,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -735,23 +813,69 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-e28dacc394-_e31c1e2811",
+            "title": "Duplicate invoice summary calculation in CLI entrypoint",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 5,
+                "symbol": "summarizeInvoice"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 8,
+                "endLine": 12,
+                "symbol": "summarizePreview"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-e28dacc394-_e31c1e2811",
+            "title": "Duplicate invoice summary calculation in CLI entrypoint",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 5,
+                "symbol": "summarizeInvoice"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 8,
+                "endLine": 12,
+                "symbol": "summarizePreview"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -811,8 +935,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -826,9 +952,9 @@
       "slug": "guidance-long-method",
       "name": "Guidance long-method fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 386,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 21190,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -836,23 +962,57 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-30206027e2-_064decc3b6",
+            "title": "Repeated fixed-index summation obscures the summary contract",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 47,
+                "symbol": "buildAccountSummary"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-30206027e2-_064decc3b6",
+            "title": "Repeated fixed-index summation obscures the summary contract",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 47,
+                "symbol": "buildAccountSummary"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -914,8 +1074,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -929,9 +1091,9 @@
       "slug": "guidance-long-parameters",
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 386,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 19346,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -939,23 +1101,57 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-d3abedacff-_7b98f611fb",
+            "title": "quoteOrder mixes two stable parameter groups in a five-argument API",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 7,
+                "symbol": "quoteOrder"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-d3abedacff-_7b98f611fb",
+            "title": "quoteOrder mixes two stable parameter groups in a five-argument API",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 7,
+                "symbol": "quoteOrder"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -1017,8 +1213,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -1033,8 +1231,8 @@
       "name": "Guidance message-chain fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 378,
-      "provider": "mock",
+      "durationMs": 13606,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -1129,9 +1327,9 @@
       "slug": "guidance-middle-man",
       "name": "Guidance middle-man fixture",
       "ok": true,
-      "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 387,
-      "provider": "mock",
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 31970,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -1139,23 +1337,69 @@
       },
       "review": {
         "reviewed": 1,
-        "findings": 0
+        "findings": 1
       },
       "report": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-c5ab110005-_ec1759a954",
+            "title": "AccountPresenter is only a pass-through wrapper around the account object",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "AccountPresenter.constructor"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 3,
+                "endLine": 13,
+                "symbol": "AccountPresenter"
+              }
+            ]
+          }
+        ]
       },
       "finalReport": {
-        "findings": 0,
-        "items": []
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-cli-command-c5ab110005-_ec1759a954",
+            "title": "AccountPresenter is only a pass-through wrapper around the account object",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "medium",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/index.ts",
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "AccountPresenter.constructor"
+              },
+              {
+                "path": "src/index.ts",
+                "startLine": 3,
+                "endLine": 13,
+                "symbol": "AccountPresenter"
+              }
+            ]
+          }
+        ]
       },
       "fix": null,
       "revalidate": null,
       "baseline": {
         "schemaVersion": 1,
         "deterministicEval": {
-          "initialOpenFindings": 0,
-          "finalFindings": 0
+          "initialOpenFindings": 1,
+          "finalFindings": 1
         },
         "guidanceSelection": {
           "audits": 1,
@@ -1217,8 +1461,10 @@
         },
         "workflow": {
           "runs": 1,
-          "findings": 0,
-          "findingsByStatus": {},
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
           "patchAttempts": 0,
           "patchAttemptsByStatus": {},
           "validationCommands": 0,
@@ -1233,8 +1479,8 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 381,
-      "provider": "mock",
+      "durationMs": 8589,
+      "provider": "codex",
       "map": {
         "features": 5,
         "source": "heuristic",
@@ -1323,8 +1569,8 @@
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 380,
-      "provider": "mock",
+      "durationMs": 8789,
+      "provider": "codex",
       "map": {
         "features": 7,
         "source": "heuristic",
@@ -1411,144 +1657,12 @@
       "schemaVersion": 1,
       "slug": "mock-refactor",
       "name": "Mock refactoring marker",
-      "ok": true,
-      "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 890,
-      "provider": "mock",
-      "map": {
-        "features": 5,
-        "source": "heuristic",
-        "usedAgent": false
-      },
-      "review": {
-        "reviewed": 1,
-        "findings": 1
-      },
-      "report": {
-        "findings": 1,
-        "items": [
-          {
-            "id": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
-            "title": "Placeholder marker can be removed",
-            "category": "maintainability",
-            "severity": "low",
-            "confidence": "high",
-            "status": "open",
-            "evidence": [
-              {
-                "path": "src/index.ts",
-                "startLine": null,
-                "endLine": null,
-                "symbol": null
-              }
-            ]
-          }
-        ]
-      },
-      "finalReport": {
-        "findings": 1,
-        "items": [
-          {
-            "id": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
-            "title": "Placeholder marker can be removed",
-            "category": "maintainability",
-            "severity": "low",
-            "confidence": "high",
-            "status": "uncertain",
-            "evidence": [
-              {
-                "path": "src/index.ts",
-                "startLine": null,
-                "endLine": null,
-                "symbol": null
-              }
-            ]
-          }
-        ]
-      },
-      "fix": {
-        "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
-        "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_aa019428bd",
-        "filesChanged": 0,
-        "changedFiles": "none",
-        "commands": 0,
-        "validation": "none"
-      },
-      "revalidate": {
-        "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
-        "outcome": "uncertain",
-        "reasoning": "mock provider cannot inspect fixes"
-      },
-      "baseline": {
-        "schemaVersion": 1,
-        "deterministicEval": {
-          "initialOpenFindings": 1,
-          "finalFindings": 1
-        },
-        "guidanceSelection": {
-          "audits": 1,
-          "detectedShapes": 0,
-          "selectedResources": [],
-          "primaryResources": [],
-          "supportingResources": [],
-          "detectedShapeNames": [],
-          "promptedResources": [],
-          "rejectedResources": [
-            "catalog.bloaters.data-clumps",
-            "catalog.bloaters.long-method",
-            "catalog.bloaters.long-parameter-list",
-            "catalog.couplers.message-chains",
-            "catalog.couplers.middle-man",
-            "catalog.dispensables.comments",
-            "catalog.dispensables.duplicate-code",
-            "catalog.dispensables.speculative-generality",
-            "catalog.object-orientation-abusers.switch-statements"
-          ],
-          "promptProofs": 1
-        },
-        "guidanceApplication": {
-          "patchAttempts": 1,
-          "withGuidanceApplication": 1,
-          "appliedResources": 1,
-          "adaptedResources": 0,
-          "notUsedResources": 0,
-          "resourceActions": [
-            {
-              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_aa019428bd",
-              "findingId": null,
-              "resourceId": "catalog.dispensables.duplicate-code",
-              "action": "applied"
-            }
-          ],
-          "deviations": 0,
-          "risks": {
-            "low": 1
-          }
-        },
-        "patchBoundary": {
-          "patchAttempts": 1,
-          "filesChanged": 0,
-          "failures": 0,
-          "unexpectedFiles": 0
-        },
-        "workflow": {
-          "runs": 2,
-          "findings": 1,
-          "findingsByStatus": {
-            "uncertain": 1
-          },
-          "patchAttempts": 1,
-          "patchAttemptsByStatus": {
-            "applied": 1
-          },
-          "validationCommands": 0,
-          "revalidationOutcomes": {
-            "uncertain": 1
-          }
-        }
-      },
-      "errors": []
+      "ok": false,
+      "summary": "fix requested but no matching finding was found",
+      "durationMs": 6415,
+      "errors": [
+        "fix requested but no matching finding was found"
+      ]
     },
     {
       "schemaVersion": 1,
@@ -1556,8 +1670,8 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 382,
-      "provider": "mock",
+      "durationMs": 23122,
+      "provider": "codex",
       "map": {
         "features": 7,
         "source": "heuristic",
@@ -1571,18 +1685,30 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-31346196d4-_bec2e5358e",
-            "title": "Dead code marker can be removed",
-            "category": "maintainability",
+            "id": "fnd_sig-feat-cli-command-31346196d4-_8aaaeaf7d3",
+            "title": "Placeholder export in CLI entrypoint needs focused coverage before removal",
+            "category": "test-gap",
             "severity": "low",
             "confidence": "high",
             "status": "open",
             "evidence": [
               {
                 "path": "src/index.ts",
-                "startLine": null,
-                "endLine": null,
-                "symbol": null
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "unused"
+              },
+              {
+                "path": "package.json",
+                "startLine": 4,
+                "endLine": 4,
+                "symbol": "bin.eval-simplify"
+              },
+              {
+                "path": "package.json",
+                "startLine": 7,
+                "endLine": 7,
+                "symbol": "scripts.test"
               }
             ]
           }
@@ -1592,18 +1718,30 @@
         "findings": 1,
         "items": [
           {
-            "id": "fnd_sig-feat-cli-command-31346196d4-_bec2e5358e",
-            "title": "Dead code marker can be removed",
-            "category": "maintainability",
+            "id": "fnd_sig-feat-cli-command-31346196d4-_8aaaeaf7d3",
+            "title": "Placeholder export in CLI entrypoint needs focused coverage before removal",
+            "category": "test-gap",
             "severity": "low",
             "confidence": "high",
             "status": "open",
             "evidence": [
               {
                 "path": "src/index.ts",
-                "startLine": null,
-                "endLine": null,
-                "symbol": null
+                "startLine": 1,
+                "endLine": 1,
+                "symbol": "unused"
+              },
+              {
+                "path": "package.json",
+                "startLine": 4,
+                "endLine": 4,
+                "symbol": "bin.eval-simplify"
+              },
+              {
+                "path": "package.json",
+                "startLine": 7,
+                "endLine": 7,
+                "symbol": "scripts.test"
               }
             ]
           }

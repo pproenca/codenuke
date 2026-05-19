@@ -463,17 +463,7 @@ async function runCodexJson(
   const outputPath = join(dir, "output.json");
   await writeFile(schemaPath, JSON.stringify(schema), "utf8");
   try {
-    const args = [
-      "exec",
-      "--cd",
-      root,
-      "--sandbox",
-      sandbox,
-      "--output-schema",
-      schemaPath,
-      "--output-last-message",
-      outputPath,
-    ];
+    const args = codexExecArgs(root, sandbox, schemaPath, outputPath);
     addCodexModelArgs(args, options);
     args.push("-");
     const result = await runCommandArgs("codex", args, root, codexPrompt(prompt));
@@ -507,6 +497,26 @@ function addCodexModelArgs(args: string[], options: ProviderOptions): void {
   if (options.reasoningEffort !== null) {
     args.push("-c", `model_reasoning_effort="${options.reasoningEffort}"`);
   }
+}
+
+function codexExecArgs(
+  root: string,
+  sandbox: string,
+  schemaPath: string,
+  outputPath: string,
+): string[] {
+  return [
+    "exec",
+    "--cd",
+    root,
+    "--skip-git-repo-check",
+    "--sandbox",
+    sandbox,
+    "--output-schema",
+    schemaPath,
+    "--output-last-message",
+    outputPath,
+  ];
 }
 
 function codexPrompt(prompt: string): string {
@@ -1025,6 +1035,7 @@ function acpxTimeoutMs(): number {
 export const __testing = {
   acpxFailureMessage,
   addCodexModelArgs,
+  codexExecArgs,
   codexPrompt,
   extractAcpxJson,
   extractOpencodeJson,
