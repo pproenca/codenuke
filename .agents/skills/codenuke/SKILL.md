@@ -193,6 +193,15 @@ npx --yes codenuke@latest clean-locks
 - Keep `.codenuke/` out of commits unless the user explicitly wants codenuke
   state or reports checked in.
 
+## Prompt And Eval Changes
+
+When changing codenuke prompt, provider, or eval machinery, use the OpenAI Docs
+skill and current official Codex/GPT-5.5 guidance first. Keep GPT-5.5 model
+comparison evals on `codex`, `gpt-5.5`, and `medium` reasoning effort unless
+the user or eval evidence justifies another setting. Do not set
+`CODENUKE_CODEX_SKIP_GIT_REPO_CHECK` outside the eval runner; normal codenuke
+provider calls should keep Codex trusted-directory checks enabled.
+
 ## Handoff
 
 When finished, summarize:

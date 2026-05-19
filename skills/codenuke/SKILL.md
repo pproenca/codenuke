@@ -1,6 +1,6 @@
 ---
 name: codenuke
-description: Run codenuke from npm for automated code review, behavior-preserving refactoring, complexity reduction, finding triage, and one-finding-at-a-time fix/revalidate loops. Use when a user wants to set up codenuke in a repository, review code with codenuke, run an auto-fix loop over actionable findings, inspect reports, triage false positives, revalidate fixes, or operate the codenuke CLI without needing it installed globally.
+description: Run codenuke from npm for automated code review, behavior-preserving refactoring, complexity reduction, finding triage, one-finding-at-a-time fix/revalidate loops, and optional commit-and-continue auto-fix loops. Use when a user wants to set up codenuke in a repository, review code with codenuke, run an auto-fix loop over actionable findings, commit validated fixes and continue until no fixes remain, inspect reports, triage false positives, revalidate fixes, or operate the codenuke CLI without needing it installed globally.
 ---
 
 # codenuke
@@ -57,10 +57,31 @@ npx --yes codenuke@latest review --feature <featureId>
 npx --yes codenuke@latest report --status open --severity high
 ```
 
+Review selects packaged refactoring resources from observable owned-code shapes,
+injects them into provider prompts, and persists guidance traces on findings.
+When debugging review quality, inspect both the finding evidence and the
+guidance trace:
+
+```bash
+npx --yes codenuke@latest review --feature <featureId> --dry-run --json
+npx --yes codenuke@latest show --finding <findingId> --json
+```
+
 ## Auto-Fix Loop
 
 Keep fixes finding-scoped. Default to at most 3 iterations unless the user gives
 a larger budget.
+
+Before starting an auto-fix loop, ask whether the user wants either:
+
+- A bounded loop with no commits. Use the default 3-iteration budget unless the
+  user gives another limit.
+- A commit-and-continue loop. Commit each validated fix, then continue until
+  there are no open actionable findings left.
+
+Only use the commit-and-continue loop after the user explicitly opts in. If the
+user already asked for commits or to continue until no fixes remain, treat that
+as opt-in.
 
 For each iteration:
 
@@ -90,6 +111,48 @@ Use `--dry-run` first when the user wants a plan without edits:
 npx --yes codenuke@latest fix --finding <findingId> --dry-run
 ```
 
+The dry-run output should expose the finding's guidance trace. During a real
+fix, codenuke should apply that trace rather than rediscovering guidance from
+scratch.
+
+### Commit-And-Continue Loop
+
+Use this mode only when the user opts in. Keep each commit finding-scoped so the
+history can be reviewed or reverted cleanly.
+
+For each iteration:
+
+1. Confirm the source worktree is clean, excluding codenuke state directories
+   such as `.codenuke/` unless the user asked to commit state.
+2. Select and inspect the next open finding.
+3. Run `fix` for that finding.
+4. Review `git diff --stat` and `git diff`; remove unrelated generated or
+   formatting-only changes before continuing.
+5. Run the validation commands reported by codenuke and the repository's normal
+   checks when practical.
+6. Revalidate the same finding.
+7. If revalidation says fixed and validation passed, stage only the relevant
+   non-state files and create one commit for that finding.
+8. Refresh the open report and continue with the next actionable finding.
+
+Stop instead of committing or continuing when the fix touches unrelated files,
+validation fails, revalidation is uncertain or still open, the worktree contains
+pre-existing user changes, there is no clear next actionable finding, or the
+changes need human review.
+
+```bash
+git status --short
+npx --yes codenuke@latest next
+npx --yes codenuke@latest show --finding <findingId>
+npx --yes codenuke@latest fix --finding <findingId>
+git diff --stat
+git diff
+npx --yes codenuke@latest revalidate --finding <findingId>
+git add <relevant-non-state-files>
+git commit -m "fix: address <short finding title>"
+npx --yes codenuke@latest report --status open
+```
+
 ## Triage And Recovery
 
 Mark non-actionable findings explicitly:
@@ -106,6 +169,10 @@ npx --yes codenuke@latest revalidate --finding <findingId>
 npx --yes codenuke@latest revalidate --all --status open --limit 10
 ```
 
+Revalidation should assess both whether the finding is resolved and whether the
+applied guidance still fits the final patch. Treat an uncertain revalidation as
+a stop point for human review or a tighter follow-up fix.
+
 If stale work locks block progress:
 
 ```bash
@@ -118,12 +185,22 @@ npx --yes codenuke@latest clean-locks
   commands.
 - Treat `fix` as a mutating command. Run it only after selecting a specific
   finding and checking the worktree.
-- Do not commit, push, open PRs, or land changes unless the user separately
-  asks. codenuke itself does not do those actions.
+- Do not commit unless the user separately asks or opts in to the
+  commit-and-continue loop. Do not push, open PRs, or land changes unless the
+  user separately asks. codenuke itself does not do those actions.
 - Do not hide validation failures. Report the failing command, whether the
   failure appears related to the patch, and the next concrete command to run.
 - Keep `.codenuke/` out of commits unless the user explicitly wants codenuke
   state or reports checked in.
+
+## Prompt And Eval Changes
+
+When changing codenuke prompt, provider, or eval machinery, use the OpenAI Docs
+skill and current official Codex/GPT-5.5 guidance first. Keep GPT-5.5 model
+comparison evals on `codex`, `gpt-5.5`, and `medium` reasoning effort unless
+the user or eval evidence justifies another setting. Do not set
+`CODENUKE_CODEX_SKIP_GIT_REPO_CHECK` outside the eval runner; normal codenuke
+provider calls should keep Codex trusted-directory checks enabled.
 
 ## Handoff
 
@@ -131,6 +208,7 @@ When finished, summarize:
 
 - Commands run.
 - Finding IDs fixed, revalidated, triaged, or still open.
+- Commit hashes created, if any.
 - Files changed outside `.codenuke/`.
 - Validation commands and results.
 - The next codenuke command the user should run.
