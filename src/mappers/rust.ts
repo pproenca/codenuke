@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import {
   isSafeDirectory,
   isSafeFile,
@@ -26,9 +26,7 @@ export async function rustSeeds(root: string, context: MapperContext): Promise<F
   const rootHasPackage = await hasCargoPackageManifest(root, "Cargo.toml");
   const rustTestCommand = "cargo test --workspace";
   const seeds: FeatureSeed[] = [];
-  const rootTests = rootHasPackage
-    ? rustIntegrationTests(context, "tests", rustTestCommand)
-    : [];
+  const rootTests = rootHasPackage ? rustIntegrationTests(context, "tests", rustTestCommand) : [];
   const rootFeatureTests = rootTests.slice(0, rustFeatureTestLimit);
   if (rootHasPackage && (await isSafeFile(root, join(root, "src/main.rs")))) {
     seeds.push(rustCommandSeed("src/main.rs", packageName, rustTestCommand, rootFeatureTests));
@@ -116,7 +114,9 @@ async function cargoWorkspace(root: string): Promise<{
     }
     if (hasMemberGlob(member)) {
       dirs.push(...(await expandMemberPattern(root, member, excluded)));
-    } else if (
+      continue;
+    }
+    if (
       !excluded.has(member) &&
       (await isSafeDirectory(root, join(root, member))) &&
       (await isRustPackageDir(root, member))

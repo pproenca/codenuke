@@ -57,9 +57,11 @@ async function autotoolsTargets(root: string, files: string[]): Promise<FeatureS
   const seeds: FeatureSeed[] = [];
   const makefiles = files.filter(isMakefile);
   for (const makefile of makefiles) {
-    const body = collapseBackslashContinuations(
-      stripLineComments(await readFile(join(root, makefile), "utf8").catch(() => ""), "#"),
+    const source = await readFile(join(root, makefile), "utf8").then(
+      (value) => value,
+      () => "",
     );
+    const body = collapseBackslashContinuations(stripLineComments(source, "#"));
     const dir = parentDir(makefile);
     for (const rawTarget of readVariableWords(body, "bin_PROGRAMS")) {
       const target = normalizeAutomakeProgramTarget(rawTarget);
@@ -137,7 +139,11 @@ async function cmakeTargets(root: string, files: string[]): Promise<FeatureSeed[
     projectName,
   } of contexts) {
     const listDir = parentDir(cmakeFile);
-    const body = stripCMakeComments(await readFile(join(root, cmakeFile), "utf8").catch(() => ""));
+    const source = await readFile(join(root, cmakeFile), "utf8").then(
+      (value) => value,
+      () => "",
+    );
+    const body = stripCMakeComments(source);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const args of cmakeCommandArgs(body, "add_executable")) {
@@ -306,7 +312,11 @@ async function referencedCMakeFiles(root: string, files: string[]): Promise<CMak
       projectName,
     } = context;
     const listDir = parentDir(cmakeFile);
-    const body = stripCMakeComments(await readFile(join(root, cmakeFile), "utf8").catch(() => ""));
+    const source = await readFile(join(root, cmakeFile), "utf8").then(
+      (value) => value,
+      () => "",
+    );
+    const body = stripCMakeComments(source);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const include of cmakeIncludes(body)) {
@@ -429,7 +439,11 @@ async function cmakeTargetSources(
     projectName,
   } of contexts) {
     const listDir = parentDir(cmakeFile);
-    const body = stripCMakeComments(await readFile(join(root, cmakeFile), "utf8").catch(() => ""));
+    const source = await readFile(join(root, cmakeFile), "utf8").then(
+      (value) => value,
+      () => "",
+    );
+    const body = stripCMakeComments(source);
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const args of cmakeCommandArgs(body, "target_sources")) {
@@ -650,7 +664,10 @@ async function mainFunctionTargets(
     if (alreadySeeded.has(file) || isCOrCppTestPath(file)) {
       continue;
     }
-    const source = await readFile(join(root, file), "utf8").catch(() => "");
+    const source = await readFile(join(root, file), "utf8").then(
+      (value) => value,
+      () => "",
+    );
     if (source.length > 2_000_000 || !definesMain(source)) {
       continue;
     }
@@ -985,7 +1002,10 @@ async function pickExecutableEntry(
     return null;
   }
   for (const candidate of compilableCandidates) {
-    const source = await readFile(join(root, candidate), "utf8").catch(() => "");
+    const source = await readFile(join(root, candidate), "utf8").then(
+      (value) => value,
+      () => "",
+    );
     if (source.length <= 2_000_000 && definesMain(source)) {
       return candidate;
     }

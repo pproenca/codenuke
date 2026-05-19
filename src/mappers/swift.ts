@@ -1,6 +1,6 @@
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import {
   normalize,
   isSampleProjectPath,

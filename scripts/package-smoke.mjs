@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -139,6 +139,17 @@ try {
   }
   if (!titles.has("frontend route /dashboard")) {
     throw new Error("expected packaged CLI to include nested Next workspace route mapping");
+  }
+  const resourceManifest = join(
+    installRoot,
+    "node_modules",
+    "codenuke",
+    "resources",
+    "refactoring",
+    "manifest.json",
+  );
+  if (!existsSync(resourceManifest)) {
+    throw new Error("expected packaged CLI to include refactoring resources");
   }
 
   console.log(`packaged CLI smoke mapped ${mapped.features} features`);

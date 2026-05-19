@@ -1,7 +1,7 @@
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { packageScripts, readPackageJson } from "../detect.js";
-import { pathExists } from "../fs.js";
+import { packageScripts, readPackageJson } from "../platform/detect.js";
+import { pathExists } from "../platform/fs.js";
 import { isSafeDirectory, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
 import { taskGraphCommand, type WorkspaceTaskGraph } from "./task-graph.js";
 import type { SeedFileRef } from "./types.js";
@@ -326,7 +326,7 @@ async function readPackageJsonAt(root: string, path: string): Promise<NodePackag
     return null;
   }
   const parsed: unknown = JSON.parse(await readFile(join(root, path), "utf8"));
-  return typeof parsed === "object" && parsed !== null ? (parsed as NodePackageJson) : null;
+  return record(parsed) ? parsed : null;
 }
 
 type NxProjectJson = {
@@ -341,26 +341,20 @@ async function readNxProjectJson(root: string, path: string): Promise<NxProjectJ
     return null;
   }
   const parsed: unknown = JSON.parse(await readFile(join(root, path), "utf8"));
-  if (typeof parsed !== "object" || parsed === null) {
+  if (!record(parsed)) {
     return null;
   }
-  const record = parsed as {
-    name?: unknown;
-    sourceRoot?: unknown;
-    projectType?: unknown;
-    targets?: unknown;
-  };
   return {
-    name: typeof record.name === "string" && record.name.length > 0 ? record.name : null,
+    name: typeof parsed["name"] === "string" && parsed["name"].length > 0 ? parsed["name"] : null,
     sourceRoot:
-      typeof record.sourceRoot === "string" && record.sourceRoot.length > 0
-        ? normalize(record.sourceRoot)
+      typeof parsed["sourceRoot"] === "string" && parsed["sourceRoot"].length > 0
+        ? normalize(parsed["sourceRoot"])
         : null,
     projectType:
-      typeof record.projectType === "string" && record.projectType.length > 0
-        ? record.projectType
+      typeof parsed["projectType"] === "string" && parsed["projectType"].length > 0
+        ? parsed["projectType"]
         : null,
-    targets: nxTargets(record.targets),
+    targets: nxTargets(parsed["targets"]),
   };
 }
 
@@ -373,6 +367,10 @@ function nxTargets(targets: unknown): Record<string, NodeProjectTarget> {
     output[name] = { name };
   }
   return output;
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function packageDisplayName(

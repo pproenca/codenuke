@@ -6,11 +6,15 @@ finding triage, and one-finding-at-a-time fix/revalidation loops.
 ## Project structure
 
 - Source lives in `src/`.
-- CLI entrypoint: `src/cli.ts`.
-- Workflow orchestration: `src/app.ts` and `src/workflow.test.ts`.
-- Provider command construction and schema handling: `src/provider.ts`,
-  `src/provider-json.ts`, `src/provider-schema.ts`, and `src/provider.test.ts`.
-- Feature mappers live under `src/mappers/`.
+- CLI executable wrapper: `src/cli.ts`; CLI implementation:
+  `src/cli/main.ts`.
+- Workflow orchestration and durable review/fix state live in `src/workflow/`.
+- Mapping orchestration lives in `src/mapping/`; framework-specific feature
+  mappers live in `src/mappers/`.
+- Provider command construction, JSON extraction, and schema handling live in
+  `src/provider/`.
+- Shared platform utilities and durable schemas live in `src/platform/`.
+- Test helpers live in `src/testing/`.
 - Tests sit beside implementation files as `*.test.ts`.
 - Documentation lives in `docs/`.
 - Static website assets live in `website/`.
@@ -28,7 +32,7 @@ Use pnpm with Node 22 or newer.
 - `pnpm format`: rewrite files with Oxfmt.
 - `pnpm format:check`: verify formatting without writing changes.
 - `pnpm test`: run the Vitest suite.
-- `pnpm test src/mapper.test.ts`: run one focused test file.
+- `pnpm test src/mapping/heuristic.test.ts`: run one focused test file.
 - `pnpm eval`: build and run the local eval fixtures.
 - `pnpm pack:smoke`: run the package smoke test.
 
@@ -124,9 +128,9 @@ Avoid large modules:
 
 - Prefer adding a mapper-specific module instead of growing a central helper
   file.
-- Be especially careful with central orchestration files such as `src/app.ts`,
-  `src/provider.ts`, `src/mapper.ts`, `src/workflow.test.ts`, and
-  `src/mappers/shared.ts`.
+- Be especially careful with central orchestration files such as
+  `src/workflow/app.ts`, `src/provider/index.ts`, `src/mapping/heuristic.ts`,
+  `src/workflow/workflow.test.ts`, and `src/mappers/shared.ts`.
 - If a file is already large, add new functionality in a focused module unless
   there is a strong reason to keep the code local.
 - When extracting code, move the related tests and invariants toward the new
@@ -163,3 +167,17 @@ Use short semantic subjects such as:
 Keep commits scoped and descriptive. PRs should explain the behavior change,
 link related issues, mention docs/changelog updates when needed, and include the
 exact checks run. Add screenshots only for website or rendered-doc changes.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage status uses the default mattpocock/skills vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repo uses a single-context domain docs layout. See `docs/agents/domain.md`.

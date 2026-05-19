@@ -4,9 +4,21 @@ import {
   packageRootsForWorkspacePatterns,
   parsePnpmWorkspace,
 } from "./workspaces.js";
-import { fixtureRoot, writeFixture } from "../test-helpers.js";
+import { fixtureRoot, writeFixture } from "../testing/test-helpers.js";
 
 describe("workspace helpers", () => {
+  it("reads package workspace patterns from array and object forms", () => {
+    expect(packageWorkspacePatterns({ workspaces: ["packages/*", 1, null] })).toEqual([
+      "packages/*",
+    ]);
+    expect(
+      packageWorkspacePatterns({
+        workspaces: { packages: ["apps/*", false, "tools/*"] },
+      }),
+    ).toEqual(["apps/*", "tools/*"]);
+    expect(packageWorkspacePatterns({ workspaces: { packages: "apps/*" } })).toEqual([]);
+  });
+
   it("expands package and pnpm workspace patterns with excludes and unsafe paths", async () => {
     const root = await fixtureRoot("codenuke-workspace-helpers-");
     await writeFixture(

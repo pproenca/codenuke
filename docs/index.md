@@ -53,6 +53,7 @@ stderr so pipes stay parseable.
 - [Configuration](configuration.md)
 - [Feature Mapping](feature-mapping.md)
 - [Code Review](code-review.md)
+- [Design Patterns](design-patterns.md)
 - [Findings](findings.md)
 - [Patching](patching.md)
 - [Reporting](reporting.md)

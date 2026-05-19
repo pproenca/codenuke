@@ -25,19 +25,18 @@ export function repoIndexFromFiles(files: string[]): RepoIndex {
     const basename = parts.at(-1);
     if (basename !== undefined) {
       basenames.add(basename);
-      const extension = extname(basename);
-      if (extension.length > 0) {
-        const normalizedExtension = extension.toLowerCase();
-        extensions.add(normalizedExtension);
-        const extensionFiles = filesByExtension.get(normalizedExtension) ?? [];
-        extensionFiles.push(file);
-        filesByExtension.set(normalizedExtension, extensionFiles);
+      const ext = extname(basename).toLowerCase();
+      if (ext.length > 0) {
+        extensions.add(ext);
+        const bucket = filesByExtension.get(ext) ?? [];
+        bucket.push(file);
+        filesByExtension.set(ext, bucket);
       }
     }
-    let directory = "";
+    let dir = "";
     for (const part of parts.slice(0, -1)) {
-      directory = directory.length === 0 ? part : `${directory}/${part}`;
-      directories.add(directory);
+      dir = dir.length === 0 ? part : `${dir}/${part}`;
+      directories.add(dir);
     }
   }
   return {
@@ -67,10 +66,8 @@ export function repoHasAnyExtension(index: RepoIndex, extensions: readonly strin
 }
 
 export function repoHasDirectory(index: RepoIndex, path: string): boolean {
-  const normalized = path.replace(/\/$/u, "");
-  return (
-    normalized.length === 0 || index.directories.has(normalized) || index.fileSet.has(normalized)
-  );
+  const target = path.replace(/\/$/u, "");
+  return target.length === 0 || index.directories.has(target) || index.fileSet.has(target);
 }
 
 export function repoHasDirectoryEnding(index: RepoIndex, suffix: string): boolean {
@@ -78,23 +75,23 @@ export function repoHasDirectoryEnding(index: RepoIndex, suffix: string): boolea
 }
 
 export function repoFilesUnderAny(index: RepoIndex, prefixes: readonly string[]): string[] {
-  const normalizedPrefixes = prefixes.map(normalizePrefix);
-  if (normalizedPrefixes.some((prefix) => prefix.length === 0)) {
+  const roots = prefixes.map(normalizePrefix);
+  if (roots.some((prefix) => prefix.length === 0)) {
     return index.files;
   }
   const matched = new Set<string>();
-  for (const prefix of normalizedPrefixes) {
+  for (const prefix of roots) {
     if (index.fileSet.has(prefix)) {
       matched.add(prefix);
     }
-    const directoryPrefix = `${prefix}/`;
-    const start = lowerBound(index.files, directoryPrefix);
-    for (let indexOffset = start; indexOffset < index.files.length; indexOffset += 1) {
-      const file = index.files[indexOffset];
+    const dir = `${prefix}/`;
+    const start = lowerBound(index.files, dir);
+    for (let offset = start; offset < index.files.length; offset += 1) {
+      const file = index.files[offset];
       if (file === undefined) {
         break;
       }
-      if (file.startsWith(directoryPrefix)) {
+      if (file.startsWith(dir)) {
         matched.add(file);
         continue;
       }
@@ -126,13 +123,13 @@ function lowerBound(values: readonly string[], target: string): number {
   let low = 0;
   let high = values.length;
   while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    const value = values[middle];
+    const mid = Math.floor((low + high) / 2);
+    const value = values[mid];
     if (value !== undefined && value < target) {
-      low = middle + 1;
-    } else {
-      high = middle;
+      low = mid + 1;
+      continue;
     }
+    high = mid;
   }
   return low;
 }

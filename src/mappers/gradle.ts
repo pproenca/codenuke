@@ -1,6 +1,6 @@
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { partitionFileGroups } from "./grouping.js";
 import { repoFilesUnderAny } from "./repo-index.js";
 import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
@@ -2033,7 +2033,10 @@ async function gradleTags(
     tags.push("kotlin");
   }
   const [buildSource, androidAliases] = await Promise.all([
-    readFile(join(root, buildFile), "utf8").catch(() => ""),
+    readFile(join(root, buildFile), "utf8").then(
+      (value) => value,
+      () => "",
+    ),
     androidVersionCatalogPluginAliases(root, gradleRoot, buildFile),
   ]);
   if (
@@ -2053,7 +2056,10 @@ async function androidVersionCatalogPluginAliases(
 ): Promise<Set<string>> {
   const aliases = new Set<string>();
   for (const path of versionCatalogPaths(buildFile, gradleRoot)) {
-    const source = await readFile(join(root, path), "utf8").catch(() => null);
+    const source = await readFile(join(root, path), "utf8").then(
+      (value) => value,
+      () => null,
+    );
     if (source === null) {
       continue;
     }

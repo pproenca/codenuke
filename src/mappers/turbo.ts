@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { packageScripts } from "../detect.js";
-import { pathExists } from "../fs.js";
+import { packageScripts } from "../platform/detect.js";
+import { pathExists } from "../platform/fs.js";
 import type { NodeProjectInfo } from "./projects.js";
 import { detectNodePackageManager } from "./shared.js";
 import {
@@ -10,13 +10,6 @@ import {
   type WorkspaceTaskGraph,
   type WorkspaceTaskMetadata,
 } from "./task-graph.js";
-
-type TurboConfig = {
-  globalDependencies?: unknown;
-  globalEnv?: unknown;
-  tasks?: unknown;
-  pipeline?: unknown;
-};
 
 const emptyTaskMetadata: WorkspaceTaskMetadata = {
   dependsOn: [],
@@ -35,13 +28,13 @@ export async function turboTaskGraph(
     return emptyTaskGraph();
   }
 
-  const parsed = JSON.parse(await readFile(path, "utf8")) as TurboConfig;
-  const taskEntries = taskRecord(parsed.tasks ?? parsed.pipeline);
+  const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+  const taskEntries = taskRecord(field(parsed, "tasks") ?? field(parsed, "pipeline"));
   const rootPackageManager = await detectNodePackageManager(root);
   const graph: WorkspaceTaskGraph = {
     runner: "turbo",
-    globalDependencies: stringArray(parsed.globalDependencies),
-    globalEnv: stringArray(parsed.globalEnv),
+    globalDependencies: stringArray(field(parsed, "globalDependencies")),
+    globalEnv: stringArray(field(parsed, "globalEnv")),
     commands: [],
   };
 
@@ -74,7 +67,7 @@ export async function turboTaskGraph(
 }
 
 function taskRecord(value: unknown): Map<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!record(value)) {
     return new Map();
   }
   return new Map(Object.entries(value));
@@ -99,23 +92,24 @@ function metadataForTask(
 }
 
 function taskMetadata(value: unknown): WorkspaceTaskMetadata {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!record(value)) {
     return { ...emptyTaskMetadata };
   }
-  const record = value as {
-    dependsOn?: unknown;
-    outputs?: unknown;
-    env?: unknown;
-    cache?: unknown;
-    persistent?: unknown;
-  };
   return {
-    dependsOn: stringArray(record.dependsOn),
-    outputs: stringArray(record.outputs),
-    env: stringArray(record.env),
-    cache: typeof record.cache === "boolean" ? record.cache : null,
-    persistent: record.persistent === true,
+    dependsOn: stringArray(value["dependsOn"]),
+    outputs: stringArray(value["outputs"]),
+    env: stringArray(value["env"]),
+    cache: typeof value["cache"] === "boolean" ? value["cache"] : null,
+    persistent: value["persistent"] === true,
   };
+}
+
+function field(value: unknown, key: string): unknown {
+  return record(value) ? value[key] : undefined;
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function stringArray(value: unknown): string[] {

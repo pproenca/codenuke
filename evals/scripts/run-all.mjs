@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const fixturesRoot = join(repoRoot, "evals", "fixtures");
@@ -25,7 +25,7 @@ if (!existsSync(cli)) {
 const fixtureNames = readdirSync(fixturesRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .toSorted();
 
 const startedAt = new Date().toISOString();
 const results = [];
@@ -202,6 +202,6 @@ function parseJson(text) {
     return JSON.parse(text);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`failed to parse JSON: ${message}\n${text}`);
+    throw new Error(`failed to parse JSON: ${message}\n${text}`, { cause: error });
   }
 }

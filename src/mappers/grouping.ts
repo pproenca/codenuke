@@ -56,9 +56,9 @@ function partitionAt(
         label: `${sourceRoot}/${bucketPrefix(bucketFiles, sourceRoot, depth, segment)}`,
         files: bucketFiles,
       });
-    } else {
-      groups.push(...partitionAt(sourceRoot, bucketFiles, maxFiles, depth + 1));
+      continue;
     }
+    groups.push(...partitionAt(sourceRoot, bucketFiles, maxFiles, depth + 1));
   }
   return groups;
 }

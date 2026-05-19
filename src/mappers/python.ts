@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { partitionFileGroups } from "./grouping.js";
 import {
   isSafeDirectory,
@@ -313,7 +313,11 @@ async function pythonSourceRoots(root: string): Promise<string[]> {
       roots.push(sourceRoot);
     }
   }
-  for (const entry of await readdir(root).catch(() => [])) {
+  const entries = await readdir(root).then(
+    (value) => value,
+    () => [],
+  );
+  for (const entry of entries) {
     const packageRoot = join(root, entry);
     if (
       !pythonShouldSkip(entry) &&

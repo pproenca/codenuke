@@ -5,9 +5,9 @@ import {
   composerScripts,
   readComposerJson,
   type ComposerJson,
-} from "../detect.js";
-import { pathExists } from "../fs.js";
-import { TrustBoundary } from "../types.js";
+} from "../platform/detect.js";
+import { pathExists } from "../platform/fs.js";
+import { TrustBoundary } from "../platform/types.js";
 import { repoFilesUnderAny } from "./repo-index.js";
 import { isSafeFile, pathMatchesPrefix, shouldSkip } from "./shared.js";
 import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";

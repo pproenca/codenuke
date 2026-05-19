@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { readdir, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { packageKind, packageTrustBoundaries, normalize, shouldSkip } from "./shared.js";
 import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
 
@@ -65,7 +65,10 @@ async function goPackages(
 }
 
 async function goListPackages(root: string): Promise<GoPackage[]> {
-  const resolvedRoot = await realpath(root).catch(() => root);
+  const resolvedRoot = await realpath(root).then(
+    (value) => value,
+    () => root,
+  );
   const stdout = await runGoList(root);
   const packages: GoPackage[] = [];
   for (const line of stdout
@@ -76,7 +79,10 @@ async function goListPackages(root: string): Promise<GoPackage[]> {
     if (dir === undefined || importPath === undefined || name === undefined) {
       continue;
     }
-    const resolvedDir = await realpath(dir).catch(() => dir);
+    const resolvedDir = await realpath(dir).then(
+      (value) => value,
+      () => dir,
+    );
     const rel = normalize(relative(resolvedRoot, resolvedDir));
     if (rel.startsWith("..") || isAbsolute(rel) || (await isSkippedGoPackageDir(root, rel))) {
       continue;
@@ -157,7 +163,10 @@ async function hasNestedGoMod(root: string, dir: string): Promise<boolean> {
 }
 
 async function goPackageFiles(root: string, dir: string): Promise<GoPackageFiles> {
-  const entries = await readdir(join(root, dir), { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(join(root, dir), { withFileTypes: true }).then(
+    (value) => value,
+    () => [],
+  );
   const files = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".go"))
     .map((entry) => normalize(join(dir, entry.name)));
@@ -288,12 +297,18 @@ function goCommandName(dir: string): string | null {
 }
 
 async function goPackageName(root: string, dir: string): Promise<string> {
-  const files = await readdir(join(root, dir), { withFileTypes: true }).catch(() => []);
+  const files = await readdir(join(root, dir), { withFileTypes: true }).then(
+    (value) => value,
+    () => [],
+  );
   for (const file of files) {
     if (!file.isFile() || !file.name.endsWith(".go") || file.name.endsWith("_test.go")) {
       continue;
     }
-    const source = await readFile(join(root, dir, file.name), "utf8").catch(() => "");
+    const source = await readFile(join(root, dir, file.name), "utf8").then(
+      (value) => value,
+      () => "",
+    );
     const name = /^\s*package\s+([A-Za-z_][A-Za-z0-9_]*)/mu.exec(source)?.[1];
     if (name !== undefined) {
       return name;
@@ -303,7 +318,10 @@ async function goPackageName(root: string, dir: string): Promise<string> {
 }
 
 async function goModulePath(root: string): Promise<string | null> {
-  const source = await readFile(join(root, "go.mod"), "utf8").catch(() => "");
+  const source = await readFile(join(root, "go.mod"), "utf8").then(
+    (value) => value,
+    () => "",
+  );
   return /^module\s+(\S+)/mu.exec(source)?.[1] ?? null;
 }
 

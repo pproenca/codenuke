@@ -1,6 +1,6 @@
 import { lstat, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { partitionFileGroups } from "./grouping.js";
 import { repoFilesUnderAny } from "./repo-index.js";
 import { isSampleProjectPath, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";

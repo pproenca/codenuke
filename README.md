@@ -54,6 +54,22 @@ codenuke revalidate --all --status open
 `fix` does not commit, push, open PRs, or land changes. It runs configured
 validation commands and records a patch attempt under `.codenuke/`.
 
+## Source Layout
+
+- `src/cli.ts`: executable wrapper that preserves the published `dist/cli.js`
+  bin entrypoint.
+- `src/cli/`: command-line parsing and output rendering.
+- `src/workflow/`: init/map/review/report/triage/fix/revalidate orchestration,
+  persistent state, finding selection, prompts, and reporting.
+- `src/mapping/`: feature-map orchestration, including deterministic and
+  agent-assisted mapping.
+- `src/mappers/`: framework and language feature mappers plus mapper-local
+  traversal helpers.
+- `src/provider/`: provider command construction, JSON extraction, and strict
+  output schemas.
+- `src/platform/`: project detection, filesystem/git/process helpers, errors,
+  IDs, progress, and shared durable record schemas.
+
 ## What It Maps Today
 
 - npm package bins

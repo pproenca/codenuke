@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { packageBins, packageScripts } from "../detect.js";
-import { pathExists } from "../fs.js";
-import { rubyDependencyNames, rubyGemspecPaths, stripRubyComments } from "../ruby.js";
+import { packageBins, packageScripts } from "../platform/detect.js";
+import { pathExists } from "../platform/fs.js";
+import { rubyDependencyNames, rubyGemspecPaths, stripRubyComments } from "../platform/ruby.js";
 import { partitionFileGroups } from "./grouping.js";
 import { normalize, packageKind, packageTrustBoundaries, pathMatchesPrefix } from "./shared.js";
 import { repoFilesUnderAny } from "./repo-index.js";
@@ -259,7 +259,10 @@ async function directLocalImportRefs(
   const refs: SeedFileRef[] = [];
   const seen = new Set<string>();
   for (const file of files) {
-    const source = await readFile(join(root, file), "utf8").catch(() => "");
+    const source = await readFile(join(root, file), "utf8").then(
+      (value) => value,
+      () => "",
+    );
     for (const specifier of localImportSpecifiers(source)) {
       const resolved = resolveLocalImport(file, specifier, repoIndex);
       if (resolved === null || owned.has(resolved) || seen.has(resolved)) {

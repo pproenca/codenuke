@@ -1,6 +1,6 @@
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { isSafeDirectory, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
 
 export type WorkspacePackageJson = {
@@ -33,15 +33,14 @@ export function packageWorkspacePatterns(pkg: WorkspacePackageJson): string[] {
     return workspaces.filter((entry): entry is string => typeof entry === "string");
   }
   if (
-    typeof workspaces === "object" &&
-    workspaces !== null &&
-    Array.isArray((workspaces as { packages?: unknown }).packages)
+    typeof workspaces !== "object" ||
+    workspaces === null ||
+    !("packages" in workspaces) ||
+    !Array.isArray(workspaces.packages)
   ) {
-    return (workspaces as { packages: unknown[] }).packages.filter(
-      (entry): entry is string => typeof entry === "string",
-    );
+    return [];
   }
-  return [];
+  return workspaces.packages.filter((entry): entry is string => typeof entry === "string");
 }
 
 export function parsePnpmWorkspace(source: string): string[] {
@@ -68,13 +67,13 @@ export async function packageRootsForWorkspacePatterns(
   patterns: string[],
 ): Promise<string[]> {
   const excludes = workspacePatternExcludes(patterns);
-  const packageRoots = new Set<string>();
-  for (const includePattern of patterns.filter((pattern) => !pattern.startsWith("!"))) {
-    for (const packageRoot of await expandWorkspacePattern(root, includePattern)) {
-      packageRoots.add(packageRoot);
+  const roots = new Set<string>();
+  for (const pattern of patterns.filter((entry) => !entry.startsWith("!"))) {
+    for (const path of await expandWorkspacePattern(root, pattern)) {
+      roots.add(path);
     }
   }
-  return [...packageRoots].filter((path) => !isExcludedWorkspace(path, excludes)).toSorted();
+  return [...roots].filter((path) => !isExcludedWorkspace(path, excludes)).toSorted();
 }
 
 export function workspacePatternExcludes(patterns: string[]): string[] {

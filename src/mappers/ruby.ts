@@ -1,12 +1,12 @@
 import { readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import {
   fileHasRubyShebang,
   rubyDependencyNames,
   rubyGemspecPaths,
   stripRubyComments,
-} from "../ruby.js";
+} from "../platform/ruby.js";
 import {
   isSafeDirectory,
   isSafeFile,
@@ -17,7 +17,7 @@ import {
 } from "./shared.js";
 import { repoFilesUnderAny } from "./repo-index.js";
 import { FeatureSeed, MapperContext, SeedFileRef, SeedTestRef } from "./types.js";
-import { TrustBoundary } from "../types.js";
+import { TrustBoundary } from "../platform/types.js";
 
 type SourceGroup = {
   label: string;
@@ -521,7 +521,10 @@ async function existingFiles(root: string, candidates: string[]): Promise<string
 }
 
 async function jekyllRootPages(root: string): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(root, { withFileTypes: true }).then(
+    (value) => value,
+    () => [],
+  );
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
@@ -819,9 +822,9 @@ function partitionAt(
         label: `${sourceRoot}/${bucketPrefix(bucketFiles, sourceRoot, depth, segment)}`,
         files: bucketFiles,
       });
-    } else {
-      groups.push(...partitionAt(sourceRoot, bucketFiles, maxFiles, depth + 1));
+      continue;
     }
+    groups.push(...partitionAt(sourceRoot, bucketFiles, maxFiles, depth + 1));
   }
   return groups;
 }
@@ -830,9 +833,9 @@ function pushGrouped<Key, Value>(groups: Map<Key, Value[]>, key: Key, value: Val
   const values = groups.get(key);
   if (values === undefined) {
     groups.set(key, [value]);
-  } else {
-    values.push(value);
+    return;
   }
+  values.push(value);
 }
 
 function chunkFiles(label: string, files: string[], maxFiles: number): SourceGroup[] {

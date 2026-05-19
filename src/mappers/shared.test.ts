@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fixtureRoot, writeFixture } from "../test-helpers.js";
+import { fixtureRoot, writeFixture } from "../testing/test-helpers.js";
 import { nearbyTests, walk } from "./shared.js";
 
 describe("walk", () => {

@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import {
   detectNodePackageManager,
   isSafeDirectory,
@@ -347,7 +347,10 @@ async function safeDirectoryEntries(root: string, prefix: string): Promise<strin
   if (!(await isSafeDirectory(root, dir))) {
     return [];
   }
-  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+  const entries = await readdir(dir, { withFileTypes: true }).then(
+    (value) => value,
+    () => [],
+  );
   return entries
     .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
     .map((entry) => entry.name)

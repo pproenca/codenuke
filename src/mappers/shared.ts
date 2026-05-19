@@ -1,7 +1,7 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
-import { pathExists } from "../fs.js";
-import { FeatureRecord, TrustBoundary } from "../types.js";
+import { pathExists } from "../platform/fs.js";
+import { FeatureRecord, TrustBoundary } from "../platform/types.js";
 
 export type TestRef = {
   path: string;
@@ -103,21 +103,30 @@ export async function walk(
   const files: string[] = [];
   const seen = new Set<string>();
   const seenRoots = new Set<string>();
-  const realRoot = await realpath(root).catch(() => root);
+  const realRoot = await realpath(root).then(
+    (value) => value,
+    () => root,
+  );
   const starts: WalkStart[] = [];
   for (const [index, prefix] of prefixes.entries()) {
     const start = join(root, prefix);
     if (!(await pathExists(start))) {
       continue;
     }
-    let info = await lstat(start);
-    const canonicalStart = await realpath(start).catch(() => start);
-    if (info.isSymbolicLink() && prefix !== "") {
+    const initial = await lstat(start);
+    const canonicalStart = await realpath(start).then(
+      (value) => value,
+      () => start,
+    );
+    if (initial.isSymbolicLink() && prefix !== "") {
       continue;
     }
-    if (info.isSymbolicLink()) {
-      info = await lstat(canonicalStart).catch(() => info);
-    }
+    const info = initial.isSymbolicLink()
+      ? await lstat(canonicalStart).then(
+          (value) => value,
+          () => initial,
+        )
+      : initial;
     if (!pathInsideRoot(realRoot, canonicalStart)) {
       continue;
     }
@@ -192,7 +201,10 @@ async function walkDir(
   if (dirInfo.isSymbolicLink()) {
     return;
   }
-  const realDir = await realpath(dir).catch(() => dir);
+  const realDir = await realpath(dir).then(
+    (value) => value,
+    () => dir,
+  );
   if (!pathInsideRoot(root, realDir)) {
     return;
   }
@@ -213,7 +225,9 @@ async function walkDir(
     }
     if (entry.isDirectory()) {
       await walkDir(root, full, files, seen, skipPath);
-    } else if (entry.isFile()) {
+      continue;
+    }
+    if (entry.isFile()) {
       files.push(rel);
     }
   }

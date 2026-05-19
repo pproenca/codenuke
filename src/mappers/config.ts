@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { pathExists } from "../fs.js";
+import { pathExists } from "../platform/fs.js";
 import { FeatureSeed } from "./types.js";
 
 export async function configSeeds(root: string): Promise<FeatureSeed[]> {
