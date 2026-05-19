@@ -1,0 +1,11 @@
+# Codex app environment for this repository.
+version = 1
+name = "codenuke"
+
+[setup]
+script = "pnpm install --frozen-lockfile"
+
+[[actions]]
+name = "Run"
+icon = "run"
+command = "pnpm -s build && node dist/cli.js status --plain"
