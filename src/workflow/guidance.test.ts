@@ -48,6 +48,28 @@ describe("guidance selection", () => {
       ]),
     );
     expect(selection.selected[0]?.reason).toContain("owned files show");
+    expect(selection.audit.detectedShapes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          shape: "long-parameter-list",
+          path: "src/index.ts",
+          startLine: 1,
+          metric: "5 parameters",
+        }),
+      ]),
+    );
+    expect(selection.audit.promptedResources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceId: "catalog.dispensables.duplicate-code",
+          contentHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        }),
+      ]),
+    );
+    expect(selection.audit.rejected.map((entry) => entry.resourceId)).toContain(
+      "catalog.couplers.message-chains",
+    );
+    expect(selection.audit.promptHash).toMatch(/^[a-f0-9]{64}$/u);
   });
 
   it("places selected guidance before repository file blocks in review prompts", async () => {

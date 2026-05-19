@@ -66,6 +66,7 @@ import {
   FeatureRecord,
   FixPlanOutput,
   FindingRecord,
+  GuidanceSelectionAudit,
   PatchAttempt,
   RunRecord,
   reasoningEffortSchema,
@@ -253,6 +254,7 @@ export async function reviewCommand(
   run.claimedFeatureIds = features.map((feature) => feature.featureId);
   await writeRun(loaded.paths, run);
   const findingIds: string[] = [];
+  const guidanceSelectionAudits: GuidanceSelectionAudit[] = [];
   const errors: Array<{ message: string; code: string | null; error: unknown }> = [];
   const jobs = Math.min(reviewJobs(flags), Math.max(features.length, 1));
   let cursor = 0;
@@ -283,7 +285,12 @@ export async function reviewCommand(
             allowNonPendingFeatureReview: stringFlag(flags, "feature") !== undefined,
           });
           findingIds.push(...reviewed.findingIds);
+          guidanceSelectionAudits.push(reviewed.guidanceSelectionAudit);
         } catch (error: unknown) {
+          const audit = guidanceSelectionAuditFromError(error);
+          if (audit !== null) {
+            guidanceSelectionAudits.push(audit);
+          }
           errors.push({
             message: error instanceof Error ? error.message : String(error),
             code: error instanceof CodenukeError ? error.code : null,
@@ -299,6 +306,7 @@ export async function reviewCommand(
       status: "failed",
       finishedAt: nowIso(),
       findingIds,
+      guidanceSelectionAudits,
       errors: errors.map(({ message, code }) => ({ message, code })),
     });
     emitProgress(context, "review", "failed", { run: currentRunId, errors: errors.length });
@@ -309,6 +317,7 @@ export async function reviewCommand(
     status: "completed",
     finishedAt: nowIso(),
     findingIds,
+    guidanceSelectionAudits,
   };
   await writeRun(loaded.paths, finished);
   emitProgress(context, "review", "done", {
@@ -500,7 +509,9 @@ type ReviewFeatureOptions = {
   allowNonPendingFeatureReview: boolean;
 };
 
-async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingIds: string[] }> {
+async function reviewFeature(
+  options: ReviewFeatureOptions,
+): Promise<{ findingIds: string[]; guidanceSelectionAudit: GuidanceSelectionAudit }> {
   const {
     context,
     loaded,
@@ -514,6 +525,7 @@ async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingId
   } = options;
   const started = Date.now();
   let locked: FeatureRecord | null = null;
+  let guidanceSelectionAudit: GuidanceSelectionAudit | null = null;
   emitProgress(context, "review", "feature-start", {
     index: index + 1,
     total,
@@ -536,6 +548,7 @@ async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingId
       lockedFeature,
       config,
     );
+    guidanceSelectionAudit = guidance.audit;
     const output = await provider.review(loaded.root, prompt, providerOptions(config));
     const records = output.findings
       .slice(0, config.review.maxFindingsPerFeature)
@@ -580,7 +593,7 @@ async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingId
       findings: findingIds.length,
       elapsed: `${Math.round((Date.now() - started) / 1000)}s`,
     });
-    return { findingIds };
+    return { findingIds, guidanceSelectionAudit: guidance.audit };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if (locked !== null) {
@@ -614,8 +627,39 @@ async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingId
       elapsed: `${Math.round((Date.now() - started) / 1000)}s`,
       error: message,
     });
-    throw error;
+    throw errorWithGuidanceSelectionAudit(error, guidanceSelectionAudit);
   }
+}
+
+function errorWithGuidanceSelectionAudit(
+  error: unknown,
+  audit: GuidanceSelectionAudit | null,
+): unknown {
+  if (audit === null || !(error instanceof Error)) {
+    return error;
+  }
+  return Object.assign(error, { guidanceSelectionAudit: audit });
+}
+
+function guidanceSelectionAuditFromError(error: unknown): GuidanceSelectionAudit | null {
+  if (
+    error instanceof Error &&
+    "guidanceSelectionAudit" in error &&
+    isGuidanceSelectionAudit(error.guidanceSelectionAudit)
+  ) {
+    return error.guidanceSelectionAudit;
+  }
+  return null;
+}
+
+function isGuidanceSelectionAudit(value: unknown): value is GuidanceSelectionAudit {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "featureId" in value &&
+    "selected" in value &&
+    "promptHash" in value
+  );
 }
 
 export async function revalidateCommand(
@@ -1138,6 +1182,7 @@ function newRun(
     claimedFeatureIds: [],
     findingIds: [],
     patchAttemptIds: [],
+    guidanceSelectionAudits: [],
     errors: [],
   };
 }

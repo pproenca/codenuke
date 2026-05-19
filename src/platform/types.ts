@@ -246,6 +246,42 @@ export type GuidanceTrace = z.infer<typeof guidanceTraceSchema>;
 
 export const emptyGuidanceTrace = (): GuidanceTrace => ({ selected: [], applied: [] });
 
+export const guidanceShapeEvidenceSchema = z.object({
+  shape: z.string(),
+  path: z.string(),
+  startLine: z.number().int().positive().nullable(),
+  endLine: z.number().int().positive().nullable(),
+  quote: z.string().nullable(),
+  metric: z.string().nullable(),
+});
+
+export const guidanceRejectedResourceSchema = z.object({
+  resourceId: z.string(),
+  title: z.string(),
+  kind: z.enum(guidanceResourceKinds),
+  reason: z.string(),
+});
+
+export const guidancePromptedResourceSchema = z.object({
+  resourceId: z.string(),
+  title: z.string(),
+  kind: z.enum(guidanceResourceKinds),
+  contentHash: z.string(),
+  fullText: z.boolean(),
+});
+
+export const guidanceSelectionAuditSchema = z.object({
+  featureId: z.string(),
+  title: z.string(),
+  detectedShapes: z.array(guidanceShapeEvidenceSchema),
+  selected: z.array(guidanceTraceEntrySchema),
+  rejected: z.array(guidanceRejectedResourceSchema),
+  promptedResources: z.array(guidancePromptedResourceSchema),
+  promptHash: z.string(),
+});
+
+export type GuidanceSelectionAudit = z.infer<typeof guidanceSelectionAuditSchema>;
+
 export const guidanceApplicationSchema = z.object({
   appliedResources: z.array(
     z.object({
@@ -359,6 +395,7 @@ export const runRecordSchema = z.object({
   claimedFeatureIds: z.array(z.string()),
   findingIds: z.array(z.string()),
   patchAttemptIds: z.array(z.string()),
+  guidanceSelectionAudits: z.array(guidanceSelectionAuditSchema).optional().default([]),
   errors: z.array(
     z.object({
       message: z.string(),

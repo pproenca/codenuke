@@ -1,7 +1,13 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FeatureRecord, GuidanceTraceEntry, guidanceResourceKinds } from "../platform/types.js";
+import {
+  FeatureRecord,
+  GuidanceSelectionAudit,
+  GuidanceTraceEntry,
+  guidanceResourceKinds,
+} from "../platform/types.js";
 import { pathExists } from "../platform/fs.js";
 
 export type GuidanceStage = "review" | "fix" | "revalidate";
@@ -28,14 +34,18 @@ export type SelectedGuidanceResource = {
   shapes: string[];
   fullText: boolean;
   text: string;
+  contentHash: string;
 };
 
 export type GuidanceSelection = {
   detectedShapes: string[];
   selected: GuidanceTraceEntry[];
   resources: SelectedGuidanceResource[];
+  audit: GuidanceSelectionAudit;
   prompt: string;
 };
+
+type DetectedShape = GuidanceSelectionAudit["detectedShapes"][number];
 
 let cachedManifest: Manifest | null = null;
 let cachedResourceRoot: string | null = null;
@@ -44,7 +54,8 @@ export async function selectReviewGuidance(
   root: string,
   feature: FeatureRecord,
 ): Promise<GuidanceSelection> {
-  const shapes = await detectOwnedCodeShapes(root, feature);
+  const detectedShapes = await detectOwnedCodeShapes(root, feature);
+  const shapes = uniqueShapes(detectedShapes);
   const manifest = await loadManifest();
   const byId = new Map(manifest.resources.map((resource) => [resource.id, resource]));
   const signalMatches = manifest.resources
@@ -96,6 +107,7 @@ export async function selectReviewGuidance(
       resource.kind === "signal"
         ? `Use ${resource.title} as a Refactoring Signal: verify evidence, behavior contract, and a small repair path before reporting.`
         : `Use ${resource.title} as a candidate repair move only when it is the smallest behavior-preserving fit.`;
+    const text = await resourceText(resource);
     resources.push({
       resource,
       reason,
@@ -104,7 +116,8 @@ export async function selectReviewGuidance(
         match?.score ?? shapesForResource.reduce((total, shape) => total + shapeWeight(shape), 0),
       shapes: shapesForResource,
       fullText: strongSignals.has(id),
-      text: await resourceText(resource),
+      text,
+      contentHash: hashText(text),
     });
   }
 
@@ -115,11 +128,40 @@ export async function selectReviewGuidance(
       left.resource.title.localeCompare(right.resource.title),
   );
   const selected = ordered.map(traceEntryForResource);
+  const prompt = guidancePrompt(ordered);
+  const selectedSet = new Set(selected.map((entry) => entry.resourceId));
+  const rejected = manifest.resources
+    .filter((resource) => resource.kind === "signal" && resource.stages.includes("review"))
+    .filter((resource) => !selectedSet.has(resource.id))
+    .map((resource) => ({
+      resourceId: resource.id,
+      title: resource.title,
+      kind: resource.kind,
+      reason:
+        resource.selectWhen.length === 0
+          ? "Resource has no review selection shapes."
+          : `No observed owned-code shape matched ${resource.selectWhen.join(", ")}.`,
+    }));
   return {
     detectedShapes: shapes,
     selected,
     resources: ordered,
-    prompt: guidancePrompt(ordered),
+    audit: {
+      featureId: feature.featureId,
+      title: feature.title,
+      detectedShapes,
+      selected,
+      rejected,
+      promptedResources: ordered.map((selection) => ({
+        resourceId: selection.resource.id,
+        title: selection.resource.title,
+        kind: selection.resource.kind,
+        contentHash: selection.contentHash,
+        fullText: selection.fullText,
+      })),
+      promptHash: hashText(prompt),
+    },
+    prompt,
   };
 }
 
@@ -158,6 +200,7 @@ export async function reviewGuidanceDryRun(
     title: string;
     detectedShapes: string[];
     selected: GuidanceTraceEntry[];
+    audit: GuidanceSelectionAudit;
   }>
 > {
   return Promise.all(
@@ -168,6 +211,7 @@ export async function reviewGuidanceDryRun(
         title: feature.title,
         detectedShapes: selection.detectedShapes,
         selected: selection.selected,
+        audit: selection.audit,
       };
     }),
   );
@@ -207,8 +251,11 @@ function guidancePrompt(resources: SelectedGuidanceResource[]): string {
   ].join("\n");
 }
 
-async function detectOwnedCodeShapes(root: string, feature: FeatureRecord): Promise<string[]> {
-  const counts = new Map<string, number>();
+async function detectOwnedCodeShapes(
+  root: string,
+  feature: FeatureRecord,
+): Promise<DetectedShape[]> {
+  const byShape = new Map<string, DetectedShape>();
   for (const file of feature.ownedFiles.slice(0, 12)) {
     const source = await readFile(join(root, file.path), "utf8").then(
       (value) => value,
@@ -217,63 +264,130 @@ async function detectOwnedCodeShapes(root: string, feature: FeatureRecord): Prom
     if (source.length === 0) {
       continue;
     }
-    for (const shape of shapesForSource(source)) {
-      counts.set(shape, (counts.get(shape) ?? 0) + 1);
+    for (const evidence of shapesForSource(file.path, source)) {
+      const existing = byShape.get(evidence.shape);
+      if (existing === undefined || evidenceStrength(evidence) > evidenceStrength(existing)) {
+        byShape.set(evidence.shape, evidence);
+      }
     }
   }
-  return [...counts.entries()]
-    .toSorted((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-    .map(([shape]) => shape);
+  return [...byShape.values()].toSorted(
+    (left, right) =>
+      shapeWeight(right.shape) - shapeWeight(left.shape) || left.shape.localeCompare(right.shape),
+  );
 }
 
-function shapesForSource(source: string): string[] {
-  const shapes = new Set<string>();
+function shapesForSource(path: string, source: string): DetectedShape[] {
+  const shapes: DetectedShape[] = [];
   const lines = source.split(/\r?\n/u);
   if (lines.length > 180) {
-    shapes.add("large-file");
+    shapes.push(shapeEvidence("large-file", path, 1, lines[0] ?? null, `${lines.length} lines`));
   }
   const functionBlocks = functionLikeBlocks(source);
-  if (functionBlocks.some((block) => block.lines >= 45)) {
-    shapes.add("large-function-like-block");
+  const largeBlock = functionBlocks.find((block) => block.lines >= 45);
+  if (largeBlock !== undefined) {
+    shapes.push(
+      shapeEvidence(
+        "large-function-like-block",
+        path,
+        largeBlock.startLine,
+        largeBlock.quote,
+        `${largeBlock.lines} lines`,
+      ),
+    );
   }
-  if (functionBlocks.some((block) => block.branches >= 6)) {
-    shapes.add("many-branches");
+  const branchyBlock = functionBlocks.find((block) => block.branches >= 6);
+  if (branchyBlock !== undefined) {
+    shapes.push(
+      shapeEvidence(
+        "many-branches",
+        path,
+        branchyBlock.startLine,
+        branchyBlock.quote,
+        `${branchyBlock.branches} branches`,
+      ),
+    );
   }
-  if (
-    /(if|else if|for|while|switch)[\s\S]{0,500}(if|else if|for|while|switch)[\s\S]{0,500}(if|else if|for|while|switch)/u.test(
+  const nested =
+    /(if|else if|for|while|switch)[\s\S]{0,500}(if|else if|for|while|switch)[\s\S]{0,500}(if|else if|for|while|switch)/u.exec(
       source,
-    )
-  ) {
-    shapes.add("nested-conditionals");
+    );
+  if (nested !== null) {
+    shapes.push(shapeEvidenceAtIndex("nested-conditionals", path, source, nested.index, null));
   }
-  if (/\([^()\n,]+,[^()\n,]+,[^()\n,]+,[^()\n,]+(?:,[^()\n,]+)*\)/u.test(source)) {
-    shapes.add("long-parameter-list");
+  const longParams = /\([^()\n,]+,[^()\n,]+,[^()\n,]+,[^()\n,]+(?:,[^()\n,]+)*\)/u.exec(source);
+  if (longParams !== null) {
+    shapes.push(
+      shapeEvidenceAtIndex(
+        "long-parameter-list",
+        path,
+        source,
+        longParams.index,
+        `${longParams[0].split(",").length} parameters`,
+      ),
+    );
   }
-  if (repeatedSignificantLines(lines) >= 2) {
-    shapes.add("repeated-lines");
-    shapes.add("duplicate-block");
+  const repeatedLines = repeatedSignificantLineEvidence(path, lines);
+  if (repeatedLines.count >= 2) {
+    shapes.push({
+      ...repeatedLines.evidence,
+      shape: "repeated-lines",
+      metric: `${repeatedLines.count} repeated significant lines`,
+    });
+    shapes.push({
+      ...repeatedLines.evidence,
+      shape: "duplicate-block",
+      metric: `${repeatedLines.count} repeated significant lines`,
+    });
   }
-  if ((source.match(/\b(?:case|elif|else if)\b/gu) ?? []).length >= 5) {
-    shapes.add("repeated-switch-like-branches");
+  const switchMatches = [...source.matchAll(/\b(?:case|elif|else if)\b/gu)];
+  if (switchMatches.length >= 5) {
+    shapes.push(
+      shapeEvidenceAtIndex(
+        "repeated-switch-like-branches",
+        path,
+        source,
+        switchMatches[0]?.index ?? 0,
+        `${switchMatches.length} switch-like branches`,
+      ),
+    );
   }
-  if (/(?:\.\w+\([^)]*\)|\.\w+){3,}/u.test(source)) {
-    shapes.add("message-chain");
+  const messageChain = /(?:\.\w+\([^)]*\)|\.\w+){3,}/u.exec(source);
+  if (messageChain !== null) {
+    shapes.push(shapeEvidenceAtIndex("message-chain", path, source, messageChain.index, null));
   }
-  if ((source.match(/return\s+(?:this\.)?\w+\.\w+\([^)]*\);?/gu) ?? []).length >= 3) {
-    shapes.add("many-small-delegating-functions");
-    shapes.add("delegation-wrapper");
+  const delegatingMatches = [...source.matchAll(/return\s+(?:this\.)?\w+\.\w+\([^)]*\);?/gu)];
+  if (delegatingMatches.length >= 3) {
+    const evidence = shapeEvidenceAtIndex(
+      "many-small-delegating-functions",
+      path,
+      source,
+      delegatingMatches[0]?.index ?? 0,
+      `${delegatingMatches.length} delegating returns`,
+    );
+    shapes.push(evidence);
+    shapes.push({ ...evidence, shape: "delegation-wrapper" });
   }
-  if (/[/#]{1,2}\s*(?:TODO|explain|step|phase|first|then|finally)\b/iu.test(source)) {
-    shapes.add("commented-complex-block");
+  const comment = /[/#]{1,2}\s*(?:TODO|explain|step|phase|first|then|finally)\b/iu.exec(source);
+  if (comment !== null) {
+    shapes.push(shapeEvidenceAtIndex("commented-complex-block", path, source, comment.index, null));
   }
-  if (/\b(?:type|kind|status|mode)\s*[=:]\s*["'][A-Za-z0-9_-]+["']/u.test(source)) {
-    shapes.add("primitive-type-code");
+  const primitive = /\b(?:type|kind|status|mode)\s*[=:]\s*["'][A-Za-z0-9_-]+["']/u.exec(source);
+  if (primitive !== null) {
+    shapes.push(shapeEvidenceAtIndex("primitive-type-code", path, source, primitive.index, null));
   }
-  return [...shapes];
+  return shapes;
 }
 
-function functionLikeBlocks(source: string): Array<{ lines: number; branches: number }> {
-  const blocks: Array<{ lines: number; branches: number }> = [];
+function functionLikeBlocks(
+  source: string,
+): Array<{ lines: number; branches: number; startLine: number; quote: string | null }> {
+  const blocks: Array<{
+    lines: number;
+    branches: number;
+    startLine: number;
+    quote: string | null;
+  }> = [];
   const regex = /(?:function\s+\w+|(?:async\s+)?\w+\s*\([^)]*\)\s*(?::\s*[^{=]+)?\{|=>\s*\{)/gu;
   for (const match of source.matchAll(regex)) {
     const start = match.index ?? 0;
@@ -285,6 +399,10 @@ function functionLikeBlocks(source: string): Array<{ lines: number; branches: nu
     blocks.push({
       lines: block.split(/\r?\n/u).length,
       branches: (block.match(/\b(?:if|else if|for|while|switch|case|catch)\b/gu) ?? []).length,
+      startLine: lineNumberAt(source, start),
+      quote: source
+        .slice(start, source.indexOf("\n", start) < 0 ? undefined : source.indexOf("\n", start))
+        .trim(),
     });
   }
   return blocks;
@@ -309,9 +427,12 @@ function balancedBlockEnd(source: string, openIndex: number): number {
   return source.length;
 }
 
-function repeatedSignificantLines(lines: string[]): number {
-  const counts = new Map<string, number>();
-  for (const line of lines) {
+function repeatedSignificantLineEvidence(
+  path: string,
+  lines: string[],
+): { count: number; evidence: DetectedShape } {
+  const counts = new Map<string, { count: number; line: number; quote: string }>();
+  for (const [index, line] of lines.entries()) {
     const normalized = line.trim().replace(/\s+/gu, " ");
     if (
       normalized.length < 18 ||
@@ -322,9 +443,24 @@ function repeatedSignificantLines(lines: string[]): number {
     ) {
       continue;
     }
-    counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+    const current = counts.get(normalized);
+    counts.set(normalized, {
+      count: (current?.count ?? 0) + 1,
+      line: current?.line ?? index + 1,
+      quote: current?.quote ?? normalized,
+    });
   }
-  return [...counts.values()].filter((count) => count > 1).length;
+  const repeated = [...counts.values()]
+    .filter((entry) => entry.count > 1)
+    .toSorted((left, right) => right.count - left.count || left.line - right.line);
+  const first = repeated[0];
+  return {
+    count: repeated.length,
+    evidence:
+      first === undefined
+        ? shapeEvidence("repeated-lines", path, null, null, null)
+        : shapeEvidence("repeated-lines", path, first.line, first.quote, `${first.count} copies`),
+  };
 }
 
 function shapeWeight(shape: string): number {
@@ -343,6 +479,57 @@ function shapeWeight(shape: string): number {
     default:
       return 1;
   }
+}
+
+function uniqueShapes(detectedShapes: DetectedShape[]): string[] {
+  return detectedShapes.map((shape) => shape.shape);
+}
+
+function evidenceStrength(evidence: DetectedShape): number {
+  const metricValue = Number.parseInt(evidence.metric ?? "0", 10);
+  return shapeWeight(evidence.shape) * 1000 + (Number.isNaN(metricValue) ? 0 : metricValue);
+}
+
+function shapeEvidence(
+  shape: string,
+  path: string,
+  startLine: number | null,
+  quote: string | null,
+  metric: string | null,
+): DetectedShape {
+  return {
+    shape,
+    path,
+    startLine,
+    endLine: startLine,
+    quote,
+    metric,
+  };
+}
+
+function shapeEvidenceAtIndex(
+  shape: string,
+  path: string,
+  source: string,
+  index: number,
+  metric: string | null,
+): DetectedShape {
+  const line = lineNumberAt(source, index);
+  return shapeEvidence(shape, path, line, lineAt(source, index), metric);
+}
+
+function lineNumberAt(source: string, index: number): number {
+  return source.slice(0, index).split(/\r?\n/u).length;
+}
+
+function lineAt(source: string, index: number): string | null {
+  const start = source.lastIndexOf("\n", index) + 1;
+  const end = source.indexOf("\n", index);
+  return source.slice(start, end < 0 ? undefined : end).trim() || null;
+}
+
+function hashText(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 async function loadManifest(): Promise<Manifest> {

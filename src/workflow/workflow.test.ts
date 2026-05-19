@@ -754,7 +754,16 @@ describe("workflow", () => {
     await initCommand(context, {});
     await mapCommand(context);
     const dryRun = (await reviewCommand(context, { dryRun: true, limit: "1" })) as {
-      guidance: Array<{ detectedShapes: string[]; selected: Array<{ resourceId: string }> }>;
+      guidance: Array<{
+        detectedShapes: string[];
+        selected: Array<{ resourceId: string }>;
+        audit: {
+          detectedShapes: Array<{ shape: string; path: string; startLine: number | null }>;
+          rejected: Array<{ resourceId: string; reason: string }>;
+          promptedResources: Array<{ resourceId: string; contentHash: string }>;
+          promptHash: string;
+        };
+      }>;
     };
     expect(dryRun.guidance[0]?.detectedShapes).toEqual(
       expect.arrayContaining(["long-parameter-list", "repeated-lines"]),
@@ -762,11 +771,39 @@ describe("workflow", () => {
     expect(dryRun.guidance[0]?.selected.map((entry) => entry.resourceId)).toContain(
       "catalog.dispensables.duplicate-code",
     );
+    expect(dryRun.guidance[0]?.audit.detectedShapes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ shape: "long-parameter-list", path: "src/index.ts" }),
+      ]),
+    );
+    expect(dryRun.guidance[0]?.audit.promptedResources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceId: "catalog.dispensables.duplicate-code",
+          contentHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        }),
+      ]),
+    );
+    expect(dryRun.guidance[0]?.audit.rejected.map((entry) => entry.resourceId)).toContain(
+      "catalog.couplers.message-chains",
+    );
 
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const findingId = reviewed.next.split(" ").at(-1) ?? "";
     const paths = statePaths(join(root, ".codenuke"));
     const finding = await readFinding(paths, findingId);
+    const runs = await readRuns(paths);
+    const reviewRun = runs.find((run) => run.command === "review" && run.status === "completed");
+    expect(reviewRun?.guidanceSelectionAudits[0]).toMatchObject({
+      featureId: expect.stringMatching(/^feat_/u),
+      selected: expect.arrayContaining([
+        expect.objectContaining({ resourceId: "catalog.dispensables.duplicate-code" }),
+      ]),
+      rejected: expect.arrayContaining([
+        expect.objectContaining({ resourceId: "catalog.couplers.message-chains" }),
+      ]),
+      promptHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
     expect(finding?.guidance.selected.map((entry) => entry.resourceId)).toContain(
       "catalog.dispensables.duplicate-code",
     );
@@ -1556,10 +1593,18 @@ describe("workflow", () => {
     await expect(reviewCommand(context, { provider: "mock-fail" })).rejects.toThrow(
       "mock review failure",
     );
-    const features = await readFeatures(statePaths(join(root, ".codenuke")));
+    const paths = statePaths(join(root, ".codenuke"));
+    const features = await readFeatures(paths);
+    const runs = await readRuns(paths);
+    const failedRun = runs.find((run) => run.command === "review" && run.status === "failed");
 
     expect(features[0]?.status).toBe("error");
     expect(features[0]?.lock).toBeNull();
+    expect(failedRun?.guidanceSelectionAudits[0]).toMatchObject({
+      featureId: features[0]?.featureId,
+      promptedResources: [],
+      promptHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
+    });
     expect(await readdir(join(root, ".codenuke/locks"))).toEqual([]);
     await rm(join(root, ".codenuke"), { recursive: true, force: true });
   });

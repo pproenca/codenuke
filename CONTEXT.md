@@ -40,6 +40,10 @@ _Avoid_: docs page, copied documentation
 The workflow step that chooses the smallest relevant set of refactoring resources for a provider prompt.
 _Avoid_: full docs injection, keyword dump
 
+**Guidance Selection Audit**:
+A durable feature-level record of the observable evidence, selected resources, rejected resources, and prompt proof produced by guidance selection before provider review.
+_Avoid_: provider self-report, hidden prompt log, finding guidance
+
 **Guidance Trace**:
 The durable record of why refactoring resources were selected and how they were applied to a finding or validation decision.
 _Avoid_: hidden prompt context, provider-only notes, bare citation list
@@ -56,6 +60,7 @@ _Avoid_: hidden prompt context, provider-only notes, bare citation list
 - A **Refactoring Catalog** helps interpret **Refactoring Signals** without making them automatic findings.
 - A **Refactoring Resource** supplies the packaged guidance used by the **Trusted Refactoring Workflow**.
 - **Guidance Selection** chooses which **Refactoring Resources** enter each provider prompt.
+- A **Guidance Selection Audit** makes pre-provider guidance selection evaluable separately from provider judgment.
 - A **Guidance Trace** makes **Guidance Selection** visible in durable workflow state.
 - A **Guidance Trace** carries the applicable guidance that later fix and revalidation steps should apply.
 
@@ -97,3 +102,4 @@ _Avoid_: hidden prompt context, provider-only notes, bare citation list
 - "guidance application" during fix was considered unnecessary because revalidation assesses guidance; resolved: fix should return a structured guidance application so the patching agent states how it used or deviated from the trace.
 - "guidance-backed review" was considered an optional mode; resolved: guidance-backed review, fix, and revalidation should become the default **Trusted Refactoring Workflow** behavior once implemented.
 - "resource migration" was considered an all-at-once copy of existing docs; resolved: first implementation should use a smaller guidance-ready subset, then expand coverage without lowering curation quality.
+- "whether the agent looked at the right docs" was treated as a finding-level question; resolved: evaluate pre-provider **Guidance Selection** with a **Guidance Selection Audit**, then evaluate provider use with the finding-level **Guidance Trace**.
