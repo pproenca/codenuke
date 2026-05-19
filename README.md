@@ -118,9 +118,10 @@ codex --version
 codenuke doctor
 ```
 
-Provider calls use `codex exec` with strict JSON schemas. Review and revalidate
-run read-only; fix planning runs with workspace-write because Codex may edit the
-working tree during the explicit fix command.
+Provider calls use `codex exec` with strict JSON schemas, ephemeral sessions,
+and a non-interactive approval policy. Review and revalidate run read-only; fix
+planning runs with workspace-write because Codex may edit the working tree
+during the explicit fix command.
 
 Supported provider names today:
 

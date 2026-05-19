@@ -117,10 +117,13 @@ describe("Codex provider args", () => {
   it("keeps Codex trusted-directory checks enabled by default", () => {
     expect(codexExecArgs("/repo", "read-only", "/tmp/schema.json", "/tmp/output.json")).toEqual([
       "exec",
+      "--ephemeral",
       "--cd",
       "/repo",
       "--sandbox",
       "read-only",
+      "-c",
+      'approval_policy="never"',
       "--output-schema",
       "/tmp/schema.json",
       "--output-last-message",
@@ -134,6 +137,12 @@ describe("Codex provider args", () => {
         skipGitRepoCheck: true,
       }),
     ).toContain("--skip-git-repo-check");
+  });
+
+  it("runs Codex non-interactively without persisting provider sessions", () => {
+    const args = codexExecArgs("/repo", "workspace-write", "/tmp/schema.json", "/tmp/output.json");
+
+    expect(args).toEqual(expect.arrayContaining(["--ephemeral", "-c", 'approval_policy="never"']));
   });
 
   it("passes model and reasoning effort through explicit CLI config", () => {

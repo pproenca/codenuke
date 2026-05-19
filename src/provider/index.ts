@@ -510,11 +510,14 @@ function codexExecArgs(
 ): string[] {
   return compactArgs([
     "exec",
+    "--ephemeral",
     "--cd",
     root,
     options.skipGitRepoCheck === true ? "--skip-git-repo-check" : null,
     "--sandbox",
     sandbox,
+    "-c",
+    'approval_policy="never"',
     "--output-schema",
     schemaPath,
     "--output-last-message",

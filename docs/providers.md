@@ -27,6 +27,8 @@ Codex invocation:
 - review: read-only sandbox
 - revalidate: read-only sandbox
 - fix: workspace-write sandbox
+- approval policy: `never`, so provider calls fail instead of pausing for interactive approval
+- sessions: `--ephemeral`, because codenuke persists durable run state in `.codenuke/`
 - output: strict JSON schema via `--output-schema`
 - final message capture: `--output-last-message`
 
