@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -161,18 +169,7 @@ function assertPackagedCliBasics(bin) {
 function assertPackagedMapping(bin) {
   run(bin, ["--root", fixtureRoot, "init", "--force", "--json"]);
   const mapped = JSON.parse(run(bin, ["--root", fixtureRoot, "map", "--json"]));
-  const features = JSON.parse(
-    run("node", [
-      "-e",
-      [
-        "const { readdirSync, readFileSync } = require('node:fs');",
-        "const { join } = require('node:path');",
-        "const dir = join(process.argv[1], '.codenuke', 'features');",
-        "console.log(JSON.stringify(readdirSync(dir).map((file) => JSON.parse(readFileSync(join(dir, file), 'utf8')))));",
-      ].join(""),
-      fixtureRoot,
-    ]),
-  );
+  const features = readMappedFeatures(fixtureRoot);
   const sources = new Set(features.map((feature) => feature.source));
   const titles = new Set(features.map((feature) => feature.title));
 
@@ -191,6 +188,13 @@ function assertPackagedMapping(bin) {
     throw new Error("expected packaged CLI to include nested Next workspace route mapping");
   }
   return mapped;
+}
+
+function readMappedFeatures(projectRoot) {
+  const featureDir = join(projectRoot, ".codenuke", "features");
+  return readdirSync(featureDir).map((file) =>
+    JSON.parse(readFileSync(join(featureDir, file), "utf8")),
+  );
 }
 
 function assertPackagedResources() {
