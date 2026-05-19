@@ -52,6 +52,17 @@ function needsWindowsShell(command) {
 }
 
 try {
+  createFixture();
+  const bin = packAndInstallCli();
+  assertPackagedCliBasics(bin);
+  const mapped = assertPackagedMapping(bin);
+  assertPackagedResources();
+  console.log(`packaged CLI smoke mapped ${mapped.features} features`);
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
+
+function createFixture() {
   write(
     "pyproject.toml",
     [
@@ -94,7 +105,9 @@ try {
   );
   write("frontend/src/app/dashboard/page.tsx", "export default function Page() { return null; }\n");
   write("frontend/src/app/dashboard/page.test.tsx", "test('dashboard', () => {});\n");
+}
 
+function packAndInstallCli() {
   const packOutput = JSON.parse(
     run("npm", ["pack", "--json", "--cache", npmCache, "--pack-destination", tmp], {
       stdio: "pipe",
@@ -121,6 +134,10 @@ try {
     ".bin",
     process.platform === "win32" ? "codenuke.cmd" : "codenuke",
   );
+  return bin;
+}
+
+function assertPackagedCliBasics(bin) {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const version = run(bin, ["--version"]).trim();
   if (version !== packageJson.version) {
@@ -139,6 +156,9 @@ try {
       )}`,
     );
   }
+}
+
+function assertPackagedMapping(bin) {
   run(bin, ["--root", fixtureRoot, "init", "--force", "--json"]);
   const mapped = JSON.parse(run(bin, ["--root", fixtureRoot, "map", "--json"]));
   const features = JSON.parse(
@@ -170,6 +190,10 @@ try {
   if (!titles.has("frontend route /dashboard")) {
     throw new Error("expected packaged CLI to include nested Next workspace route mapping");
   }
+  return mapped;
+}
+
+function assertPackagedResources() {
   const resourceManifest = join(
     installRoot,
     "node_modules",
@@ -181,10 +205,6 @@ try {
   if (!existsSync(resourceManifest)) {
     throw new Error("expected packaged CLI to include refactoring resources");
   }
-
-  console.log(`packaged CLI smoke mapped ${mapped.features} features`);
-} finally {
-  rmSync(tmp, { recursive: true, force: true });
 }
 
 function packFilename(output) {
