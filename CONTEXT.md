@@ -48,6 +48,26 @@ _Avoid_: provider self-report, hidden prompt log, finding guidance
 The durable record of why refactoring resources were selected and how they were applied to a finding or validation decision.
 _Avoid_: hidden prompt context, provider-only notes, bare citation list
 
+**Primary Guidance**:
+The small set of refactoring resources a patch attempt must apply, adapt, or explicitly reject.
+_Avoid_: selected docs, all matched resources, optional reading
+
+**Supporting Guidance**:
+Refactoring resources that provide context for judgment but are not mandatory patch obligations.
+_Avoid_: weaker findings, ignored guidance, second-class resources
+
+**Trusted Refactor Regression Coverage**:
+Primary guidance for adding focused tests that pin behavior before or during a trusted refactoring.
+_Avoid_: broad snapshot testing, duplicate parser coverage, generic test cleanup
+
+**Guidance Application**:
+A durable patch-level account of how the fix used, adapted, or rejected the finding's guidance trace.
+_Avoid_: fix summary, provider prose, after-the-fact justification
+
+**Patch Boundary**:
+The finding-scoped set of files a patch attempt may change without human review.
+_Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
+
 ## Relationships
 
 - A **Trusted Refactoring Workflow** depends on evidence that the target code can be changed without altering intended behavior.
@@ -63,6 +83,11 @@ _Avoid_: hidden prompt context, provider-only notes, bare citation list
 - A **Guidance Selection Audit** makes pre-provider guidance selection evaluable separately from provider judgment.
 - A **Guidance Trace** makes **Guidance Selection** visible in durable workflow state.
 - A **Guidance Trace** carries the applicable guidance that later fix and revalidation steps should apply.
+- **Primary Guidance** defines the mandatory guidance obligations for a fix.
+- **Supporting Guidance** gives context without expanding mandatory fix obligations.
+- **Trusted Refactor Regression Coverage** is the preferred **Primary Guidance** for test-gap findings.
+- A **Guidance Application** explains how a patch attempt used the **Guidance Trace** during fix.
+- A **Patch Boundary** protects the **Trusted Refactoring Workflow** from unrelated worktree churn.
 
 ## Example dialogue
 
@@ -103,3 +128,4 @@ _Avoid_: hidden prompt context, provider-only notes, bare citation list
 - "guidance-backed review" was considered an optional mode; resolved: guidance-backed review, fix, and revalidation should become the default **Trusted Refactoring Workflow** behavior once implemented.
 - "resource migration" was considered an all-at-once copy of existing docs; resolved: first implementation should use a smaller guidance-ready subset, then expand coverage without lowering curation quality.
 - "whether the agent looked at the right docs" was treated as a finding-level question; resolved: evaluate pre-provider **Guidance Selection** with a **Guidance Selection Audit**, then evaluate provider use with the finding-level **Guidance Trace**.
+- "churn" was used broadly; resolved: unrelated fix edits are **Patch Boundary** violations, while formatter rewrites are a validation-command policy problem.
