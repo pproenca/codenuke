@@ -49,6 +49,16 @@ npx --yes codenuke@latest report
 npx --yes codenuke@latest next
 ```
 
+Review selects packaged refactoring resources from observable owned-code shapes,
+injects them into provider prompts, and persists guidance traces on findings.
+When debugging review quality, inspect both the finding evidence and the
+guidance trace:
+
+```bash
+npx --yes codenuke@latest review --feature <featureId> --dry-run --json
+npx --yes codenuke@latest show --finding <findingId> --json
+```
+
 Use focused filters when the repo is large:
 
 ```bash
@@ -100,6 +110,10 @@ Use `--dry-run` first when the user wants a plan without edits:
 ```bash
 npx --yes codenuke@latest fix --finding <findingId> --dry-run
 ```
+
+The dry-run output should expose the finding's guidance trace. During a real
+fix, codenuke should apply that trace rather than rediscovering guidance from
+scratch.
 
 ### Commit-And-Continue Loop
 
@@ -154,6 +168,10 @@ Re-check findings after manual edits or codenuke fixes:
 npx --yes codenuke@latest revalidate --finding <findingId>
 npx --yes codenuke@latest revalidate --all --status open --limit 10
 ```
+
+Revalidation should assess both whether the finding is resolved and whether the
+applied guidance still fits the final patch. Treat an uncertain revalidation as
+a stop point for human review or a tighter follow-up fix.
 
 If stale work locks block progress:
 

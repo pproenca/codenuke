@@ -1,10 +1,11 @@
 ---
 name: evals-and-smoke
-description: Run codenuke evals and package smoke checks when mapping, provider contracts, or npm packaging changes.
+description: Run codenuke evals and package smoke checks when mapping, provider contracts, refactoring resources, or npm packaging changes.
 ---
 
 Use this skill when a change affects feature mapping, provider output contracts,
-the CLI package contents, npm install behavior, or the end-to-end user workflow.
+packaged refactoring resources, guidance traces, the CLI package contents, npm
+install behavior, or the end-to-end user workflow.
 
 ## Evals
 
@@ -23,8 +24,9 @@ expectations.
 ## Package smoke
 
 Run the package smoke check when the change touches `package.json`, `README.md`
-install guidance, `src/cli.ts`, build output shape, published files, or any path
-used by the package entrypoint:
+install guidance, `src/cli.ts`, build output shape, published files,
+`resources/refactoring/`, guidance loading, or any path used by the package
+entrypoint:
 
 ```bash
 pnpm pack:smoke
