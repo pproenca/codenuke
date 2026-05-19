@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "slug": "guidance-middle-man",
+  "name": "Guidance middle-man fixture",
+  "description": "A deterministic fixture where delegating wrappers should select Middle Man as primary guidance.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 0,
+    "findings": [],
+    "baseline": {
+      "guidanceSelectionAudits": 1,
+      "detectedShapes": [
+        "many-small-delegating-functions",
+        "delegation-wrapper",
+        "missing-linked-tests"
+      ],
+      "selectedResources": [
+        "catalog.couplers.middle-man",
+        "catalog.dispensables.speculative-generality",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "primaryResources": [
+        "catalog.couplers.middle-man",
+        "catalog.dispensables.speculative-generality"
+      ],
+      "supportingResources": ["workflow.trusted-refactor-regression-coverage"],
+      "absentPrimaryResources": ["workflow.trusted-refactor-regression-coverage"],
+      "patchAttempts": 0,
+      "guidanceApplications": 0,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {},
+      "patchAttemptsByStatus": {}
+    }
+  }
+}

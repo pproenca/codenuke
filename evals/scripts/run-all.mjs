@@ -17,6 +17,11 @@ const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const fixturesRoot = join(repoRoot, "evals", "fixtures");
 const resultsRoot = join(repoRoot, "evals", "results");
 const cli = join(repoRoot, "dist", "cli.js");
+const providerOverride = envValue("CODENUKE_EVAL_PROVIDER");
+const modelOverride = envValue("CODENUKE_EVAL_MODEL");
+const reasoningEffortOverride = envValue("CODENUKE_EVAL_REASONING_EFFORT");
+const expectationMode = envValue("CODENUKE_EVAL_EXPECTATIONS") ?? "strict";
+const resultsFile = envValue("CODENUKE_EVAL_RESULTS") ?? "latest.json";
 
 if (!existsSync(cli)) {
   throw new Error("dist/cli.js is missing. Run pnpm build before pnpm eval.");
@@ -46,6 +51,12 @@ const output = {
   generatedAt: new Date().toISOString(),
   startedAt,
   cli: "node dist/cli.js",
+  mode: {
+    expectations: expectationMode,
+    providerOverride,
+    model: modelOverride,
+    reasoningEffort: reasoningEffortOverride,
+  },
   totals: {
     fixtures: results.length,
     passed: results.length - failed,
@@ -55,7 +66,7 @@ const output = {
 };
 
 mkdirSync(resultsRoot, { recursive: true });
-writeFileSync(join(resultsRoot, "latest.json"), `${JSON.stringify(output, null, 2)}\n`);
+writeFileSync(join(resultsRoot, resultsFile), `${JSON.stringify(output, null, 2)}\n`);
 
 if (failed > 0) {
   process.exitCode = 1;
@@ -70,7 +81,7 @@ function runFixture(fixtureName) {
 
   try {
     cpSync(join(fixtureRoot, "files"), worktree, { recursive: true });
-    const provider = definition.review?.provider ?? "mock";
+    const provider = providerOverride ?? definition.review?.provider ?? "mock";
     const limit = String(definition.review?.limit ?? 1);
 
     if (definition.fix?.enabled === true) {
@@ -79,7 +90,15 @@ function runFixture(fixtureName) {
     runCli(worktree, ["init", "--force", "--json"]);
     const map = parseJson(runCli(worktree, ["map", "--json"]));
     const review = parseJson(
-      runCli(worktree, ["review", "--provider", provider, "--limit", limit, "--json"]),
+      runCli(worktree, [
+        "review",
+        "--provider",
+        provider,
+        "--limit",
+        limit,
+        ...modelArgs(definition.review),
+        "--json",
+      ]),
     );
     const report = parseJson(runCli(worktree, ["report", "--status", "open", "--json"]));
     const fix = runFixStep(worktree, provider, definition, report);
@@ -89,8 +108,14 @@ function runFixture(fixtureName) {
         ? report
         : parseJson(runCli(worktree, ["report", "--json"]));
     const baseline = baselineFromState(worktree, report, finalReport);
-    const score = scoreReport(definition.expect, report);
-    const baselineScore = scoreBaseline(definition.expect?.baseline, baseline);
+    const score =
+      expectationMode === "record"
+        ? { ok: true, errors: [] }
+        : scoreReport(definition.expect, report);
+    const baselineScore =
+      expectationMode === "record"
+        ? { ok: true, errors: [] }
+        : scoreBaseline(definition.expect?.baseline, baseline);
 
     return {
       schemaVersion: 1,
@@ -149,7 +174,15 @@ function runFixStep(worktree, provider, definition, report) {
     throw new Error(`fix requested but no matching finding was found`);
   }
   const fixOutput = parseJson(
-    runCli(worktree, ["fix", "--provider", provider, "--finding", finding.id, "--json"]),
+    runCli(worktree, [
+      "fix",
+      "--provider",
+      provider,
+      "--finding",
+      finding.id,
+      ...modelArgs(definition.fix),
+      "--json",
+    ]),
   );
   return {
     findingId: finding.id,
@@ -170,7 +203,15 @@ function runRevalidateStep(worktree, provider, definition, findingId) {
     throw new Error("revalidate requested but no fixed finding id is available");
   }
   const revalidateOutput = parseJson(
-    runCli(worktree, ["revalidate", "--provider", provider, "--finding", findingId, "--json"]),
+    runCli(worktree, [
+      "revalidate",
+      "--provider",
+      provider,
+      "--finding",
+      findingId,
+      ...modelArgs(definition.revalidate),
+      "--json",
+    ]),
   );
   return {
     findingId,
@@ -268,6 +309,31 @@ function scoreBaseline(expectation, baseline) {
       errors.push(`missing selected guidance resource ${resourceId}`);
     }
   }
+  for (const resourceId of expectation.absentSelectedResources ?? []) {
+    if (baseline.guidanceSelection.selectedResources.includes(resourceId)) {
+      errors.push(`unexpected selected guidance resource ${resourceId}`);
+    }
+  }
+  for (const resourceId of expectation.primaryResources ?? []) {
+    if (!baseline.guidanceSelection.primaryResources.includes(resourceId)) {
+      errors.push(`missing primary guidance resource ${resourceId}`);
+    }
+  }
+  for (const resourceId of expectation.supportingResources ?? []) {
+    if (!baseline.guidanceSelection.supportingResources.includes(resourceId)) {
+      errors.push(`missing supporting guidance resource ${resourceId}`);
+    }
+  }
+  for (const resourceId of expectation.absentPrimaryResources ?? []) {
+    if (baseline.guidanceSelection.primaryResources.includes(resourceId)) {
+      errors.push(`unexpected primary guidance resource ${resourceId}`);
+    }
+  }
+  for (const shape of expectation.detectedShapes ?? []) {
+    if (!baseline.guidanceSelection.detectedShapeNames.includes(shape)) {
+      errors.push(`missing detected guidance shape ${shape}`);
+    }
+  }
   if (
     expectation.patchAttempts !== undefined &&
     baseline.workflow.patchAttempts !== expectation.patchAttempts
@@ -326,6 +392,25 @@ function baselineFromState(worktree, initialReport, finalReport) {
       selectedResources: uniqueSorted(
         guidanceSelectionAudits.flatMap((audit) =>
           (audit.selected ?? []).map((resource) => resource.resourceId),
+        ),
+      ),
+      primaryResources: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.selected ?? [])
+            .filter((resource) => resource.role === "primary")
+            .map((resource) => resource.resourceId),
+        ),
+      ),
+      supportingResources: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.selected ?? [])
+            .filter((resource) => resource.role === "supporting")
+            .map((resource) => resource.resourceId),
+        ),
+      ),
+      detectedShapeNames: uniqueSorted(
+        guidanceSelectionAudits.flatMap((audit) =>
+          (audit.detectedShapes ?? []).map((shape) => shape.shape),
         ),
       ),
       promptedResources: uniqueSorted(
@@ -425,6 +510,17 @@ function uniqueSorted(values) {
   return [...new Set(values)].toSorted();
 }
 
+function modelArgs(definition) {
+  const model = modelOverride ?? definition?.model;
+  const reasoningEffort = reasoningEffortOverride ?? definition?.reasoningEffort;
+  return [
+    ...(typeof model === "string" && model.length > 0 ? ["--model", model] : []),
+    ...(typeof reasoningEffort === "string" && reasoningEffort.length > 0
+      ? ["--reasoning-effort", reasoningEffort]
+      : []),
+  ];
+}
+
 function matchesFinding(item, expected) {
   if (expected.title !== undefined && item.title !== expected.title) {
     return false;
@@ -468,6 +564,11 @@ function normalizeItems(items) {
 
 function readJson(path) {
   return parseJson(readFileSync(path, "utf8"));
+}
+
+function envValue(name) {
+  const value = process.env[name]?.trim();
+  return value === undefined || value.length === 0 ? null : value;
 }
 
 function parseJson(text) {

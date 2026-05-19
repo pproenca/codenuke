@@ -1,0 +1,8 @@
+{
+  "name": "guidance-duplicate-fixture",
+  "version": "1.0.0",
+  "bin": {
+    "guidance-duplicate": "src/index.ts"
+  },
+  "type": "module"
+}

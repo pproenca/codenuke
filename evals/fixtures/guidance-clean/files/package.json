@@ -1,0 +1,11 @@
+{
+  "name": "guidance-clean-fixture",
+  "version": "1.0.0",
+  "bin": {
+    "guidance-clean": "src/index.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "vitest run src/index.test.ts"
+  }
+}

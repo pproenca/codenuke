@@ -48,6 +48,18 @@ describe("guidance selection", () => {
         "techniques.composing-methods.extract-method",
       ]),
     );
+    expect(selection.selected).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceId: "catalog.dispensables.duplicate-code",
+          role: "primary",
+        }),
+        expect.objectContaining({
+          resourceId: "workflow.trusted-refactor-regression-coverage",
+          role: "supporting",
+        }),
+      ]),
+    );
     expect(selection.selected.filter((entry) => entry.role === "primary")).toHaveLength(2);
     expect(
       selection.selected.filter((entry) => entry.role === "supporting").length,
@@ -116,6 +128,9 @@ describe("guidance selection", () => {
       prompt.indexOf("Files:\n--- src/index.ts"),
     );
     expect(prompt).toContain("guidance.applied entries");
+    expect(prompt).toContain("Mission:");
+    expect(prompt).toContain("bounded, evidence-backed refactoring findings");
+    expect(prompt).not.toMatch(/\bbugs?\b|bug-hunt|security|data-loss|concurrency/u);
   });
 });
 

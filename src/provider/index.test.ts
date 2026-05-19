@@ -13,6 +13,7 @@ import { reviewOutputSchema } from "../platform/types.js";
 const {
   addCodexModelArgs,
   acpxFailureMessage,
+  codexPrompt,
   extractAcpxJson,
   extractOpencodeJson,
   parseAcpxAgent,
@@ -126,6 +127,59 @@ describe("Codex provider args", () => {
     addCodexModelArgs(args, { model: null, reasoningEffort: null });
 
     expect(args).toEqual(["exec"]);
+  });
+
+  it("removes prompt-level schema prose when Codex receives an output schema", () => {
+    const prompt = [
+      "You are reviewing one semantic feature for codenuke.",
+      "",
+      "JSON shape:",
+      "{",
+      '  "findings": []',
+      "}",
+      "",
+      "Files:",
+      "--- src/index.ts",
+      "export const value = 1;",
+    ].join("\n");
+
+    const prepared = codexPrompt(prompt);
+
+    expect(prepared).toContain("Output:");
+    expect(prepared).toContain("provider schema supplied out-of-band");
+    expect(prepared).toContain("Files:");
+    expect(prepared).not.toContain("JSON shape:");
+    expect(prepared).not.toContain('"findings"');
+  });
+
+  it("keeps non-Codex schema prose paths available for providers without output schema files", () => {
+    const prompt = 'Return strict JSON only:\n{"outcome":"fixed"}\n\nApplied guidance:\n- none';
+
+    const prepared = codexPrompt(prompt);
+
+    expect(prepared).toContain("provider schema supplied out-of-band");
+    expect(prepared).toContain("Applied guidance:");
+    expect(prepared).not.toContain('"outcome"');
+  });
+
+  it("removes trailing map and fix schema blocks from Codex prompts", () => {
+    const mapPrompt = 'Map this repo.\n\nJSON shape:\n{"features":[]}';
+    const fixPrompt = [
+      "You are codenuke applying one small repair.",
+      "",
+      "After editing, return strict JSON only:",
+      "{",
+      '  "summary": "string"',
+      "}",
+      "",
+      "Applied guidance:",
+      "- none",
+    ].join("\n");
+
+    expect(codexPrompt(mapPrompt)).not.toContain('"features"');
+    expect(codexPrompt(mapPrompt)).toContain("provider schema supplied out-of-band");
+    expect(codexPrompt(fixPrompt)).not.toContain('"summary"');
+    expect(codexPrompt(fixPrompt)).toContain("Applied guidance:");
   });
 });
 

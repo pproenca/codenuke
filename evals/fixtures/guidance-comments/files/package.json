@@ -1,0 +1,8 @@
+{
+  "name": "guidance-comments-fixture",
+  "version": "1.0.0",
+  "bin": {
+    "guidance-comments": "src/index.ts"
+  },
+  "type": "module"
+}

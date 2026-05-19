@@ -750,7 +750,7 @@ describe("workflow", () => {
       root,
       "src/index.ts",
       [
-        "export function guided(a: string, b: string, c: string, d: string) {",
+        "export function guided(a: string, b: string, c: string, d: string, e: string) {",
         "  if (a) {",
         "    const marker = 'TODO_REFACTOR';",
         "    console.log('TODO_REFACTOR');",
@@ -762,7 +762,7 @@ describe("workflow", () => {
         "    return marker;",
         "    console.log('TODO_REFACTOR');",
         "  }",
-        "  return a + b + c + d;",
+        "  return a + b + c + d + e;",
         "}",
         "",
       ].join("\n"),

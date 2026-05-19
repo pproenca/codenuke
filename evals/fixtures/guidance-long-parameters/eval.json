@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "guidance-long-parameters",
+  "name": "Guidance long-parameter-list fixture",
+  "description": "A deterministic fixture where a long parameter list should select Long Parameter List as primary guidance.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 0,
+    "findings": [],
+    "baseline": {
+      "guidanceSelectionAudits": 1,
+      "detectedShapes": ["long-parameter-list", "missing-linked-tests"],
+      "selectedResources": [
+        "catalog.bloaters.long-parameter-list",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "primaryResources": ["catalog.bloaters.long-parameter-list"],
+      "supportingResources": ["workflow.trusted-refactor-regression-coverage"],
+      "absentSelectedResources": ["catalog.bloaters.data-clumps"],
+      "absentPrimaryResources": ["workflow.trusted-refactor-regression-coverage"],
+      "patchAttempts": 0,
+      "guidanceApplications": 0,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {},
+      "patchAttemptsByStatus": {}
+    }
+  }
+}

@@ -26,6 +26,25 @@ type Manifest = {
   resources: ManifestResource[];
 };
 
+const detectedSelectableShapes = new Set([
+  "commented-complex-block",
+  "delegation-wrapper",
+  "duplicate-block",
+  "large-function-like-block",
+  "long-parameter-list",
+  "many-branches",
+  "many-small-delegating-functions",
+  "message-chain",
+  "missing-linked-tests",
+  "nested-conditionals",
+  "repeated-lines",
+  "repeated-switch-like-branches",
+]);
+
+const detectedAuditOnlyShapes = new Set(["large-file", "primitive-type-code"]);
+
+const knownDetectedShapes = new Set([...detectedSelectableShapes, ...detectedAuditOnlyShapes]);
+
 export type SelectedGuidanceResource = {
   resource: ManifestResource;
   role: GuidanceTraceEntry["role"];
@@ -63,10 +82,10 @@ export async function selectReviewGuidance(
     .filter((resource) => resource.stages.includes("review"))
     .flatMap((resource) => matchResource(resource, shapes))
     .toSorted((left, right) => {
-      const leftWorkflow = left.resource.kind === "workflow" ? 1 : 0;
-      const rightWorkflow = right.resource.kind === "workflow" ? 1 : 0;
+      const leftSignal = left.resource.kind === "signal" ? 1 : 0;
+      const rightSignal = right.resource.kind === "signal" ? 1 : 0;
       return (
-        rightWorkflow - leftWorkflow ||
+        rightSignal - leftSignal ||
         right.score - left.score ||
         left.resource.title.localeCompare(right.resource.title)
       );
@@ -74,9 +93,9 @@ export async function selectReviewGuidance(
   const signalMatches = reviewMatches
     .filter((match) => match.resource.kind === "signal")
     .slice(0, 6);
-  const primaryMatches = reviewMatches
-    .filter((match) => match.resource.kind === "workflow" || match.resource.kind === "signal")
-    .slice(0, 2);
+  const workflowMatches = reviewMatches.filter((match) => match.resource.kind === "workflow");
+  const primaryMatches =
+    signalMatches.length > 0 ? signalMatches.slice(0, 2) : workflowMatches.slice(0, 1);
 
   const primaryIds = new Set(primaryMatches.map((match) => match.resource.id));
   const selectedIds = new Set(primaryIds);
@@ -91,14 +110,18 @@ export async function selectReviewGuidance(
   for (const match of signalMatches.slice(2, 5)) {
     selectedIds.add(match.resource.id);
   }
+  for (const match of workflowMatches.slice(0, 1)) {
+    selectedIds.add(match.resource.id);
+  }
 
   const resources: SelectedGuidanceResource[] = [];
+  const matchesById = new Map(reviewMatches.map((match) => [match.resource.id, match]));
   for (const id of selectedIds) {
     const resource = byId.get(id);
     if (resource === undefined) {
       continue;
     }
-    const match = signalMatches.find((candidate) => candidate.resource.id === id);
+    const match = matchesById.get(id);
     const shapesForResource =
       match?.shapes ?? resource.selectWhen.filter((shape) => shapes.includes(shape));
     const reason =
@@ -354,8 +377,10 @@ function shapesForSource(path: string, source: string): DetectedShape[] {
   if (nested !== null) {
     shapes.push(shapeEvidenceAtIndex("nested-conditionals", path, source, nested.index, null));
   }
-  const longParams = /\([^()\n,]+,[^()\n,]+,[^()\n,]+,[^()\n,]+(?:,[^()\n,]+)*\)/u.exec(source);
-  if (longParams !== null) {
+  const longParams = [...source.matchAll(/\([^()]{0,400}\)/gu)].find(
+    (match) => match[0].split(",").length >= 5,
+  );
+  if (longParams !== undefined) {
     shapes.push(
       shapeEvidenceAtIndex(
         "long-parameter-list",
@@ -579,7 +604,41 @@ async function loadManifest(): Promise<Manifest> {
   const root = await resourceRoot();
   const raw = await readFile(join(root, "manifest.json"), "utf8");
   cachedManifest = JSON.parse(raw) as Manifest;
+  validateManifest(cachedManifest);
   return cachedManifest;
+}
+
+function validateManifest(manifest: Manifest): void {
+  const knownIds = new Set(manifest.resources.map((resource) => resource.id));
+  const invalidReferences: string[] = [];
+  for (const resource of manifest.resources) {
+    for (const shape of resource.selectWhen) {
+      if (!detectedSelectableShapes.has(shape)) {
+        invalidReferences.push(`${resource.id} selectWhen ${shape}`);
+      }
+    }
+    for (const link of resource.links) {
+      if (!knownIds.has(link)) {
+        invalidReferences.push(`${resource.id} link ${link}`);
+      }
+    }
+  }
+  for (const shape of detectedSelectableShapes) {
+    if (!manifest.resources.some((resource) => resource.selectWhen.includes(shape))) {
+      invalidReferences.push(`detected selectable shape ${shape} has no manifest resource`);
+    }
+  }
+  for (const shape of detectedAuditOnlyShapes) {
+    if (!knownDetectedShapes.has(shape)) {
+      invalidReferences.push(`audit-only shape ${shape} is not a known detected shape`);
+    }
+    if (manifest.resources.some((resource) => resource.selectWhen.includes(shape))) {
+      invalidReferences.push(`audit-only shape ${shape} is used as selectable guidance`);
+    }
+  }
+  if (invalidReferences.length > 0) {
+    throw new Error(`invalid refactoring resource manifest: ${invalidReferences.join(", ")}`);
+  }
 }
 
 async function resourceText(resource: ManifestResource): Promise<string> {

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "guidance-message-chain",
+  "name": "Guidance message-chain fixture",
+  "description": "A deterministic fixture where chained object access should select Message Chains as primary guidance.",
+  "review": {
+    "provider": "mock",
+    "limit": 1
+  },
+  "expect": {
+    "openFindings": 0,
+    "findings": [],
+    "baseline": {
+      "guidanceSelectionAudits": 1,
+      "detectedShapes": ["message-chain", "missing-linked-tests"],
+      "selectedResources": [
+        "catalog.couplers.message-chains",
+        "workflow.trusted-refactor-regression-coverage"
+      ],
+      "primaryResources": ["catalog.couplers.message-chains"],
+      "supportingResources": ["workflow.trusted-refactor-regression-coverage"],
+      "absentPrimaryResources": ["workflow.trusted-refactor-regression-coverage"],
+      "patchAttempts": 0,
+      "guidanceApplications": 0,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {},
+      "patchAttemptsByStatus": {}
+    }
+  }
+}

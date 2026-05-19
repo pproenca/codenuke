@@ -766,8 +766,8 @@ Review mission:
 - Prioritize reliable, trusted refactoring.
 - Prefer behavior-preserving simplification and algorithmic/render-path
   complexity reduction.
-- Ignore unrelated product-risk concerns unless they directly block validating a
-  specific behavior-preserving refactor.
+- Ignore unrelated concerns unless they directly block validating a specific
+  behavior-preserving refactor.
 
 Review categories:
 

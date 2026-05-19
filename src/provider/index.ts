@@ -476,7 +476,7 @@ async function runCodexJson(
     ];
     addCodexModelArgs(args, options);
     args.push("-");
-    const result = await runCommandArgs("codex", args, root, prompt);
+    const result = await runCommandArgs("codex", args, root, codexPrompt(prompt));
     if (result.exitCode !== 0) {
       throw new CodenukeError(
         `codex provider failed: ${result.stderr || result.stdout}`,
@@ -507,6 +507,28 @@ function addCodexModelArgs(args: string[], options: ProviderOptions): void {
   if (options.reasoningEffort !== null) {
     args.push("-c", `model_reasoning_effort="${options.reasoningEffort}"`);
   }
+}
+
+function codexPrompt(prompt: string): string {
+  return stripPromptJsonSchema(prompt).trim();
+}
+
+function stripPromptJsonSchema(prompt: string): string {
+  const outputLine =
+    "\nOutput:\nReturn one JSON object matching the provider schema supplied out-of-band.";
+  const withReviewShape = prompt.replace(
+    /\nJSON shape:\n[\s\S]*?\n\nFiles:/u,
+    `${outputLine}\n\nFiles:`,
+  );
+  const withRevalidateShape = withReviewShape.replace(
+    /(?:^|\n)Return strict JSON only:\n\{[\s\S]*?\n\nApplied guidance:/u,
+    `${outputLine}\n\nApplied guidance:`,
+  );
+  const withFixShape = withRevalidateShape.replace(
+    /(?:^|\n)After editing, return strict JSON only:\n[\s\S]*?\n\n(?=(?:TDD requirement:|Applied guidance:))/u,
+    `${outputLine}\n\n`,
+  );
+  return withFixShape.replace(/\nJSON shape:\n[\s\S]*$/u, outputLine);
 }
 
 const OPENCODE_READ_ONLY_PERMISSION = JSON.stringify({
@@ -1003,6 +1025,7 @@ function acpxTimeoutMs(): number {
 export const __testing = {
   acpxFailureMessage,
   addCodexModelArgs,
+  codexPrompt,
   extractAcpxJson,
   extractOpencodeJson,
   parseAcpxAgent,

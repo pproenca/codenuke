@@ -96,7 +96,7 @@ Mission:
   reduction.
 - Prefer findings that can be fixed with a small behavior-preserving patch and validated with
   existing or focused tests.
-- Ignore unrelated product-risk concerns unless they directly block validating the refactor.
+- Ignore unrelated concerns unless they directly block validating the refactor.
 
 Project:
 ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}

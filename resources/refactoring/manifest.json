@@ -65,7 +65,7 @@
       "title": "Speculative Generality",
       "path": "catalog/dispensables.md#speculative-generality",
       "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["unused-parameter", "many-small-delegating-functions"],
+      "selectWhen": ["many-small-delegating-functions"],
       "links": [
         "techniques.composing-methods.inline-method",
         "techniques.simplifying-method-calls.remove-parameter"
@@ -98,7 +98,7 @@
       "title": "Data Clumps",
       "path": "catalog/bloaters.md#data-clumps",
       "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["long-parameter-list", "repeated-parameter-group"],
+      "selectWhen": [],
       "links": [
         "techniques.simplifying-method-calls.introduce-parameter-object",
         "techniques.simplifying-method-calls.preserve-whole-object"
@@ -128,7 +128,7 @@
       "title": "Extract Variable",
       "path": "techniques/composing-methods.md#extract-variable",
       "stages": ["fix", "revalidate"],
-      "selectWhen": ["complex-expression"],
+      "selectWhen": [],
       "links": []
     },
     {
@@ -155,7 +155,7 @@
       "title": "Introduce Parameter Object",
       "path": "techniques/simplifying-method-calls.md#introduce-parameter-object",
       "stages": ["fix", "revalidate"],
-      "selectWhen": ["long-parameter-list", "repeated-parameter-group"],
+      "selectWhen": ["long-parameter-list"],
       "links": []
     },
     {
@@ -173,7 +173,7 @@
       "title": "Remove Parameter",
       "path": "techniques/simplifying-method-calls.md#remove-parameter",
       "stages": ["fix", "revalidate"],
-      "selectWhen": ["unused-parameter"],
+      "selectWhen": [],
       "links": []
     },
     {

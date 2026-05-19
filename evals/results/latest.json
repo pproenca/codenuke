@@ -1,21 +1,866 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-19T16:07:50.831Z",
-  "startedAt": "2026-05-19T16:07:49.191Z",
+  "generatedAt": "2026-05-19T16:44:05.367Z",
+  "startedAt": "2026-05-19T16:44:00.104Z",
   "cli": "node dist/cli.js",
+  "mode": {
+    "expectations": "strict",
+    "providerOverride": null,
+    "model": null,
+    "reasoningEffort": null
+  },
   "totals": {
-    "fixtures": 3,
-    "passed": 3,
+    "fixtures": 12,
+    "passed": 12,
     "failed": 0
   },
   "results": [
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-clean",
+      "name": "Guidance clean linked-tests fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 382,
+      "provider": "mock",
+      "map": {
+        "features": 6,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 0,
+          "selectedResources": [],
+          "primaryResources": [],
+          "supportingResources": [],
+          "detectedShapeNames": [],
+          "promptedResources": [],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-comments",
+      "name": "Guidance comments fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 395,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 2,
+          "selectedResources": [
+            "catalog.dispensables.comments",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": ["catalog.dispensables.comments"],
+          "supportingResources": [
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": ["commented-complex-block", "missing-linked-tests"],
+          "promptedResources": [
+            "catalog.dispensables.comments",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-conditional",
+      "name": "Guidance conditional-complexity fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 384,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 3,
+          "selectedResources": [
+            "catalog.dispensables.duplicate-code",
+            "catalog.object-orientation-abusers.switch-statements",
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": [
+            "catalog.dispensables.duplicate-code",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "supportingResources": [
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": [
+            "many-branches",
+            "missing-linked-tests",
+            "repeated-switch-like-branches"
+          ],
+          "promptedResources": [
+            "catalog.dispensables.duplicate-code",
+            "catalog.object-orientation-abusers.switch-statements",
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.speculative-generality"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-duplicate",
+      "name": "Guidance duplicate-code fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 386,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 3,
+          "selectedResources": [
+            "catalog.dispensables.duplicate-code",
+            "techniques.composing-methods.extract-method",
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": ["catalog.dispensables.duplicate-code"],
+          "supportingResources": [
+            "techniques.composing-methods.extract-method",
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": ["duplicate-block", "missing-linked-tests", "repeated-lines"],
+          "promptedResources": [
+            "catalog.dispensables.duplicate-code",
+            "techniques.composing-methods.extract-method",
+            "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-long-method",
+      "name": "Guidance long-method fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 445,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 2,
+          "selectedResources": [
+            "catalog.bloaters.long-method",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": ["catalog.bloaters.long-method"],
+          "supportingResources": [
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": ["large-function-like-block", "missing-linked-tests"],
+          "promptedResources": [
+            "catalog.bloaters.long-method",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-long-parameters",
+      "name": "Guidance long-parameter-list fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 386,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 2,
+          "selectedResources": [
+            "catalog.bloaters.long-parameter-list",
+            "techniques.simplifying-method-calls.introduce-parameter-object",
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "techniques.simplifying-method-calls.remove-parameter",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": ["catalog.bloaters.long-parameter-list"],
+          "supportingResources": [
+            "techniques.simplifying-method-calls.introduce-parameter-object",
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "techniques.simplifying-method-calls.remove-parameter",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": ["long-parameter-list", "missing-linked-tests"],
+          "promptedResources": [
+            "catalog.bloaters.long-parameter-list",
+            "techniques.simplifying-method-calls.introduce-parameter-object",
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "techniques.simplifying-method-calls.remove-parameter",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-message-chain",
+      "name": "Guidance message-chain fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 379,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 2,
+          "selectedResources": [
+            "catalog.couplers.message-chains",
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": ["catalog.couplers.message-chains"],
+          "supportingResources": [
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": ["message-chain", "missing-linked-tests"],
+          "promptedResources": [
+            "catalog.couplers.message-chains",
+            "techniques.simplifying-method-calls.preserve-whole-object",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-middle-man",
+      "name": "Guidance middle-man fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 392,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 3,
+          "selectedResources": [
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.speculative-generality",
+            "techniques.composing-methods.inline-method",
+            "techniques.moving-features-between-objects.remove-middle-man",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": [
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.speculative-generality"
+          ],
+          "supportingResources": [
+            "techniques.composing-methods.inline-method",
+            "techniques.moving-features-between-objects.remove-middle-man",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": [
+            "delegation-wrapper",
+            "many-small-delegating-functions",
+            "missing-linked-tests"
+          ],
+          "promptedResources": [
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.speculative-generality",
+            "techniques.composing-methods.inline-method",
+            "techniques.moving-features-between-objects.remove-middle-man",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "guidance-missing-tests",
+      "name": "Guidance missing-tests-only fixture",
+      "ok": true,
+      "summary": "0 open finding(s), 0 patch attempt(s)",
+      "durationMs": 384,
+      "provider": "mock",
+      "map": {
+        "features": 5,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 1,
+        "findings": 0
+      },
+      "report": {
+        "findings": 0,
+        "items": []
+      },
+      "finalReport": {
+        "findings": 0,
+        "items": []
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 0,
+          "finalFindings": 0
+        },
+        "guidanceSelection": {
+          "audits": 1,
+          "detectedShapes": 1,
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
+          "supportingResources": [],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 0,
+          "findingsByStatus": {},
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
     {
       "schemaVersion": 1,
       "slug": "mock-clean",
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 377,
+      "durationMs": 386,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -45,12 +890,11 @@
         "guidanceSelection": {
           "audits": 1,
           "detectedShapes": 1,
-          "selectedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
-          "promptedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
+          "supportingResources": [],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
             "catalog.bloaters.long-method",
@@ -97,7 +941,7 @@
       "name": "Mock refactoring marker",
       "ok": true,
       "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 873,
+      "durationMs": 926,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -153,7 +997,7 @@
       "fix": {
         "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
         "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_d78a40f104",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_242f4cd25b",
         "filesChanged": 0,
         "changedFiles": "none",
         "commands": 0,
@@ -174,6 +1018,9 @@
           "audits": 1,
           "detectedShapes": 0,
           "selectedResources": [],
+          "primaryResources": [],
+          "supportingResources": [],
+          "detectedShapeNames": [],
           "promptedResources": [],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
@@ -229,7 +1076,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 376,
+      "durationMs": 386,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -293,12 +1140,11 @@
         "guidanceSelection": {
           "audits": 1,
           "detectedShapes": 1,
-          "selectedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
-          "promptedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
+          "supportingResources": [],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
             "catalog.bloaters.long-method",
