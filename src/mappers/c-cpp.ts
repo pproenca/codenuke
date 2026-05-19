@@ -147,26 +147,21 @@ async function cmakeTargets(root: string, files: string[]): Promise<FeatureSeed[
     const effectiveProjectSourceDir = cmakeDeclaresProject(body) ? dir : projectSourceDir;
     const effectiveProjectName = cmakeProjectName(body) ?? projectName;
     for (const args of cmakeCommandArgs(body, "add_executable")) {
-      const [rawTarget = "", ...sources] = splitWords(args);
-      const target = resolveCMakeTargetName(rawTarget, effectiveProjectName);
-      if (!isValidTargetName(target)) {
+      const resolved = await resolveCMakeTargetSources({
+        root,
+        args,
+        sourceDir: dir,
+        listDir,
+        targetScope: scope,
+        cmakeSourceDir,
+        projectSourceDir: effectiveProjectSourceDir,
+        projectName: effectiveProjectName,
+        extraSourceSets,
+      });
+      if (resolved === null) {
         continue;
       }
-      const extraSources = extraSourceSets.get(cmakeTargetKey(scope, target));
-      const sourcePaths = uniqueStrings([
-        ...(await targetSourcePaths(
-          root,
-          dir,
-          sources,
-          listDir,
-          cmakeSourceDir,
-          effectiveProjectSourceDir,
-        )),
-        ...(extraSources?.paths ?? []),
-      ]);
-      if (sourcePaths.length === 0) {
-        continue;
-      }
+      const { target, extraSources, sourcePaths } = resolved;
       const contextFiles = cmakeTargetContextFiles(
         cmakeFile,
         "CMake target declaration",
@@ -219,26 +214,21 @@ async function cmakeTargets(root: string, files: string[]): Promise<FeatureSeed[
       });
     }
     for (const args of cmakeCommandArgs(body, "add_library")) {
-      const [rawTarget = "", ...sources] = splitWords(args);
-      const target = resolveCMakeTargetName(rawTarget, effectiveProjectName);
-      if (!isValidTargetName(target)) {
+      const resolved = await resolveCMakeTargetSources({
+        root,
+        args,
+        sourceDir: dir,
+        listDir,
+        targetScope: scope,
+        cmakeSourceDir,
+        projectSourceDir: effectiveProjectSourceDir,
+        projectName: effectiveProjectName,
+        extraSourceSets,
+      });
+      if (resolved === null) {
         continue;
       }
-      const extraSources = extraSourceSets.get(cmakeTargetKey(scope, target));
-      const sourcePaths = uniqueStrings([
-        ...(await targetSourcePaths(
-          root,
-          dir,
-          sources,
-          listDir,
-          cmakeSourceDir,
-          effectiveProjectSourceDir,
-        )),
-        ...(extraSources?.paths ?? []),
-      ]);
-      if (sourcePaths.length === 0) {
-        continue;
-      }
+      const { target, extraSources, sourcePaths } = resolved;
       const entryPath = pickEntry(sourcePaths, target) ?? cmakeFile;
       const tag = languageTag(entryPath);
       seeds.push({
@@ -277,6 +267,12 @@ type CMakeContext = {
 type CMakeTargetSources = {
   paths: string[];
   contextFiles: SeedFileRef[];
+};
+
+type ResolvedCMakeTargetSources = {
+  target: string;
+  extraSources: CMakeTargetSources | undefined;
+  sourcePaths: string[];
 };
 
 async function referencedCMakeFiles(root: string, files: string[]): Promise<CMakeDiscovery> {
@@ -472,6 +468,37 @@ async function cmakeTargetSources(
     }
   }
   return sources;
+}
+
+async function resolveCMakeTargetSources(options: {
+  root: string;
+  args: string;
+  sourceDir: string;
+  listDir: string;
+  targetScope: string;
+  cmakeSourceDir: string;
+  projectSourceDir: string;
+  projectName: string;
+  extraSourceSets: ReadonlyMap<string, CMakeTargetSources>;
+}): Promise<ResolvedCMakeTargetSources | null> {
+  const [rawTarget = "", ...sources] = splitWords(options.args);
+  const target = resolveCMakeTargetName(rawTarget, options.projectName);
+  if (!isValidTargetName(target)) {
+    return null;
+  }
+  const extraSources = options.extraSourceSets.get(cmakeTargetKey(options.targetScope, target));
+  const sourcePaths = uniqueStrings([
+    ...(await targetSourcePaths(
+      options.root,
+      options.sourceDir,
+      sources,
+      options.listDir,
+      options.cmakeSourceDir,
+      options.projectSourceDir,
+    )),
+    ...(extraSources?.paths ?? []),
+  ]);
+  return sourcePaths.length === 0 ? null : { target, extraSources, sourcePaths };
 }
 
 function cmakeDeclaresProject(body: string): boolean {
