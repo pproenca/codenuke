@@ -68,4 +68,62 @@ describe("nodeSeeds", () => {
       { path: "tests/service.test.ts", command: "pnpm test" },
     ]);
   });
+
+  it("keeps Rails app JavaScript sources while excluding Rails assets", async () => {
+    const root = await fixtureRoot("codenuke-node-rails-package-");
+    const files = [
+      "Gemfile",
+      "app/assets/application.js",
+      "app/javascript/controllers/menu.ts",
+      "app/javascript/controllers/menu.test.ts",
+      "config/application.rb",
+      "package.json",
+      "src/server.ts",
+      "tests/server.test.ts",
+    ];
+    await Promise.all(
+      files.map((path) =>
+        writeFixture(
+          root,
+          path,
+          path === "Gemfile"
+            ? 'source "https://rubygems.org"\ngem "rails"\n'
+            : path === "package.json"
+              ? JSON.stringify({ scripts: { test: "vitest" } })
+              : "export const value = true;\n",
+        ),
+      ),
+    );
+    const context: MapperContext = {
+      projects: [
+        {
+          root: ".",
+          name: "root",
+          workspaceMember: true,
+          packageJsonPath: "package.json",
+          packageJson: { scripts: { test: "vitest" } },
+          projectJsonPath: null,
+          sourceRoot: null,
+          projectType: null,
+          targets: {},
+          packageManager: "pnpm",
+          nxPackageManager: "pnpm",
+        },
+      ],
+      repoIndex: repoIndexFromFiles(files),
+      taskGraph: emptyTaskGraph(),
+    };
+
+    const sourceSeeds = (await nodeSeeds(root, context)).filter(
+      (seed) => seed.source === "node-source-group",
+    );
+    const ownedPaths = sourceSeeds.flatMap(
+      (seed) => seed.ownedFiles?.map((file) => file.path) ?? [],
+    );
+
+    expect(ownedPaths).toEqual(["src/server.ts", "app/javascript/controllers/menu.ts"]);
+    expect(sourceSeeds.find((seed) => seed.symbol === "src")?.tests).toEqual([
+      { path: "tests/server.test.ts", command: "pnpm test" },
+    ]);
+  });
 });

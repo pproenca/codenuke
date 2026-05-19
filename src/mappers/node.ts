@@ -65,8 +65,13 @@ export async function nodeSeeds(root: string, context: MapperContext): Promise<F
   const seeds: FeatureSeed[] = [];
 
   for (const info of packages) {
-    seeds.push(...(await packageSeeds(root, info, context.repoIndex, context.taskGraph)));
-    seeds.push(...(await sourceGroupSeeds(root, info, context.repoIndex, context.taskGraph)));
+    const railsPackage = await isRailsPackage(root, info.root);
+    seeds.push(
+      ...(await packageSeeds(root, info, context.repoIndex, context.taskGraph, railsPackage)),
+    );
+    seeds.push(
+      ...(await sourceGroupSeeds(root, info, context.repoIndex, context.taskGraph, railsPackage)),
+    );
   }
 
   return seeds;
@@ -81,6 +86,7 @@ async function packageSeeds(
   info: PackageInfo,
   repoIndex: RepoIndex,
   taskGraph: WorkspaceTaskGraph,
+  railsPackage: boolean,
 ): Promise<FeatureSeed[]> {
   const seeds: FeatureSeed[] = [];
   const packageName = projectDisplayName(info);
@@ -97,7 +103,12 @@ async function packageSeeds(
   }
 
   const packageOwnedFiles = await packageOwnedMetadataFiles(root, info);
-  const packageOverviewContext = await packageOverviewContextFiles(root, info, repoIndex);
+  const packageOverviewContext = await packageOverviewContextFiles(
+    root,
+    info,
+    repoIndex,
+    railsPackage,
+  );
   const manifestSource = isExtensionPackage(info) ? "node-extension-package" : "node-package";
   const packageSummary = isExtensionPackage(info)
     ? `Extension package ${packageName} with package metadata, source, tests, and docs rooted at ${info.root}.`
@@ -188,11 +199,11 @@ async function sourceGroupSeeds(
   info: PackageInfo,
   repoIndex: RepoIndex,
   taskGraph: WorkspaceTaskGraph,
+  railsPackage: boolean,
 ): Promise<FeatureSeed[]> {
   const packageName = projectDisplayName(info);
   const testCommand = projectTargetCommand(info, "test", taskGraph);
-  const testFiles = await packageTestFiles(root, info, repoIndex);
-  const railsPackage = await isRailsPackage(root, info.root);
+  const testFiles = await packageTestFiles(root, info, repoIndex, railsPackage);
   const seeds: FeatureSeed[] = [];
 
   for (const sourceRoot of packageSourceRoots(info, railsPackage)) {
@@ -328,6 +339,7 @@ async function packageOverviewContextFiles(
   root: string,
   info: PackageInfo,
   repoIndex: RepoIndex,
+  railsPackage: boolean,
 ): Promise<SeedFileRef[]> {
   const docs = await existingFileRefs(root, [
     { path: packageRelativePath(info.root, "README.md"), reason: "package documentation" },
@@ -335,8 +347,8 @@ async function packageOverviewContextFiles(
     { path: packageRelativePath(info.root, "CHANGELOG.md"), reason: "package changelog" },
   ]);
   const entryRefs = await packageEntryContextFiles(root, info);
-  const sourceRefs = await packageSourceOverviewRefs(root, info, repoIndex);
-  const testRefs = (await packageTestFiles(root, info, repoIndex))
+  const sourceRefs = packageSourceOverviewRefs(info, repoIndex, railsPackage);
+  const testRefs = (await packageTestFiles(root, info, repoIndex, railsPackage))
     .slice(0, 12)
     .map((path) => ({ path, reason: "package test" }));
   return uniqueFileRefs([...docs, ...entryRefs, ...sourceRefs, ...testRefs]).slice(
@@ -393,12 +405,11 @@ function collectExportPaths(value: unknown, output: string[]): void {
   }
 }
 
-async function packageSourceOverviewRefs(
-  root: string,
+function packageSourceOverviewRefs(
   info: PackageInfo,
   repoIndex: RepoIndex,
-): Promise<SeedFileRef[]> {
-  const railsPackage = await isRailsPackage(root, info.root);
+  railsPackage: boolean,
+): SeedFileRef[] {
   const sourceRoots = packageSourceRoots(info, railsPackage);
   const files = repoFilesUnderAny(repoIndex, sourceRoots)
     .filter((path) =>
@@ -461,8 +472,8 @@ async function packageTestFiles(
   root: string,
   info: PackageInfo,
   repoIndex: RepoIndex,
+  railsPackage: boolean,
 ): Promise<string[]> {
-  const railsPackage = await isRailsPackage(root, info.root);
   const prefixes = [
     ...packageSourceRoots(info, railsPackage),
     ...testDirectories.map((dir) => packageRelativePath(info.root, dir)),
