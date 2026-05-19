@@ -299,6 +299,7 @@ const mockProvider: Provider = {
                   resourceId: "catalog.dispensables.speculative-generality",
                   title: "Speculative Generality",
                   kind: "signal",
+                  role: "supporting",
                   reason: "The mock simplification marker represents unnecessary code.",
                   use: "Remove only code proven unnecessary by the fixture marker.",
                 },
@@ -341,6 +342,7 @@ const mockProvider: Provider = {
                 resourceId: "catalog.dispensables.duplicate-code",
                 title: "Duplicate Code",
                 kind: "signal",
+                role: "supporting",
                 reason: "Mock bug findings include a placeholder guidance trace.",
                 use: "Use the trace only as schema-compatible mock output.",
               },
@@ -351,7 +353,17 @@ const mockProvider: Provider = {
       inspected: { files: ["src/index.ts"], symbols: [], notes: ["mock finding"] },
     };
   },
-  async fix(): Promise<FixPlanOutput> {
+  async fix(_root: string, prompt: string): Promise<FixPlanOutput> {
+    const appliedResources = [
+      "catalog.dispensables.duplicate-code",
+      "catalog.dispensables.speculative-generality",
+    ]
+      .filter((resourceId) => prompt.includes(resourceId))
+      .map((resourceId) => ({
+        resourceId,
+        action: "applied" as const,
+        reasoning: "Mock provider accounted for the prompted guidance resource.",
+      }));
     return {
       summary: "mock fix plan",
       findingIds: [],
@@ -359,7 +371,7 @@ const mockProvider: Provider = {
       risk: "low",
       steps: ["mock"],
       guidanceApplication: {
-        appliedResources: [],
+        appliedResources,
         deviations: [],
         risk: "low",
       },

@@ -425,6 +425,7 @@ Initial config:
     "typecheck": null,
     "lint": null,
     "format": null,
+    "formatCheck": null,
     "test": null
   },
   "review": {
@@ -657,6 +658,20 @@ type PatchAttempt = {
   status: "planned" | "applying" | "applied" | "validated" | "failed" | "abandoned";
   plan: string;
   filesChanged: string[];
+  failure: {
+    code:
+      | "validation-failed"
+      | "missing-test-coverage"
+      | "out-of-scope-changes"
+      | "guidance-not-accounted";
+    message: string;
+    allowedFiles?: string[];
+    expectedResources?: string[];
+    missingResources?: string[];
+    rejectedPrimaryResources?: string[];
+    unexpectedFiles?: string[];
+  } | null;
+  guidanceApplication: GuidanceApplication | null;
   commandsRun: CommandResult[];
   testResults: CommandResult[];
   provider: ProviderMetadata | null;
@@ -971,7 +986,7 @@ Detection sources:
 
 Command order for fixes:
 
-1. formatter on changed files when supported
+1. non-mutating formatter check when supported
 2. targeted tests
 3. lint/typecheck
 4. broader tests when cheap or explicitly requested

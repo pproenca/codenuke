@@ -9,7 +9,7 @@ Validation happens during `codenuke fix`.
 
 Configured commands run in order:
 
-- format
+- format check
 - typecheck
 - lint
 - test
@@ -23,12 +23,18 @@ Example:
 {
   "commands": {
     "format": "pnpm format",
+    "formatCheck": "pnpm format:check",
     "lint": "pnpm lint",
     "typecheck": "pnpm typecheck",
     "test": "pnpm test"
   }
 }
 ```
+
+During `codenuke fix`, codenuke prefers `formatCheck` over `format` so
+validation does not rewrite unrelated files. If `formatCheck` is missing, a
+check-like `format` command such as `cargo fmt --check` may still run. Mutating
+formatter commands are skipped during fix validation.
 
 `codenuke revalidate --finding <id>` runs a separate provider pass and updates
 the finding status based on that result. `codenuke revalidate --all` rechecks a

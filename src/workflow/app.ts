@@ -24,7 +24,9 @@ import { mapFeatures } from "../mapping/heuristic.js";
 import { emitProgress } from "../platform/progress.js";
 import { providerByName } from "../provider/index.js";
 import { reviewGuidanceDryRun } from "./guidance.js";
+import { guidanceApplicationFailure } from "./guidance-application.js";
 import { buildFixPrompt, buildReviewPromptWithGuidance, buildRevalidatePrompt } from "./prompt.js";
+import { patchBoundaryForFix } from "./patch-boundary.js";
 import {
   evidenceLabel,
   findingSummaries,
@@ -809,6 +811,8 @@ export async function fixCommand(
     status: "planned",
     plan: `Fix ${finding.title}`,
     filesChanged: [],
+    failure: null,
+    guidanceApplication: null,
     commandsRun: [],
     testResults: [],
     provider: null,
@@ -846,6 +850,7 @@ export async function fixCommand(
       ...initialPatch,
       status: "failed",
       plan: `${initialPatch.plan}\n\nProvider failed: ${message}`,
+      guidanceApplication: null,
       provider: {
         name: provider.name,
         model: config.provider.model,
@@ -865,6 +870,85 @@ export async function fixCommand(
     });
     throw error;
   }
+  const providerChanged =
+    (await sourceChangedSnapshots(loaded.root, loaded.paths.stateDir)) ?? new Map();
+  const providerFilesChanged = changedPathsBetweenSnapshots(beforeChanged, providerChanged);
+  const providerBoundary = patchBoundaryForFix(
+    finding,
+    feature,
+    plan.plannedFiles,
+    providerFilesChanged,
+  );
+  if (providerBoundary.unexpectedFiles.length > 0) {
+    const failure = {
+      code: "out-of-scope-changes" as const,
+      message: "Patch changed files outside the finding patch boundary.",
+      allowedFiles: providerBoundary.allowedFiles,
+      unexpectedFiles: providerBoundary.unexpectedFiles,
+    };
+    const patch: PatchAttempt = {
+      ...initialPatch,
+      status: "failed",
+      plan: plan.summary,
+      filesChanged: providerFilesChanged,
+      commandsRun: [],
+      testResults: [],
+      failure,
+      guidanceApplication: plan.guidanceApplication,
+      provider: {
+        name: provider.name,
+        model: config.provider.model,
+        reasoningEffort: config.provider.reasoningEffort,
+        requestId: null,
+        startedAt,
+        finishedAt: nowIso(),
+      },
+      updatedAt: nowIso(),
+    };
+    await writePatchAttempt(loaded.paths, patch);
+    await writeFinding(loaded.paths, {
+      ...finding,
+      linkedPatchAttemptIds: Array.from(
+        new Set([...finding.linkedPatchAttemptIds, patchAttemptId]),
+      ),
+      status: "open",
+      updatedAt: nowIso(),
+    });
+    throw new CodenukeError(failure.message, 6, failure.code);
+  }
+  const guidanceFailure = guidanceApplicationFailure(finding, plan.guidanceApplication);
+  if (guidanceFailure !== null) {
+    const patch: PatchAttempt = {
+      ...initialPatch,
+      status: "failed",
+      plan: `${plan.summary}\n\n${guidanceFailure.message}`,
+      filesChanged: providerFilesChanged,
+      commandsRun: [],
+      testResults: [],
+      failure: guidanceFailure,
+      guidanceApplication: plan.guidanceApplication,
+      provider: {
+        name: provider.name,
+        model: config.provider.model,
+        reasoningEffort: config.provider.reasoningEffort,
+        requestId: null,
+        startedAt,
+        finishedAt: nowIso(),
+      },
+      updatedAt: nowIso(),
+    };
+    await writePatchAttempt(loaded.paths, patch);
+    await writeFinding(loaded.paths, {
+      ...finding,
+      linkedPatchAttemptIds: Array.from(
+        new Set([...finding.linkedPatchAttemptIds, patchAttemptId]),
+      ),
+      status: "open",
+      updatedAt: nowIso(),
+    });
+    throw new CodenukeError(guidanceFailure.message, 6, guidanceFailure.code);
+  }
+
   const validationCommands = validationCommandsForFeature(feature, config.commands);
   const commandsRun: CommandResult[] = [];
   for (const command of validationCommands) {
@@ -873,14 +957,36 @@ export async function fixCommand(
   const afterChanged =
     (await sourceChangedSnapshots(loaded.root, loaded.paths.stateDir)) ?? new Map();
   const filesChanged = changedPathsBetweenSnapshots(beforeChanged, afterChanged);
+  const boundary = patchBoundaryForFix(finding, feature, plan.plannedFiles, filesChanged);
   const missingTestCoverage = missingChangedTestMessage(finding, feature, filesChanged);
   const validationFailed = commandsRun.some((result) => result.exitCode !== 0);
-  const failed = validationFailed || missingTestCoverage !== null;
+  const boundaryFailed = boundary.unexpectedFiles.length > 0;
+  const failed = validationFailed || missingTestCoverage !== null || boundaryFailed;
+  const failure = boundaryFailed
+    ? {
+        code: "out-of-scope-changes" as const,
+        message: "Patch changed files outside the finding patch boundary.",
+        allowedFiles: boundary.allowedFiles,
+        unexpectedFiles: boundary.unexpectedFiles,
+      }
+    : missingTestCoverage !== null
+      ? {
+          code: "missing-test-coverage" as const,
+          message: missingTestCoverage,
+        }
+      : validationFailed
+        ? {
+            code: "validation-failed" as const,
+            message: "validation failed after applying fix",
+          }
+        : null;
   const patch: PatchAttempt = {
     ...initialPatch,
     status: failed ? "failed" : "applied",
-    plan: missingTestCoverage === null ? plan.summary : `${plan.summary}\n\n${missingTestCoverage}`,
+    plan: failure === null ? plan.summary : `${plan.summary}\n\n${failure.message}`,
     filesChanged,
+    failure,
+    guidanceApplication: plan.guidanceApplication,
     commandsRun,
     testResults: commandsRun,
     provider: {
@@ -903,9 +1009,9 @@ export async function fixCommand(
   await writeFinding(loaded.paths, updatedFinding);
   if (failed) {
     throw new CodenukeError(
-      missingTestCoverage ?? "validation failed after applying fix",
+      failure?.message ?? "validation failed after applying fix",
       6,
-      missingTestCoverage === null ? "validation-failed" : "missing-test-coverage",
+      failure?.code ?? "validation-failed",
     );
   }
   return {

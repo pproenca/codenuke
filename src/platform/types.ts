@@ -85,6 +85,7 @@ export const projectCommandsSchema = z.object({
   typecheck: z.string().nullable(),
   lint: z.string().nullable(),
   format: z.string().nullable(),
+  formatCheck: z.string().nullable().optional(),
   test: z.string().nullable(),
 });
 
@@ -232,6 +233,7 @@ export const guidanceTraceEntrySchema = z.object({
   resourceId: z.string(),
   title: z.string(),
   kind: z.enum(guidanceResourceKinds),
+  role: z.enum(["primary", "supporting"]).optional().default("supporting"),
   reason: z.string(),
   use: z.string(),
 });
@@ -266,6 +268,7 @@ export const guidancePromptedResourceSchema = z.object({
   resourceId: z.string(),
   title: z.string(),
   kind: z.enum(guidanceResourceKinds),
+  role: z.enum(["primary", "supporting"]).optional().default("supporting"),
   contentHash: z.string(),
   fullText: z.boolean(),
 });
@@ -293,6 +296,8 @@ export const guidanceApplicationSchema = z.object({
   deviations: z.array(z.string()),
   risk: z.enum(["low", "medium", "high"]),
 });
+
+export type GuidanceApplication = z.infer<typeof guidanceApplicationSchema>;
 
 export const guidanceAssessmentSchema = z.object({
   followed: z.enum(["yes", "partially", "no", "not-applicable"]),
@@ -350,6 +355,23 @@ export const commandResultSchema = z.object({
 
 export type CommandResult = z.infer<typeof commandResultSchema>;
 
+export const patchFailureSchema = z.object({
+  code: z.enum([
+    "validation-failed",
+    "missing-test-coverage",
+    "out-of-scope-changes",
+    "guidance-not-accounted",
+  ]),
+  message: z.string(),
+  allowedFiles: z.array(z.string()).optional(),
+  expectedResources: z.array(z.string()).optional(),
+  missingResources: z.array(z.string()).optional(),
+  rejectedPrimaryResources: z.array(z.string()).optional(),
+  unexpectedFiles: z.array(z.string()).optional(),
+});
+
+export type PatchFailure = z.infer<typeof patchFailureSchema>;
+
 export const patchAttemptSchema = z.object({
   schemaVersion: z.literal(1),
   patchAttemptId: z.string(),
@@ -358,6 +380,8 @@ export const patchAttemptSchema = z.object({
   status: z.enum(["planned", "applying", "applied", "validated", "failed", "abandoned"]),
   plan: z.string(),
   filesChanged: z.array(z.string()),
+  failure: patchFailureSchema.nullable().optional().default(null),
+  guidanceApplication: guidanceApplicationSchema.nullable().optional().default(null),
   commandsRun: z.array(commandResultSchema),
   testResults: z.array(commandResultSchema),
   provider: z

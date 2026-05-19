@@ -39,6 +39,7 @@ Default shape:
     "typecheck": null,
     "lint": null,
     "format": null,
+    "formatCheck": null,
     "test": null
   },
   "review": {
@@ -64,3 +65,7 @@ Environment overrides:
 
 `git.commit` and `git.openPr` are reserved config fields. The current CLI does
 not commit or open PRs.
+
+`formatCheck` is the non-mutating formatter validation command used during
+`codenuke fix`. Keep `format` for commands that rewrite files; `fix` skips
+mutating formatter commands unless a check-like formatter command is available.

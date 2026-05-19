@@ -8299,7 +8299,7 @@ let package = Package(name: "HybridApp", targets: [.target(name: "HybridApp")])
     expect(project.detected.languages).toContain("rust");
     expect(project.detected.packageManagers).toContain("cargo");
     expect(project.detected.commands.typecheck).toBe("cargo check --workspace --all-targets");
-    expect(project.detected.commands.format).toBe("cargo fmt --all --check");
+    expect(project.detected.commands.formatCheck).toBe("cargo fmt --all --check");
     expect(project.detected.commands.test).toBe("cargo test --workspace");
     expect(titles).toContain("Rust command admin");
     expect(titles).toContain("Rust command rusty-tool");
@@ -9698,7 +9698,7 @@ add_executable(headerapp include/headers.hpp)
     expect(project.detected.packageManagers).toContain("uv");
     expect(project.detected.commands.test).toBe("uv run pytest");
     expect(project.detected.commands.lint).toBe("uv run ruff check .");
-    expect(project.detected.commands.format).toBe("uv run ruff format --check .");
+    expect(project.detected.commands.formatCheck).toBe("uv run ruff format --check .");
     expect(titles).toContain("Python project py-tool");
     expect(titles).toContain("Python CLI command pytool");
     expect(titles).toContain("Python test suite tests");
@@ -10347,6 +10347,7 @@ add_executable(headerapp include/headers.hpp)
       typecheck: "composer typecheck",
       lint: "composer lint",
       format: "composer format",
+      formatCheck: null,
       test: "composer test",
     });
     expect(titles).toContain("Composer script test");
@@ -10576,7 +10577,7 @@ add_executable(headerapp include/headers.hpp)
 
     const blackRoot = await fixtureRoot("codenuke-python-black-");
     await writeFixture(blackRoot, "requirements.txt", "black\n");
-    expect((await detectProject(blackRoot)).detected.commands.format).toBe("black --check .");
+    expect((await detectProject(blackRoot)).detected.commands.formatCheck).toBe("black --check .");
 
     const uvBlackRoot = await fixtureRoot("codenuke-python-uv-black-");
     await writeFixture(
@@ -10585,7 +10586,7 @@ add_executable(headerapp include/headers.hpp)
       '[project]\nname = "uv-black"\ndependencies = ["black"]\n',
     );
     await writeFixture(uvBlackRoot, "uv.lock", "");
-    expect((await detectProject(uvBlackRoot)).detected.commands.format).toBe(
+    expect((await detectProject(uvBlackRoot)).detected.commands.formatCheck).toBe(
       "uv run black --check .",
     );
 
@@ -10651,7 +10652,7 @@ add_executable(headerapp include/headers.hpp)
     expect((await detectProject(setupCfgRoot)).detected.commands).toMatchObject({
       typecheck: "mypy .",
       lint: "ruff check .",
-      format: "ruff format --check .",
+      formatCheck: "ruff format --check .",
     });
 
     const setupCfgExtrasNameRoot = await fixtureRoot("codenuke-python-setup-cfg-extras-name-");
@@ -10664,6 +10665,7 @@ add_executable(headerapp include/headers.hpp)
       typecheck: null,
       lint: null,
       format: null,
+      formatCheck: null,
       test: null,
     });
 
@@ -10747,6 +10749,7 @@ add_executable(headerapp include/headers.hpp)
       typecheck: null,
       lint: null,
       format: null,
+      formatCheck: null,
       test: null,
     });
 
@@ -10760,6 +10763,7 @@ add_executable(headerapp include/headers.hpp)
       typecheck: null,
       lint: null,
       format: null,
+      formatCheck: null,
       test: null,
     });
 
@@ -10773,6 +10777,7 @@ add_executable(headerapp include/headers.hpp)
       typecheck: null,
       lint: null,
       format: null,
+      formatCheck: null,
       test: null,
     });
 
@@ -10784,7 +10789,7 @@ add_executable(headerapp include/headers.hpp)
     );
     expect((await detectProject(dependencyGroupRoot)).detected.commands).toMatchObject({
       lint: "ruff check .",
-      format: "ruff format --check .",
+      formatCheck: "ruff format --check .",
       test: "pytest",
     });
   });

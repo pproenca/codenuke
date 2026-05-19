@@ -184,6 +184,15 @@
       "stages": ["fix", "revalidate"],
       "selectWhen": ["delegation-wrapper", "many-small-delegating-functions"],
       "links": []
+    },
+    {
+      "id": "workflow.trusted-refactor-regression-coverage",
+      "kind": "workflow",
+      "title": "Trusted Refactor Regression Coverage",
+      "path": "workflow/trusted-refactor-regression-coverage.md",
+      "stages": ["review", "fix", "revalidate"],
+      "selectWhen": ["missing-linked-tests"],
+      "links": []
     }
   ]
 }

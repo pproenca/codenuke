@@ -173,6 +173,7 @@ JSON shape:
             "resourceId": "string",
             "title": "string",
             "kind": "signal|technique|workflow",
+            "role": "primary|supporting",
             "reason": "why this resource applies to this finding",
             "use": "how fix and revalidation should use this resource"
           }
@@ -198,9 +199,11 @@ decide whether the issue is fixed, stale/false-positive, still open elsewhere, o
 Use tests and current code as evidence; do not assume a missing line means fixed. For complexity
 or simplification findings, confirm both that the original simplification opportunity is gone and
 that the replacement preserves the behavior contract visible in tests and context files.
-Also assess whether the applied guidance trace was followed appropriately. A finding may be marked
-fixed only when the original issue is resolved, visible behavior is preserved, and the guidance fit
-is acceptable. If the code removed the symptom but violated the guidance intent, return uncertain.
+Also assess whether the applied guidance trace was followed appropriately. Primary guidance is
+mandatory unless the current code makes it not applicable; supporting guidance is optional context.
+A finding may be marked fixed only when the original issue is resolved, visible behavior is
+preserved, and the guidance fit is acceptable. If the code removed the symptom but violated the
+primary guidance intent, return uncertain.
 
 Return strict JSON only:
 {"outcome":"fixed|open|false-positive|uncertain","reasoning":"string","guidanceAssessment":{"followed":"yes|partially|no|not-applicable","reasoning":"string","deviations":["string"],"acceptable":true},"commands":["string"]}
@@ -228,9 +231,11 @@ export async function buildFixPrompt(
 Fix only the finding below. Keep the patch minimal and behavior-preserving. Prefer removing code,
 collapsing duplication, simplifying data flow, or improving algorithmic complexity over broad
 rewrites. Add or update focused tests when feasible.
-Apply the finding's guidance trace. If a listed technique is too broad for the current code, choose
-the smallest safer behavior-preserving move and explain why in guidanceApplication. Do not switch to
-a larger technique unless the finding's evidence requires it.
+Apply the finding's guidance trace. Primary guidance is mandatory unless the current code makes it
+not applicable; supporting guidance is optional context for the smallest safe move. If a listed
+technique is too broad for the current code, choose the smallest safer behavior-preserving move and
+explain why in guidanceApplication. Do not switch to a larger technique unless the finding's
+evidence requires it.
 Use a red-green-refactor loop for behavior-preserving refactors: prove the intended behavior with
 the smallest focused test, make the minimal production change, then run validation.
 Do not commit, push, switch branches, or run destructive git commands.

@@ -170,6 +170,16 @@ async function detectCommands(
   const defaults = await languageDefaultCommands(root, languages, composer, pythonInfo);
   const packageManager = packageScriptManager(packageManagers);
   const composerTestCommand = composerValidationCommand(composerScriptMap, ["test"]);
+  const packageFormat = packageValidationCommand(scripts, packageManager, ["format"]);
+  const packageFormatCheck = packageValidationCommand(scripts, packageManager, [
+    "format:check",
+    "fmt:check",
+  ]);
+  const composerFormat = composerValidationCommand(composerScriptMap, ["format"]);
+  const composerFormatCheck = composerValidationCommand(composerScriptMap, [
+    "format:check",
+    "fmt:check",
+  ]);
   return {
     typecheck:
       scripts["typecheck"] !== undefined
@@ -180,15 +190,26 @@ async function detectCommands(
       scripts["lint"] !== undefined
         ? packageRunCommand(packageManager, "lint")
         : (composerValidationCommand(composerScriptMap, ["lint"]) ?? defaults.lint),
-    format:
-      scripts["format"] !== undefined
-        ? packageRunCommand(packageManager, "format")
-        : (composerValidationCommand(composerScriptMap, ["format"]) ?? defaults.format),
+    format: packageFormat ?? composerFormat ?? defaults.format,
+    formatCheck:
+      packageFormatCheck ??
+      composerFormatCheck ??
+      defaults.formatCheck ??
+      checkLikeFormatCommand(packageFormat ?? composerFormat ?? defaults.format),
     test:
       scripts["test"] !== undefined
         ? packageRunCommand(packageManager, "test")
         : (composerTestCommand ?? defaults.test),
   };
+}
+
+function packageValidationCommand(
+  scripts: Record<string, string>,
+  packageManager: string,
+  candidates: string[],
+): string | null {
+  const script = candidates.find((candidate) => scripts[candidate] !== undefined);
+  return script === undefined ? null : packageRunCommand(packageManager, script);
 }
 
 function composerValidationCommand(
@@ -210,6 +231,7 @@ async function languageDefaultCommands(
       typecheck: "go test ./...",
       lint: null,
       format: null,
+      formatCheck: null,
       test: "go test ./...",
     };
   }
@@ -217,7 +239,8 @@ async function languageDefaultCommands(
     return {
       typecheck: "cargo check --workspace --all-targets",
       lint: null,
-      format: "cargo fmt --all --check",
+      format: null,
+      formatCheck: "cargo fmt --all --check",
       test: "cargo test --workspace",
     };
   }
@@ -226,6 +249,7 @@ async function languageDefaultCommands(
       typecheck: "swift build",
       lint: null,
       format: null,
+      formatCheck: null,
       test: (await hasSwiftTests(root)) ? "swift test" : null,
     };
   }
@@ -249,6 +273,7 @@ async function languageDefaultCommands(
     typecheck: null,
     lint: null,
     format: null,
+    formatCheck: null,
     test: null,
   };
 }
@@ -381,6 +406,7 @@ async function gradleDefaultCommands(root: string): Promise<ProjectCommands> {
     typecheck: `${runner} build`,
     lint: null,
     format: null,
+    formatCheck: null,
     test: `${runner} test`,
   };
 }
@@ -402,7 +428,8 @@ async function phpDefaultCommands(
   return {
     typecheck: hasPhpStan ? "vendor/bin/phpstan analyse" : null,
     lint: hasPint ? "vendor/bin/pint --test" : null,
-    format: hasPint ? "vendor/bin/pint --test" : null,
+    format: null,
+    formatCheck: hasPint ? "vendor/bin/pint --test" : null,
     test: hasArtisan
       ? "php artisan test"
       : hasPest
@@ -435,7 +462,8 @@ async function pythonDefaultCommands(
           ? pythonRunCommand(runner, "ruff check .")
           : null,
     lint: hasRuff ? pythonRunCommand(runner, "ruff check .") : null,
-    format: hasRuff
+    format: null,
+    formatCheck: hasRuff
       ? pythonRunCommand(runner, "ruff format --check .")
       : hasBlack
         ? pythonRunCommand(runner, "black --check .")
@@ -494,8 +522,16 @@ async function rubyDefaultCommands(root: string): Promise<ProjectCommands> {
     typecheck: null,
     lint: hasRubocop ? `${run}rubocop` : null,
     format: null,
+    formatCheck: null,
     test: hasRspec ? `${run}rspec` : hasMinitest ? `${run}rake test` : null,
   };
+}
+
+function checkLikeFormatCommand(command: string | null): string | null {
+  if (command === null) {
+    return null;
+  }
+  return /\b(?:check|--check|--dry-run|--verify|--test)\b/u.test(command) ? command : null;
 }
 
 function hasRubocopDependency(dependencies: Set<string>): boolean {

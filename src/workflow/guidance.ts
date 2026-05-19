@@ -28,6 +28,7 @@ type Manifest = {
 
 export type SelectedGuidanceResource = {
   resource: ManifestResource;
+  role: GuidanceTraceEntry["role"];
   reason: string;
   use: string;
   score: number;
@@ -58,29 +59,28 @@ export async function selectReviewGuidance(
   const shapes = uniqueShapes(detectedShapes);
   const manifest = await loadManifest();
   const byId = new Map(manifest.resources.map((resource) => [resource.id, resource]));
-  const signalMatches = manifest.resources
-    .filter((resource) => resource.kind === "signal" && resource.stages.includes("review"))
-    .flatMap((resource) => {
-      const matched = resource.selectWhen.filter((shape) => shapes.includes(shape));
-      if (matched.length === 0) {
-        return [];
-      }
-      return [
-        {
-          resource,
-          shapes: matched,
-          score: matched.reduce((total, shape) => total + shapeWeight(shape), 0),
-        },
-      ];
-    })
-    .toSorted(
-      (left, right) =>
-        right.score - left.score || left.resource.title.localeCompare(right.resource.title),
-    )
+  const reviewMatches = manifest.resources
+    .filter((resource) => resource.stages.includes("review"))
+    .flatMap((resource) => matchResource(resource, shapes))
+    .toSorted((left, right) => {
+      const leftWorkflow = left.resource.kind === "workflow" ? 1 : 0;
+      const rightWorkflow = right.resource.kind === "workflow" ? 1 : 0;
+      return (
+        rightWorkflow - leftWorkflow ||
+        right.score - left.score ||
+        left.resource.title.localeCompare(right.resource.title)
+      );
+    });
+  const signalMatches = reviewMatches
+    .filter((match) => match.resource.kind === "signal")
     .slice(0, 6);
+  const primaryMatches = reviewMatches
+    .filter((match) => match.resource.kind === "workflow" || match.resource.kind === "signal")
+    .slice(0, 2);
 
-  const selectedIds = new Set(signalMatches.map((match) => match.resource.id));
-  for (const match of signalMatches.slice(0, 4)) {
+  const primaryIds = new Set(primaryMatches.map((match) => match.resource.id));
+  const selectedIds = new Set(primaryIds);
+  for (const match of primaryMatches.filter((candidate) => candidate.resource.kind === "signal")) {
     for (const link of match.resource.links.slice(0, 3)) {
       const linked = byId.get(link);
       if (linked !== undefined) {
@@ -88,9 +88,11 @@ export async function selectReviewGuidance(
       }
     }
   }
+  for (const match of signalMatches.slice(2, 5)) {
+    selectedIds.add(match.resource.id);
+  }
 
   const resources: SelectedGuidanceResource[] = [];
-  const strongSignals = new Set(signalMatches.slice(0, 3).map((match) => match.resource.id));
   for (const id of selectedIds) {
     const resource = byId.get(id);
     if (resource === undefined) {
@@ -106,27 +108,33 @@ export async function selectReviewGuidance(
     const use =
       resource.kind === "signal"
         ? `Use ${resource.title} as a Refactoring Signal: verify evidence, behavior contract, and a small repair path before reporting.`
-        : `Use ${resource.title} as a candidate repair move only when it is the smallest behavior-preserving fit.`;
+        : resource.kind === "workflow"
+          ? `Use ${resource.title} as a workflow constraint for reporting, fixing, and revalidation.`
+          : `Use ${resource.title} as a candidate repair move only when it is the smallest behavior-preserving fit.`;
     const text = await resourceText(resource);
     resources.push({
       resource,
+      role: primaryIds.has(id) ? "primary" : "supporting",
       reason,
       use,
       score:
         match?.score ?? shapesForResource.reduce((total, shape) => total + shapeWeight(shape), 0),
       shapes: shapesForResource,
-      fullText: strongSignals.has(id),
+      fullText: primaryIds.has(id),
       text,
       contentHash: hashText(text),
     });
   }
 
-  const ordered = resources.toSorted(
-    (left, right) =>
-      Number(right.fullText) - Number(left.fullText) ||
-      right.score - left.score ||
-      left.resource.title.localeCompare(right.resource.title),
-  );
+  const ordered = resources
+    .toSorted(
+      (left, right) =>
+        (left.role === "primary" ? 0 : 1) - (right.role === "primary" ? 0 : 1) ||
+        Number(right.fullText) - Number(left.fullText) ||
+        right.score - left.score ||
+        left.resource.title.localeCompare(right.resource.title),
+    )
+    .slice(0, 5);
   const selected = ordered.map(traceEntryForResource);
   const prompt = guidancePrompt(ordered);
   const selectedSet = new Set(selected.map((entry) => entry.resourceId));
@@ -156,6 +164,7 @@ export async function selectReviewGuidance(
         resourceId: selection.resource.id,
         title: selection.resource.title,
         kind: selection.resource.kind,
+        role: selection.role,
         contentHash: selection.contentHash,
         fullText: selection.fullText,
       })),
@@ -163,6 +172,23 @@ export async function selectReviewGuidance(
     },
     prompt,
   };
+}
+
+function matchResource(
+  resource: ManifestResource,
+  shapes: string[],
+): Array<{ resource: ManifestResource; shapes: string[]; score: number }> {
+  const matched = resource.selectWhen.filter((shape) => shapes.includes(shape));
+  if (matched.length === 0) {
+    return [];
+  }
+  return [
+    {
+      resource,
+      shapes: matched,
+      score: matched.reduce((total, shape) => total + shapeWeight(shape), 0),
+    },
+  ];
 }
 
 export async function guidanceTextForTrace(
@@ -180,7 +206,7 @@ export async function guidanceTextForTrace(
     const body = resource === undefined ? "" : `\nResource text:\n${await resourceText(resource)}`;
     blocks.push(
       [
-        `- ${entry.title} (${entry.kind}, ${entry.resourceId})`,
+        `- ${entry.title} (${entry.role}, ${entry.kind}, ${entry.resourceId})`,
         `  why: ${entry.reason}`,
         `  use: ${entry.use}`,
         `  stage: ${stage}`,
@@ -222,6 +248,7 @@ function traceEntryForResource(selection: SelectedGuidanceResource): GuidanceTra
     resourceId: selection.resource.id,
     title: selection.resource.title,
     kind: selection.resource.kind,
+    role: selection.role,
     reason: selection.reason,
     use: selection.use,
   };
@@ -234,7 +261,7 @@ function guidancePrompt(resources: SelectedGuidanceResource[]): string {
   }
   const cards = resources.map(
     (selection) =>
-      `- ${selection.resource.title} (${selection.resource.kind}, ${selection.resource.id})
+      `- ${selection.resource.title} (${selection.role}, ${selection.resource.kind}, ${selection.resource.id})
   why selected: ${selection.reason}
   how to use: ${selection.use}
   matched shapes: ${selection.shapes.length === 0 ? "linked resource" : selection.shapes.join(", ")}`,
@@ -244,6 +271,8 @@ function guidancePrompt(resources: SelectedGuidanceResource[]): string {
     .map((selection) => `### ${selection.resource.title}\n${selection.text}`);
   return [
     "Selected refactoring guidance:",
+    "- Primary guidance is mandatory for review/fix/revalidation unless explicitly marked not applicable with evidence.",
+    "- Supporting guidance is optional context for the smallest behavior-preserving repair.",
     ...cards,
     "",
     "Full guidance for strongest matches:",
@@ -256,6 +285,16 @@ async function detectOwnedCodeShapes(
   feature: FeatureRecord,
 ): Promise<DetectedShape[]> {
   const byShape = new Map<string, DetectedShape>();
+  if (feature.tests.length === 0) {
+    byShape.set("missing-linked-tests", {
+      shape: "missing-linked-tests",
+      path: "__feature_tests__",
+      startLine: null,
+      endLine: null,
+      quote: null,
+      metric: "0 linked tests",
+    });
+  }
   for (const file of feature.ownedFiles.slice(0, 12)) {
     const source = await readFile(join(root, file.path), "utf8").then(
       (value) => value,
@@ -467,6 +506,7 @@ function shapeWeight(shape: string): number {
   switch (shape) {
     case "duplicate-block":
     case "repeated-switch-like-branches":
+    case "missing-linked-tests":
       return 4;
     case "large-function-like-block":
     case "long-parameter-list":

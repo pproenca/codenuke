@@ -32,6 +32,7 @@ import { runCommand } from "../platform/exec.js";
 import { changedFilesSince } from "../platform/git.js";
 import { mapWithSource } from "../mapping/agent.js";
 import { mapFeatures } from "../mapping/heuristic.js";
+import { guidanceApplicationFailure } from "./guidance-application.js";
 import {
   claimFeature,
   releaseFeatureLock,
@@ -1416,7 +1417,11 @@ describe("workflow", () => {
       "package.json",
       JSON.stringify({
         name: "npm-cli",
-        scripts: { typecheck: "tsc --noEmit", test: "node --test" },
+        scripts: {
+          typecheck: "tsc --noEmit",
+          "format:check": "oxfmt --check .",
+          test: "node --test",
+        },
       }),
     );
     await writeFixture(root, "package-lock.json", "{}");
@@ -1424,10 +1429,11 @@ describe("workflow", () => {
 
     await initCommand(context, {});
     const config = JSON.parse(await readFile(join(root, ".codenuke/config.json"), "utf8")) as {
-      commands: { typecheck: string; test: string };
+      commands: { typecheck: string; formatCheck: string; test: string };
     };
 
     expect(config.commands.typecheck).toBe("npm run typecheck");
+    expect(config.commands.formatCheck).toBe("npm run format:check");
     expect(config.commands.test).toBe("npm run test");
   });
 
@@ -1602,7 +1608,12 @@ describe("workflow", () => {
     expect(features[0]?.lock).toBeNull();
     expect(failedRun?.guidanceSelectionAudits[0]).toMatchObject({
       featureId: features[0]?.featureId,
-      promptedResources: [],
+      promptedResources: [
+        expect.objectContaining({
+          resourceId: "workflow.trusted-refactor-regression-coverage",
+          role: "primary",
+        }),
+      ],
       promptHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
     });
     expect(await readdir(join(root, ".codenuke/locks"))).toEqual([]);
@@ -1756,8 +1767,79 @@ describe("workflow", () => {
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
+    expect(patches[0]?.guidanceApplication).toMatchObject({
+      appliedResources: [
+        {
+          resourceId: "catalog.dispensables.duplicate-code",
+          action: "applied",
+        },
+      ],
+      risk: "low",
+    });
     await expect(access(join(root, "SHOULD_NOT_RUN_PROVIDER_COMMANDS"))).rejects.toThrow();
     delete process.env["CODENUKE_PROVIDER"];
+  });
+
+  it("flags fix plans that do not account for applied guidance resources", async () => {
+    const finding = findingRecordSchema.parse({
+      schemaVersion: 1,
+      findingId: "fnd_guidance",
+      featureId: "feat_guidance",
+      title: "Guided finding",
+      category: "maintainability",
+      severity: "low",
+      confidence: "high",
+      evidence: [],
+      reasoning: "Guidance-sensitive finding.",
+      reproduction: null,
+      recommendation: "Apply the selected guidance.",
+      guidance: {
+        selected: [],
+        applied: [
+          {
+            resourceId: "catalog.dispensables.duplicate-code",
+            title: "Duplicate Code",
+            kind: "signal",
+            role: "primary",
+            reason: "The finding depends on this signal.",
+            use: "Use the trace to constrain the repair.",
+          },
+        ],
+      },
+      status: "open",
+      linkedPatchAttemptIds: [],
+      signature: "sig_guidance",
+      createdByRunId: "run_guidance",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    expect(
+      guidanceApplicationFailure(finding, {
+        appliedResources: [],
+        deviations: [],
+        risk: "low",
+      }),
+    ).toMatchObject({
+      code: "guidance-not-accounted",
+      missingResources: ["catalog.dispensables.duplicate-code"],
+    });
+    expect(
+      guidanceApplicationFailure(finding, {
+        appliedResources: [
+          {
+            resourceId: "catalog.dispensables.duplicate-code",
+            action: "not-used",
+            reasoning: "Provider chose not to apply the primary guidance.",
+          },
+        ],
+        deviations: [],
+        risk: "low",
+      }),
+    ).toMatchObject({
+      code: "guidance-not-accounted",
+      rejectedPrimaryResources: ["catalog.dispensables.duplicate-code"],
+    });
   });
 
   it("includes feature-specific validation in fix dry-run output", async () => {
@@ -1958,7 +2040,7 @@ describe("workflow", () => {
           provider: { name: "mock", model: null },
           commands: {
             ...config.commands,
-            format:
+            formatCheck:
               "node -e \"require('node:fs').appendFileSync('src/index.ts','// validation touch\\n')\"",
           },
           git: { ...config.git, requireCleanWorktreeForFix: false },
@@ -2010,7 +2092,7 @@ describe("workflow", () => {
           provider: { name: "mock", model: null },
           commands: {
             ...config.commands,
-            format: "node -e \"require('node:fs').unlinkSync('src/scratch.txt')\"",
+            formatCheck: "node -e \"require('node:fs').unlinkSync('src/scratch.txt')\"",
           },
           git: { ...config.git, requireCleanWorktreeForFix: false },
         },
@@ -2033,11 +2115,18 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const fixed = await fixCommand(context, { finding });
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({
+      code: "out-of-scope-changes",
+      exitCode: 6,
+    });
     const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
-    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.status).toBe("failed");
     expect(patches[0]?.filesChanged).toEqual(["src/scratch.txt"]);
+    expect(patches[0]?.failure).toMatchObject({
+      code: "out-of-scope-changes",
+      unexpectedFiles: ["src/scratch.txt"],
+    });
   });
 
   it("records changes inside pre-existing untracked directories", async () => {
@@ -2053,7 +2142,7 @@ describe("workflow", () => {
           provider: { name: "mock", model: null },
           commands: {
             ...config.commands,
-            format:
+            formatCheck:
               "node -e \"require('node:fs').appendFileSync('scratch/note.txt','validation touch\\n')\"",
           },
           git: { ...config.git, requireCleanWorktreeForFix: false },
@@ -2077,11 +2166,18 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const fixed = await fixCommand(context, { finding });
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({
+      code: "out-of-scope-changes",
+      exitCode: 6,
+    });
     const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
-    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.status).toBe("failed");
     expect(patches[0]?.filesChanged).toEqual(["scratch/note.txt"]);
+    expect(patches[0]?.failure).toMatchObject({
+      code: "out-of-scope-changes",
+      unexpectedFiles: ["scratch/note.txt"],
+    });
   });
 
   it("records mode-only changes to already-dirty files", async () => {
@@ -2098,7 +2194,7 @@ describe("workflow", () => {
           provider: { name: "mock", model: null },
           commands: {
             ...config.commands,
-            format: "chmod +x script.sh",
+            formatCheck: "chmod +x script.sh",
           },
           git: { ...config.git, requireCleanWorktreeForFix: false },
         },
@@ -2122,11 +2218,18 @@ describe("workflow", () => {
     await mapCommand(context);
     const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
     const finding = reviewed.next.split(" ").at(-1) ?? "";
-    const fixed = await fixCommand(context, { finding });
+    await expect(fixCommand(context, { finding })).rejects.toMatchObject({
+      code: "out-of-scope-changes",
+      exitCode: 6,
+    });
     const patches = await readPatchAttempts(statePaths(join(root, ".codenuke")));
 
-    expect(fixed).toMatchObject({ status: "applied", filesChanged: 1 });
+    expect(patches[0]?.status).toBe("failed");
     expect(patches[0]?.filesChanged).toEqual(["script.sh"]);
+    expect(patches[0]?.failure).toMatchObject({
+      code: "out-of-scope-changes",
+      unexpectedFiles: ["script.sh"],
+    });
   });
 
   it("fingerprints dirty symlinks without reading external targets", async () => {
@@ -2148,7 +2251,7 @@ describe("workflow", () => {
           provider: { name: "mock", model: null },
           commands: {
             ...config.commands,
-            format: `node -e ${JSON.stringify(externalMutation)}`,
+            formatCheck: `node -e ${JSON.stringify(externalMutation)}`,
           },
           git: { ...config.git, requireCleanWorktreeForFix: false },
         },
@@ -2210,7 +2313,7 @@ describe("workflow", () => {
     });
     const fixed = await fixCommand(context, { finding, dryRun: true });
 
-    expect(fixed).toMatchObject({ dryRun: true, validation: "npm run format" });
+    expect(fixed).toMatchObject({ dryRun: true, validation: "none" });
     delete process.env["CODENUKE_PROVIDER"];
   });
 
@@ -2271,6 +2374,7 @@ describe("workflow", () => {
         bin: { buggy: "src/index.ts" },
         scripts: {
           format: 'node -e "process.exit(0)"',
+          "format:check": 'node -e "process.exit(0)"',
           test: 'node -e "process.exit(0)"',
         },
       }),
@@ -2303,7 +2407,7 @@ describe("workflow", () => {
 
     expect(fixed).toMatchObject({ status: "applied", commands: 3 });
     expect(patches[0]?.commandsRun.map((result) => result.command)).toEqual([
-      "npm run format",
+      "npm run format:check",
       featureCommand,
       "npm run test",
     ]);

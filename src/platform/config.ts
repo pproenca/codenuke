@@ -26,6 +26,7 @@ export const defaultCommands: ProjectCommands = {
   typecheck: null,
   lint: null,
   format: null,
+  formatCheck: null,
   test: null,
 };
 

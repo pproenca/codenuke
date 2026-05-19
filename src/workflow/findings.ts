@@ -77,7 +77,7 @@ export function findingFromOutput(
     minimumFixScope: finding.minimumFixScope,
     guidance: {
       selected: selectedGuidance,
-      applied: finding.guidance.applied,
+      applied: applySelectedGuidanceRoles(finding.guidance.applied, selectedGuidance),
     },
     status: "open",
     history: [],
@@ -87,4 +87,15 @@ export function findingFromOutput(
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function applySelectedGuidanceRoles(
+  applied: GuidanceTraceEntry[],
+  selected: GuidanceTraceEntry[],
+): GuidanceTraceEntry[] {
+  const selectedRoles = new Map(selected.map((entry) => [entry.resourceId, entry.role]));
+  return applied.map((entry) => ({
+    ...entry,
+    role: selectedRoles.get(entry.resourceId) ?? entry.role,
+  }));
 }
