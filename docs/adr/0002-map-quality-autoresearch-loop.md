@@ -62,10 +62,11 @@ can remain useful instrumentation, but they should not be the main place where
 semantic codebase understanding lives.
 
 The first implementation slice persists `semanticEvidence` on `FeatureRecord`.
-It uses identifier token splitting plus deterministic TF-IDF/cosine similarity
-to link Feature Slices with shared domain vocabulary. Findings may persist
-`mapEvidenceTrace` when review promotes that map evidence into a concrete
-finding, which lets fix and revalidation consume the same map-time context.
+It uses identifier token splitting, light inflection normalization, and
+deterministic TF-IDF/cosine similarity to link Feature Slices with shared domain
+vocabulary. Findings may persist `mapEvidenceTrace` when review promotes that
+map evidence into a concrete finding, which lets fix and revalidation consume
+the same map-time context.
 
 Consequences:
 

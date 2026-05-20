@@ -299,7 +299,24 @@ function identifierTokens(text: string): string[] {
     .replace(/([A-Z]+)([A-Z][a-z])/gu, "$1 $2")
     .split(/[^A-Za-z0-9]+/u)
     .map((token) => token.toLowerCase())
+    .map(normalizeIdentifierToken)
     .filter((token) => token.length >= 3 && !/^\d+$/u.test(token) && !stopWords.has(token));
+}
+
+function normalizeIdentifierToken(token: string): string {
+  if (token.length > 4 && token.endsWith("ies")) {
+    return `${token.slice(0, -3)}y`;
+  }
+  if (
+    token.length > 4 &&
+    token.endsWith("s") &&
+    !token.endsWith("ss") &&
+    !token.endsWith("us") &&
+    !token.endsWith("is")
+  ) {
+    return token.slice(0, -1);
+  }
+  return token;
 }
 
 async function isReadableOwnedFile(root: string, path: string): Promise<boolean> {

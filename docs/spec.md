@@ -562,7 +562,7 @@ type FeatureRecord = {
 `semanticEvidence` is deterministic map-time evidence that review, fix, and
 revalidation may use as supporting context. The first source is
 `semantic-neighbor` evidence from `identifier-tfidf`, which links Feature Slices
-that share domain identifier vocabulary without changing the stable
+that share normalized domain identifier vocabulary without changing the stable
 `featureId`.
 
 Kinds:

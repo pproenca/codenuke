@@ -108,6 +108,70 @@ describe("mapFeatures", () => {
     );
   });
 
+  it("normalizes common identifier inflections for semantic evidence", async () => {
+    const root = await fixtureRoot("codenuke-map-semantic-inflections-");
+    await writeFixture(
+      root,
+      "src/backoff-policies.ts",
+      "export function chooseBackoffPolicies(failedRetries: RetryInput[]) { return failedRetries.length; }\n",
+    );
+    await writeFixture(
+      root,
+      "src/backoff-policy.ts",
+      "export function applyBackoffPolicy(retryLimit: RetryLimit) { return retryLimit.maxAttempts; }\n",
+    );
+    const project = await detectProject(root);
+    const seeds: FeatureSeed[] = [
+      {
+        title: "Backoff policies",
+        summary: "Chooses retry backoff settings for throttled jobs.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/backoff-policies.ts",
+        identityKey: "backoff-policies",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/backoff-policies.ts", reason: "backoff policies service" }],
+        tags: [],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "Backoff policy",
+        summary: "Applies retry backoff limits after throttling.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/backoff-policy.ts",
+        identityKey: "backoff-policy",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/backoff-policy.ts", reason: "backoff policy service" }],
+        tags: [],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+    ];
+
+    const result = await mapFeatureSeeds(root, project, [], seeds);
+    const policies = result.features.find((feature) => feature.title === "Backoff policies");
+    if (policies === undefined) {
+      throw new Error("expected backoff policies feature");
+    }
+
+    expect(policies.semanticEvidence?.[0]).toMatchObject({
+      kind: "semantic-neighbor",
+      source: "identifier-tfidf",
+      targetTitle: "Backoff policy",
+    });
+    expect(policies.semanticEvidence?.[0]?.signals).toEqual(
+      expect.arrayContaining(["backoff", "policy", "retry"]),
+    );
+  });
+
   it("counts stale existing features when mapped feature ids are duplicated", async () => {
     const root = await fixtureRoot("codenuke-map-stale-duplicate-ids-");
     const project = await detectProject(root);
