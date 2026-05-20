@@ -2,6 +2,7 @@ import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { pathExists } from "../platform/fs.js";
 import { FeatureRecord, TrustBoundary } from "../platform/types.js";
+import { globSegmentRegExp, pathGlobSegmentsMatch } from "./path-globs.js";
 
 export type TestRef = {
   path: string;
@@ -237,36 +238,13 @@ function pathMatchesGitignoreSegments(
 ): boolean {
   for (let length = 1; length <= pathSegments.length; length += 1) {
     if (
-      gitignoreSegmentsMatch(patternSegments, pathSegments.slice(0, length)) &&
+      pathGlobSegmentsMatch(patternSegments, pathSegments.slice(0, length)) &&
       (!directoryOnly || length < pathSegments.length || isDirectory)
     ) {
       return true;
     }
   }
   return false;
-}
-
-function gitignoreSegmentsMatch(pattern: string[], candidate: string[]): boolean {
-  const [segment, ...remainingPattern] = pattern;
-  if (segment === undefined) {
-    return candidate.length === 0;
-  }
-  if (segment === "**") {
-    return (
-      gitignoreSegmentsMatch(remainingPattern, candidate) ||
-      (candidate.length > 0 && gitignoreSegmentsMatch(pattern, candidate.slice(1)))
-    );
-  }
-  const [candidateSegment, ...remainingCandidate] = candidate;
-  if (candidateSegment === undefined || !globSegmentRegExp(segment).test(candidateSegment)) {
-    return false;
-  }
-  return gitignoreSegmentsMatch(remainingPattern, remainingCandidate);
-}
-
-function globSegmentRegExp(segment: string): RegExp {
-  const escaped = segment.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/gu, "[^/]*").replace(/\?/gu, "[^/]")}$`, "u");
 }
 
 function uncoveredWalkStarts(starts: WalkStart[], skipPath: WalkSkipPath): WalkStart[] {

@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { pathExists } from "../platform/fs.js";
+import { tomlTable, tomlTablesMatching } from "../platform/toml.js";
 import { partitionFileGroups } from "./grouping.js";
 import {
   isSafeDirectory,
@@ -196,14 +197,15 @@ async function readPythonProjectMetadata(root: string): Promise<PyprojectInfo> {
   if (await pathExists(join(root, "pyproject.toml"))) {
     const source = await readFile(join(root, "pyproject.toml"), "utf8");
     metadata.name =
-      tomlStringValue(table(source, "project"), "name") ??
-      tomlStringValue(table(source, "tool.poetry"), "name");
+      tomlStringValue(tomlTable(source, "project"), "name") ??
+      tomlStringValue(tomlTable(source, "tool.poetry"), "name");
     metadata.scripts.push(
-      ...scriptsFromTable(table(source, "project.scripts"), "pyproject.toml"),
-      ...scriptsFromTable(table(source, "tool.poetry.scripts"), "pyproject.toml"),
+      ...scriptsFromTable(tomlTable(source, "project.scripts"), "pyproject.toml"),
+      ...scriptsFromTable(tomlTable(source, "tool.poetry.scripts"), "pyproject.toml"),
     );
     metadata.hasPytest =
-      table(source, "tool.pytest.ini_options").length > 0 || dependencyNames(source).has("pytest");
+      tomlTable(source, "tool.pytest.ini_options").length > 0 ||
+      dependencyNames(source).has("pytest");
   }
   if (await pathExists(join(root, "setup.cfg"))) {
     const source = await readFile(join(root, "setup.cfg"), "utf8");
@@ -863,34 +865,6 @@ function containsReviewablePythonSource(context: MapperContext): boolean {
   return false;
 }
 
-function table(source: string, name: string): string {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const match = new RegExp(`^\\s*\\[${escapedName}\\]\\s*(?:#.*)?$`, "mu").exec(source);
-  if (match?.index === undefined) {
-    return "";
-  }
-  const rest = source.slice(match.index + match[0].length);
-  const nextSection = tomlHeaderPattern.exec(rest);
-  return nextSection?.index === undefined ? rest : rest.slice(0, nextSection.index);
-}
-
-function tablesMatching(source: string, pattern: RegExp): string[] {
-  const tables: string[] = [];
-  for (const match of source.matchAll(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/gmu)) {
-    const name = match[1];
-    if (name === undefined || !pattern.test(name)) {
-      continue;
-    }
-    const start = match.index + match[0].length;
-    const rest = source.slice(start);
-    const next = tomlHeaderPattern.exec(rest);
-    tables.push(next?.index === undefined ? rest : rest.slice(0, next.index));
-  }
-  return tables;
-}
-
-const tomlHeaderPattern = /^\s*\[\[?[^\]]+\]\]?\s*(?:#.*)?$/mu;
-
 function tomlStringValue(source: string, key: string): string | null {
   const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`^\\s*${escapedKey}\\s*=\\s*(["'])([^"']+)\\1`, "mu").exec(source)?.[2] ?? null;
@@ -1004,12 +978,12 @@ function dependencyNames(source: string): Set<string> {
     }
   }
   for (const dependencyTable of [
-    table(source, "tool.uv"),
-    table(source, "tool.pdm.dev-dependencies"),
-    table(source, "tool.poetry.dependencies"),
-    table(source, "tool.poetry.dev-dependencies"),
-    ...tablesMatching(source, /^tool\.hatch\.envs\.[^.]+$/u),
-    ...tablesMatching(source, /^tool\.poetry\.group\.[^.]+\.dependencies$/u),
+    tomlTable(source, "tool.uv"),
+    tomlTable(source, "tool.pdm.dev-dependencies"),
+    tomlTable(source, "tool.poetry.dependencies"),
+    tomlTable(source, "tool.poetry.dev-dependencies"),
+    ...tomlTablesMatching(source, /^tool\.hatch\.envs\.[^.]+$/u),
+    ...tomlTablesMatching(source, /^tool\.poetry\.group\.[^.]+\.dependencies$/u),
   ]) {
     for (const value of assignedKeysAndValues(dependencyTable)) {
       const name = requirementName(value);
@@ -1019,9 +993,9 @@ function dependencyNames(source: string): Set<string> {
     }
   }
   for (const dependencyTable of [
-    table(source, "project.optional-dependencies"),
-    table(source, "dependency-groups"),
-    table(source, "tool.pdm.dev-dependencies"),
+    tomlTable(source, "project.optional-dependencies"),
+    tomlTable(source, "dependency-groups"),
+    tomlTable(source, "tool.pdm.dev-dependencies"),
   ]) {
     for (const value of assignedValues(dependencyTable)) {
       const name = requirementName(value);

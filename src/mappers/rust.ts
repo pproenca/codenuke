@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { pathExists } from "../platform/fs.js";
+import { expandPathGlob, pathHasGlob } from "./path-globs.js";
 import {
   isSafeDirectory,
   isSafeFile,
@@ -112,7 +113,7 @@ async function cargoWorkspace(root: string): Promise<{
     if (!isSafeMemberPattern(member)) {
       continue;
     }
-    if (hasMemberGlob(member)) {
+    if (pathHasGlob(member)) {
       dirs.push(...(await expandMemberPattern(root, member, excluded)));
       continue;
     }
@@ -181,37 +182,16 @@ async function expandMemberPattern(
   pattern: string,
   excluded: Set<string>,
 ): Promise<string[]> {
-  const members: string[] = [];
-  const parts = pattern.split("/");
-  async function visit(base: string, remaining: string[]): Promise<void> {
-    const [part, ...rest] = remaining;
-    if (part === undefined) {
-      if (
-        !excluded.has(base) &&
-        (await isSafeDirectory(root, join(root, base))) &&
-        (await isRustPackageDir(root, base))
-      ) {
-        members.push(base);
-      }
-      return;
-    }
-    if (!hasMemberGlob(part)) {
-      await visit(base.length === 0 ? part : `${base}/${part}`, rest);
-      return;
-    }
-    if (!(await isSafeDirectory(root, join(root, base)))) {
-      return;
-    }
-    const matcher = globSegmentRegExp(part);
-    for (const entry of await readdir(join(root, base))) {
-      if (!matcher.test(entry)) {
-        continue;
-      }
-      await visit(base.length === 0 ? entry : `${base}/${entry}`, rest);
-    }
-  }
-  await visit("", parts);
-  return members;
+  return expandPathGlob({
+    pattern,
+    recursiveDoubleStar: false,
+    entries: async (base) =>
+      (await isSafeDirectory(root, join(root, base))) ? readdir(join(root, base)) : [],
+    accepts: async (path) =>
+      !excluded.has(path) &&
+      (await isSafeDirectory(root, join(root, path))) &&
+      (await isRustPackageDir(root, path)),
+  });
 }
 
 async function isRustPackageDir(root: string, dir: string): Promise<boolean> {
@@ -226,15 +206,6 @@ function isSafeMemberPath(path: string): boolean {
 
 function isSafeMemberPattern(path: string): boolean {
   return isSafeMemberPath(path.replace(/[*?]/gu, "x"));
-}
-
-function hasMemberGlob(path: string): boolean {
-  return /[*?]/u.test(path);
-}
-
-function globSegmentRegExp(segment: string): RegExp {
-  const escaped = segment.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/gu, "[^/]*").replace(/\?/gu, "[^/]")}$`, "u");
 }
 
 function rustCommandSeed(

@@ -9,6 +9,7 @@ import {
   rubyGemspecPaths,
   stripRubyComments,
 } from "./ruby.js";
+import { tomlTable, tomlTables, tomlTablesMatching } from "./toml.js";
 import { ProjectRecord, ProjectCommands } from "./types.js";
 
 type PackageJson = {
@@ -599,12 +600,12 @@ async function pythonProjectInfo(root: string): Promise<PythonProjectInfo> {
 function pythonDependencyNames(source: string): string[] {
   const names = new Set<string>();
   for (const table of [
-    pythonTomlTable(source, "project"),
-    pythonTomlTable(source, "tool.uv"),
-    pythonTomlTable(source, "tool.poetry"),
-    pythonTomlTable(source, "tool.poetry.group.dev"),
-    pythonTomlTable(source, "tool.pdm.dev-dependencies"),
-    ...pythonTomlTablesMatching(source, /^tool\.hatch\.envs\.[^.]+$/u),
+    tomlTable(source, "project"),
+    tomlTable(source, "tool.uv"),
+    tomlTable(source, "tool.poetry"),
+    tomlTable(source, "tool.poetry.group.dev"),
+    tomlTable(source, "tool.pdm.dev-dependencies"),
+    ...tomlTablesMatching(source, /^tool\.hatch\.envs\.[^.]+$/u),
   ]) {
     for (const section of pythonTomlArraySections(table, ["dependencies", "dev-dependencies"])) {
       for (const value of pythonTomlArrayValues(section)) {
@@ -615,10 +616,10 @@ function pythonDependencyNames(source: string): string[] {
       }
     }
   }
-  for (const table of pythonTomlTables(source, [
+  for (const table of tomlTables(source, [
     "tool.poetry.dependencies",
     "tool.poetry.dev-dependencies",
-  ]).concat(pythonTomlTablesMatching(source, /^tool\.poetry\.group\.[^.]+\.dependencies$/u))) {
+  ]).concat(tomlTablesMatching(source, /^tool\.poetry\.group\.[^.]+\.dependencies$/u))) {
     for (const value of pythonTomlAssignedKeysAndValues(table)) {
       const name = pythonRequirementName(value);
       if (name !== null) {
@@ -626,7 +627,7 @@ function pythonDependencyNames(source: string): string[] {
       }
     }
   }
-  for (const table of pythonTomlTables(source, [
+  for (const table of tomlTables(source, [
     "project.optional-dependencies",
     "dependency-groups",
     "tool.pdm.dev-dependencies",
@@ -639,17 +640,6 @@ function pythonDependencyNames(source: string): string[] {
     }
   }
   return [...names];
-}
-
-function pythonTomlTable(source: string, name: string): string {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const match = new RegExp(`^\\s*\\[${escaped}\\]\\s*(?:#.*)?$`, "mu").exec(source);
-  if (match?.index === undefined) {
-    return "";
-  }
-  const rest = source.slice(match.index + match[0].length);
-  const next = pythonTomlHeaderPattern.exec(rest);
-  return next?.index === undefined ? rest : rest.slice(0, next.index);
 }
 
 function pythonToolSections(source: string): string[] {
@@ -675,38 +665,6 @@ function pythonTomlArraySections(source: string, keys: string[]): string[] {
   }
   return sections;
 }
-
-function pythonTomlTables(source: string, names: string[]): string[] {
-  const tables: string[] = [];
-  for (const name of names) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-    const pattern = new RegExp(`^\\s*\\[${escaped}\\]\\s*(?:#.*)?$`, "gmu");
-    for (const match of source.matchAll(pattern)) {
-      const start = match.index + match[0].length;
-      const rest = source.slice(start);
-      const next = pythonTomlHeaderPattern.exec(rest);
-      tables.push(next?.index === undefined ? rest : rest.slice(0, next.index));
-    }
-  }
-  return tables;
-}
-
-function pythonTomlTablesMatching(source: string, pattern: RegExp): string[] {
-  const tables: string[] = [];
-  for (const match of source.matchAll(/^\s*\[([^\]]+)\]\s*(?:#.*)?$/gmu)) {
-    const name = match[1];
-    if (name === undefined || !pattern.test(name)) {
-      continue;
-    }
-    const start = match.index + match[0].length;
-    const rest = source.slice(start);
-    const next = pythonTomlHeaderPattern.exec(rest);
-    tables.push(next?.index === undefined ? rest : rest.slice(0, next.index));
-  }
-  return tables;
-}
-
-const pythonTomlHeaderPattern = /^\s*\[\[?[^\]]+\]\]?\s*(?:#.*)?$/mu;
 
 function pythonTomlAssignedValues(source: string): string[] {
   const values: string[] = [];

@@ -1,6 +1,7 @@
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { pathExists } from "../platform/fs.js";
+import { expandPathGlob, pathGlobMatches, pathHasGlob } from "./path-globs.js";
 import { isSafeDirectory, normalize, pathMatchesPrefix, shouldSkip } from "./shared.js";
 
 export type WorkspacePackageJson = {
@@ -97,11 +98,11 @@ async function expandWorkspacePattern(root: string, pattern: string): Promise<st
   if (normalized === "." || normalized === "") {
     return ["."];
   }
-  if (normalized.endsWith("/**") && !hasWorkspaceGlob(normalized.slice(0, -3))) {
+  if (normalized.endsWith("/**") && !pathHasGlob(normalized.slice(0, -3))) {
     return discoverPackageRootsUnder(root, normalized.slice(0, -3), 4);
   }
   const singleSegmentParent = normalized.endsWith("/*") ? normalized.slice(0, -2) : null;
-  if (singleSegmentParent !== null && !hasWorkspaceGlob(singleSegmentParent)) {
+  if (singleSegmentParent !== null && !pathHasGlob(singleSegmentParent)) {
     const packageRoots: string[] = [];
     for (const entry of await safeDirectoryEntries(root, singleSegmentParent)) {
       const candidate = `${singleSegmentParent}/${entry}`;
@@ -111,7 +112,7 @@ async function expandWorkspacePattern(root: string, pattern: string): Promise<st
     }
     return packageRoots;
   }
-  if (hasWorkspaceGlob(normalized)) {
+  if (pathHasGlob(normalized)) {
     return expandWorkspaceGlob(root, normalized);
   }
   return (await isSafeDirectory(root, join(root, normalized))) &&
@@ -135,7 +136,7 @@ function workspacePatternMatches(pattern: string, packageRoot: string): boolean 
   if (pattern === packageRoot) {
     return true;
   }
-  if (hasWorkspaceGlob(pattern)) {
+  if (pathHasGlob(pattern)) {
     return workspaceGlobMatches(pattern, packageRoot);
   }
   if (pattern.endsWith("/**")) {
@@ -152,76 +153,17 @@ function workspacePatternMatches(pattern: string, packageRoot: string): boolean 
 }
 
 function workspaceGlobMatches(pattern: string, packageRoot: string): boolean {
-  return globSegmentsMatch(pattern.split("/"), packageRoot.split("/"));
-}
-
-function globSegmentsMatch(pattern: string[], candidate: string[]): boolean {
-  const [segment, ...remainingPattern] = pattern;
-  if (segment === undefined) {
-    return candidate.length === 0;
-  }
-  if (segment === "**") {
-    return (
-      globSegmentsMatch(remainingPattern, candidate) ||
-      (candidate.length > 0 && globSegmentsMatch(pattern, candidate.slice(1)))
-    );
-  }
-  const [candidateSegment, ...remainingCandidate] = candidate;
-  if (candidateSegment === undefined || !globSegmentRegExp(segment).test(candidateSegment)) {
-    return false;
-  }
-  return globSegmentsMatch(remainingPattern, remainingCandidate);
+  return pathGlobMatches(pattern, packageRoot);
 }
 
 async function expandWorkspaceGlob(root: string, pattern: string): Promise<string[]> {
-  const packages: string[] = [];
-  const segments = pattern.split("/");
-
-  async function visit(base: string, remaining: string[]): Promise<void> {
-    const [segment, ...rest] = remaining;
-    if (segment === undefined) {
-      if (
-        base.length > 0 &&
-        (await isSafeDirectory(root, join(root, base))) &&
-        (await pathExists(join(root, base, "package.json")))
-      ) {
-        packages.push(base);
-      }
-      return;
-    }
-
-    if (!hasWorkspaceGlob(segment)) {
-      await visit(base.length === 0 ? segment : `${base}/${segment}`, rest);
-      return;
-    }
-
-    if (segment === "**") {
-      await visit(base, rest);
-      for (const entry of await safeDirectoryEntries(root, base)) {
-        await visit(base.length === 0 ? entry : `${base}/${entry}`, remaining);
-      }
-      return;
-    }
-
-    const matcher = globSegmentRegExp(segment);
-    for (const entry of await safeDirectoryEntries(root, base)) {
-      if (matcher.test(entry)) {
-        await visit(base.length === 0 ? entry : `${base}/${entry}`, rest);
-      }
-    }
-  }
-
-  await visit("", segments);
-  return packages.toSorted();
-}
-
-function hasWorkspaceGlob(pattern: string): boolean {
-  return /[*?]/u.test(pattern);
-}
-
-function globSegmentRegExp(segment: string): RegExp {
-  const escaped = segment.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/gu, "[^/]*").replace(/\?/gu, "[^/]")}$`, "u");
+  return expandPathGlob({
+    pattern,
+    entries: async (base) => safeDirectoryEntries(root, base),
+    accepts: async (path) =>
+      (await isSafeDirectory(root, join(root, path))) &&
+      (await pathExists(join(root, path, "package.json"))),
+  });
 }
 
 async function discoverPackageRootsUnder(
