@@ -43,11 +43,106 @@ describe("ludicrous review mode", () => {
     const candidates = await refactoringOpportunityCandidates(root, features);
 
     expect(candidates[0]).toMatchObject({
+      source: expect.any(String),
+      audit: expect.objectContaining({
+        algorithm: expect.any(String),
+      }),
       files: expect.arrayContaining([
         expect.objectContaining({ path: "src/alpha.ts" }),
         expect.objectContaining({ path: "src/beta.ts" }),
       ]),
     });
+  });
+
+  it("keeps semantic candidates visible when lexical candidates score higher", async () => {
+    const root = await fixtureRoot("codenuke-ludicrous-diverse-candidates-");
+    await writeFixture(
+      root,
+      "src/alpha.ts",
+      [
+        "export function alphaFeatureCandidate(input: string) {",
+        "  const normalizedFeatureCandidate = input.trim().toLowerCase();",
+        "  const resolvedFeatureCandidate = normalizedFeatureCandidate.replaceAll(' ', '-');",
+        "  return { normalizedFeatureCandidate, resolvedFeatureCandidate };",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "src/beta.ts",
+      [
+        "export function betaFeatureCandidate(input: string) {",
+        "  const normalizedFeatureCandidate = input.trim().toLowerCase();",
+        "  const resolvedFeatureCandidate = normalizedFeatureCandidate.replaceAll('_', '-');",
+        "  return { normalizedFeatureCandidate, resolvedFeatureCandidate };",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const features = [
+      feature("feat_alpha", "Alpha", "src/alpha.ts"),
+      feature("feat_beta", "Beta", "src/beta.ts"),
+    ];
+
+    const candidates = await refactoringOpportunityCandidates(root, features, { limit: 2 });
+
+    expect(candidates.map((candidate) => candidate.source)).toEqual(
+      expect.arrayContaining(["lexical-phrase", "tfidf-file-similarity"]),
+    );
+  });
+
+  it("adds TF-IDF file similarity candidates with source audit metadata", async () => {
+    const root = await fixtureRoot("codenuke-ludicrous-tfidf-candidates-");
+    await writeFixture(
+      root,
+      "src/alpha.ts",
+      [
+        "export function auditPermissionScope(input: string) {",
+        "  const accountScope = input.trim();",
+        "  const roleMatrix = accountScope.toLowerCase();",
+        "  const policyDecision = roleMatrix.includes('admin');",
+        "  const permissionAudit = `${accountScope}:${policyDecision}`;",
+        "  return { roleMatrix, permissionAudit, policyDecision };",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "src/beta.ts",
+      [
+        "export function resolvePolicyMatrix(input: string) {",
+        "  const permissionAudit = input.toLowerCase();",
+        "  const policyDecision = permissionAudit.includes('owner');",
+        "  const accountScope = permissionAudit.trim();",
+        "  const roleMatrix = `${policyDecision}:${accountScope}`;",
+        "  return { accountScope, policyDecision, roleMatrix };",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const features = [
+      feature("feat_alpha", "Alpha", "src/alpha.ts"),
+      feature("feat_beta", "Beta", "src/beta.ts"),
+    ];
+
+    const candidates = await refactoringOpportunityCandidates(root, features, { limit: 20 });
+    const semantic = candidates.find((candidate) => candidate.source === "tfidf-file-similarity");
+
+    expect(semantic).toEqual(
+      expect.objectContaining({
+        source: "tfidf-file-similarity",
+        audit: expect.objectContaining({
+          algorithm: "cosine similarity over identifier TF-IDF vectors",
+          matchedSignals: expect.arrayContaining(["account", "policy", "scope"]),
+        }),
+        files: expect.arrayContaining([
+          expect.objectContaining({ path: "src/alpha.ts" }),
+          expect.objectContaining({ path: "src/beta.ts" }),
+        ]),
+      }),
+    );
   });
 
   it("injects candidates as review leads, not findings", async () => {
@@ -62,8 +157,14 @@ describe("ludicrous review mode", () => {
         {
           title: "Cross-file normalized feature candidate",
           summary: "High-recall candidate around normalized feature candidate.",
+          source: "lexical-phrase",
           score: 12.25,
           signals: ["normalized feature", "candidate"],
+          audit: {
+            algorithm: "test",
+            matchedSignals: ["normalized feature"],
+            score: 12.25,
+          },
           files: [
             { path: "src/alpha.ts", reason: "signal appears", lines: 1 },
             { path: "src/beta.ts", reason: "signal appears", lines: 1 },
@@ -74,6 +175,8 @@ describe("ludicrous review mode", () => {
 
     expect(prompt).toContain("Ludicrous Review Mode");
     expect(prompt).toContain("high-recall Refactoring Opportunity Candidates, not findings");
+    expect(prompt).toContain('"source": "lexical-phrase"');
+    expect(prompt).toContain('"algorithm": "test"');
     expect(prompt.match(/^--- src\/beta\.ts$/gmu) ?? []).toHaveLength(1);
   });
 

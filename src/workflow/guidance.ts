@@ -319,6 +319,9 @@ async function detectOwnedCodeShapes(
     });
   }
   for (const file of feature.ownedFiles.slice(0, 12)) {
+    if (!isSourceShapePath(file.path)) {
+      continue;
+    }
     const source = await readFile(join(root, file.path), "utf8").then(
       (value) => value,
       () => "",
@@ -337,6 +340,40 @@ async function detectOwnedCodeShapes(
     (left, right) =>
       shapeWeight(right.shape) - shapeWeight(left.shape) || left.shape.localeCompare(right.shape),
   );
+}
+
+function isSourceShapePath(path: string): boolean {
+  return [
+    ".c",
+    ".cc",
+    ".cjs",
+    ".cpp",
+    ".cs",
+    ".cts",
+    ".cxx",
+    ".go",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx",
+    ".java",
+    ".js",
+    ".jsx",
+    ".kt",
+    ".kts",
+    ".m",
+    ".mjs",
+    ".mm",
+    ".mts",
+    ".php",
+    ".py",
+    ".rb",
+    ".rs",
+    ".swift",
+    ".ts",
+    ".tsx",
+    ".vue",
+  ].some((extension) => path.endsWith(extension));
 }
 
 function shapesForSource(path: string, source: string): DetectedShape[] {

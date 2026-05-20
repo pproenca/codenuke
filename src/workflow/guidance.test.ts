@@ -108,6 +108,48 @@ describe("guidance selection", () => {
     );
   });
 
+  it("does not select source-code guidance from package metadata", async () => {
+    const root = await fixtureRoot("codenuke-guidance-package-metadata-");
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify(
+        {
+          name: "fixture",
+          description: "Automated code review for reliable, trusted refactoring.",
+          scripts: {
+            build: "tsc -p tsconfig.build.json",
+            inspect: "echo if for while",
+            lint: "oxlint .",
+            test: "vitest run",
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    const selection = await selectReviewGuidance(
+      root,
+      feature("package.json", {
+        kind: "release",
+        title: "Package script build",
+        summary: "Package script build",
+      }),
+    );
+
+    expect(selection.detectedShapes).toEqual(["missing-linked-tests"]);
+    expect(selection.selected.map((entry) => entry.resourceId)).toEqual([
+      "workflow.trusted-refactor-regression-coverage",
+    ]);
+    expect(selection.selected[0]).toEqual(
+      expect.objectContaining({
+        kind: "workflow",
+        role: "primary",
+      }),
+    );
+  });
+
   it("places selected guidance before repository file blocks in review prompts", async () => {
     const root = await fixtureRoot("codenuke-guidance-prompt-");
     await writeFixture(
@@ -134,7 +176,7 @@ describe("guidance selection", () => {
   });
 });
 
-function feature(path: string): FeatureRecord {
+function feature(path: string, overrides: Partial<FeatureRecord> = {}): FeatureRecord {
   const now = new Date(0).toISOString();
   return {
     schemaVersion: 1,
@@ -157,6 +199,7 @@ function feature(path: string): FeatureRecord {
     analysisHistory: [],
     createdAt: now,
     updatedAt: now,
+    ...overrides,
   };
 }
 

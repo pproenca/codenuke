@@ -197,8 +197,10 @@ function ludicrousCandidatePrompt(candidates: RefactoringOpportunityCandidate[])
 ${JSON.stringify(
   candidates.map((candidate) => ({
     title: candidate.title,
+    source: candidate.source,
     score: Number(candidate.score.toFixed(2)),
     signals: candidate.signals,
+    audit: candidate.audit,
     files: candidate.files,
     summary: candidate.summary,
   })),

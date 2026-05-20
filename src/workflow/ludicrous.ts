@@ -6,8 +6,14 @@ import { FeatureRecord } from "../platform/types.js";
 export type RefactoringOpportunityCandidate = {
   title: string;
   summary: string;
+  source: "lexical-phrase" | "tfidf-file-similarity";
   score: number;
   signals: string[];
+  audit: {
+    algorithm: string;
+    matchedSignals: string[];
+    score: number;
+  };
   files: Array<{
     path: string;
     reason: string;
@@ -20,6 +26,12 @@ type FileProfile = {
   lines: number;
   counts: Map<string, number>;
   phrases: Map<string, number>;
+};
+
+type ScoredVector = {
+  profile: FileProfile;
+  vector: Map<string, number>;
+  norm: number;
 };
 
 const codeExtensions = new Set([
@@ -87,6 +99,21 @@ export async function refactoringOpportunityCandidates(
     return [];
   }
   const documentFrequency = tokenDocumentFrequency(profiles);
+  return diversifyCandidateSources(
+    [
+      ...phraseCandidates(profiles, documentFrequency),
+      ...tfidfSimilarityCandidates(profiles, documentFrequency),
+    ]
+      .filter((candidate) => candidate.files.length > 1)
+      .toSorted(candidateRank),
+    options.limit ?? 8,
+  );
+}
+
+function phraseCandidates(
+  profiles: FileProfile[],
+  documentFrequency: Map<string, number>,
+): RefactoringOpportunityCandidate[] {
   const candidateBySignal = new Map<string, RefactoringOpportunityCandidate>();
   for (const [phrase, files] of phraseGroups(profiles)) {
     const scoredFiles = files
@@ -116,8 +143,14 @@ export async function refactoringOpportunityCandidates(
     candidateBySignal.set(phrase, {
       title: candidateTitle(signals),
       summary: `High-recall cross-file candidate around ${signals.slice(0, 3).join(", ")}.`,
+      source: "lexical-phrase",
       score,
       signals,
+      audit: {
+        algorithm: "shared adjacent identifier phrases with IDF weighting",
+        matchedSignals: [phrase],
+        score,
+      },
       files: scoredFiles.map((entry) => ({
         path: entry.file.path,
         reason: `${phrase} appears ${entry.count} time(s)`,
@@ -125,10 +158,104 @@ export async function refactoringOpportunityCandidates(
       })),
     });
   }
-  return [...candidateBySignal.values()]
-    .filter((candidate) => candidate.files.length > 1)
-    .toSorted((a, b) => b.score - a.score)
-    .slice(0, options.limit ?? 8);
+  return [...candidateBySignal.values()];
+}
+
+function tfidfSimilarityCandidates(
+  profiles: FileProfile[],
+  documentFrequency: Map<string, number>,
+): RefactoringOpportunityCandidate[] {
+  const vectors = profiles.map((profile) =>
+    vectorForProfile(profile, documentFrequency, profiles.length),
+  );
+  const candidates: RefactoringOpportunityCandidate[] = [];
+  for (let leftIndex = 0; leftIndex < vectors.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < vectors.length; rightIndex += 1) {
+      const left = vectors[leftIndex];
+      const right = vectors[rightIndex];
+      if (left === undefined || right === undefined) {
+        continue;
+      }
+      const similarity = cosine(left, right);
+      if (similarity < 0.22) {
+        continue;
+      }
+      const signals = sharedWeightedSignals(left, right).slice(0, 6);
+      if (signals.length < 2) {
+        continue;
+      }
+      const score =
+        similarity * 100 + Math.log1p(left.profile.lines + right.profile.lines) + signals.length;
+      candidates.push({
+        title: `Semantic ${signals.slice(0, 2).join(" ")} candidate`,
+        summary: `TF-IDF file similarity candidate around ${signals.slice(0, 3).join(", ")}.`,
+        source: "tfidf-file-similarity",
+        score,
+        signals,
+        audit: {
+          algorithm: "cosine similarity over identifier TF-IDF vectors",
+          matchedSignals: signals,
+          score: similarity,
+        },
+        files: [left, right]
+          .toSorted(
+            (a, b) =>
+              b.profile.lines - a.profile.lines || a.profile.path.localeCompare(b.profile.path),
+          )
+          .map((entry) => ({
+            path: entry.profile.path,
+            reason: `identifier TF-IDF cosine ${similarity.toFixed(2)}`,
+            lines: entry.profile.lines,
+          })),
+      });
+    }
+  }
+  return candidates.toSorted((a, b) => b.score - a.score).slice(0, 8);
+}
+
+function diversifyCandidateSources(
+  candidates: RefactoringOpportunityCandidate[],
+  limit: number,
+): RefactoringOpportunityCandidate[] {
+  const selected: RefactoringOpportunityCandidate[] = [];
+  const seen = new Set<RefactoringOpportunityCandidate>();
+  const bySource = new Map<
+    RefactoringOpportunityCandidate["source"],
+    RefactoringOpportunityCandidate[]
+  >();
+  for (const candidate of candidates) {
+    const group = bySource.get(candidate.source) ?? [];
+    group.push(candidate);
+    bySource.set(candidate.source, group);
+  }
+  for (const group of bySource.values()) {
+    const first = group.toSorted(candidateRank)[0];
+    if (first !== undefined && selected.length < limit) {
+      selected.push(first);
+      seen.add(first);
+    }
+  }
+  for (const candidate of candidates.toSorted(candidateRank)) {
+    if (selected.length >= limit) {
+      break;
+    }
+    if (seen.has(candidate)) {
+      continue;
+    }
+    selected.push(candidate);
+  }
+  return selected.toSorted(candidateRank);
+}
+
+function candidateRank(
+  left: RefactoringOpportunityCandidate,
+  right: RefactoringOpportunityCandidate,
+): number {
+  return (
+    right.score - left.score ||
+    left.source.localeCompare(right.source) ||
+    left.title.localeCompare(right.title)
+  );
 }
 
 export function candidatesForFeature(
@@ -254,6 +381,50 @@ function idf(token: string, documentFrequency: Map<string, number>, documentCoun
   const total = Math.max(documentCount, 1);
   const frequency = documentFrequency.get(token) ?? 0;
   return Math.log((1 + total) / (1 + frequency)) + 1;
+}
+
+function vectorForProfile(
+  profile: FileProfile,
+  documentFrequency: Map<string, number>,
+  documentCount: number,
+): ScoredVector {
+  const vector = new Map<string, number>();
+  let squaredNorm = 0;
+  for (const [token, count] of profile.counts) {
+    const weight = Math.log1p(count) * idf(token, documentFrequency, documentCount);
+    vector.set(token, weight);
+    squaredNorm += weight * weight;
+  }
+  return { profile, vector, norm: Math.sqrt(squaredNorm) };
+}
+
+function cosine(left: ScoredVector, right: ScoredVector): number {
+  if (left.norm === 0 || right.norm === 0) {
+    return 0;
+  }
+  const [smaller, larger] =
+    left.vector.size <= right.vector.size
+      ? [left.vector, right.vector]
+      : [right.vector, left.vector];
+  let dot = 0;
+  for (const [token, weight] of smaller) {
+    dot += weight * (larger.get(token) ?? 0);
+  }
+  return dot / (left.norm * right.norm);
+}
+
+function sharedWeightedSignals(left: ScoredVector, right: ScoredVector): string[] {
+  const scores = new Map<string, number>();
+  for (const [token, leftWeight] of left.vector) {
+    const rightWeight = right.vector.get(token);
+    if (rightWeight === undefined) {
+      continue;
+    }
+    scores.set(token, leftWeight * rightWeight);
+  }
+  return [...scores]
+    .toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([token]) => token);
 }
 
 function relatedSignals(files: FileProfile[], primaryPhrase: string): string[] {
