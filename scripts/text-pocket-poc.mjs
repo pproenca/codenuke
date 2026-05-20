@@ -31,6 +31,7 @@ const defaultExtensions = new Set([
 ]);
 
 const ignoredPathParts = new Set([
+  ".agents",
   ".codenuke",
   ".codex",
   ".git",
@@ -41,6 +42,29 @@ const ignoredPathParts = new Set([
   "dist",
   "node_modules",
   "target",
+]);
+
+const codeExtensions = new Set([
+  ".c",
+  ".cc",
+  ".cpp",
+  ".cs",
+  ".go",
+  ".h",
+  ".hpp",
+  ".java",
+  ".js",
+  ".jsx",
+  ".kt",
+  ".mjs",
+  ".php",
+  ".py",
+  ".rb",
+  ".rs",
+  ".swift",
+  ".ts",
+  ".tsx",
+  ".vue",
 ]);
 
 const stopWords = new Set([
@@ -133,6 +157,8 @@ function parseArgs(argv) {
     largeLines: 140,
     minTokens: 18,
     clusterThreshold: 0.48,
+    ludicrousMode: false,
+    brief: false,
     json: false,
   };
 
@@ -148,6 +174,11 @@ function parseArgs(argv) {
       options.largeLines = Number.parseInt(argv.at((i += 1)) ?? "", 10);
     } else if (arg === "--cluster-threshold") {
       options.clusterThreshold = Number.parseFloat(argv.at((i += 1)) ?? "");
+    } else if (arg === "--ludicrous-mode") {
+      options.ludicrousMode = true;
+    } else if (arg === "--brief") {
+      options.brief = true;
+      options.ludicrousMode = true;
     } else if (arg === "--json") {
       options.json = true;
     } else if (arg === "--help" || arg === "-h") {
@@ -175,12 +206,16 @@ function printHelp() {
 
 Usage:
   node scripts/text-pocket-poc.mjs [root] [--query "use effect"] [--top 12] [--json]
+  node scripts/text-pocket-poc.mjs --ludicrous-mode --top 8
+  node scripts/text-pocket-poc.mjs --brief --top 3
 
 What it does:
   - builds small rolling text windows for refactor pockets
   - builds large rolling text windows for feature/topic traces
   - ranks windows with identifier splitting, TF-IDF cosine, SimHash-ish locality,
     lexical cohesion, and regex-only structure density
+  - with --ludicrous-mode, builds cross-file opportunity candidates from a
+    weighted multi-signal graph over large pockets
 
 No AST, parser, dependencies, or provider calls are used.`);
 }
@@ -289,6 +324,30 @@ function topWeightedTerms(doc, idf, limit = 8) {
     .map(([token]) => token);
 }
 
+function topWeightedPhrases(doc, idf, limit = 8) {
+  return [...phraseCounts(doc.tokens)]
+    .map(([phrase, count]) => [
+      phrase,
+      (1 + Math.log(count)) * average(phrase.split(" ").map((token) => idf.get(token) ?? 1)),
+    ])
+    .toSorted((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([phrase]) => phrase);
+}
+
+function phraseCounts(tokens) {
+  const counts = new Map();
+  for (const size of [2, 3]) {
+    for (let index = 0; index <= tokens.length - size; index += 1) {
+      const parts = tokens.slice(index, index + size);
+      if (new Set(parts).size < parts.length) continue;
+      const phrase = parts.join(" ");
+      counts.set(phrase, (counts.get(phrase) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 function vectorFor(doc, idf) {
   const vector = new Map();
   let norm = 0;
@@ -342,6 +401,7 @@ function scoreWindows(windows, idf, query) {
         queryScore,
         concentration,
         topTerms: topWeightedTerms(window, idf),
+        topPhrases: topWeightedPhrases(window, idf),
       };
     })
     .toSorted((a, b) => b.score - a.score);
@@ -438,6 +498,205 @@ function clusterLargeWindows(windows, idf, threshold) {
     .toSorted((a, b) => b.score - a.score);
 }
 
+function buildLudicrousOpportunities(windows, idf) {
+  const candidates = windows
+    .filter((window) => isCodePath(window.file))
+    .slice(0, Math.min(windows.length, 520));
+  const vectors = candidates.map((window) => vectorFor(window, idf));
+  const edgeBuckets = candidates.map(() => []);
+
+  for (let i = 0; i < candidates.length; i += 1) {
+    for (let j = i + 1; j < candidates.length; j += 1) {
+      if (candidates[i].file === candidates[j].file && rangesOverlap(candidates[i], candidates[j]))
+        continue;
+      const edge = relationEdge(candidates[i], candidates[j], vectors[i], vectors[j]);
+      if (edge.score < 0.3) continue;
+      if (edge.concept < 0.16 && edge.cosine < 0.34 && edge.clone < 0.42) continue;
+      edgeBuckets[i].push({ ...edge, from: i, to: j });
+      edgeBuckets[j].push({ ...edge, from: j, to: i });
+    }
+  }
+
+  const parent = candidates.map((_, index) => index);
+  const selectedEdges = [];
+  for (const bucket of edgeBuckets) {
+    for (const edge of bucket.toSorted((a, b) => b.score - a.score).slice(0, 6)) {
+      selectedEdges.push(edge);
+      union(parent, edge.from, edge.to);
+    }
+  }
+
+  const groups = new Map();
+  for (let index = 0; index < candidates.length; index += 1) {
+    const root = find(parent, index);
+    const group = groups.get(root) ?? { indexes: [], edges: [] };
+    group.indexes.push(index);
+    groups.set(root, group);
+  }
+
+  for (const edge of selectedEdges) {
+    const root = find(parent, edge.from);
+    groups.get(root)?.edges.push(edge);
+  }
+
+  return [...groups.values()]
+    .map((group) => opportunityFromGroup(group, candidates))
+    .filter((opportunity) => opportunity.files.length >= 2 && opportunity.windows.length >= 3)
+    .toSorted((a, b) => b.score - a.score);
+}
+
+function relationEdge(left, right, leftVector, rightVector) {
+  const concept = weightedSignalOverlap(left, right);
+  const cosineScore = cosine(leftVector, rightVector);
+  const distance = hamming(left.simhash, right.simhash);
+  const clone = Math.max(0, (18 - distance) / 18);
+  const shape = structuralSimilarity(left, right);
+  const path = pathSimilarity(left.file, right.file);
+  return {
+    score: concept * 0.48 + cosineScore * 0.28 + clone * 0.16 + shape * 0.06 + path * 0.02,
+    concept,
+    cosine: cosineScore,
+    clone,
+    shape,
+    path,
+  };
+}
+
+function isCodePath(path) {
+  const dot = path.lastIndexOf(".");
+  return dot !== -1 && codeExtensions.has(path.slice(dot));
+}
+
+function weightedSignalOverlap(left, right) {
+  const leftSignals = signalWeights(left);
+  const rightSignals = signalWeights(right);
+  let shared = 0;
+  let leftTotal = 0;
+  let rightTotal = 0;
+  for (const weight of leftSignals.values()) leftTotal += weight;
+  for (const weight of rightSignals.values()) rightTotal += weight;
+  for (const [signal, weight] of leftSignals) {
+    shared += Math.min(weight, rightSignals.get(signal) ?? 0);
+  }
+  return shared / Math.sqrt(Math.max(1, leftTotal * rightTotal));
+}
+
+function signalWeights(window) {
+  const weights = new Map();
+  for (const term of window.topTerms) weights.set(term, 1);
+  for (const phrase of window.topPhrases ?? []) weights.set(phrase, 1.7);
+  for (const token of pathTokens(window.file)) weights.set(`path:${token}`, 0.35);
+  return weights;
+}
+
+function structuralSimilarity(left, right) {
+  const decl = ratioSimilarity(left.declarations, right.declarations);
+  const calls = ratioSimilarity(
+    left.calls / Math.max(1, left.lines),
+    right.calls / Math.max(1, right.lines),
+  );
+  const hooks =
+    left.useEffects > 0 || right.useEffects > 0
+      ? ratioSimilarity(left.useEffects, right.useEffects)
+      : 0;
+  return decl * 0.55 + calls * 0.35 + hooks * 0.1;
+}
+
+function ratioSimilarity(left, right) {
+  const max = Math.max(left, right);
+  if (max === 0) return 0;
+  return Math.min(left, right) / max;
+}
+
+function pathSimilarity(left, right) {
+  const leftTokens = new Set(pathTokens(left));
+  const rightTokens = new Set(pathTokens(right));
+  const allTokens = new Set([...leftTokens, ...rightTokens]);
+  if (allTokens.size === 0) return 0;
+  let shared = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) shared += 1;
+  }
+  return shared / allTokens.size;
+}
+
+function pathTokens(path) {
+  return path
+    .split(/[/. _-]+/u)
+    .flatMap(splitIdentifier)
+    .filter((token) => token.length > 2 && !["src", "test", "tests"].includes(token));
+}
+
+function opportunityFromGroup(group, candidates) {
+  const windows = group.indexes.map((index) => candidates[index]);
+  const files = [...new Set(windows.map((window) => window.file))];
+  const dirs = [...new Set(files.map((file) => file.split("/").slice(0, 2).join("/")))];
+  const relation = edgeAverages(group.edges);
+  const topSignals = topGroupSignals(windows);
+  const totalLines = windows.reduce((sum, window) => sum + window.lines, 0);
+  const repeatedShape = average(
+    windows.map((window) => window.declarations + Math.min(20, window.calls / 4)),
+  );
+  const score =
+    Math.log2(totalLines + 1) * 0.85 +
+    files.length * 1.15 +
+    Math.log2(windows.length + 1) * 1.2 +
+    dirs.length * 0.5 +
+    relation.score * 8 +
+    repeatedShape * 0.08;
+
+  return {
+    score,
+    type: inferOpportunityType(files, topSignals),
+    files,
+    windows,
+    topSignals,
+    relation,
+    totalLines,
+  };
+}
+
+function edgeAverages(edges) {
+  if (edges.length === 0) {
+    return { score: 0, concept: 0, cosine: 0, clone: 0, shape: 0, path: 0 };
+  }
+  return {
+    score: average(edges.map((edge) => edge.score)),
+    concept: average(edges.map((edge) => edge.concept)),
+    cosine: average(edges.map((edge) => edge.cosine)),
+    clone: average(edges.map((edge) => edge.clone)),
+    shape: average(edges.map((edge) => edge.shape)),
+    path: average(edges.map((edge) => edge.path)),
+  };
+}
+
+function topGroupSignals(windows) {
+  const counts = new Map();
+  for (const window of windows) {
+    for (const term of window.topTerms) counts.set(term, (counts.get(term) ?? 0) + 1);
+    for (const phrase of window.topPhrases ?? [])
+      counts.set(phrase, (counts.get(phrase) ?? 0) + 1.4);
+  }
+  return [...counts]
+    .toSorted((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([signal]) => signal);
+}
+
+function inferOpportunityType(files, signals) {
+  const joined = `${files.join(" ")} ${signals.join(" ")}`;
+  if (/\bmapper|mappers|react|rust|ruby|python|laravel|gradle|swift|cargo\b/u.test(joined)) {
+    return "cross-mapper-pattern";
+  }
+  if (/\bprovider|schema|json|command|prompt|output\b/u.test(joined)) return "provider-contract";
+  if (/\bworkflow|patch|finding|state|validation|guidance\b/u.test(joined)) return "workflow-state";
+  if (/\bflag|flags|help|arg|cli\b/u.test(joined)) return "cli-model";
+  if (/\bchar|cursor|brace|quote|escaped|expression|props\b/u.test(joined))
+    return "repeated-parser";
+  if (/\btest|expect|fixture|assert\b/u.test(joined)) return "test-scaffold";
+  return "cross-file-refactor";
+}
+
 function termOverlap(left, right) {
   const rightTerms = new Set(right);
   return left.filter((term) => rightTerms.has(term)).length;
@@ -476,6 +735,23 @@ function toJsonPocket(window) {
     declarations: window.declarations,
     calls: window.calls,
     topTerms: window.topTerms,
+    topPhrases: window.topPhrases ?? [],
+  };
+}
+
+function toJsonOpportunity(opportunity) {
+  const brief = opportunityBrief(opportunity);
+  return {
+    type: opportunity.type,
+    score: Number(opportunity.score.toFixed(3)),
+    files: opportunity.files,
+    totalLines: opportunity.totalLines,
+    relation: Object.fromEntries(
+      Object.entries(opportunity.relation).map(([key, value]) => [key, Number(value.toFixed(3))]),
+    ),
+    topSignals: opportunity.topSignals,
+    brief,
+    windows: opportunity.windows.slice(0, 10).map(toJsonPocket),
   };
 }
 
@@ -510,6 +786,127 @@ function printText(result, options) {
   }
 }
 
+function printLudicrousText(result, options) {
+  console.log(
+    `Ludicrous refactoring opportunity candidates: ${result.files.length} files, ${result.large.length} large pockets, ${result.opportunities.length} candidates`,
+  );
+
+  for (const [index, opportunity] of result.opportunities.slice(0, options.top).entries()) {
+    console.log(
+      `\n${index + 1}. ${opportunity.type} score=${opportunity.score.toFixed(2)} files=${opportunity.files.length} windows=${opportunity.windows.length} lines=${opportunity.totalLines}`,
+    );
+    console.log(`   signals=${opportunity.topSignals.slice(0, 8).join(", ")}`);
+    console.log(
+      `   evidence=concept:${opportunity.relation.concept.toFixed(2)} tfidf:${opportunity.relation.cosine.toFixed(2)} clone:${opportunity.relation.clone.toFixed(2)} shape:${opportunity.relation.shape.toFixed(2)} path:${opportunity.relation.path.toFixed(2)}`,
+    );
+    for (const file of opportunity.files.slice(0, 8)) {
+      console.log(`   file=${file}`);
+    }
+    for (const window of opportunity.windows.slice(0, 5)) {
+      console.log(`   pocket=${window.id} terms=${window.topTerms.slice(0, 5).join(", ")}`);
+    }
+  }
+}
+
+function printBriefText(result, options) {
+  console.log(
+    `Ludicrous campaign briefs: ${result.files.length} files, ${result.large.length} large pockets, ${result.opportunities.length} candidates`,
+  );
+
+  for (const [index, opportunity] of result.opportunities.slice(0, options.top).entries()) {
+    const brief = opportunityBrief(opportunity);
+    console.log(
+      `\n${index + 1}. ${brief.title}\n   type=${opportunity.type} score=${opportunity.score.toFixed(2)} files=${opportunity.files.length} lines=${opportunity.totalLines}`,
+    );
+    console.log(`\n   Current shape\n   ${brief.currentShape}`);
+    console.log(`\n   Shy refactor\n   ${brief.shyRefactor}`);
+    console.log(`\n   Ludicrous campaign\n   ${brief.ludicrousCampaign}`);
+    console.log(`\n   First patch\n   ${brief.firstPatch}`);
+    console.log(`\n   Measurement\n   ${brief.measurement}`);
+    console.log("\n   Files");
+    for (const file of opportunity.files.slice(0, 10)) {
+      console.log(`   - ${file}`);
+    }
+  }
+}
+
+function opportunityBrief(opportunity) {
+  const signals = opportunity.topSignals.slice(0, 6).join(", ");
+  const files = opportunity.files.slice(0, 4).join(", ");
+  if (
+    opportunity.type === "repeated-parser" ||
+    signalsMatch(opportunity, ["char", "quote", "toml", "header", "brace"])
+  ) {
+    return {
+      title: "Shared text-scanning primitives",
+      currentShape: `Several pockets repeat quote-aware, escape-aware, delimiter/header scanning across ${files}. Signals: ${signals}.`,
+      shyRefactor:
+        "Extract one local helper inside one mapper and leave the other scanners untouched.",
+      ludicrousCampaign:
+        "Create shared source-text scanning primitives, migrate one parser family at a time, and remove local scanner loops when tests prove behavior is preserved.",
+      firstPatch:
+        "Extract the smallest duplicated scanner primitive with focused tests, then migrate the two most similar call sites.",
+      measurement:
+        "Rerun --ludicrous-mode and expect this candidate's file count, line count, duplicate phrases, and score to drop.",
+    };
+  }
+  if (opportunity.type === "cli-model") {
+    return {
+      title: "CLI command metadata as the single source of truth",
+      currentShape: `Parsing, help rendering, validation, and tests orbit the same flag vocabulary. Signals: ${signals}.`,
+      shyRefactor: "Clean up one parsing helper or one assertion block in the CLI tests.",
+      ludicrousCampaign:
+        "Turn CommandSpec into a stricter declarative command model used by parsing, help rendering, validation, and metadata tests.",
+      firstPatch:
+        "Add a normalized command metadata projection and migrate help tests to assert against that projection instead of reparsing prose.",
+      measurement:
+        "The CLI candidate should shrink because fewer pockets need to restate flag/help/alias semantics.",
+    };
+  }
+  if (opportunity.type === "workflow-state") {
+    return {
+      title: "Workflow orchestration boundary cleanup",
+      currentShape: `Workflow code repeats loaded-path, flag, progress, guidance, and patch-attempt vocabulary. Signals: ${signals}.`,
+      shyRefactor: "Move one small block out of app.ts or rename a local helper.",
+      ludicrousCampaign:
+        "Separate workflow policy from CLI flag plumbing, progress emission, durable state loading, and guidance application records.",
+      firstPatch:
+        "Extract a small workflow input/result model around the repeated loaded-path and flag handling, then migrate one command path.",
+      measurement:
+        "The workflow candidate should split into smaller, more coherent candidates with less app.ts dominance.",
+    };
+  }
+  if (opportunity.type === "cross-mapper-pattern") {
+    return {
+      title: "Mapper discovery model consolidation",
+      currentShape: `Mapper modules repeat source-root, package-root, grouping, path-safety, and test-association logic. Signals: ${signals}.`,
+      shyRefactor: "Tidy one mapper-local helper while preserving the larger repetition.",
+      ludicrousCampaign:
+        "Extract mapper discovery concepts into shared primitives so new mappers compose source roots, grouping, tests, and trust boundaries consistently.",
+      firstPatch:
+        "Pick the tightest repeated subproblem in the cluster, extract it with tests, and migrate two mapper families.",
+      measurement:
+        "The mapper candidate should reduce in related lines and break into narrower domain-specific candidates.",
+    };
+  }
+  return {
+    title: "Cross-file refactoring opportunity",
+    currentShape: `Related pockets span ${files}. Signals: ${signals}.`,
+    shyRefactor: "Apply a local cleanup in one file.",
+    ludicrousCampaign:
+      "Name the shared concept, introduce a behavior-preserving abstraction boundary, and migrate related pockets in a patch sequence.",
+    firstPatch:
+      "Add characterization tests around the two most similar pockets and extract the smallest shared primitive.",
+    measurement:
+      "Rerun --ludicrous-mode and compare score, file count, line count, and duplicate signal terms before and after.",
+  };
+}
+
+function signalsMatch(opportunity, tokens) {
+  const text = opportunity.topSignals.join(" ");
+  return tokens.some((token) => text.includes(token));
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const root = resolve(options.root);
@@ -521,7 +918,8 @@ function main() {
   const scoredSmall = scoreWindows(small, idf, options.query);
   const scoredLarge = scoreWindows(large, idf, options.query);
   const groups = clusterLargeWindows(scoredLarge, idf, options.clusterThreshold);
-  const result = { root, files, small: scoredSmall, large: scoredLarge, groups };
+  const opportunities = options.ludicrousMode ? buildLudicrousOpportunities(scoredLarge, idf) : [];
+  const result = { root, files, small: scoredSmall, large: scoredLarge, groups, opportunities };
 
   if (options.json) {
     console.log(
@@ -537,11 +935,24 @@ function main() {
             topTerms: group.topTerms,
             windows: group.windows.slice(0, 8).map(toJsonPocket),
           })),
+          ludicrousOpportunities: opportunities
+            .slice(0, options.top)
+            .map((opportunity) => toJsonOpportunity(opportunity)),
         },
         null,
         2,
       ),
     );
+    return;
+  }
+
+  if (options.brief) {
+    printBriefText(result, options);
+    return;
+  }
+
+  if (options.ludicrousMode) {
+    printLudicrousText(result, options);
     return;
   }
 
