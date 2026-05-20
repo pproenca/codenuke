@@ -1,0 +1,30 @@
+{
+  "name": "Abbreviation noise fixture",
+  "description": "Rejects semantic algorithms that over-link generic cfg/context/env utility vocabulary while preserving abbreviation and inflection matches.",
+  "expectedLinks": [
+    {
+      "leftPath": "src/runtime-config/config-loader.ts",
+      "rightPath": "src/runtime-cfg/cfg-loader.ts",
+      "signals": ["config", "runtime", "loader"]
+    },
+    {
+      "leftPath": "src/retry-policies/policies.ts",
+      "rightPath": "src/retry-policy-selector/policy-selector.ts",
+      "signals": ["policy", "retry"]
+    }
+  ],
+  "forbiddenLinks": [
+    {
+      "leftPath": "src/runtime-config/config-loader.ts",
+      "rightPath": "src/request-context/context-reader.ts"
+    },
+    {
+      "leftPath": "src/runtime-cfg/cfg-loader.ts",
+      "rightPath": "src/environment-metadata/env-reader.ts"
+    },
+    {
+      "leftPath": "src/request-context/context-reader.ts",
+      "rightPath": "src/environment-metadata/env-reader.ts"
+    }
+  ]
+}

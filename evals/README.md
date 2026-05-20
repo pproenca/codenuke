@@ -55,6 +55,10 @@ Karpathy/autoresearch pattern of fixed metric plus bounded experiment surface.
 The JSON result includes a `decision.status` of `keep` or `discard`, based on
 Feature Slice stability, idempotence, safe ownership, and fixture pass/fail
 checks.
+Fixtures should include rejective cases, not only positive examples. For
+example, abbreviation fixtures should prove that `cfg` can match `config` while
+generic `context` or `environment` vocabulary does not create unrelated
+semantic-neighbor links.
 
 For opt-in model-backed prompt comparisons, run:
 
