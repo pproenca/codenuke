@@ -206,13 +206,14 @@ Review feature slices and persist findings.
 Usage:
 
 ```bash
-codenuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
+codenuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--ludicrous-mode] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
 ```
 
 Behavior:
 
 - Claims pending or selected features.
 - Assembles bounded prompt context.
+- With `--ludicrous-mode`, adds high-recall Refactoring Opportunity Candidates to review prompts without treating them as findings.
 - Calls provider.
 - Parses strict JSON.
 - Writes append-only analysis entry.

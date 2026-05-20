@@ -166,6 +166,7 @@ Useful flags:
 - `--provider <name>`
 - `--model <name>`
 - `--reasoning-effort <none|minimal|low|medium|high|xhigh>`
+- `--ludicrous-mode` for high-recall review candidates during `codenuke review`
 - `--output <path>` / `-o <path>`
 - `--dry-run`
 - `--force`

@@ -2,6 +2,7 @@ import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { requiresChangedTestForFix } from "./test-coverage.js";
 import { selectReviewGuidance, guidanceTextForTrace, GuidanceSelection } from "./guidance.js";
+import { RefactoringOpportunityCandidate } from "./ludicrous.js";
 import {
   CodenukeConfig,
   FeatureRecord,
@@ -74,8 +75,13 @@ export async function buildReviewPromptWithGuidance(
   project: ProjectRecord,
   feature: FeatureRecord,
   config: CodenukeConfig,
+  options: { ludicrousCandidates?: RefactoringOpportunityCandidate[] } = {},
 ): Promise<{ prompt: string; guidance: GuidanceSelection }> {
   const guidance = await selectReviewGuidance(root, feature);
+  const ludicrousCandidates = options.ludicrousCandidates ?? [];
+  const ludicrousPaths = ludicrousCandidates.flatMap((candidate) =>
+    candidate.files.map((file) => file.path),
+  );
   const owned = feature.ownedFiles.slice(0, config.review.maxOwnedFiles);
   const context = feature.contextFiles.slice(0, config.review.maxContextFiles);
   const tests = feature.tests.slice(0, config.review.maxContextFiles);
@@ -85,6 +91,7 @@ export async function buildReviewPromptWithGuidance(
       owned.map((ref) => ref.path),
       context.map((ref) => ref.path),
       tests.map((test) => test.path),
+      ludicrousPaths,
     ),
   );
   const prompt = `You are reviewing one semantic feature for codenuke.
@@ -130,6 +137,8 @@ Codenuke focus:
 
 ${guidance.prompt}
 
+${ludicrousCandidatePrompt(ludicrousCandidates)}
+
 Inspect owned files, context files, and linked tests. Treat included tests as first-class
 evidence of intended behavior. If tests contradict a possible refactor, either skip it or
 downgrade confidence and explain the uncertainty. Deduplicate sibling/root-cause refactoring
@@ -173,6 +182,29 @@ JSON shape:
 Files:
 ${fileBlocks.join("\n\n")}`;
   return { prompt, guidance };
+}
+
+function ludicrousCandidatePrompt(candidates: RefactoringOpportunityCandidate[]): string {
+  if (candidates.length === 0) {
+    return "";
+  }
+  return `Ludicrous Review Mode:
+- The following are high-recall Refactoring Opportunity Candidates, not findings.
+- Use them to inspect related files and look for larger behavior-preserving refactors.
+- Do not report a finding unless included code proves a bounded, evidence-backed repair path.
+- Prefer one root-cause finding over many small sibling findings when the candidate is real.
+
+${JSON.stringify(
+  candidates.map((candidate) => ({
+    title: candidate.title,
+    score: Number(candidate.score.toFixed(2)),
+    signals: candidate.signals,
+    files: candidate.files,
+    summary: candidate.summary,
+  })),
+  null,
+  2,
+)}`;
 }
 
 export async function buildRevalidatePrompt(root: string, findingJson: string): Promise<string> {

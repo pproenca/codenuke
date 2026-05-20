@@ -178,4 +178,13 @@ describe("parseArgs", () => {
     );
     expect(() => parseArgs(["revalidate", "--all"])).not.toThrow();
   });
+
+  it("accepts ludicrous mode for review only", () => {
+    expect(parseArgs(["review", "--ludicrous-mode"]).flags).toMatchObject({
+      ludicrousMode: true,
+    });
+    expect(() => parseArgs(["map", "--ludicrous-mode"])).toThrow(
+      "unsupported flag for map: --ludicrous-mode",
+    );
+  });
 });

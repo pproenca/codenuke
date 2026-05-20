@@ -25,6 +25,11 @@ import { emitProgress } from "../platform/progress.js";
 import { providerByName } from "../provider/index.js";
 import { reviewGuidanceDryRun } from "./guidance.js";
 import { guidanceApplicationFailure } from "./guidance-application.js";
+import {
+  candidatesForFeature,
+  refactoringOpportunityCandidates,
+  RefactoringOpportunityCandidate,
+} from "./ludicrous.js";
 import { buildFixPrompt, buildReviewPromptWithGuidance, buildRevalidatePrompt } from "./prompt.js";
 import { patchBoundaryForFix } from "./patch-boundary.js";
 import {
@@ -238,6 +243,13 @@ export async function reviewCommand(
   const config = applyProviderFlags(loaded.config, flags);
   const provider = providerByName(config.provider.name);
   const features = await selectReviewFeatures(loaded, flags);
+  const ludicrousMode = flags["ludicrousMode"] === true;
+  const ludicrousCandidates = ludicrousMode
+    ? await refactoringOpportunityCandidates(
+        loaded.root,
+        await selectReviewCandidateFeatures(loaded, flags),
+      )
+    : [];
   if (features.length === 0 && typeof flags["since"] === "string") {
     return { next: "no features touched by diff" };
   }
@@ -247,6 +259,8 @@ export async function reviewCommand(
       wouldReview: features.length,
       jobs: reviewJobs(flags),
       featureIds: features.map((feature) => feature.featureId),
+      ludicrousMode,
+      opportunityCandidates: ludicrousCandidates,
       guidance: await reviewGuidanceDryRun(loaded.root, features),
     };
   }
@@ -264,6 +278,7 @@ export async function reviewCommand(
     run: currentRunId,
     features: features.length,
     jobs,
+    ...(ludicrousMode ? { ludicrousCandidates: ludicrousCandidates.length } : {}),
   });
   await Promise.all(
     Array.from({ length: jobs }, async () => {
@@ -285,6 +300,7 @@ export async function reviewCommand(
             index,
             total: features.length,
             allowNonPendingFeatureReview: stringFlag(flags, "feature") !== undefined,
+            ludicrousCandidates: candidatesForFeature(feature, ludicrousCandidates),
           });
           findingIds.push(...reviewed.findingIds);
           guidanceSelectionAudits.push(reviewed.guidanceSelectionAudit);
@@ -509,6 +525,7 @@ type ReviewFeatureOptions = {
   index: number;
   total: number;
   allowNonPendingFeatureReview: boolean;
+  ludicrousCandidates: RefactoringOpportunityCandidate[];
 };
 
 async function reviewFeature(
@@ -524,6 +541,7 @@ async function reviewFeature(
     index,
     total,
     allowNonPendingFeatureReview,
+    ludicrousCandidates,
   } = options;
   const started = Date.now();
   let locked: FeatureRecord | null = null;
@@ -549,6 +567,7 @@ async function reviewFeature(
       loaded.project,
       lockedFeature,
       config,
+      { ludicrousCandidates },
     );
     guidanceSelectionAudit = guidance.audit;
     const output = await provider.review(loaded.root, prompt, providerOptions(config));
@@ -576,7 +595,10 @@ async function reviewFeature(
         {
           runId: currentRunId,
           kind: "review",
-          summary: `${records.length} finding(s)`,
+          summary:
+            ludicrousCandidates.length === 0
+              ? `${records.length} finding(s)`
+              : `${records.length} finding(s), ${ludicrousCandidates.length} ludicrous candidate(s)`,
           provider: provider.name,
           model: config.provider.model,
           reasoningEffort: config.provider.reasoningEffort,
@@ -1219,9 +1241,15 @@ async function selectReviewFeatures(
   loaded: Awaited<ReturnType<typeof loadProjectState>>,
   flags: Record<string, string | boolean>,
 ): Promise<FeatureRecord[]> {
+  return limitFeatures(await selectReviewCandidateFeatures(loaded, flags), flags);
+}
+
+async function selectReviewCandidateFeatures(
+  loaded: Awaited<ReturnType<typeof loadProjectState>>,
+  flags: Record<string, string | boolean>,
+): Promise<FeatureRecord[]> {
   const candidates = selectReviewCandidates(await readFeatures(loaded.paths), flags);
-  const sinceFiltered = await filterFeaturesByFilesSince(loaded.root, candidates, flags);
-  return limitFeatures(sinceFiltered, flags);
+  return filterFeaturesByFilesSince(loaded.root, candidates, flags);
 }
 
 async function filterFeaturesByFilesSince(
