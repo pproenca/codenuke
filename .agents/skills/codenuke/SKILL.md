@@ -1,6 +1,6 @@
 ---
 name: codenuke
-description: Run codenuke from npm for automated code review, behavior-preserving refactoring, complexity reduction, finding triage, one-finding-at-a-time fix/revalidate loops, and optional commit-and-continue auto-fix loops. Use when a user wants to set up codenuke in a repository, review code with codenuke, run an auto-fix loop over actionable findings, commit validated fixes and continue until no fixes remain, inspect reports, triage false positives, revalidate fixes, or operate the codenuke CLI without needing it installed globally.
+description: Run codenuke from npm or the skill progress script for automated code review, behavior-preserving refactoring, high-recall ludicrous-mode review candidates, finding triage, one-finding-at-a-time fix/revalidate loops, and optional commit-and-continue auto-fix loops. Use when a user wants terminal-visible codenuke progress, setup, mapping, review, ludicrous mode, reports, next findings, auto-fix loops, triage, revalidation, or codenuke CLI operation without a global install.
 ---
 
 # codenuke
@@ -19,6 +19,19 @@ npx --yes codenuke@latest <command>
 
 If the user is working on codenuke itself from source, use the repo's documented
 local build flow instead of `npx` only when that is clearly the intent.
+
+For user-facing terminal runs, prefer the skill helper script because it prints
+each codenuke step before running it:
+
+```bash
+scripts/codenuke-progress.sh
+```
+
+If the user asks for ludicrous mode, pass it through explicitly:
+
+```bash
+scripts/codenuke-progress.sh --ludicrous-mode
+```
 
 ## Setup
 
@@ -43,14 +56,25 @@ npx --yes codenuke@latest map
 Start small and make the report visible before fixing anything:
 
 ```bash
-npx --yes codenuke@latest status
-npx --yes codenuke@latest review --limit 3 --jobs 3
-npx --yes codenuke@latest report
-npx --yes codenuke@latest next
+scripts/codenuke-progress.sh --limit 3 --jobs 3
 ```
 
 Review selects packaged refactoring resources from observable owned-code shapes,
 injects them into provider prompts, and persists guidance traces on findings.
+When the user asks for broader, high-recall refactoring opportunities, use
+Ludicrous Review Mode:
+
+```bash
+scripts/codenuke-progress.sh --ludicrous-mode --limit 5 --jobs 3
+```
+
+Use `--dry-run` when the user wants to see the candidates and guidance without
+writing findings:
+
+```bash
+scripts/codenuke-progress.sh --ludicrous-mode --dry-run --limit 5
+```
+
 When debugging review quality, inspect both the finding evidence and the
 guidance trace:
 
