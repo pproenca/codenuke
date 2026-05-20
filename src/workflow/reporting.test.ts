@@ -21,6 +21,7 @@ function finding(overrides: Partial<FindingRecord> = {}): FindingRecord {
     suggestedRegressionTest: null,
     minimumFixScope: "",
     guidance: { selected: [], applied: [] },
+    candidateTrace: [],
     status: "open",
     history: [],
     signature: "sig_test",
@@ -144,5 +145,27 @@ describe("markdown finding sections", () => {
     expect(detail).toContain("Long Method");
     expect(detail).toContain("extract only with stable inputs and outputs");
     expect(report).not.toContain("guidance:");
+  });
+
+  it("renders candidate trace in finding detail and JSON summaries", () => {
+    const record = finding({
+      candidateTrace: [
+        {
+          candidateId: "cand_semantic",
+          source: "tfidf-file-similarity",
+          title: "Semantic task graph candidate",
+          reason: "The candidate led review toward shared task graph parsing.",
+          use: "Check both files when fixing or revalidating.",
+        },
+      ],
+    });
+
+    const detail = renderFindingDetail(record, feature(), [], []);
+    const report = renderReport([record], [feature()]);
+
+    expect(detail).toContain("candidate trace:");
+    expect(detail).toContain("cand_semantic: Semantic task graph candidate");
+    expect(detail).toContain("Check both files when fixing or revalidating.");
+    expect(report).not.toContain("candidate trace:");
   });
 });

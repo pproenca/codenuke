@@ -21,6 +21,7 @@ export type FindingSummary = {
   suggestedRegressionTest: string | null;
   minimumFixScope: string;
   guidance: FindingRecord["guidance"];
+  candidateTrace: FindingRecord["candidateTrace"];
   next: string;
 };
 
@@ -77,6 +78,7 @@ export function renderFindingDetail(
     recommendation: "always",
     includeReproduction: false,
   });
+  appendCandidateTrace(lines, finding);
   appendGuidanceTrace(lines, finding);
   if (feature !== null) {
     lines.push("");
@@ -209,8 +211,22 @@ export function findingSummary(
     suggestedRegressionTest: finding.suggestedRegressionTest,
     minimumFixScope: finding.minimumFixScope,
     guidance: finding.guidance,
+    candidateTrace: finding.candidateTrace,
     next: `codenuke show --finding ${finding.findingId}`,
   };
+}
+
+function appendCandidateTrace(lines: string[], finding: FindingRecord): void {
+  if (finding.candidateTrace.length === 0) {
+    return;
+  }
+  lines.push("");
+  lines.push("candidate trace:");
+  for (const entry of finding.candidateTrace) {
+    lines.push(`- ${entry.candidateId}: ${entry.title} (${entry.source})`);
+    lines.push(`  why: ${entry.reason}`);
+    lines.push(`  use: ${entry.use}`);
+  }
 }
 
 function appendGuidanceTrace(lines: string[], finding: FindingRecord): void {

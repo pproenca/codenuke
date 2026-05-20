@@ -4,7 +4,7 @@ import { CodenukeConfig, FeatureRecord, ProjectRecord } from "../platform/types.
 import { refactoringOpportunityCandidates } from "./ludicrous.js";
 import { initCommand, reviewCommand } from "./app.js";
 import { buildReviewPromptWithGuidance } from "./prompt.js";
-import { readRuns, statePaths, writeFeature } from "./state.js";
+import { readFindings, readRuns, statePaths, writeFeature } from "./state.js";
 
 const now = "2026-01-01T00:00:00.000Z";
 
@@ -176,6 +176,8 @@ describe("ludicrous review mode", () => {
 
     expect(prompt).toContain("Ludicrous Review Mode");
     expect(prompt).toContain("high-recall Refactoring Opportunity Candidates, not findings");
+    expect(prompt).toContain('"candidateId": "cand_normalized_feature_1234567890"');
+    expect(prompt).toContain("include its candidateId in that finding's candidateTrace");
     expect(prompt).toContain('"source": "lexical-phrase"');
     expect(prompt).toContain('"algorithm": "test"');
     expect(prompt.match(/^--- src\/beta\.ts$/gmu) ?? []).toHaveLength(1);
@@ -257,6 +259,7 @@ describe("ludicrous review mode", () => {
 
     const runs = await readRuns(paths);
     const reviewRun = runs.find((run) => run.command === "review" && run.status === "completed");
+    const finding = (await readFindings(paths))[0];
 
     expect(reviewRun?.ludicrousCandidateAudits).toEqual(
       expect.arrayContaining([
@@ -278,6 +281,7 @@ describe("ludicrous review mode", () => {
         }),
       ]),
     );
+    expect(finding?.candidateTrace[0]?.candidateId).toMatch(/^cand_/u);
   });
 });
 

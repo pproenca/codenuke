@@ -32,6 +32,7 @@ function finding(
     suggestedRegressionTest: null,
     minimumFixScope: "",
     guidance: { selected: [], applied: [] },
+    candidateTrace: [],
     status: "open",
     history: [],
     signature: findingId,

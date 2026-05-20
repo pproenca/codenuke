@@ -75,6 +75,7 @@ export function findingFromOutput(
     whyTestsDoNotAlreadyCoverThis: finding.whyTestsDoNotAlreadyCoverThis,
     suggestedRegressionTest: finding.suggestedRegressionTest,
     minimumFixScope: finding.minimumFixScope,
+    candidateTrace: finding.candidateTrace,
     guidance: {
       selected: selectedGuidance,
       applied: applySelectedGuidanceRoles(finding.guidance.applied, selectedGuidance),

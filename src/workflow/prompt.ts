@@ -162,6 +162,15 @@ JSON shape:
       "whyTestsDoNotAlreadyCoverThis": "string",
       "suggestedRegressionTest": "string or null",
       "minimumFixScope": "string",
+      "candidateTrace": [
+        {
+          "candidateId": "string",
+          "source": "lexical-phrase|tfidf-file-similarity",
+          "title": "string",
+          "reason": "how this candidate shaped the finding, or why it was only supporting evidence",
+          "use": "how fix and revalidation should account for this candidate"
+        }
+      ],
       "guidance": {
         "applied": [
           {
@@ -193,6 +202,7 @@ function ludicrousCandidatePrompt(candidates: RefactoringOpportunityCandidate[])
 - Use them to inspect related files and look for larger behavior-preserving refactors.
 - Do not report a finding unless included code proves a bounded, evidence-backed repair path.
 - Prefer one root-cause finding over many small sibling findings when the candidate is real.
+- If a candidate shaped a finding, include its candidateId in that finding's candidateTrace.
 
 ${JSON.stringify(
   candidates.map((candidate) => ({

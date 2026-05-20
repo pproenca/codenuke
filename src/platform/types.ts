@@ -255,6 +255,16 @@ export type GuidanceTrace = z.infer<typeof guidanceTraceSchema>;
 
 export const emptyGuidanceTrace = (): GuidanceTrace => ({ selected: [], applied: [] });
 
+export const findingCandidateTraceEntrySchema = z.object({
+  candidateId: z.string(),
+  source: z.enum(["lexical-phrase", "tfidf-file-similarity"]),
+  title: z.string(),
+  reason: z.string(),
+  use: z.string(),
+});
+
+export type FindingCandidateTraceEntry = z.infer<typeof findingCandidateTraceEntrySchema>;
+
 export const guidanceShapeEvidenceSchema = z.object({
   shape: z.string(),
   path: z.string(),
@@ -331,6 +341,7 @@ export const findingRecordSchema = z
     suggestedRegressionTest: z.string().nullable().optional(),
     minimumFixScope: z.string().optional(),
     guidance: guidanceTraceSchema.optional(),
+    candidateTrace: z.array(findingCandidateTraceEntrySchema).optional(),
     status: z.enum(["open", "false-positive", "fixed", "wont-fix", "uncertain"]),
     history: z.array(findingHistoryEntrySchema).optional(),
     signature: z.string(),
@@ -346,6 +357,7 @@ export const findingRecordSchema = z
     suggestedRegressionTest: finding.suggestedRegressionTest ?? null,
     minimumFixScope: finding.minimumFixScope ?? "",
     guidance: finding.guidance ?? emptyGuidanceTrace(),
+    candidateTrace: finding.candidateTrace ?? [],
     history: finding.history ?? [],
   }));
 
@@ -496,6 +508,7 @@ export const reviewOutputSchema = z.object({
       whyTestsDoNotAlreadyCoverThis: z.string(),
       suggestedRegressionTest: z.string().nullable(),
       minimumFixScope: z.string(),
+      candidateTrace: z.array(findingCandidateTraceEntrySchema).optional().default([]),
       guidance: z.object({
         applied: z.array(guidanceTraceEntrySchema),
       }),

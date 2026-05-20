@@ -293,6 +293,7 @@ const mockProvider: Provider = {
               "Mock fixtures do not encode this marker as required runtime behavior.",
             suggestedRegressionTest: "Run the focused tests after removing the marked code.",
             minimumFixScope: "Remove only the marked simplification target.",
+            candidateTrace: mockCandidateTrace(prompt),
             guidance: {
               applied: [
                 {
@@ -336,6 +337,7 @@ const mockProvider: Provider = {
             "Mock fixtures do not encode this marker as required runtime behavior.",
           suggestedRegressionTest: "Run the focused tests after removing the marked code.",
           minimumFixScope: "Remove only the marked refactoring target.",
+          candidateTrace: mockCandidateTrace(prompt),
           guidance: {
             applied: [
               {
@@ -431,6 +433,31 @@ const mockProvider: Provider = {
     };
   },
 };
+
+function mockCandidateTrace(prompt: string): ReviewOutput["findings"][number]["candidateTrace"] {
+  const candidate = prompt.match(
+    /"candidateId":\s*"([^"]+)"[\s\S]{0,300}?"title":\s*"([^"]+)"[\s\S]{0,300}?"source":\s*"([^"]+)"/u,
+  );
+  const candidateId = candidate?.[1];
+  const title = candidate?.[2];
+  const source = candidate?.[3];
+  if (
+    candidateId === undefined ||
+    title === undefined ||
+    (source !== "lexical-phrase" && source !== "tfidf-file-similarity")
+  ) {
+    return [];
+  }
+  return [
+    {
+      candidateId,
+      source,
+      title,
+      reason: "Mock provider linked the first supplied ludicrous candidate to this finding.",
+      use: "Use this candidate trace only as schema-compatible mock attribution.",
+    },
+  ];
+}
 
 const mockFailProvider: Provider = {
   name: "mock-fail",
