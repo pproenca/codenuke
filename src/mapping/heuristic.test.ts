@@ -238,6 +238,93 @@ describe("mapFeatures", () => {
     );
   });
 
+  it("prefers path and feature vocabulary over noisy implementation vocabulary", async () => {
+    const root = await fixtureRoot("codenuke-map-semantic-domain-weight-");
+    const noisyReaderBody =
+      "readSharedKey readerValue cacheKey readSharedKey readerValue cacheKey readSharedKey readerValue cacheKey";
+    await writeFixture(
+      root,
+      "src/shipping-rate.ts",
+      `export function calculateShippingRate() { return "${noisyReaderBody}"; }\n`,
+    );
+    await writeFixture(
+      root,
+      "src/shipping-quote.ts",
+      "export function calculateShippingQuote(zoneCode: string) { return `quote:${zoneCode}`; }\n",
+    );
+    await writeFixture(
+      root,
+      "src/audit-reader.ts",
+      `export function readAuditEntry() { return "${noisyReaderBody}"; }\n`,
+    );
+    const project = await detectProject(root);
+    const seeds: FeatureSeed[] = [
+      {
+        title: "Shipping rate calculator",
+        summary: "Calculates carrier shipping rates for checkout.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/shipping-rate.ts",
+        identityKey: "shipping-rate",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/shipping-rate.ts", reason: "shipping rate service" }],
+        tags: ["shipping"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "Shipping quote builder",
+        summary: "Builds customer shipping quotes for checkout.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/shipping-quote.ts",
+        identityKey: "shipping-quote",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/shipping-quote.ts", reason: "shipping quote service" }],
+        tags: ["shipping"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "Audit reader",
+        summary: "Reads audit entries from a shared cache key.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/audit-reader.ts",
+        identityKey: "audit-reader",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/audit-reader.ts", reason: "audit reader service" }],
+        tags: ["audit"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+    ];
+
+    const result = await mapFeatureSeeds(root, project, [], seeds);
+    const rate = result.features.find((feature) => feature.title === "Shipping rate calculator");
+    if (rate === undefined) {
+      throw new Error("expected shipping rate feature");
+    }
+
+    expect(rate.semanticEvidence?.[0]).toMatchObject({
+      kind: "semantic-neighbor",
+      source: "identifier-tfidf",
+      targetTitle: "Shipping quote builder",
+    });
+    expect(rate.semanticEvidence?.[0]?.signals).toEqual(
+      expect.arrayContaining(["shipping", "checkout"]),
+    );
+  });
+
   it("counts stale existing features when mapped feature ids are duplicated", async () => {
     const root = await fixtureRoot("codenuke-map-stale-duplicate-ids-");
     const project = await detectProject(root);

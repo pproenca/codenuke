@@ -563,7 +563,8 @@ type FeatureRecord = {
 revalidation may use as supporting context. The first source is
 `semantic-neighbor` evidence from `identifier-tfidf`, which links Feature Slices
 that share normalized domain identifier vocabulary without changing the stable
-`featureId`.
+`featureId`. Path and Feature metadata tokens carry more weight than code-body
+tokens so domain vocabulary is preferred over generic implementation words.
 
 Kinds:
 

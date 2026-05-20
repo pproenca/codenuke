@@ -63,10 +63,13 @@ semantic codebase understanding lives.
 
 The first implementation slice persists `semanticEvidence` on `FeatureRecord`.
 It uses identifier token splitting, common abbreviation expansion, light
-inflection normalization, and deterministic TF-IDF/cosine similarity to link
-Feature Slices with shared domain vocabulary. Findings may persist
-`mapEvidenceTrace` when review promotes that map evidence into a concrete
-finding, which lets fix and revalidation consume the same map-time context.
+inflection normalization, domain-weighted path and Feature metadata tokens, and
+deterministic TF-IDF/cosine similarity to link Feature Slices with shared domain
+vocabulary. Code-body tokens are lower weight and generic implementation words
+are filtered so evidence prefers domain neighbors over incidental helper
+vocabulary. Findings may persist `mapEvidenceTrace` when review promotes that
+map evidence into a concrete finding, which lets fix and revalidation consume
+the same map-time context.
 
 Consequences:
 

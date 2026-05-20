@@ -18,6 +18,9 @@ const maxBytesPerFile = 80_000;
 const maxEvidencePerFeature = 3;
 const minSharedSignals = 2;
 const minSimilarityScore = 0.08;
+const codeBodyTokenWeight = 0.5;
+const pathTokenWeight = 3;
+const featureMetadataTokenWeight = 2;
 
 const sourceExtensions = new Set([
   ".c",
@@ -66,6 +69,7 @@ const stopWords = new Set([
   "boolean",
   "can",
   "catch",
+  "cache",
   "class",
   "code",
   "const",
@@ -92,6 +96,7 @@ const stopWords = new Set([
   "interface",
   "into",
   "its",
+  "key",
   "let",
   "may",
   "must",
@@ -106,8 +111,11 @@ const stopWords = new Set([
   "repo",
   "repository",
   "return",
+  "read",
+  "reader",
   "set",
   "should",
+  "shared",
   "src",
   "string",
   "that",
@@ -129,6 +137,8 @@ const stopWords = new Set([
   "will",
   "with",
   "without",
+  "write",
+  "writer",
   "your",
 ]);
 
@@ -193,17 +203,21 @@ async function featureDocument(root: string, feature: FeatureRecord): Promise<Fe
       continue;
     }
     hasReadableSource = true;
-    addTokens(counts, ref.path);
+    addTokens(counts, ref.path, pathTokenWeight);
     const text = await readFile(join(root, ref.path), "utf8").then(
       (contents) => contents.slice(0, maxBytesPerFile),
       () => "",
     );
-    addTokens(counts, text);
+    addTokens(counts, text, codeBodyTokenWeight);
   }
   if (!hasReadableSource) {
     return { feature, tokens: new Map() };
   }
-  addTokens(counts, `${feature.title} ${feature.summary} ${feature.tags.join(" ")}`);
+  addTokens(
+    counts,
+    `${feature.title} ${feature.summary} ${feature.tags.join(" ")}`,
+    featureMetadataTokenWeight,
+  );
   return { feature, tokens: counts };
 }
 
@@ -298,9 +312,9 @@ function evidenceRank(left: FeatureSemanticEvidence, right: FeatureSemanticEvide
   return title === 0 ? left.targetFeatureId.localeCompare(right.targetFeatureId) : title;
 }
 
-function addTokens(counts: Map<string, number>, text: string): void {
+function addTokens(counts: Map<string, number>, text: string, weight: number): void {
   for (const token of identifierTokens(text)) {
-    counts.set(token, (counts.get(token) ?? 0) + 1);
+    counts.set(token, (counts.get(token) ?? 0) + weight);
   }
 }
 
