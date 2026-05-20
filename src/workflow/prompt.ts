@@ -111,6 +111,9 @@ ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}
 Feature:
 ${JSON.stringify(feature, null, 2)}
 
+Map semantic evidence:
+${feature.semanticEvidence?.length ? JSON.stringify(feature.semanticEvidence, null, 2) : "- none"}
+
 Review categories:
 - algorithmic or render-path complexity
 - behavior-preserving simplification
@@ -138,6 +141,11 @@ Codenuke focus:
 ${guidance.prompt}
 
 ${ludicrousCandidatePrompt(ludicrousCandidates)}
+
+Use map semantic evidence as supporting leads for sibling features, duplicated concepts, and
+refactoring scope. Do not report from map evidence alone; prove findings in included files. If map
+evidence materially shapes a finding, include the relevant entries in mapEvidenceTrace and describe
+how fix and revalidation should use them.
 
 Inspect owned files, context files, and linked tests. Treat included tests as first-class
 evidence of intended behavior. If tests contradict a possible refactor, either skip it or
@@ -169,6 +177,18 @@ JSON shape:
           "title": "string",
           "reason": "how this candidate shaped the finding, or why it was only supporting evidence",
           "use": "how fix and revalidation should account for this candidate"
+        }
+      ],
+      "mapEvidenceTrace": [
+        {
+          "kind": "semantic-neighbor",
+          "source": "identifier-tfidf",
+          "targetFeatureId": "string",
+          "targetTitle": "string",
+          "score": 0.1,
+          "signals": ["string"],
+          "reason": "why this map evidence shaped the finding",
+          "use": "how fix and revalidation should account for this map evidence"
         }
       ],
       "guidance": {
@@ -235,6 +255,9 @@ mandatory unless the current code makes it not applicable; supporting guidance i
 A finding may be marked fixed only when the original issue is resolved, visible behavior is
 preserved, and the guidance fit is acceptable. If the code removed the symptom but violated the
 primary guidance intent, return uncertain.
+If the finding includes mapEvidenceTrace, use it as supporting context for sibling scope and
+semantic-neighbor risks. Do not require sibling changes unless the current evidence proves the
+original finding still spans those files.
 
 Return strict JSON only:
 {"outcome":"fixed|open|false-positive|uncertain","reasoning":"string","guidanceAssessment":{"followed":"yes|partially|no|not-applicable","reasoning":"string","deviations":["string"],"acceptable":true},"commands":["string"]}
@@ -267,6 +290,9 @@ not applicable; supporting guidance is optional context for the smallest safe mo
 technique is too broad for the current code, choose the smallest safer behavior-preserving move and
 explain why in guidanceApplication. Do not switch to a larger technique unless the finding's
 evidence requires it.
+Use mapEvidenceTrace and Feature.semanticEvidence as supporting context for sibling scope and
+semantic-neighbor risks, but keep the patch inside the finding evidence and Patch Boundary unless
+the finding explicitly justifies broader files.
 Use a red-green-refactor loop for behavior-preserving refactors: prove the intended behavior with
 the smallest focused test, make the minimal production change, then run validation.
 Do not commit, push, switch branches, or run destructive git commands.

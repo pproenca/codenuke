@@ -123,15 +123,15 @@ function mapQualityResult({
     secondFeatures.length === 0
       ? 1
       : secondFeatures.filter((feature) => feature.tests.length > 0).length / secondFeatures.length;
-  const semanticLabelRatio =
+  const semanticEvidenceRatio =
     secondFeatures.length === 0
       ? 1
-      : secondFeatures.filter(
-          (feature) =>
-            feature.kind !== "unknown" ||
-            feature.tags.length > 0 ||
-            feature.trustBoundaries.length > 0,
-        ).length / secondFeatures.length;
+      : secondFeatures.filter((feature) => (feature.semanticEvidence ?? []).length > 0).length /
+        secondFeatures.length;
+  const semanticEvidenceLinks = secondFeatures.reduce(
+    (sum, feature) => sum + (feature.semanticEvidence ?? []).length,
+    0,
+  );
   const components = {
     featureIdStability: 25 * featureIdStabilityRatio,
     idempotence: secondMap.new === 0 && secondMap.changed === 0 && secondMap.stale === 0 ? 15 : 0,
@@ -140,7 +140,7 @@ function mapQualityResult({
     boundedness:
       10 * Math.max(0, 1 - oversizedFeatures.length / Math.max(secondFeatures.length, 1)),
     linkedTests: 5 * linkedTestRatio,
-    semanticLabels: 5 * semanticLabelRatio,
+    semanticEvidence: 5 * Math.min(semanticEvidenceRatio / 0.5, 1),
   };
   const total = Object.values(components).reduce((sum, value) => sum + value, 0);
 
@@ -168,7 +168,8 @@ function mapQualityResult({
       forbiddenOwnedFiles,
       oversizedFeatures,
       linkedTestRatio,
-      semanticLabelRatio,
+      semanticEvidenceRatio,
+      semanticEvidenceLinks,
     },
     featureSummary: secondFeatures.map((feature) => ({
       featureId: feature.featureId,
@@ -180,6 +181,12 @@ function mapQualityResult({
       tests: feature.tests.length,
       tags: feature.tags,
       trustBoundaries: feature.trustBoundaries,
+      semanticEvidence: (feature.semanticEvidence ?? []).map((evidence) => ({
+        targetFeatureId: evidence.targetFeatureId,
+        targetTitle: evidence.targetTitle,
+        score: evidence.score,
+        signals: evidence.signals,
+      })),
     })),
     notes: [
       "This is a v0 map-quality baseline. It intentionally scores durable Feature Slice structure, not provider review output.",

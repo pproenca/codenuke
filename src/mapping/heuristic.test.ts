@@ -9,6 +9,105 @@ import { fixtureRoot, writeFixture } from "../testing/test-helpers.js";
 import type { FeatureSeed } from "../mappers/types.js";
 
 describe("mapFeatures", () => {
+  it("attaches stable semantic evidence between related feature slices", async () => {
+    const root = await fixtureRoot("codenuke-map-semantic-evidence-");
+    await writeFixture(
+      root,
+      "src/invoice.ts",
+      "export function calculateInvoiceTotal(customerInvoiceLines: PaymentLine[]) { return customerInvoiceLines.reduce((ledgerTotal, line) => ledgerTotal + line.paymentAmount, 0); }\n",
+    );
+    await writeFixture(
+      root,
+      "src/charge.ts",
+      "export function reconcilePaymentLedger(customerCharges: ChargeRecord[]) { return customerCharges.map((charge) => charge.paymentLedgerId); }\n",
+    );
+    await writeFixture(
+      root,
+      "src/profile.ts",
+      "export function renderAvatarProfile(userProfile: UserProfile) { return userProfile.avatarUrl; }\n",
+    );
+    const project = await detectProject(root);
+    const seeds: FeatureSeed[] = [
+      {
+        title: "Billing invoice totals",
+        summary: "Calculates invoice totals from customer payment ledger lines.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/invoice.ts",
+        identityKey: "invoice",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/invoice.ts", reason: "billing invoice service" }],
+        tags: ["billing", "invoice"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "Billing charge reconciliation",
+        summary: "Reconciles customer charges against the payment ledger.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/charge.ts",
+        identityKey: "charge",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/charge.ts", reason: "billing charge service" }],
+        tags: ["billing", "charge"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "User profile avatar",
+        summary: "Renders profile avatar data for account settings.",
+        kind: "ui-flow",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/profile.ts",
+        identityKey: "profile",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/profile.ts", reason: "profile avatar UI" }],
+        tags: ["profile"],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+    ];
+
+    const first = await mapFeatureSeeds(root, project, [], seeds);
+    const invoice = first.features.find((feature) => feature.title === "Billing invoice totals");
+    const charge = first.features.find(
+      (feature) => feature.title === "Billing charge reconciliation",
+    );
+    if (invoice === undefined || charge === undefined) {
+      throw new Error("expected billing features");
+    }
+
+    expect(invoice.semanticEvidence?.[0]).toMatchObject({
+      kind: "semantic-neighbor",
+      source: "identifier-tfidf",
+      targetFeatureId: charge.featureId,
+      targetTitle: "Billing charge reconciliation",
+    });
+    expect(invoice.semanticEvidence?.[0]?.signals).toEqual(
+      expect.arrayContaining(["billing", "customer", "ledger", "payment"]),
+    );
+
+    const second = await mapFeatureSeeds(root, project, first.features, seeds);
+
+    expect(second.changed).toBe(0);
+    expect(second.features.map((feature) => feature.featureId)).toEqual(
+      first.features.map((feature) => feature.featureId),
+    );
+    expect(second.features.map((feature) => feature.semanticEvidence)).toEqual(
+      first.features.map((feature) => feature.semanticEvidence),
+    );
+  });
+
   it("counts stale existing features when mapped feature ids are duplicated", async () => {
     const root = await fixtureRoot("codenuke-map-stale-duplicate-ids-");
     const project = await detectProject(root);

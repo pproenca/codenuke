@@ -46,7 +46,7 @@ import {
   writeFeature,
   writeFinding,
 } from "./state.js";
-import { buildFixPrompt, buildReviewPrompt } from "./prompt.js";
+import { buildFixPrompt, buildRevalidatePrompt, buildReviewPrompt } from "./prompt.js";
 import { repoIndexFromFiles } from "../mappers/repo-index.js";
 import type { Provider } from "../provider/index.js";
 import { fixtureRoot, testOptions, writeFixture } from "../testing/test-helpers.js";
@@ -1956,6 +1956,18 @@ describe("workflow", () => {
       ownedFiles: [{ path: "src/helper.ts", reason: "first capped file" }, ...feature.ownedFiles],
       contextFiles: [{ path: "src/helper.ts", reason: "helper context" }],
       tests: [{ path: "src/index.test.ts", command: "npm test" }],
+      semanticEvidence: [
+        {
+          kind: "semantic-neighbor",
+          source: "identifier-tfidf",
+          targetFeatureId: "feat_neighbor",
+          targetTitle: "Neighbor feature",
+          score: 0.42,
+          signals: ["refactor", "helper"],
+          paths: ["src/helper.ts", "src/neighbor.ts"],
+          reason: "Shares identifier vocabulary with Neighbor feature: refactor, helper",
+        },
+      ],
     };
     const finding = (await readFinding(paths, findingId))!;
     const findingWithUnownedEvidence = {
@@ -1963,6 +1975,18 @@ describe("workflow", () => {
       evidence: [
         { path: ".env", startLine: 1, endLine: 1, symbol: null, quote: "SECRET" },
         ...finding.evidence,
+      ],
+      mapEvidenceTrace: [
+        {
+          kind: "semantic-neighbor" as const,
+          source: "identifier-tfidf" as const,
+          targetFeatureId: "feat_neighbor",
+          targetTitle: "Neighbor feature",
+          score: 0.42,
+          signals: ["refactor", "helper"],
+          reason: "Map evidence shaped the sibling-risk check.",
+          use: "Check whether the same simplification spans the neighbor feature.",
+        },
       ],
     };
     const promptConfig = await loadConfig(root, testOptions(root));
@@ -1977,6 +2001,8 @@ describe("workflow", () => {
     expect(prompt).toContain("--- src/index.ts");
     expect(prompt).toContain("--- src/helper.ts");
     expect(prompt).toContain("--- src/index.test.ts");
+    expect(prompt).toContain("mapEvidenceTrace");
+    expect(prompt).toContain("Neighbor feature");
     expect(prompt.match(/^--- .+$/gmu)).toEqual([
       "--- src/index.ts",
       "--- src/helper.ts",
@@ -1984,6 +2010,37 @@ describe("workflow", () => {
     ]);
     expect(prompt).not.toContain("SECRET=do-not-send");
     delete process.env["CODENUKE_PROVIDER"];
+  });
+
+  it("includes map evidence trace in revalidation prompts", async () => {
+    const root = await fixtureRoot("codenuke-revalidate-map-evidence-");
+    const findingJson = JSON.stringify(
+      {
+        findingId: "fnd_map",
+        title: "Simplify duplicated normalization",
+        guidance: { applied: [] },
+        mapEvidenceTrace: [
+          {
+            kind: "semantic-neighbor",
+            source: "identifier-tfidf",
+            targetFeatureId: "feat_parser",
+            targetTitle: "Parser normalization",
+            score: 0.51,
+            signals: ["normalize", "token"],
+            reason: "Map evidence linked the same normalization vocabulary.",
+            use: "Check sibling scope before marking fixed.",
+          },
+        ],
+      },
+      null,
+      2,
+    );
+
+    const prompt = await buildRevalidatePrompt(root, findingJson);
+
+    expect(prompt).toContain("mapEvidenceTrace");
+    expect(prompt).toContain("Parser normalization");
+    expect(prompt).toContain("semantic-neighbor risks");
   });
 
   it("includes linked tests in review prompts once", async () => {
@@ -2024,6 +2081,18 @@ describe("workflow", () => {
       ],
       tags: [],
       trustBoundaries: [],
+      semanticEvidence: [
+        {
+          kind: "semantic-neighbor",
+          source: "identifier-tfidf",
+          targetFeatureId: "feat_neighbor",
+          targetTitle: "Neighbor helper",
+          score: 0.37,
+          signals: ["helper", "value"],
+          paths: ["src/index.ts", "src/helper.ts"],
+          reason: "Shares identifier vocabulary with Neighbor helper: helper, value",
+        },
+      ],
       status: "pending",
       lock: null,
       findingIds: [],
@@ -2038,6 +2107,9 @@ describe("workflow", () => {
       review: { ...promptConfig.review, maxContextFiles: 10 },
     });
 
+    expect(prompt).toContain("Map semantic evidence:");
+    expect(prompt).toContain("Neighbor helper");
+    expect(prompt).toContain('"mapEvidenceTrace"');
     expect(prompt).toContain("expect(value).toBe(true);");
     expect(prompt.match(/^--- .+$/gmu)).toEqual([
       "--- src/index.ts",

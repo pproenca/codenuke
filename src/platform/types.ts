@@ -187,6 +187,17 @@ export const featureLockSchema = z.object({
   pid: z.number().int(),
 });
 
+export const featureSemanticEvidenceSchema = z.object({
+  kind: z.enum(["semantic-neighbor"]),
+  source: z.enum(["identifier-tfidf"]),
+  targetFeatureId: z.string(),
+  targetTitle: z.string(),
+  score: z.number(),
+  signals: z.array(z.string()),
+  paths: z.array(z.string()),
+  reason: z.string(),
+});
+
 export const featureRecordSchema = z.object({
   schemaVersion: z.literal(1),
   featureId: z.string(),
@@ -201,6 +212,7 @@ export const featureRecordSchema = z.object({
   tests: z.array(featureTestRefSchema),
   tags: z.array(z.string()),
   trustBoundaries: z.array(z.enum(trustBoundaries)),
+  semanticEvidence: z.array(featureSemanticEvidenceSchema).optional(),
   status: z.enum(featureStatuses),
   lock: featureLockSchema.nullable(),
   findingIds: z.array(z.string()),
@@ -212,6 +224,7 @@ export const featureRecordSchema = z.object({
 
 export type FeatureRecord = z.infer<typeof featureRecordSchema>;
 export type FeatureKind = FeatureRecord["kind"];
+export type FeatureSemanticEvidence = z.infer<typeof featureSemanticEvidenceSchema>;
 export type TrustBoundary = FeatureRecord["trustBoundaries"][number];
 
 export const evidenceRefSchema = z.object({
@@ -264,6 +277,19 @@ export const findingCandidateTraceEntrySchema = z.object({
 });
 
 export type FindingCandidateTraceEntry = z.infer<typeof findingCandidateTraceEntrySchema>;
+
+export const findingMapEvidenceTraceEntrySchema = z.object({
+  kind: z.enum(["semantic-neighbor"]),
+  source: z.enum(["identifier-tfidf"]),
+  targetFeatureId: z.string(),
+  targetTitle: z.string(),
+  score: z.number(),
+  signals: z.array(z.string()),
+  reason: z.string(),
+  use: z.string(),
+});
+
+export type FindingMapEvidenceTraceEntry = z.infer<typeof findingMapEvidenceTraceEntrySchema>;
 
 export const guidanceShapeEvidenceSchema = z.object({
   shape: z.string(),
@@ -342,6 +368,7 @@ export const findingRecordSchema = z
     minimumFixScope: z.string().optional(),
     guidance: guidanceTraceSchema.optional(),
     candidateTrace: z.array(findingCandidateTraceEntrySchema).optional(),
+    mapEvidenceTrace: z.array(findingMapEvidenceTraceEntrySchema).optional(),
     status: z.enum(["open", "false-positive", "fixed", "wont-fix", "uncertain"]),
     history: z.array(findingHistoryEntrySchema).optional(),
     signature: z.string(),
@@ -509,6 +536,7 @@ export const reviewOutputSchema = z.object({
       suggestedRegressionTest: z.string().nullable(),
       minimumFixScope: z.string(),
       candidateTrace: z.array(findingCandidateTraceEntrySchema).optional().default([]),
+      mapEvidenceTrace: z.array(findingMapEvidenceTraceEntrySchema).optional(),
       guidance: z.object({
         applied: z.array(guidanceTraceEntrySchema),
       }),

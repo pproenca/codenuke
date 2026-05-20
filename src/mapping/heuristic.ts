@@ -33,6 +33,7 @@ import { swiftSeeds } from "../mappers/swift.js";
 import { turboTaskGraph } from "../mappers/turbo.js";
 import { FeatureMapper, FeatureSeed, MapperContext } from "../mappers/types.js";
 import { FeatureRecord, ProjectRecord } from "../platform/types.js";
+import { attachSemanticEvidence } from "./semantic-evidence.js";
 
 export type MapResult = {
   features: FeatureRecord[];
@@ -233,9 +234,7 @@ export async function mapFeatureSeeds(
   options: MapFeatureSeedOptions = {},
 ): Promise<MapResult> {
   const existingById = new Map(existing.map((feature) => [feature.featureId, feature]));
-  const features: FeatureRecord[] = [];
-  let created = 0;
-  let changed = 0;
+  const discoveredFeatures: FeatureRecord[] = [];
   const now = nowIso();
   for (const seed of seeds) {
     const identity = featureIdentity(seed, existingById);
@@ -282,6 +281,7 @@ export async function mapFeatureSeeds(
       tests,
       tags: seed.tags,
       trustBoundaries: seed.trustBoundaries,
+      semanticEvidence: [],
       status: previous?.status ?? "pending",
       lock: previous?.lock ?? null,
       findingIds: previous?.findingIds ?? [],
@@ -290,6 +290,13 @@ export async function mapFeatureSeeds(
       createdAt: previous?.createdAt ?? now,
       updatedAt: now,
     };
+    discoveredFeatures.push(feature);
+  }
+  const features: FeatureRecord[] = [];
+  let created = 0;
+  let changed = 0;
+  for (const feature of await attachSemanticEvidence(root, discoveredFeatures)) {
+    const previous = existingById.get(feature.featureId);
     const featureChanged =
       previous !== undefined && stableFeatureJson(previous) !== stableFeatureJson(feature);
     if (featureChanged) {

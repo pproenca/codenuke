@@ -35,7 +35,7 @@ not call a provider. It scores:
 - absence of generated, dependency, or local state ownership
 - bounded owned-file counts
 - linked test references
-- basic semantic labeling from kind, tags, and trust boundaries
+- persisted semantic-neighbor evidence produced at map time
 
 This is not the final semantic mapper. It is the scoreboard for improving one.
 Future linguistic, semantic, graph, clone, and co-change algorithms should feed
@@ -43,6 +43,12 @@ map-time evidence that review, fix, and revalidation can consume from durable
 Feature Slice records or adjacent map records. Review-time Ludicrous candidates
 can remain useful instrumentation, but they should not be the main place where
 semantic codebase understanding lives.
+
+The first implementation slice persists `semanticEvidence` on `FeatureRecord`.
+It uses identifier token splitting plus deterministic TF-IDF/cosine similarity
+to link Feature Slices with shared domain vocabulary. Findings may persist
+`mapEvidenceTrace` when review promotes that map evidence into a concrete
+finding, which lets fix and revalidation consume the same map-time context.
 
 Consequences:
 

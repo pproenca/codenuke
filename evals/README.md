@@ -42,8 +42,10 @@ pnpm eval:map
 
 The result scores Feature Slice ID stability, idempotence, reviewable source
 coverage, safe ownership, bounded feature size, linked tests, and semantic
-labels. Override the output path with `CODENUKE_MAP_QUALITY_RESULTS` or
-`--results <path>` when running exploratory experiments.
+evidence links. Override the output path with `CODENUKE_MAP_QUALITY_RESULTS` or
+`--results <path>` when running exploratory experiments. Semantic evidence is
+map-time `identifier-tfidf` neighbor evidence persisted on Feature Slices, not
+provider review output.
 
 For opt-in model-backed prompt comparisons, run:
 

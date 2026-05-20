@@ -548,6 +548,7 @@ type FeatureRecord = {
   tests: FeatureTestRef[];
   tags: string[];
   trustBoundaries: TrustBoundary[];
+  semanticEvidence?: FeatureSemanticEvidence[];
   status: FeatureStatus;
   lock: FeatureLock | null;
   findingIds: string[];
@@ -557,6 +558,12 @@ type FeatureRecord = {
   updatedAt: string;
 };
 ```
+
+`semanticEvidence` is deterministic map-time evidence that review, fix, and
+revalidation may use as supporting context. The first source is
+`semantic-neighbor` evidence from `identifier-tfidf`, which links Feature Slices
+that share domain identifier vocabulary without changing the stable
+`featureId`.
 
 Kinds:
 
@@ -614,6 +621,7 @@ type FindingRecord = {
   reasoning: string;
   reproduction: string | null;
   recommendation: string;
+  mapEvidenceTrace?: FindingMapEvidenceTraceEntry[];
   status: "open" | "false-positive" | "fixed" | "wont-fix" | "uncertain";
   signature: string;
   linkedPatchAttemptIds: string[];

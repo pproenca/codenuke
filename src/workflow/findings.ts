@@ -76,6 +76,7 @@ export function findingFromOutput(
     suggestedRegressionTest: finding.suggestedRegressionTest,
     minimumFixScope: finding.minimumFixScope,
     candidateTrace: finding.candidateTrace,
+    mapEvidenceTrace: finding.mapEvidenceTrace,
     guidance: {
       selected: selectedGuidance,
       applied: applySelectedGuidanceRoles(finding.guidance.applied, selectedGuidance),

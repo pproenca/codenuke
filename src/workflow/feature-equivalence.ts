@@ -8,5 +8,8 @@ export function stableFeatureJson(feature: FeatureRecord): string {
     analysisHistory: _analysisHistory,
     ...stable
   } = feature;
-  return JSON.stringify(stable);
+  return JSON.stringify({
+    ...stable,
+    semanticEvidence: stable.semanticEvidence ?? [],
+  });
 }
