@@ -31,6 +31,20 @@ Run:
 pnpm eval
 ```
 
+Map-quality research uses a smaller Karpathy/autoresearch-style loop: build the
+local CLI, run `map` twice against an isolated state directory, score durable
+Feature Slice structure, and write a JSON baseline. This is the metric for
+mapper iterations before review/fix behavior is considered.
+
+```bash
+pnpm eval:map
+```
+
+The result scores Feature Slice ID stability, idempotence, reviewable source
+coverage, safe ownership, bounded feature size, linked tests, and semantic
+labels. Override the output path with `CODENUKE_MAP_QUALITY_RESULTS` or
+`--results <path>` when running exploratory experiments.
+
 For opt-in model-backed prompt comparisons, run:
 
 ```bash

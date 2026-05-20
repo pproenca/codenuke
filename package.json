@@ -22,6 +22,7 @@
     "format:check": "oxfmt --check .",
     "test": "vitest run",
     "eval": "pnpm -s build && node evals/scripts/run-all.mjs",
+    "eval:map": "pnpm -s build && node evals/scripts/run-map-quality.mjs",
     "eval:model": "pnpm -s build && node evals/scripts/run-model.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },
