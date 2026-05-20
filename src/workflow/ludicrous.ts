@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathExists } from "../platform/fs.js";
+import { stableId } from "../platform/id.js";
 import { FeatureRecord } from "../platform/types.js";
 
 export type RefactoringOpportunityCandidate = {
+  candidateId: string;
   title: string;
   summary: string;
   source: "lexical-phrase" | "tfidf-file-similarity";
@@ -141,6 +143,11 @@ function phraseCandidates(
       ),
     ];
     candidateBySignal.set(phrase, {
+      candidateId: stableCandidateId(
+        "lexical-phrase",
+        [phrase],
+        scoredFiles.map((entry) => entry.file.path),
+      ),
       title: candidateTitle(signals),
       summary: `High-recall cross-file candidate around ${signals.slice(0, 3).join(", ")}.`,
       source: "lexical-phrase",
@@ -187,6 +194,10 @@ function tfidfSimilarityCandidates(
       const score =
         similarity * 100 + Math.log1p(left.profile.lines + right.profile.lines) + signals.length;
       candidates.push({
+        candidateId: stableCandidateId("tfidf-file-similarity", signals, [
+          left.profile.path,
+          right.profile.path,
+        ]),
         title: `Semantic ${signals.slice(0, 2).join(" ")} candidate`,
         summary: `TF-IDF file similarity candidate around ${signals.slice(0, 3).join(", ")}.`,
         source: "tfidf-file-similarity",
@@ -256,6 +267,14 @@ function candidateRank(
     left.source.localeCompare(right.source) ||
     left.title.localeCompare(right.title)
   );
+}
+
+function stableCandidateId(
+  source: RefactoringOpportunityCandidate["source"],
+  signals: string[],
+  paths: string[],
+): string {
+  return stableId("cand", [source, signals.join("|"), ...paths.toSorted()]);
 }
 
 export function candidatesForFeature(

@@ -74,6 +74,7 @@ import {
   FixPlanOutput,
   FindingRecord,
   GuidanceSelectionAudit,
+  LudicrousCandidateAudit,
   PatchAttempt,
   RunRecord,
   reasoningEffortSchema,
@@ -268,6 +269,7 @@ export async function reviewCommand(
   const currentGit = await discoverGit(loaded.root);
   const run = newRun(currentRunId, "review", context, loaded.root, currentGit.headSha);
   run.claimedFeatureIds = features.map((feature) => feature.featureId);
+  run.ludicrousCandidateAudits = ludicrousCandidateAudits(ludicrousCandidates, features);
   await writeRun(loaded.paths, run);
   const findingIds: string[] = [];
   const guidanceSelectionAudits: GuidanceSelectionAudit[] = [];
@@ -325,6 +327,7 @@ export async function reviewCommand(
       finishedAt: nowIso(),
       findingIds,
       guidanceSelectionAudits,
+      ludicrousCandidateAudits: run.ludicrousCandidateAudits,
       errors: errors.map(({ message, code }) => ({ message, code })),
     });
     emitProgress(context, "review", "failed", { run: currentRunId, errors: errors.length });
@@ -336,6 +339,7 @@ export async function reviewCommand(
     finishedAt: nowIso(),
     findingIds,
     guidanceSelectionAudits,
+    ludicrousCandidateAudits: run.ludicrousCandidateAudits,
   };
   await writeRun(loaded.paths, finished);
   emitProgress(context, "review", "done", {
@@ -1317,8 +1321,39 @@ function newRun(
     findingIds: [],
     patchAttemptIds: [],
     guidanceSelectionAudits: [],
+    ludicrousCandidateAudits: [],
     errors: [],
   };
+}
+
+function ludicrousCandidateAudits(
+  candidates: RefactoringOpportunityCandidate[],
+  features: FeatureRecord[],
+): LudicrousCandidateAudit[] {
+  return candidates.map((candidate) => {
+    const candidatePaths = new Set(candidate.files.map((file) => file.path));
+    return {
+      candidateId: candidate.candidateId,
+      title: candidate.title,
+      source: candidate.source,
+      score: candidate.score,
+      signals: candidate.signals,
+      audit: candidate.audit,
+      files: candidate.files,
+      matchedFeatureIds: features
+        .filter((feature) => featurePaths(feature).some((path) => candidatePaths.has(path)))
+        .map((feature) => feature.featureId),
+    };
+  });
+}
+
+function featurePaths(feature: FeatureRecord): string[] {
+  return [
+    ...feature.entrypoints.map((entrypoint) => entrypoint.path),
+    ...feature.ownedFiles.map((file) => file.path),
+    ...feature.contextFiles.map((file) => file.path),
+    ...feature.tests.map((test) => test.path),
+  ];
 }
 
 async function writeMarkdownReport(

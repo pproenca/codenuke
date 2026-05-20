@@ -413,6 +413,29 @@ export const patchAttemptSchema = z.object({
 
 export type PatchAttempt = z.infer<typeof patchAttemptSchema>;
 
+export const ludicrousCandidateAuditSchema = z.object({
+  candidateId: z.string(),
+  title: z.string(),
+  source: z.enum(["lexical-phrase", "tfidf-file-similarity"]),
+  score: z.number(),
+  signals: z.array(z.string()),
+  audit: z.object({
+    algorithm: z.string(),
+    matchedSignals: z.array(z.string()),
+    score: z.number(),
+  }),
+  files: z.array(
+    z.object({
+      path: z.string(),
+      reason: z.string(),
+      lines: z.number(),
+    }),
+  ),
+  matchedFeatureIds: z.array(z.string()),
+});
+
+export type LudicrousCandidateAudit = z.infer<typeof ludicrousCandidateAuditSchema>;
+
 export const runRecordSchema = z.object({
   schemaVersion: z.literal(1),
   runId: z.string(),
@@ -427,6 +450,7 @@ export const runRecordSchema = z.object({
   findingIds: z.array(z.string()),
   patchAttemptIds: z.array(z.string()),
   guidanceSelectionAudits: z.array(guidanceSelectionAuditSchema).optional().default([]),
+  ludicrousCandidateAudits: z.array(ludicrousCandidateAuditSchema).optional().default([]),
   errors: z.array(
     z.object({
       message: z.string(),

@@ -4,7 +4,7 @@ import { CodenukeConfig, FeatureRecord, ProjectRecord } from "../platform/types.
 import { refactoringOpportunityCandidates } from "./ludicrous.js";
 import { initCommand, reviewCommand } from "./app.js";
 import { buildReviewPromptWithGuidance } from "./prompt.js";
-import { statePaths, writeFeature } from "./state.js";
+import { readRuns, statePaths, writeFeature } from "./state.js";
 
 const now = "2026-01-01T00:00:00.000Z";
 
@@ -155,6 +155,7 @@ describe("ludicrous review mode", () => {
     const { prompt } = await buildReviewPromptWithGuidance(root, project, alpha, config(), {
       ludicrousCandidates: [
         {
+          candidateId: "cand_normalized_feature_1234567890",
           title: "Cross-file normalized feature candidate",
           summary: "High-recall candidate around normalized feature candidate.",
           source: "lexical-phrase",
@@ -216,6 +217,64 @@ describe("ludicrous review mode", () => {
             expect.objectContaining({ path: "src/alpha.ts" }),
             expect.objectContaining({ path: "src/beta.ts" }),
           ]),
+        }),
+      ]),
+    );
+  });
+
+  it("persists candidate source audits on review runs", async () => {
+    const root = await fixtureRoot("codenuke-ludicrous-run-audits-");
+    await writeFixture(root, "package.json", JSON.stringify({ name: "fixture" }));
+    await writeFixture(
+      root,
+      "src/alpha.ts",
+      [
+        "export const normalizedFeatureCandidate = 'TODO_REFACTOR';",
+        "export const resolvedFeatureCandidate = normalizedFeatureCandidate;",
+        "",
+      ].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "src/beta.ts",
+      [
+        "export const normalizedFeatureCandidate = 'beta';",
+        "export const resolvedFeatureCandidate = normalizedFeatureCandidate;",
+        "",
+      ].join("\n"),
+    );
+    const context = { root, options: options() };
+    await initCommand(context, {});
+    const paths = statePaths(`${root}/.codenuke`);
+    await writeFeature(paths, feature("feat_alpha", "Alpha", "src/alpha.ts"));
+    await writeFeature(paths, feature("feat_beta", "Beta", "src/beta.ts"));
+
+    await reviewCommand(context, {
+      ludicrousMode: true,
+      limit: "1",
+      provider: "mock",
+    });
+
+    const runs = await readRuns(paths);
+    const reviewRun = runs.find((run) => run.command === "review" && run.status === "completed");
+
+    expect(reviewRun?.ludicrousCandidateAudits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          candidateId: expect.stringMatching(/^cand_/u),
+          source: "lexical-phrase",
+          matchedFeatureIds: ["feat_alpha"],
+          audit: expect.objectContaining({
+            algorithm: "shared adjacent identifier phrases with IDF weighting",
+          }),
+        }),
+        expect.objectContaining({
+          candidateId: expect.stringMatching(/^cand_/u),
+          source: "tfidf-file-similarity",
+          matchedFeatureIds: ["feat_alpha"],
+          audit: expect.objectContaining({
+            algorithm: "cosine similarity over identifier TF-IDF vectors",
+          }),
         }),
       ]),
     );
