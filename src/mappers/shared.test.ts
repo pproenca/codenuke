@@ -29,6 +29,30 @@ describe("walk", () => {
 
     expect(files).toEqual(["src/generated/foo/a.test.ts", "src/other.test.ts"]);
   });
+
+  it("honors root gitignore patterns while walking", async () => {
+    const root = await fixtureRoot("codenuke-walk-gitignore-");
+    await writeFixture(
+      root,
+      ".gitignore",
+      ["tmp/", "cache/", "*.log", "!important.log", "/scripts/*.gen.ts"].join("\n"),
+    );
+    await writeFixture(root, "cache", "keep file sharing ignored directory name\n");
+    await writeFixture(root, "src/app.ts", "export const app = true;\n");
+    await writeFixture(root, "tmp/cache.ts", "export const cache = true;\n");
+    await writeFixture(root, "debug.log", "debug\n");
+    await writeFixture(root, "important.log", "keep\n");
+    await writeFixture(root, "scripts/build.gen.ts", "export const generated = true;\n");
+    await writeFixture(root, "src/scripts/build.gen.ts", "export const nested = true;\n");
+
+    await expect(walk(root, [""])).resolves.toEqual([
+      ".gitignore",
+      "cache",
+      "important.log",
+      "src/app.ts",
+      "src/scripts/build.gen.ts",
+    ]);
+  });
 });
 
 describe("nearby tests", () => {

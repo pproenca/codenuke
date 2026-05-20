@@ -1,4 +1,4 @@
-import { lstat, readdir, realpath } from "node:fs/promises";
+import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { pathExists } from "../platform/fs.js";
 import { FeatureRecord, TrustBoundary } from "../platform/types.js";
@@ -14,6 +14,17 @@ type WalkStart = {
   index: number;
   rel: string;
 };
+
+type GitignoreRule = {
+  pattern: string;
+  negated: boolean;
+  directoryOnly: boolean;
+  hasSlash: boolean;
+  segments: string[];
+};
+
+type GitignoreSkipPath = (path: string, isDirectory: boolean) => boolean;
+type WalkSkipPath = (path: string, isDirectory?: boolean) => boolean;
 
 export async function nearbyTests(
   root: string,
@@ -100,6 +111,9 @@ export async function walk(
   prefixes: string[],
   skipPath: (path: string) => boolean = shouldSkip,
 ): Promise<string[]> {
+  const gitignoreSkipPath = await gitignoreSkip(root);
+  const effectiveSkipPath: WalkSkipPath = (path, isDirectory = false) =>
+    skipPath(path) || gitignoreSkipPath(path, isDirectory);
   const files: string[] = [];
   const seen = new Set<string>();
   const seenRoots = new Set<string>();
@@ -133,9 +147,9 @@ export async function walk(
     const rel = normalize(relative(realRoot, canonicalStart));
     starts.push({ canonicalStart, info, index, rel });
   }
-  for (const { canonicalStart, info, rel } of uncoveredWalkStarts(starts, skipPath)) {
+  for (const { canonicalStart, info, rel } of uncoveredWalkStarts(starts, effectiveSkipPath)) {
     if (info.isFile()) {
-      if (!seen.has(rel) && !skipPath(rel)) {
+      if (!seen.has(rel) && !effectiveSkipPath(rel, false)) {
         seen.add(rel);
         files.push(rel);
       }
@@ -145,15 +159,117 @@ export async function walk(
       continue;
     }
     seenRoots.add(canonicalStart);
-    await walkDir(realRoot, canonicalStart, files, seen, skipPath);
+    await walkDir(realRoot, canonicalStart, files, seen, effectiveSkipPath);
   }
   return files.toSorted();
 }
 
-function uncoveredWalkStarts(
-  starts: WalkStart[],
-  skipPath: (path: string) => boolean,
-): WalkStart[] {
+async function gitignoreSkip(root: string): Promise<GitignoreSkipPath> {
+  const gitignorePath = join(root, ".gitignore");
+  if (!(await pathExists(gitignorePath))) {
+    return () => false;
+  }
+  const rules = gitignoreRules(await readFile(gitignorePath, "utf8"));
+  if (rules.length === 0) {
+    return () => false;
+  }
+  return (path, isDirectory) => {
+    let ignored = false;
+    for (const rule of rules) {
+      if (gitignoreRuleMatches(rule, path, isDirectory)) {
+        ignored = !rule.negated;
+      }
+    }
+    return ignored;
+  };
+}
+
+function gitignoreRules(source: string): GitignoreRule[] {
+  return source
+    .split(/\r?\n/u)
+    .map(gitignoreRule)
+    .filter((rule): rule is GitignoreRule => rule !== null);
+}
+
+function gitignoreRule(line: string): GitignoreRule | null {
+  const trimmed = line.trim();
+  if (trimmed.length === 0 || trimmed.startsWith("#")) {
+    return null;
+  }
+  const unescaped =
+    trimmed.startsWith("\\#") || trimmed.startsWith("\\!") ? trimmed.slice(1) : trimmed;
+  const negated = unescaped.startsWith("!");
+  const rawPattern = negated ? unescaped.slice(1) : unescaped;
+  const directoryOnly = rawPattern.endsWith("/");
+  const pattern = rawPattern.replace(/^\/+/u, "").replace(/\/+$/u, "");
+  if (pattern.length === 0) {
+    return null;
+  }
+  return {
+    pattern,
+    negated,
+    directoryOnly,
+    hasSlash: pattern.includes("/"),
+    segments: pattern.split("/"),
+  };
+}
+
+function gitignoreRuleMatches(rule: GitignoreRule, path: string, isDirectory: boolean): boolean {
+  if (path.length === 0) {
+    return false;
+  }
+  const parts = path.split("/");
+  if (!rule.hasSlash) {
+    return parts.some(
+      (part, index) =>
+        globSegmentRegExp(rule.pattern).test(part) &&
+        (!rule.directoryOnly || index < parts.length - 1 || isDirectory),
+    );
+  }
+  return pathMatchesGitignoreSegments(parts, rule.segments, rule.directoryOnly, isDirectory);
+}
+
+function pathMatchesGitignoreSegments(
+  pathSegments: string[],
+  patternSegments: string[],
+  directoryOnly: boolean,
+  isDirectory: boolean,
+): boolean {
+  for (let length = 1; length <= pathSegments.length; length += 1) {
+    if (
+      gitignoreSegmentsMatch(patternSegments, pathSegments.slice(0, length)) &&
+      (!directoryOnly || length < pathSegments.length || isDirectory)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function gitignoreSegmentsMatch(pattern: string[], candidate: string[]): boolean {
+  const [segment, ...remainingPattern] = pattern;
+  if (segment === undefined) {
+    return candidate.length === 0;
+  }
+  if (segment === "**") {
+    return (
+      gitignoreSegmentsMatch(remainingPattern, candidate) ||
+      (candidate.length > 0 && gitignoreSegmentsMatch(pattern, candidate.slice(1)))
+    );
+  }
+  const [candidateSegment, ...remainingCandidate] = candidate;
+  if (candidateSegment === undefined || !globSegmentRegExp(segment).test(candidateSegment)) {
+    return false;
+  }
+  return gitignoreSegmentsMatch(remainingPattern, remainingCandidate);
+}
+
+function globSegmentRegExp(segment: string): RegExp {
+  const escaped = segment.replace(/[.+^${}()|[\]\\]/gu, "\\$&");
+  return new RegExp(`^${escaped.replace(/\*/gu, "[^/]*").replace(/\?/gu, "[^/]")}$`, "u");
+}
+
+function uncoveredWalkStarts(starts: WalkStart[], skipPath: WalkSkipPath): WalkStart[] {
   return starts.filter(
     (start) =>
       !start.info.isDirectory() ||
@@ -170,12 +286,15 @@ function uncoveredWalkStarts(
 function directoryStartCovers(
   candidate: WalkStart,
   start: WalkStart,
-  skipPath: (path: string) => boolean,
+  skipPath: WalkSkipPath,
 ): boolean {
   if (candidate.canonicalStart === start.canonicalStart) {
     return true;
   }
-  if (!pathInsideRoot(candidate.canonicalStart, start.canonicalStart) || skipPath(candidate.rel)) {
+  if (
+    !pathInsideRoot(candidate.canonicalStart, start.canonicalStart) ||
+    skipPath(candidate.rel, true)
+  ) {
     return false;
   }
   const relativePath = normalize(relative(candidate.canonicalStart, start.canonicalStart));
@@ -183,7 +302,7 @@ function directoryStartCovers(
   let path = candidate.rel;
   for (const part of parts.slice(0, -1)) {
     path = path.length === 0 ? part : `${path}/${part}`;
-    if (skipPath(path)) {
+    if (skipPath(path, true)) {
       return false;
     }
   }
@@ -195,7 +314,7 @@ async function walkDir(
   dir: string,
   files: string[],
   seen: Set<string>,
-  skipPath: (path: string) => boolean,
+  skipPath: WalkSkipPath,
 ): Promise<void> {
   const dirInfo = await lstat(dir);
   if (dirInfo.isSymbolicLink()) {
@@ -209,14 +328,14 @@ async function walkDir(
     return;
   }
   const relDir = normalize(relative(root, dir));
-  if (skipPath(relDir)) {
+  if (skipPath(relDir, true)) {
     return;
   }
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const full = join(dir, entry.name);
     const rel = normalize(relative(root, full));
-    if (seen.has(rel) || skipPath(rel)) {
+    if (seen.has(rel) || skipPath(rel, entry.isDirectory())) {
       continue;
     }
     seen.add(rel);
