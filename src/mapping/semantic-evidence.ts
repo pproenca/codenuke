@@ -132,6 +132,17 @@ const stopWords = new Set([
   "your",
 ]);
 
+const identifierExpansions = new Map([
+  ["cfg", "config"],
+  ["conf", "config"],
+  ["ctx", "context"],
+  ["env", "environment"],
+  ["idx", "index"],
+  ["opts", "option"],
+  ["param", "parameter"],
+  ["params", "parameter"],
+]);
+
 export async function attachSemanticEvidence(
   root: string,
   features: FeatureRecord[],
@@ -304,6 +315,10 @@ function identifierTokens(text: string): string[] {
 }
 
 function normalizeIdentifierToken(token: string): string {
+  const expanded = identifierExpansions.get(token);
+  if (expanded !== undefined) {
+    return expanded;
+  }
   if (token.length > 4 && token.endsWith("ies")) {
     return `${token.slice(0, -3)}y`;
   }

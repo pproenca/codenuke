@@ -172,6 +172,72 @@ describe("mapFeatures", () => {
     );
   });
 
+  it("expands common identifier abbreviations for semantic evidence", async () => {
+    const root = await fixtureRoot("codenuke-map-semantic-abbreviations-");
+    await writeFixture(
+      root,
+      "src/runtime-config.ts",
+      "export function loadRuntimeConfig(configSource: ConfigSource) { return configSource.configPath; }\n",
+    );
+    await writeFixture(
+      root,
+      "src/runtime-cfg.ts",
+      "export function parseRuntimeCfg(cfgSource: CfgSource) { return cfgSource.cfgPath; }\n",
+    );
+    const project = await detectProject(root);
+    const seeds: FeatureSeed[] = [
+      {
+        title: "Runtime configuration",
+        summary: "Loads runtime configuration from a configured source.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/runtime-config.ts",
+        identityKey: "runtime-config",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/runtime-config.ts", reason: "runtime config service" }],
+        tags: [],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+      {
+        title: "Runtime cfg parser",
+        summary: "Parses runtime cfg values from a cfg source.",
+        kind: "service",
+        source: "test-seed",
+        confidence: "high",
+        entryPath: "src/runtime-cfg.ts",
+        identityKey: "runtime-cfg",
+        symbol: null,
+        route: null,
+        command: null,
+        ownedFiles: [{ path: "src/runtime-cfg.ts", reason: "runtime cfg service" }],
+        tags: [],
+        trustBoundaries: [],
+        skipNearbyTests: true,
+      },
+    ];
+
+    const result = await mapFeatureSeeds(root, project, [], seeds);
+    const configuration = result.features.find(
+      (feature) => feature.title === "Runtime configuration",
+    );
+    if (configuration === undefined) {
+      throw new Error("expected runtime configuration feature");
+    }
+
+    expect(configuration.semanticEvidence?.[0]).toMatchObject({
+      kind: "semantic-neighbor",
+      source: "identifier-tfidf",
+      targetTitle: "Runtime cfg parser",
+    });
+    expect(configuration.semanticEvidence?.[0]?.signals).toEqual(
+      expect.arrayContaining(["config", "runtime", "source"]),
+    );
+  });
+
   it("counts stale existing features when mapped feature ids are duplicated", async () => {
     const root = await fixtureRoot("codenuke-map-stale-duplicate-ids-");
     const project = await detectProject(root);
