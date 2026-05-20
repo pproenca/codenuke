@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -17,6 +18,7 @@ const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const cli = join(repoRoot, "dist", "cli.js");
 const args = parseArgs(process.argv.slice(2));
 const targetRoot = resolve(args.root ?? repoRoot);
+const mapQualityFixturesRoot = join(repoRoot, "evals", "map-quality");
 const resultsPath = resolve(
   args.results ??
     process.env["CODENUKE_MAP_QUALITY_RESULTS"] ??
@@ -59,37 +61,68 @@ if (!existsSync(cli)) {
 }
 
 const tmp = mkdtempSync(join(tmpdir(), "codenuke-map-quality-"));
-const stateDir = join(tmp, "state");
 const startedAt = new Date().toISOString();
 
 try {
-  runCli(["--state-dir", stateDir, "init", "--force", "--json"]);
-  const firstMap = parseJson(runCli(["--state-dir", stateDir, "map", "--json"]));
-  const firstFeatures = readFeatures(stateDir);
-  const secondMap = parseJson(runCli(["--state-dir", stateDir, "map", "--json"]));
-  const secondFeatures = readFeatures(stateDir);
-  const reviewableSourceFiles = collectReviewableSourceFiles(targetRoot);
-  const result = mapQualityResult({
-    firstMap,
-    firstFeatures,
-    secondMap,
-    secondFeatures,
-    reviewableSourceFiles,
+  const primary = runMapQualityTarget({
+    name: "repository",
+    root: targetRoot,
+    stateDir: join(tmp, "state-repository"),
   });
+  const fixtureResults =
+    args.root === undefined ? runMapQualityFixtures(tmp, primary.featureSummary) : [];
+  const fixtureQuality = fixtureQualityScore(fixtureResults);
+  const score = {
+    ...primary.score,
+    fixtureQuality,
+  };
+  const decision = mapQualityDecision({
+    map: primary.map,
+    metrics: primary.metrics,
+    fixtureResults,
+  });
+  const result = {
+    ...primary,
+    fixtureResults,
+    score,
+    decision,
+  };
 
   mkdirSync(resolve(resultsPath, ".."), { recursive: true });
   writeFileSync(resultsPath, `${JSON.stringify(result, null, 2)}\n`);
   console.log(
     `map-quality score=${result.score.total.toFixed(1)} features=${result.map.features} sourceCoverage=${(
       result.metrics.sourceCoverageRatio * 100
-    ).toFixed(1)}% stable=${result.metrics.featureIdStabilityRatio === 1 ? "yes" : "no"}`,
+    ).toFixed(1)}% stable=${
+      result.metrics.featureIdStabilityRatio === 1 ? "yes" : "no"
+    } fixtureQuality=${result.score.fixtureQuality.toFixed(1)}`,
   );
   console.log(`result: ${resultsPath}`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
 
+function runMapQualityTarget({ name, root, stateDir }) {
+  runCli(root, ["--state-dir", stateDir, "init", "--force", "--json"]);
+  const firstMap = parseJson(runCli(root, ["--state-dir", stateDir, "map", "--json"]));
+  const firstFeatures = readFeatures(stateDir);
+  const secondMap = parseJson(runCli(root, ["--state-dir", stateDir, "map", "--json"]));
+  const secondFeatures = readFeatures(stateDir);
+  const reviewableSourceFiles = collectReviewableSourceFiles(root);
+  return mapQualityResult({
+    name,
+    root,
+    firstMap,
+    firstFeatures,
+    secondMap,
+    secondFeatures,
+    reviewableSourceFiles,
+  });
+}
+
 function mapQualityResult({
+  name,
+  root,
   firstMap,
   firstFeatures,
   secondMap,
@@ -149,7 +182,8 @@ function mapQualityResult({
     generatedAt: new Date().toISOString(),
     startedAt,
     target: {
-      root: targetRoot,
+      name,
+      root,
     },
     map: {
       features: secondFeatures.length,
@@ -177,6 +211,7 @@ function mapQualityResult({
       kind: feature.kind,
       source: feature.source,
       ownedFiles: feature.ownedFiles.length,
+      ownedFilePaths: feature.ownedFiles.map((file) => file.path),
       contextFiles: feature.contextFiles.length,
       tests: feature.tests.length,
       tags: feature.tags,
@@ -192,6 +227,167 @@ function mapQualityResult({
       "This is a v0 map-quality baseline. It intentionally scores durable Feature Slice structure, not provider review output.",
       "Future semantic mapper iterations should improve this score without weakening Feature Slice ID stability or safe ownership.",
     ],
+  };
+}
+
+function runMapQualityFixtures(tmpRoot, repositoryFeatureSummary) {
+  if (!existsSync(mapQualityFixturesRoot)) {
+    return [];
+  }
+  return readdirSync(mapQualityFixturesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .toSorted((left, right) => left.name.localeCompare(right.name))
+    .map((entry) => runMapQualityFixture(tmpRoot, entry.name, repositoryFeatureSummary));
+}
+
+function runMapQualityFixture(tmpRoot, fixtureName, repositoryFeatureSummary) {
+  const fixtureRoot = join(mapQualityFixturesRoot, fixtureName);
+  const definition = parseJson(readFileSync(join(fixtureRoot, "eval.json"), "utf8"));
+  const worktree = join(tmpRoot, `fixture-${fixtureName}`);
+  cpSync(join(fixtureRoot, "files"), worktree, { recursive: true });
+  const target = runMapQualityTarget({
+    name: fixtureName,
+    root: worktree,
+    stateDir: join(tmpRoot, `state-${fixtureName}`),
+  });
+  const neighborQuality = semanticNeighborQuality(
+    target.featureSummary,
+    definition.expectedLinks ?? [],
+    definition.forbiddenLinks ?? [],
+  );
+  return {
+    slug: fixtureName,
+    name: definition.name ?? fixtureName,
+    description: definition.description ?? "",
+    ok: neighborQuality.ok,
+    map: target.map,
+    metrics: {
+      featureIdStabilityRatio: target.metrics.featureIdStabilityRatio,
+      semanticEvidenceRatio: target.metrics.semanticEvidenceRatio,
+      semanticEvidenceLinks: target.metrics.semanticEvidenceLinks,
+    },
+    neighborQuality,
+    repositoryReference: {
+      features: repositoryFeatureSummary.length,
+    },
+  };
+}
+
+function semanticNeighborQuality(features, expectedLinks, forbiddenLinks) {
+  const expected = expectedLinks.map((link) => evaluateExpectedLink(features, link));
+  const forbidden = forbiddenLinks.map((link) => evaluateForbiddenLink(features, link));
+  const foundExpected = expected.filter((link) => link.found).length;
+  const foundForbidden = forbidden.filter((link) => link.found).length;
+  const recall = expected.length === 0 ? 1 : foundExpected / expected.length;
+  const falsePositiveRate = forbidden.length === 0 ? 0 : foundForbidden / forbidden.length;
+  return {
+    ok: expected.every((link) => link.found) && forbidden.every((link) => !link.found),
+    recall,
+    falsePositiveRate,
+    expected,
+    forbidden,
+  };
+}
+
+function evaluateExpectedLink(features, link) {
+  const result = featureLink(features, link.leftPath, link.rightPath);
+  const signals = result.evidence?.signals ?? [];
+  const missingSignals = (link.signals ?? []).filter((signal) => !signals.includes(signal));
+  return {
+    ...result,
+    expectedSignals: link.signals ?? [],
+    missingSignals,
+    found: result.found && missingSignals.length === 0,
+  };
+}
+
+function evaluateForbiddenLink(features, link) {
+  return featureLink(features, link.leftPath, link.rightPath);
+}
+
+function featureLink(features, leftPath, rightPath) {
+  const left = featureOwningPath(features, leftPath);
+  const right = featureOwningPath(features, rightPath);
+  if (left === undefined || right === undefined) {
+    return {
+      leftPath,
+      rightPath,
+      leftFeature: left?.title ?? null,
+      rightFeature: right?.title ?? null,
+      found: false,
+      evidence: null,
+    };
+  }
+  const evidence =
+    left.semanticEvidence.find((candidate) => candidate.targetFeatureId === right.featureId) ??
+    right.semanticEvidence.find((candidate) => candidate.targetFeatureId === left.featureId) ??
+    null;
+  return {
+    leftPath,
+    rightPath,
+    leftFeature: left.title,
+    rightFeature: right.title,
+    found: evidence !== null,
+    evidence,
+  };
+}
+
+function featureOwningPath(features, path) {
+  return features.find((feature) => feature.ownedFilePaths.includes(path));
+}
+
+function fixtureQualityScore(fixtureResults) {
+  if (fixtureResults.length === 0) {
+    return 0;
+  }
+  const recall =
+    fixtureResults.reduce((sum, result) => sum + result.neighborQuality.recall, 0) /
+    fixtureResults.length;
+  const falsePositiveRate =
+    fixtureResults.reduce((sum, result) => sum + result.neighborQuality.falsePositiveRate, 0) /
+    fixtureResults.length;
+  return 10 * recall * (1 - falsePositiveRate);
+}
+
+function mapQualityDecision({ map, metrics, fixtureResults }) {
+  const failedFixtures = fixtureResults.filter((result) => !result.ok);
+  const idempotentSecondMap =
+    map.second.new === 0 && map.second.changed === 0 && map.second.stale === 0;
+  const checks = {
+    stableFeatureIds: metrics.featureIdStabilityRatio === 1,
+    idempotentSecondMap,
+    safeOwnership: metrics.forbiddenOwnedFiles.length === 0,
+    fixturesPassed: failedFixtures.length === 0,
+  };
+  const failures = [];
+  if (!checks.stableFeatureIds) {
+    failures.push("feature IDs changed between repeated map runs");
+  }
+  if (!checks.idempotentSecondMap) {
+    failures.push("second map run was not idempotent");
+  }
+  if (!checks.safeOwnership) {
+    failures.push(`forbidden files were owned: ${metrics.forbiddenOwnedFiles.join(", ")}`);
+  }
+  if (!checks.fixturesPassed) {
+    failures.push(`fixture failures: ${failedFixtures.map((result) => result.slug).join(", ")}`);
+  }
+
+  if (failures.length > 0) {
+    return {
+      status: "discard",
+      reason: failures.join("; "),
+      checks,
+    };
+  }
+
+  return {
+    status: "keep",
+    reason:
+      fixtureResults.length === 0
+        ? "stable, idempotent, and safe; no map-quality fixtures were in scope"
+        : "stable, idempotent, safe, and all map-quality fixtures passed",
+    checks,
   };
 }
 
@@ -281,8 +477,8 @@ function isForbiddenOwnedPath(path) {
   );
 }
 
-function runCli(commandArgs) {
-  return execFileSync(process.execPath, [cli, "--root", targetRoot, ...commandArgs], {
+function runCli(root, commandArgs) {
+  return execFileSync(process.execPath, [cli, "--root", root, ...commandArgs], {
     cwd: repoRoot,
     encoding: "utf8",
     env: {

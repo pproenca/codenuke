@@ -12,6 +12,20 @@ The loop is inspired by `karpathy/autoresearch`:
 - experiments are kept only when the metric or supporting evidence improves
 - results are written to a lightweight artifact for later analysis
 
+The concrete code analogy is:
+
+- `karpathy/autoresearch/prepare.py` is the fixed harness: constants, data
+  loading, tokenizer, and `evaluate_bpb`. In codenuke, that role belongs to
+  `evals/scripts/run-map-quality.mjs` plus checked-in fixtures under
+  `evals/map-quality/`.
+- `karpathy/autoresearch/train.py` is the mutable experiment file. In codenuke,
+  that role starts with mapper/evidence code such as
+  `src/mapping/semantic-evidence.ts`; experiments should move the map evidence,
+  not the metric.
+- `karpathy/autoresearch/program.md` defines the research operating loop:
+  baseline first, run the fixed metric, log status, keep improvements, discard
+  regressions. In codenuke, `pnpm eval:map` is the local decision surface.
+
 Unlike `autoresearch`, codenuke must not run an indefinite autonomous loop or
 reset user work automatically. Mapper experiments still follow codenuke's normal
 dirty-worktree and review safety rules.
@@ -23,7 +37,8 @@ The map-quality loop follows this shape:
 3. Run `map` again against the same isolated state.
 4. Score the resulting Feature Slices.
 5. Write the result JSON.
-6. Keep mapper changes only when the score or supporting evidence improves
+6. Mark the run `keep` or `discard` from explicit checks.
+7. Keep mapper changes only when the score or supporting evidence improves
    without weakening safety constraints.
 
 The first metric is `pnpm eval:map`. It is intentionally deterministic and does
@@ -36,6 +51,8 @@ not call a provider. It scores:
 - bounded owned-file counts
 - linked test references
 - persisted semantic-neighbor evidence produced at map time
+- checked-in semantic-neighbor fixtures with expected links and forbidden links
+- an explicit keep/discard decision for the run
 
 This is not the final semantic mapper. It is the scoreboard for improving one.
 Future linguistic, semantic, graph, clone, and co-change algorithms should feed

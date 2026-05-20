@@ -1,0 +1,9 @@
+{
+  "name": "semantic-neighbor-fixture",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Semantic neighbor fixture",
+  "description": "Ground-truth semantic evidence fixture for map-time identifier TF-IDF links.",
+  "expectedLinks": [
+    {
+      "leftPath": "src/billing/invoice-total.ts",
+      "rightPath": "src/payments/payment-ledger.ts",
+      "signals": ["customer", "ledger", "payment"]
+    },
+    {
+      "leftPath": "src/parser/token-normalizer.ts",
+      "rightPath": "src/serializer/token-writer.ts",
+      "signals": ["normalize", "token"]
+    }
+  ],
+  "forbiddenLinks": [
+    {
+      "leftPath": "src/billing/invoice-total.ts",
+      "rightPath": "src/profile/avatar-profile.ts"
+    },
+    {
+      "leftPath": "src/billing/invoice-total.ts",
+      "rightPath": "src/config/theme-config.ts"
+    }
+  ]
+}

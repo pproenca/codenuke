@@ -47,6 +47,15 @@ evidence links. Override the output path with `CODENUKE_MAP_QUALITY_RESULTS` or
 map-time `identifier-tfidf` neighbor evidence persisted on Feature Slices, not
 provider review output.
 
+When run against the repository root, `pnpm eval:map` also runs deterministic
+fixtures under `evals/map-quality/`. These fixtures declare expected semantic
+neighbors and forbidden false-neighbor pairs so mapper experiments can be kept
+or discarded against an auditable quality surface, following the
+Karpathy/autoresearch pattern of fixed metric plus bounded experiment surface.
+The JSON result includes a `decision.status` of `keep` or `discard`, based on
+Feature Slice stability, idempotence, safe ownership, and fixture pass/fail
+checks.
+
 For opt-in model-backed prompt comparisons, run:
 
 ```bash
