@@ -228,7 +228,9 @@ export async function mapFeatures(
   return {
     ...(await mapFeatureSeeds(root, project, existing, seeds, {
       repoIndex,
-      semanticEvidence: options.semanticEvidence,
+      ...(options.semanticEvidence === undefined
+        ? {}
+        : { semanticEvidence: options.semanticEvidence }),
     })),
     repoIndex,
   };

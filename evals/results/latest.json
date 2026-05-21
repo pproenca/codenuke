@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-19T18:12:22.519Z",
-  "startedAt": "2026-05-19T18:12:17.277Z",
+  "generatedAt": "2026-05-21T07:22:20.148Z",
+  "startedAt": "2026-05-21T07:22:14.144Z",
   "cli": "node dist/cli.js",
   "mode": {
     "expectations": "strict",
@@ -10,8 +10,8 @@
     "reasoningEffort": null
   },
   "totals": {
-    "fixtures": 12,
-    "passed": 12,
+    "fixtures": 13,
+    "passed": 13,
     "failed": 0
   },
   "suite": {
@@ -20,7 +20,7 @@
   },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-19T18:12:22.519Z",
+    "generatedAt": "2026-05-21T07:22:20.148Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -58,7 +58,7 @@
           {
             "fixture": "mock-refactor",
             "action": "applied",
-            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_1ea3d6635b"
+            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070"
           }
         ],
         "reservedBy": [],
@@ -80,7 +80,8 @@
         ],
         "selectable": true,
         "selectedBy": [
-          "guidance-long-method"
+          "guidance-long-method",
+          "semantic-evidence-review"
         ],
         "appliedBy": [],
         "reservedBy": [],
@@ -244,7 +245,8 @@
         "selectedBy": [
           "guidance-comments",
           "guidance-duplicate",
-          "guidance-long-method"
+          "guidance-long-method",
+          "semantic-evidence-review"
         ],
         "appliedBy": [],
         "reservedBy": [],
@@ -282,7 +284,8 @@
         "selectable": false,
         "selectedBy": [
           "guidance-comments",
-          "guidance-long-method"
+          "guidance-long-method",
+          "semantic-evidence-review"
         ],
         "appliedBy": [],
         "reservedBy": [],
@@ -303,7 +306,8 @@
         "selectable": true,
         "selectedBy": [
           "guidance-conditional",
-          "guidance-long-method"
+          "guidance-long-method",
+          "semantic-evidence-review"
         ],
         "appliedBy": [],
         "reservedBy": [],
@@ -430,7 +434,8 @@
           "guidance-middle-man",
           "guidance-missing-tests",
           "mock-clean",
-          "mock-simplify"
+          "mock-simplify",
+          "semantic-evidence-review"
         ],
         "appliedBy": [],
         "reservedBy": [],
@@ -445,7 +450,7 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 391,
+      "durationMs": 425,
       "provider": "mock",
       "map": {
         "features": 6,
@@ -527,7 +532,7 @@
       "name": "Guidance comments fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 387,
+      "durationMs": 437,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -627,7 +632,7 @@
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 391,
+      "durationMs": 424,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -730,7 +735,7 @@
       "name": "Guidance duplicate-code fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 382,
+      "durationMs": 425,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -831,7 +836,7 @@
       "name": "Guidance long-method fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 388,
+      "durationMs": 413,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -934,7 +939,7 @@
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 408,
+      "durationMs": 414,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1037,7 +1042,7 @@
       "name": "Guidance message-chain fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 398,
+      "durationMs": 405,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1134,7 +1139,7 @@
       "name": "Guidance middle-man fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 382,
+      "durationMs": 407,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1237,7 +1242,7 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 376,
+      "durationMs": 399,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1327,7 +1332,7 @@
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 381,
+      "durationMs": 403,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1417,7 +1422,7 @@
       "name": "Mock refactoring marker",
       "ok": true,
       "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 942,
+      "durationMs": 933,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1445,7 +1450,8 @@
                 "endLine": null,
                 "symbol": null
               }
-            ]
+            ],
+            "mapEvidenceTrace": []
           }
         ]
       },
@@ -1466,14 +1472,15 @@
                 "endLine": null,
                 "symbol": null
               }
-            ]
+            ],
+            "mapEvidenceTrace": []
           }
         ]
       },
       "fix": {
         "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
         "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_1ea3d6635b",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070",
         "filesChanged": 0,
         "changedFiles": "none",
         "commands": 0,
@@ -1519,7 +1526,7 @@
           "notUsedResources": 0,
           "resourceActions": [
             {
-              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_1ea3d6635b",
+              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070",
               "findingId": null,
               "resourceId": "catalog.dispensables.duplicate-code",
               "action": "applied"
@@ -1560,7 +1567,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 379,
+      "durationMs": 407,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1588,7 +1595,8 @@
                 "endLine": null,
                 "symbol": null
               }
-            ]
+            ],
+            "mapEvidenceTrace": []
           }
         ]
       },
@@ -1609,7 +1617,8 @@
                 "endLine": null,
                 "symbol": null
               }
-            ]
+            ],
+            "mapEvidenceTrace": []
           }
         ]
       },
@@ -1649,6 +1658,171 @@
             "catalog.object-orientation-abusers.switch-statements"
           ],
           "promptProofs": 1
+        },
+        "guidanceApplication": {
+          "patchAttempts": 0,
+          "withGuidanceApplication": 0,
+          "appliedResources": 0,
+          "adaptedResources": 0,
+          "notUsedResources": 0,
+          "resourceActions": [],
+          "deviations": 0,
+          "risks": {}
+        },
+        "patchBoundary": {
+          "patchAttempts": 0,
+          "filesChanged": 0,
+          "failures": 0,
+          "unexpectedFiles": 0
+        },
+        "workflow": {
+          "runs": 1,
+          "findings": 1,
+          "findingsByStatus": {
+            "open": 1
+          },
+          "patchAttempts": 0,
+          "patchAttemptsByStatus": {},
+          "validationCommands": 0,
+          "revalidationOutcomes": {}
+        }
+      },
+      "errors": []
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "semantic-evidence-review",
+      "name": "Semantic evidence review candidate",
+      "ok": true,
+      "summary": "1 open finding(s), 0 patch attempt(s)",
+      "durationMs": 469,
+      "provider": "mock",
+      "map": {
+        "features": 16,
+        "source": "heuristic",
+        "usedAgent": false
+      },
+      "review": {
+        "reviewed": 5,
+        "findings": 1
+      },
+      "report": {
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+            "title": "Sibling duplicate helper can be unified",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/checkout-format/format.ts",
+                "startLine": null,
+                "endLine": null,
+                "symbol": "formatCheckoutInvoiceSummary"
+              }
+            ],
+            "mapEvidenceTrace": [
+              {
+                "kind": "semantic-neighbor",
+                "source": "identifier-tfidf",
+                "targetTitle": "Node source src/invoice-format",
+                "signals": [
+                  "format",
+                  "invoice",
+                  "summary"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "finalReport": {
+        "findings": 1,
+        "items": [
+          {
+            "id": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+            "title": "Sibling duplicate helper can be unified",
+            "category": "maintainability",
+            "severity": "low",
+            "confidence": "high",
+            "status": "open",
+            "evidence": [
+              {
+                "path": "src/checkout-format/format.ts",
+                "startLine": null,
+                "endLine": null,
+                "symbol": "formatCheckoutInvoiceSummary"
+              }
+            ],
+            "mapEvidenceTrace": [
+              {
+                "kind": "semantic-neighbor",
+                "source": "identifier-tfidf",
+                "targetTitle": "Node source src/invoice-format",
+                "signals": [
+                  "format",
+                  "invoice",
+                  "summary"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "fix": null,
+      "revalidate": null,
+      "baseline": {
+        "schemaVersion": 1,
+        "deterministicEval": {
+          "initialOpenFindings": 1,
+          "finalFindings": 1
+        },
+        "guidanceSelection": {
+          "audits": 5,
+          "detectedShapes": 6,
+          "selectedResources": [
+            "catalog.bloaters.long-method",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "primaryResources": [
+            "catalog.bloaters.long-method",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "supportingResources": [
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "detectedShapeNames": [
+            "missing-linked-tests",
+            "nested-conditionals"
+          ],
+          "promptedResources": [
+            "catalog.bloaters.long-method",
+            "techniques.composing-methods.extract-method",
+            "techniques.composing-methods.extract-variable",
+            "techniques.simplifying-conditional-expressions.decompose-conditional",
+            "workflow.trusted-refactor-regression-coverage"
+          ],
+          "rejectedResources": [
+            "catalog.bloaters.data-clumps",
+            "catalog.bloaters.long-method",
+            "catalog.bloaters.long-parameter-list",
+            "catalog.couplers.message-chains",
+            "catalog.couplers.middle-man",
+            "catalog.dispensables.comments",
+            "catalog.dispensables.duplicate-code",
+            "catalog.dispensables.speculative-generality",
+            "catalog.object-orientation-abusers.switch-statements"
+          ],
+          "promptProofs": 5
         },
         "guidanceApplication": {
           "patchAttempts": 0,

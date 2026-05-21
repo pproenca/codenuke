@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-21T07:21:57.050Z",
+  "startedAt": "2026-05-21T07:21:56.159Z",
+  "cli": "node dist/cli.js",
+  "mode": {
+    "deterministic": true,
+    "modelBacked": false,
+    "provider": "mock"
+  },
+  "sealedEvaluator": {
+    "protectedFiles": 388,
+    "mutationFailures": []
+  },
+  "aggregate": {
+    "fixtures": 1,
+    "passed": 1,
+    "failed": 0,
+    "controlScore": 10,
+    "treatmentScore": 100,
+    "scoreDelta": 90,
+    "semanticEvidenceLinks": {
+      "control": 0,
+      "treatment": 2
+    },
+    "findings": {
+      "control": 0,
+      "treatment": 1
+    }
+  },
+  "decision": {
+    "status": "keep",
+    "reason": "treatment beat control by 90.0 point(s) with no hard constraint failures",
+    "failures": []
+  },
+  "audit": {
+    "provenBehavior": [
+      "The deterministic harness runs the same fixture with semantic evidence disabled and enabled.",
+      "The control run exposes no semantic-neighbor links and produces no finding.",
+      "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
+      "The run records hard constraint failures separately from quality metrics."
+    ],
+    "proxyEvidence": [],
+    "unprovenModelBackedRoi": [
+      "Live model-backed ROI remains out of scope for this deterministic command."
+    ],
+    "blockers": [],
+    "nextInputs": [
+      "Add fix/revalidation ROI fixtures before claiming full fix-quality coverage."
+    ]
+  },
+  "results": [
+    {
+      "schemaVersion": 1,
+      "slug": "semantic-evidence-review",
+      "name": "Semantic evidence review ROI",
+      "description": "Control/treatment ROI fixture proving semantic evidence promotes a sibling formatter refactoring candidate without producing the finding when semantic evidence is disabled.",
+      "control": {
+        "label": "control",
+        "semanticEvidence": false,
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 0
+        },
+        "review": {
+          "reviewed": 5,
+          "findings": 0
+        },
+        "report": {
+          "findings": 0,
+          "items": []
+        }
+      },
+      "treatment": {
+        "label": "treatment",
+        "semanticEvidence": true,
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 2
+        },
+        "review": {
+          "reviewed": 5,
+          "findings": 1
+        },
+        "report": {
+          "findings": 1,
+          "items": [
+            {
+              "id": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+              "title": "Sibling duplicate helper can be unified",
+              "category": "maintainability",
+              "severity": "low",
+              "confidence": "high",
+              "status": "open",
+              "evidence": [
+                {
+                  "path": "src/checkout-format/format.ts",
+                  "startLine": null,
+                  "endLine": null,
+                  "symbol": "formatCheckoutInvoiceSummary"
+                }
+              ],
+              "mapEvidenceTrace": [
+                {
+                  "kind": "semantic-neighbor",
+                  "source": "identifier-tfidf",
+                  "targetTitle": "Node source src/invoice-format",
+                  "signals": [
+                    "format",
+                    "invoice",
+                    "summary"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "scores": {
+        "control": {
+          "score": 10,
+          "recall": 0,
+          "traceCredit": 0,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "treatment": {
+          "score": 100,
+          "recall": 1,
+          "traceCredit": 1,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "delta": 90
+      },
+      "hardConstraintFailures": [],
+      "ok": true
+    }
+  ]
+}
