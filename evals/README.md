@@ -58,7 +58,9 @@ checks.
 Fixtures should include rejective cases, not only positive examples. For
 example, abbreviation fixtures should prove that `cfg` can match `config` while
 generic `context` or `environment` vocabulary does not create unrelated
-semantic-neighbor links.
+semantic-neighbor links. Implementation-noise fixtures should prove that
+repeated generic code-body words such as `read`, `key`, `cache`, `writer`, and
+`handler` do not outrank stronger path and Feature metadata vocabulary.
 
 For opt-in model-backed prompt comparisons, run:
 
