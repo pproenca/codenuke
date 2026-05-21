@@ -9,7 +9,7 @@ tags: greedy, exchange-argument, correctness, proof
 
 Greedy algorithms are fast and short — when they work. The trouble: many problems look greedy-shaped but require DP for correctness (0/1 knapsack, longest path), and silently-wrong greedy solutions pass most test cases. The defense: before writing a greedy algorithm, prove its correctness via an **exchange argument** — show that if any optimal solution disagrees with the greedy choice at step k, you can swap in the greedy choice without losing optimality. If you can't construct that argument, don't ship the greedy; use DP.
 
-Three problems greedy *does* solve optimally: activity selection (sort by finish time), Huffman coding (always merge two smallest), and minimum-spanning-tree (cut property). Each has a clean exchange-argument proof. Coin change with arbitrary denominations is a famous example where greedy *fails*.
+Three problems greedy _does_ solve optimally: activity selection (sort by finish time), Huffman coding (always merge two smallest), and minimum-spanning-tree (cut property). Each has a clean exchange-argument proof. Coin change with arbitrary denominations is a famous example where greedy _fails_.
 
 **Incorrect (greedy coin change with non-canonical denominations — wrong answer):**
 
@@ -39,7 +39,7 @@ def coin_change(coins: list[int], amount: int) -> int:
     return -1 if dp[amount] == INF else dp[amount]
 ```
 
-**A *correct* greedy with an exchange argument — activity selection:**
+**A _correct_ greedy with an exchange argument — activity selection:**
 
 ```python
 def max_non_overlapping(intervals: list[tuple[int, int]]) -> int:

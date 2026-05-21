@@ -9,7 +9,7 @@ tags: rank, pagerank, page-brin, centrality, importance
 
 After clustering, the agent has a partition. But which clusters matter most? Which files within a cluster are the load-bearing ones? **PageRank** (Page, Brin, Motwani, Winograd, "The PageRank Citation Ranking," Stanford technical report 1999) ranks nodes by **transitive importance**: a node is important if it's pointed to by many other important nodes. In software, "imported by many modules that are themselves imported by many modules" identifies the **architectural spine** — the things you can't touch without rippling everywhere.
 
-This is the second-most-important global signal after the partition itself. Almost no analysis pipeline applies it. The vanilla algorithm is 5 lines in NetworkX; the result reorganises *what to look at first* when comprehending an unfamiliar codebase.
+This is the second-most-important global signal after the partition itself. Almost no analysis pipeline applies it. The vanilla algorithm is 5 lines in NetworkX; the result reorganises _what to look at first_ when comprehending an unfamiliar codebase.
 
 **Incorrect (rank files by raw fan-in — biased by giant utility files):**
 
@@ -85,18 +85,19 @@ def related_to(G: nx.DiGraph, seed_files: list[str], alpha: float = 0.85, n: int
 
 **Why PageRank specifically vs degree or other centrality:**
 
-| Metric | What it captures | Cost | Failure mode |
-|--------|------------------|------|--------------|
-| In-degree | Direct popularity | O(E) | Loggers dominate |
-| Betweenness | Bridges between groups | O(V·E) | Slow on big graphs |
-| Closeness | Average distance to all | O(V·(V+E)) | Slow on big graphs |
-| **PageRank** | **Transitive importance** | **O((V+E)·iter)** | Sensitive to outliers if no damping |
-| Katz centrality | Similar to PageRank, no damping | O((V+E)·iter) | Diverges on dense graphs |
-| Eigenvector | Same as PageRank with α → 1 | O((V+E)·iter) | Same divergence risk |
+| Metric          | What it captures                | Cost              | Failure mode                        |
+| --------------- | ------------------------------- | ----------------- | ----------------------------------- |
+| In-degree       | Direct popularity               | O(E)              | Loggers dominate                    |
+| Betweenness     | Bridges between groups          | O(V·E)            | Slow on big graphs                  |
+| Closeness       | Average distance to all         | O(V·(V+E))        | Slow on big graphs                  |
+| **PageRank**    | **Transitive importance**       | **O((V+E)·iter)** | Sensitive to outliers if no damping |
+| Katz centrality | Similar to PageRank, no damping | O((V+E)·iter)     | Diverges on dense graphs            |
+| Eigenvector     | Same as PageRank with α → 1     | O((V+E)·iter)     | Same divergence risk                |
 
 PageRank's α damping is what makes it numerically stable on any graph and what lets it gracefully handle dangling nodes (files with no outgoing imports) — both matter for real code.
 
 **Empirical baseline:** Various studies have applied PageRank to code:
+
 - **Inoue et al. (TSE 2005, "Component rank: relative significance rank for software component search")** — applied PageRank to Java component reuse rankings.
 - **Bavota et al. (ICSM 2013, "Identifying Method Friendships to Remove the Feature Envy Bad Smell")** — used personalized PageRank for finding "friends" of a method.
 - **Sourcegraph and OpenGrok** both apply PageRank-like ranking on code search results.

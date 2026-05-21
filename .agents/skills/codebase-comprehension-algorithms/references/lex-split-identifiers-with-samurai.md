@@ -7,7 +7,7 @@ tags: lex, samurai, identifier-splitting, tokenization, enslen
 
 ## Split Identifiers With Samurai, Not Just Regex
 
-`getUserById` is easy: a camelCase split gives `[get, user, by, id]`. `usrCnt` is hard: a regex gives `[usr, cnt]`, but the right split is `[user, count]` and you need to *know* that. `mp3decoder`, `xmlparser`, `IOError`, `URLString`, `nMaxItems` — all defeat naive splitting. The **Samurai algorithm** (Enslen, Hill, Pollock, Vijay-Shanker, MSR 2009) handles these by combining a frequency table of known software vocabulary (mined from a corpus or the current codebase itself) with a scoring function that picks the most-likely segmentation. It achieves **~87% precision/recall on a 1,500-identifier benchmark** versus ~60% for camelCase-only and ~75% for greedy dictionary matching. Without it, ~25–40% of identifiers are tokenized wrong, and downstream topic models, TF-IDF, and lexical edges all degrade proportionally.
+`getUserById` is easy: a camelCase split gives `[get, user, by, id]`. `usrCnt` is hard: a regex gives `[usr, cnt]`, but the right split is `[user, count]` and you need to _know_ that. `mp3decoder`, `xmlparser`, `IOError`, `URLString`, `nMaxItems` — all defeat naive splitting. The **Samurai algorithm** (Enslen, Hill, Pollock, Vijay-Shanker, MSR 2009) handles these by combining a frequency table of known software vocabulary (mined from a corpus or the current codebase itself) with a scoring function that picks the most-likely segmentation. It achieves **~87% precision/recall on a 1,500-identifier benchmark** versus ~60% for camelCase-only and ~75% for greedy dictionary matching. Without it, ~25–40% of identifiers are tokenized wrong, and downstream topic models, TF-IDF, and lexical edges all degrade proportionally.
 
 This is the most-cited preprocessing step in the modern SAR literature and the one most people skip.
 
@@ -111,13 +111,13 @@ def split_identifier(identifier, freq, p_total, g_total, g_freq) -> list[str]:
 
 **Empirical comparison (Hill et al., ICPC 2014 "An Empirical Study of Identifier Splitters"):**
 
-| Splitter | Precision | Recall | F1 |
-|----------|-----------|--------|-----|
-| camelCase-only regex | 0.61 | 0.55 | 0.58 |
-| Greedy dictionary | 0.73 | 0.69 | 0.71 |
-| **Samurai** | **0.87** | **0.84** | **0.85** |
-| LIDS + Google N-grams | 0.84 | 0.89 | 0.86 |
-| Modern: SPIRAL / GenTest variants | 0.88 | 0.90 | 0.89 |
+| Splitter                          | Precision | Recall   | F1       |
+| --------------------------------- | --------- | -------- | -------- |
+| camelCase-only regex              | 0.61      | 0.55     | 0.58     |
+| Greedy dictionary                 | 0.73      | 0.69     | 0.71     |
+| **Samurai**                       | **0.87**  | **0.84** | **0.85** |
+| LIDS + Google N-grams             | 0.84      | 0.89     | 0.86     |
+| Modern: SPIRAL / GenTest variants | 0.88      | 0.90     | 0.89     |
 
 **When NOT to use:**
 

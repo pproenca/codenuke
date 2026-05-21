@@ -7,7 +7,7 @@ tags: graph, dfs, cycle-detection, three-color
 
 ## Detect Cycles With DFS Colours, Not "Visited" Alone
 
-A single `visited` set is not enough to detect cycles in a directed graph — it conflates "we've fully explored this node" with "this node is in our current DFS stack." A node already visited via a different DFS branch is *not* a cycle. The three-colour scheme (WHITE = unseen, GRAY = on stack, BLACK = done) is the canonical fix: a back-edge to a GRAY node is a cycle; an edge to a BLACK node is not. For *undirected* graphs, instead track the parent and ignore the edge back to it.
+A single `visited` set is not enough to detect cycles in a directed graph — it conflates "we've fully explored this node" with "this node is in our current DFS stack." A node already visited via a different DFS branch is _not_ a cycle. The three-colour scheme (WHITE = unseen, GRAY = on stack, BLACK = done) is the canonical fix: a back-edge to a GRAY node is a cycle; an edge to a BLACK node is not. For _undirected_ graphs, instead track the parent and ignore the edge back to it.
 
 Conflating these is a frequent source of false positives (BLACK nodes flagged as cycles) and false negatives (forgetting that a GRAY node is a back-edge target).
 

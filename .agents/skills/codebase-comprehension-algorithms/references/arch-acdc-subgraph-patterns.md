@@ -9,8 +9,8 @@ tags: arch, acdc, subsystem-pattern, skeleton-pattern, tzerpos, comprehension-dr
 
 **ACDC** (Algorithm for Comprehension-Driven Clustering, **Tzerpos & Holt, WCRE 2000**) takes a fundamentally different approach from modularity-based methods: it scans the dependency graph for **specific subgraph patterns** that experienced software architects use to identify subsystems. The two main patterns are:
 
-1. **Subsystem pattern**: a "central" module + a collection of files that fan out from it (a controller + its handlers, a service + its repositories). Detected as a *median node + its successor/predecessor neighbourhood*.
-2. **Skeleton pattern**: a chain of mutually dependent modules forming the architectural backbone (the request-handling pipeline, the data-transformation chain). Detected via *biconnected component analysis*.
+1. **Subsystem pattern**: a "central" module + a collection of files that fan out from it (a controller + its handlers, a service + its repositories). Detected as a _median node + its successor/predecessor neighbourhood_.
+2. **Skeleton pattern**: a chain of mutually dependent modules forming the architectural backbone (the request-handling pipeline, the data-transformation chain). Detected via _biconnected component analysis_.
 
 ACDC also applies an **omnipresent filter** (see `graph-filter-omnipresent-utilities-before-clustering`) and a **size-constraint heuristic** (clusters of "reasonable" size — typically 5–25 files), making it directly tunable to architect expectations. The result: ACDC's decompositions match expert ground truth on Mozilla, Linux, and Apache better than any pure-graph method when "match expert" is the metric.
 
@@ -117,7 +117,7 @@ def acdc_cluster(G, min_size: int = 5, max_size: int = 25, omnipresent_z: float 
 
 **Why patterns capture architecture better than statistics:**
 
-A modularity-based algorithm averages over all edges. ACDC asks specific structural questions: *"is this a controller surrounded by its delegates?"* (subsystem pattern), *"is this a chain of bottlenecks the system flows through?"* (skeleton pattern). Both questions are about *named* architectural roles that match how architects describe systems. The downside: it's less mathematically pure than modularity, and the heuristics (`min_size`, `max_size`) need tuning per codebase.
+A modularity-based algorithm averages over all edges. ACDC asks specific structural questions: _"is this a controller surrounded by its delegates?"_ (subsystem pattern), _"is this a chain of bottlenecks the system flows through?"_ (skeleton pattern). Both questions are about _named_ architectural roles that match how architects describe systems. The downside: it's less mathematically pure than modularity, and the heuristics (`min_size`, `max_size`) need tuning per codebase.
 
 **Empirical baseline:** Tzerpos & Holt (WCRE 2000) showed ACDC matches expert decompositions of Linux kernel, X11, Tcl/Tk, and Mosaic with **MoJoFM > 75** on each — significantly better than the Bunch tool of the time (~60–70) and far better than naive Q-maximization (~40–55). Anquetil & Lethbridge (1999, "Experiments with clustering as a software remodularization method") replicated the results on industrial code.
 
@@ -127,6 +127,6 @@ A modularity-based algorithm averages over all edges. ACDC asks specific structu
 - Functional codebases (Haskell, OCaml) — function-level granularity doesn't have "subsystems" in the same sense.
 - When you want statistical guarantees / a fitness score — ACDC produces a partition with no defended optimality.
 
-**Production:** The original ACDC tool is available from York University (Bil Holt's lab). Implementations exist as research replications; not yet packaged for industry use. Hindle's *Tool* dataset includes ACDC-baseline decompositions for ~10 systems.
+**Production:** The original ACDC tool is available from York University (Bil Holt's lab). Implementations exist as research replications; not yet packaged for industry use. Hindle's _Tool_ dataset includes ACDC-baseline decompositions for ~10 systems.
 
 Reference: [ACDC: An Algorithm for Comprehension-Driven Clustering (Tzerpos & Holt, WCRE 2000)](https://www.cs.yorku.ca/~bil/papers/wcre00.pdf)

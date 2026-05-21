@@ -79,6 +79,6 @@ def prim(adj: list[list[tuple[int, int]]]) -> int:
     return total if seen == n else float("inf")
 ```
 
-**Both algorithms are greedy and optimal because MSTs satisfy the *cut property*:** the cheapest edge crossing any cut belongs to some MST. Greedy never has to backtrack.
+**Both algorithms are greedy and optimal because MSTs satisfy the _cut property_:** the cheapest edge crossing any cut belongs to some MST. Greedy never has to backtrack.
 
 Reference: [cp-algorithms — Minimum spanning tree](https://cp-algorithms.com/graph/mst_kruskal.html)

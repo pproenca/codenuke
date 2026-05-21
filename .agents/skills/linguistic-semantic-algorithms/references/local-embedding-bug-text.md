@@ -74,6 +74,7 @@ for s, i in ranked:
 **Combine with `sim-doc-code-alignment`:** the same encoder used here can pre-compute doc-section embeddings; bug reports may match documented contracts that the code no longer honours, surfacing both the code location and the doc to update.
 
 **When NOT to apply:**
+
 - Bug reports that are pure stack traces — embedding a stack trace gives noisy results; jump straight to the top frame's file
 - Languages outside the encoder's training set — multilingual coverage matters; use UniXcoder or CodeT5+ which support more languages than CodeBERT
 

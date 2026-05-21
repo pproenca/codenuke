@@ -68,7 +68,7 @@ def _write_sorted_run(chunk: list[str]) -> str:
 **When NOT to use:**
 
 - The data fits in memory (just use `sorted()`)
-- The data is *almost* sorted — Timsort exploits existing order in O(n) for run detection. External sort still does full passes.
+- The data is _almost_ sorted — Timsort exploits existing order in O(n) for run detection. External sort still does full passes.
 - The data has bounded-range integer keys — external counting / radix sort can outperform comparison-based external sort.
 
 **Production:** Hadoop MapReduce shuffle (sort by reduce key), Spark `sortByKey`, PostgreSQL's external sort for large `ORDER BY` / `GROUP BY` / `DISTINCT`, BigQuery shuffle, Unix `sort` (uses external merge for files exceeding `LC_ALL`-sized buffers).

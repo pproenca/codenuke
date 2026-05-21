@@ -42,13 +42,13 @@ Generated: 2026-05-19T17:28:07.779Z
 
 ## Finding Deltas
 
-| Fixture | Baseline findings | Model findings | Delta |
-| --- | ---: | ---: | ---: |
-| guidance-comments | 0 | 1 | 1 |
-| guidance-conditional | 0 | 1 | 1 |
-| guidance-duplicate | 0 | 1 | 1 |
-| guidance-long-method | 0 | 1 | 1 |
-| guidance-long-parameters | 0 | 1 | 1 |
-| guidance-message-chain | 0 | 1 | 1 |
-| guidance-middle-man | 0 | 1 | 1 |
-| mock-clean | 0 | 1 | 1 |
+| Fixture                  | Baseline findings | Model findings | Delta |
+| ------------------------ | ----------------: | -------------: | ----: |
+| guidance-comments        |                 0 |              1 |     1 |
+| guidance-conditional     |                 0 |              1 |     1 |
+| guidance-duplicate       |                 0 |              1 |     1 |
+| guidance-long-method     |                 0 |              1 |     1 |
+| guidance-long-parameters |                 0 |              1 |     1 |
+| guidance-message-chain   |                 0 |              1 |     1 |
+| guidance-middle-man      |                 0 |              1 |     1 |
+| mock-clean               |                 0 |              1 |     1 |

@@ -7,7 +7,7 @@ tags: topic, nmf, lee-seung, additive, parts-based
 
 ## Use Non-Negative Matrix Factorization When You Need Strictly-Positive Topic Weights
 
-**Non-negative Matrix Factorization** (Lee & Seung, "Learning the parts of objects by non-negative matrix factorization," Nature 1999) factorises a non-negative matrix V (your TF-IDF or count matrix) as V ≈ W · H where W (file × topic) and H (topic × term) are *also non-negative*. The non-negativity constraint forces an **additive parts-based representation**: each file is a positive combination of topics, and each topic is a positive combination of words. No cancellation, no signed dimensions like LSI, no probabilistic interpretation pretence like LDA.
+**Non-negative Matrix Factorization** (Lee & Seung, "Learning the parts of objects by non-negative matrix factorization," Nature 1999) factorises a non-negative matrix V (your TF-IDF or count matrix) as V ≈ W · H where W (file × topic) and H (topic × term) are _also non-negative_. The non-negativity constraint forces an **additive parts-based representation**: each file is a positive combination of topics, and each topic is a positive combination of words. No cancellation, no signed dimensions like LSI, no probabilistic interpretation pretence like LDA.
 
 For software clustering, NMF has three practical advantages over LDA: (1) **deterministic** — same input + seed always yields same output, useful for reproducible analyses, (2) **fast** — converges in seconds where LDA takes minutes, (3) **interpretable additive topics** — a file's topic weights are straightforward "how much of each topic", no probabilistic conditioning. The trade-off: no principled way to pick K (no perplexity, no MDL), and the loss function (Frobenius or KL) is non-convex, so initialization matters.
 
@@ -98,22 +98,22 @@ clusters = KMeans(n_clusters=15, n_init=10, random_state=42).fit_predict(W_norma
 
 **Why parts-based additivity matters for code:**
 
-Software files often *literally* combine concerns — a `payment_controller.py` mixes routing + payment + auth + logging. With LSI's signed dimensions, you might find that file weighted high on "payment" but slightly *negative* on "logging" (because of LSI's bipolar structure) which doesn't match the additive reality. NMF gives strictly-positive weights: this file is 0.4 payments + 0.3 routing + 0.15 auth + 0.10 logging — which *is* the parts-based composition.
+Software files often _literally_ combine concerns — a `payment_controller.py` mixes routing + payment + auth + logging. With LSI's signed dimensions, you might find that file weighted high on "payment" but slightly _negative_ on "logging" (because of LSI's bipolar structure) which doesn't match the additive reality. NMF gives strictly-positive weights: this file is 0.4 payments + 0.3 routing + 0.15 auth + 0.10 logging — which _is_ the parts-based composition.
 
-This is why Lee & Seung titled their paper "Learning the parts of objects" — NMF discovers parts that *add up* to make wholes, exactly like a file adds up multiple concerns.
+This is why Lee & Seung titled their paper "Learning the parts of objects" — NMF discovers parts that _add up_ to make wholes, exactly like a file adds up multiple concerns.
 
 **Empirical baseline:** Aletras & Stevenson ("Evaluating topic coherence using distributional semantics," IWCS 2013) compared LDA and NMF coherence on the news domain; NMF was within 5% and often higher with l1 regularisation. For software: Asuncion et al. (Information Sciences 2010) and Tian et al. (MSR 2012) reported NMF matching LDA on concept-location F1 (~65–80%) while being ~5× faster to fit and fully reproducible.
 
 **When to use NMF vs LDA:**
 
-| Situation | Choice |
-|-----------|--------|
-| Need probabilistic per-file topic distributions | LDA |
-| Need deterministic, reproducible runs | NMF |
-| Need fast iteration (sweeping K) | NMF |
-| Need additive parts-based interpretation | NMF |
-| Need uncertainty quantification | LDA |
-| Hugely-imbalanced topic prior expected | LDA with informative α |
+| Situation                                       | Choice                 |
+| ----------------------------------------------- | ---------------------- |
+| Need probabilistic per-file topic distributions | LDA                    |
+| Need deterministic, reproducible runs           | NMF                    |
+| Need fast iteration (sweeping K)                | NMF                    |
+| Need additive parts-based interpretation        | NMF                    |
+| Need uncertainty quantification                 | LDA                    |
+| Hugely-imbalanced topic prior expected          | LDA with informative α |
 
 **When NOT to use:**
 

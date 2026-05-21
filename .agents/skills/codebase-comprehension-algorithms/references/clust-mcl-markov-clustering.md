@@ -91,7 +91,7 @@ def mcl_stability_sweep(A, nodes, r_values=(1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 3.0)):
 
 **Why MCL is robust to noise:**
 
-After each expansion step, edges that have *some* probability mass get reinforced; near-zero-mass edges decay. Inflation accelerates this: r = 2 squares each entry, so a 0.01-mass edge becomes 0.0001-mass while a 0.5-mass edge becomes 0.25-mass. Spurious low-weight edges die; meaningful edges survive. The result: clusters depend on dominant *flow patterns*, not on individual noisy edges. This is why MCL has been the default in protein-interaction networks — those are *very* noisy.
+After each expansion step, edges that have _some_ probability mass get reinforced; near-zero-mass edges decay. Inflation accelerates this: r = 2 squares each entry, so a 0.01-mass edge becomes 0.0001-mass while a 0.5-mass edge becomes 0.25-mass. Spurious low-weight edges die; meaningful edges survive. The result: clusters depend on dominant _flow patterns_, not on individual noisy edges. This is why MCL has been the default in protein-interaction networks — those are _very_ noisy.
 
 **Empirical baseline:** Enright et al. (NAR 2002, "An efficient algorithm for large-scale detection of protein families") compared MCL with single-linkage, average-linkage, and TribeMCL on Pfam: MCL produced clusters with 93% precision/86% recall versus 78%/65% for the next-best method. Brohée & van Helden (BMC Bioinformatics 2006) showed MCL beats modularity-based methods by 15–30% on noise-injected biological networks. The bioinformatics result transfers directly to noisy software co-change data.
 

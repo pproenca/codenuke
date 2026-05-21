@@ -9,7 +9,7 @@ tags: topic, coherence, npmi, umass, roder, chang
 
 Every LDA tutorial recommends choosing K by **perplexity** on held-out documents. **This is wrong**, in a way that has been quantitatively demonstrated since **Chang, Boyd-Graber, Gerrish, Wang, Blei** ("Reading tea leaves: how humans interpret topic models," NIPS 2009) — perplexity is **anti-correlated** with human judgements of topic quality. Optimising for perplexity makes topics statistically tight but **harder to interpret**; conversely, the topics humans find most useful are those with strong **co-occurrence patterns** among top words — captured by **coherence** metrics. **Röder, Both, Hinneburg** ("Exploring the Space of Topic Coherence Measures," WSDM 2015) compared dozens of coherence formulations against human judgement and recommended **C_V** (a sliding-window NPMI variant) as the best single metric, with **U-Mass** as a fast intrinsic alternative.
 
-For codebase comprehension: never pick K by perplexity. Pick by C_V coherence on identifier+comment corpus. The difference in agent-usable output is the difference between *"Topic 13: charge, refund, invoice, stripe, payment"* and *"Topic 13: token, void, function, return, int"*.
+For codebase comprehension: never pick K by perplexity. Pick by C*V coherence on identifier+comment corpus. The difference in agent-usable output is the difference between *"Topic 13: charge, refund, invoice, stripe, payment"_ and _"Topic 13: token, void, function, return, int"\_.
 
 **Incorrect (sweep K by perplexity — produces unreadable topics):**
 
@@ -135,7 +135,7 @@ def sweep_k_by_coherence(documents, X, k_values=(5, 10, 20, 30, 50, 80, 120)):
 
 **Why perplexity fails:**
 
-Perplexity measures how *predictable* held-out documents are under the model. A model with very many narrow topics can predict held-out documents well (each held-out doc shares a few rare narrow topics with training docs). But narrow topics don't correspond to coherent concepts — they're often noise correlations. Chang et al. demonstrated this with **word intrusion** tasks: hide one word inside a topic's top-10 and ask humans to find it. The human accuracy was *highest* at coherence-optimal K and *lowest* at perplexity-optimal K.
+Perplexity measures how _predictable_ held-out documents are under the model. A model with very many narrow topics can predict held-out documents well (each held-out doc shares a few rare narrow topics with training docs). But narrow topics don't correspond to coherent concepts — they're often noise correlations. Chang et al. demonstrated this with **word intrusion** tasks: hide one word inside a topic's top-10 and ask humans to find it. The human accuracy was _highest_ at coherence-optimal K and _lowest_ at perplexity-optimal K.
 
 **Empirical baseline:** Röder-Both-Hinneburg (WSDM 2015) compared C_V, NPMI, U-Mass, C_NPMI, C_P, C_A coherence variants across 21 datasets against human judgement: C_V correlated at r = 0.79 with human ratings; perplexity correlated at r = -0.43 (negative!). For software specifically, Mei et al. (2007) and Lukins et al. (TSE 2010) recommended NPMI for software-corpus topic evaluation.
 

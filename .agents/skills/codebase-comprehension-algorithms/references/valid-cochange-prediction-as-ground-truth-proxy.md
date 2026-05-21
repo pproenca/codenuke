@@ -123,20 +123,20 @@ def compare_algorithms_by_prediction(algorithms_outputs: dict[str, list[set]], t
 
 **Why this is the right validation strategy:**
 
-The two-line argument: (1) developers commit changes intentionally — when they co-change two files, they're declaring them coupled, (2) a clustering should encode coupling. Therefore: **a clustering that predicts future co-changes well captures real coupling**, not just spurious graph patterns. The metric is *quantitative*, *reproducible* (same temporal split → same number), and *cheap* (you have the data already).
+The two-line argument: (1) developers commit changes intentionally — when they co-change two files, they're declaring them coupled, (2) a clustering should encode coupling. Therefore: **a clustering that predicts future co-changes well captures real coupling**, not just spurious graph patterns. The metric is _quantitative_, _reproducible_ (same temporal split → same number), and _cheap_ (you have the data already).
 
 Critical: **use a TEMPORAL split**, not a random one. Random splits leak — files coupled today have co-change records in both train and test, so random-split evaluation is too optimistic. Temporal split simulates "I clustered the codebase 90 days ago — how well did it predict what's coupled now?"
 
 **Other ground-truth proxies (use multiple if possible):**
 
-| Proxy | When useful |
-|-------|-------------|
-| **Held-out co-change** | Codebase has > 6 months of history. Default. |
-| **Bug-fix prediction** | Bugs that touch multiple files reveal coupling. Use a bug tracker. |
-| **Ownership boundaries** | Files owned (mostly committed to) by the same team are likely coupled. Use `git blame` aggregation. |
-| **Pull-request bundling** | Files merged together in a PR are intentionally coupled. Use GitHub/GitLab API. |
-| **Story/ticket linking** | Files linked to the same JIRA ticket. Requires tooling. |
-| **Test-failure correlation** | Files whose changes break the same tests. Requires CI history. |
+| Proxy                        | When useful                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Held-out co-change**       | Codebase has > 6 months of history. Default.                                                        |
+| **Bug-fix prediction**       | Bugs that touch multiple files reveal coupling. Use a bug tracker.                                  |
+| **Ownership boundaries**     | Files owned (mostly committed to) by the same team are likely coupled. Use `git blame` aggregation. |
+| **Pull-request bundling**    | Files merged together in a PR are intentionally coupled. Use GitHub/GitLab API.                     |
+| **Story/ticket linking**     | Files linked to the same JIRA ticket. Requires tooling.                                             |
+| **Test-failure correlation** | Files whose changes break the same tests. Requires CI history.                                      |
 
 The best practice (Beck-Diehl 2013): **report multiple proxies** when no expert label exists. Convergent evidence — same algorithm wins on co-change AND bug-fix AND PR-bundling — is much stronger than a single proxy.
 

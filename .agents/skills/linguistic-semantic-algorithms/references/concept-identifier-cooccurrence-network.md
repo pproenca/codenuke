@@ -83,6 +83,7 @@ for term, attrs in nbrs:
 **Tune the function-bag size:** too-large functions (>200 lines) generate noisy edges; consider per-statement or per-class scoping for monolithic files.
 
 **When NOT to apply:**
+
 - Files where every function imports the same wide set of utilities — PMI alone won't filter
 - Languages without per-function parsing support — use file-scoped co-occurrence with TF-IDF re-weighting instead
 

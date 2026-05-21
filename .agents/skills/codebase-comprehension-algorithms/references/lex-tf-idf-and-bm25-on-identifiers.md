@@ -7,7 +7,7 @@ tags: lex, tf-idf, bm25, weighting, term-frequency, salton
 
 ## Use TF-IDF Or BM25 To Weight Identifier Tokens, Not Raw Counts
 
-A file mentioning `payment` 10 times and `value` 50 times is *about* payment, not about value — but a raw bag-of-tokens treats value as five times more important. **TF-IDF** (Salton & Buckley, 1988) and **BM25** (Robertson & Walker, 1994) discount terms that appear in many files, recover terms that are rare but specific, and turn the file × term matrix into a meaningful similarity surface. Every IR system you've ever used (Google, Lucene, Elasticsearch) uses one or the other. Yet most software-clustering code in the wild uses raw counts because "we're just feeding it to LDA, which has its own weighting" — which is half-true and 100% suboptimal.
+A file mentioning `payment` 10 times and `value` 50 times is _about_ payment, not about value — but a raw bag-of-tokens treats value as five times more important. **TF-IDF** (Salton & Buckley, 1988) and **BM25** (Robertson & Walker, 1994) discount terms that appear in many files, recover terms that are rare but specific, and turn the file × term matrix into a meaningful similarity surface. Every IR system you've ever used (Google, Lucene, Elasticsearch) uses one or the other. Yet most software-clustering code in the wild uses raw counts because "we're just feeding it to LDA, which has its own weighting" — which is half-true and 100% suboptimal.
 
 The non-obvious result: **TF-IDF features beat raw-count features as LDA input** by 10–25% on topic coherence (Hindle ICSM 2009, Maletic-Marcus ICSE 2001), because TF-IDF gives the Gibbs sampler a saner starting distribution. For non-probabilistic methods (LSI, NMF, k-means on file vectors, cosine similarity between files), TF-IDF is mandatory — without it, every file is "similar" via shared common tokens.
 
@@ -105,20 +105,20 @@ class BM25:
 
 **Important parameter notes:**
 
-| Parameter | Default | Tune toward... | When |
-|-----------|---------|----------------|------|
-| `min_df` | 2 | higher (5-10) | Larger corpus, noisier identifiers |
-| `max_df` | 0.5 | lower (0.3) | If stop-word list is incomplete |
-| `sublinear_tf` | True | always True | Generated code, copy-paste-heavy projects |
-| `norm="l2"` | yes | yes for cosine sim | Always for similarity work |
-| BM25 `k1` | 1.5 | 2.0 if heavy repetition | Logs, generated tests |
-| BM25 `b` | 0.75 | 0.5 if file sizes uniform | Library code |
+| Parameter      | Default | Tune toward...            | When                                      |
+| -------------- | ------- | ------------------------- | ----------------------------------------- |
+| `min_df`       | 2       | higher (5-10)             | Larger corpus, noisier identifiers        |
+| `max_df`       | 0.5     | lower (0.3)               | If stop-word list is incomplete           |
+| `sublinear_tf` | True    | always True               | Generated code, copy-paste-heavy projects |
+| `norm="l2"`    | yes     | yes for cosine sim        | Always for similarity work                |
+| BM25 `k1`      | 1.5     | 2.0 if heavy repetition   | Logs, generated tests                     |
+| BM25 `b`       | 0.75    | 0.5 if file sizes uniform | Library code                              |
 
 **When NOT to use:**
 
 - Very small vocabulary (< ~200 distinct tokens after preprocessing) — IDF degenerates because almost every term is in almost every doc. Use raw counts and rely on LDA's smoothing instead.
 - The clustering algorithm has its own term-weighting (e.g. some LDA implementations) — using TF-IDF can hurt. Try both and pick by coherence.
-- You actively *want* the common terms (e.g. studying API conventions) — don't down-weight them.
+- You actively _want_ the common terms (e.g. studying API conventions) — don't down-weight them.
 
 **Production:** Lucene / Elasticsearch use BM25 as the default scoring since v5.0; Sourcegraph's symbol search uses BM25 over identifier tokens; nearly every modern code-search system has a BM25 stage somewhere.
 

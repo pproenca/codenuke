@@ -7,7 +7,7 @@ tags: {category-prefix}, {algorithm-name}, {2-3 related concepts}
 
 ## {Same title as frontmatter}
 
-{1-3 sentences explaining WHY this algorithm matters for codebase analysis. Focus on what *non-obvious* information it extracts that grep/eyeball cannot. Include the rough complexity class if relevant. Cite the canonical paper or tool by name.}
+{1-3 sentences explaining WHY this algorithm matters for codebase analysis. Focus on what _non-obvious_ information it extracts that grep/eyeball cannot. Include the rough complexity class if relevant. Cite the canonical paper or tool by name.}
 
 **Incorrect ({describe the naive approach}):**
 
@@ -36,6 +36,7 @@ tags: {category-prefix}, {algorithm-name}, {2-3 related concepts}
 **Combine with `{partner-rule-id}`:** {if two algorithms compound (e.g., minhash + suffix-array), explain the pipeline}
 
 **When NOT to apply:**
+
 - {Specific scenario 1 where the algorithm fails or is wasted}
 - {Specific scenario 2}
 
@@ -46,9 +47,9 @@ Reference: [{Canonical paper or tool title}]({URL}), [{Second reference}]({URL})
 ## Authoring guidance for adding rules to this skill
 
 - **Title pattern**: imperative-verb. The validator accepts `Use`, `Avoid`, `Cache`, `Run`, `Apply`, `Tag`, etc. and a generic `[A-Z][a-z]+ ...` fallback. If you write a non-imperative title, the validator will warn.
-- **impactDescription must use quantified language**: numeric improvements (`2-10x improvement`, `200ms savings`, `O(n) to O(1)`) OR outcome verbs (`reduces`, `prevents`, `eliminates`, `enables`, `automatic`, `reveals` — *not* in that list — use the validator-accepted ones).
+- **impactDescription must use quantified language**: numeric improvements (`2-10x improvement`, `200ms savings`, `O(n) to O(1)`) OR outcome verbs (`reduces`, `prevents`, `eliminates`, `enables`, `automatic`, `reveals` — _not_ in that list — use the validator-accepted ones).
 - **First tag MUST be the category prefix** (e.g., `concept`, `sim`, `graph`, `mine`, `clone`, `local`, `ling`, `risk`).
-- **Code blocks need language specifiers** (```python, ```bash, ```sql).
+- **Code blocks need language specifiers** (`python, `bash, ```sql).
 - **Examples must be production-realistic** — no `foo`, `bar`, `MyClass`, `tmp`, `data1`. Use domain-appropriate names (e.g., for a housesitting domain: `Sitter`, `Listing`, `Host`, `Application`, `Booking`).
 - **Length**: 80-200 lines per rule. Above 200, consider splitting into related rules.
 - **References**: link to canonical papers or tool docs — never tutorial sites or blog posts without data.

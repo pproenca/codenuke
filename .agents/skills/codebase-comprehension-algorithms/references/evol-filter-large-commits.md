@@ -7,9 +7,9 @@ tags: evol, large-commits, formatting-commits, cochange-noise, filter
 
 ## Filter Out Large Commits Before Mining Co-Change
 
-Co-change mining (`evol-mine-cochange-with-lift-and-confidence`) assumes each commit represents an *intentional unit of change*. **Large commits violate this assumption catastrophically**. A single 200-file commit produces 200×199/2 ≈ 20,000 co-change pairs — more than ten thousand "instances of coupling" from one event. The damage is mostly to false positives: files that have nothing to do with each other but appeared together in a "rename project" or "apply prettier" commit get flagged as strongly coupled.
+Co-change mining (`evol-mine-cochange-with-lift-and-confidence`) assumes each commit represents an _intentional unit of change_. **Large commits violate this assumption catastrophically**. A single 200-file commit produces 200×199/2 ≈ 20,000 co-change pairs — more than ten thousand "instances of coupling" from one event. The damage is mostly to false positives: files that have nothing to do with each other but appeared together in a "rename project" or "apply prettier" commit get flagged as strongly coupled.
 
-The right move is mechanical: **exclude commits above a size threshold** before any mining. Zimmermann's ROSE used 30 files as the cap; Hassan & Holt (ICSE 2004) used 100; Beck & Diehl (EMSE 2013) showed the choice between 20 and 100 changes MoJoFM by 3–8 points but excluding nothing changes it by 25+. The threshold matters less than *some* threshold. The same logic applies to commits flagged by message ("Merge", "Revert", "Format", "Lint", "Reformat", "Move", "Rename") — these are operational events, not feature coupling.
+The right move is mechanical: **exclude commits above a size threshold** before any mining. Zimmermann's ROSE used 30 files as the cap; Hassan & Holt (ICSE 2004) used 100; Beck & Diehl (EMSE 2013) showed the choice between 20 and 100 changes MoJoFM by 3–8 points but excluding nothing changes it by 25+. The threshold matters less than _some_ threshold. The same logic applies to commits flagged by message ("Merge", "Revert", "Format", "Lint", "Reformat", "Move", "Rename") — these are operational events, not feature coupling.
 
 **Incorrect (mine co-change from raw history — every "apply prettier" commit corrupts pair counts):**
 
@@ -114,21 +114,21 @@ def sweep_size_threshold(repo, thresholds=(10, 20, 30, 50, 100, 200, None)):
 
 **The empirical-shape rule of thumb:**
 
-| Commit size cap | What gets filtered | When to use |
-|-----------------|---------------------|-------------|
-| 5 | Almost nothing except big refactors | Only when commits are tiny (atomic-commit cultures) |
-| 10 | Bulk renames, "fix typo across files" | Mainline / well-disciplined teams |
-| 30 | + Larger refactors, big config updates | **Default** — Zimmermann et al. used 30 |
-| 50 | + Substantial feature commits | When teams squash many changes per merge |
-| 100 | Almost nothing | Lenient — useful for monorepo |
-| ∞ | Nothing | Wrong; results dominated by operational commits |
+| Commit size cap | What gets filtered                     | When to use                                         |
+| --------------- | -------------------------------------- | --------------------------------------------------- |
+| 5               | Almost nothing except big refactors    | Only when commits are tiny (atomic-commit cultures) |
+| 10              | Bulk renames, "fix typo across files"  | Mainline / well-disciplined teams                   |
+| 30              | + Larger refactors, big config updates | **Default** — Zimmermann et al. used 30             |
+| 50              | + Substantial feature commits          | When teams squash many changes per merge            |
+| 100             | Almost nothing                         | Lenient — useful for monorepo                       |
+| ∞               | Nothing                                | Wrong; results dominated by operational commits     |
 
 **Empirical baseline:** Beck & Diehl (EMSE 2013, "Evaluating the Impact of Software Evolution on Software Clustering") measured the effect of large-commit filtering on MoJoFM agreement with expert decompositions across 6 open-source systems. Going from no filter to threshold 30: +25 to +40 MoJoFM points. Going from threshold 30 to threshold 10: +2 to +5 MoJoFM points. Most of the value is in removing the giant outliers, not in tight tuning.
 
 **Don't over-filter:**
 
 - Some legitimate features really do span many files (a new endpoint adding routes + models + tests + migrations). A threshold of 5 misses these.
-- Operational commits are signal *of a different kind* — they tell you which files are tested/configured together. If you're studying *deployment* coupling, keep them.
+- Operational commits are signal _of a different kind_ — they tell you which files are tested/configured together. If you're studying _deployment_ coupling, keep them.
 - Generated-code commits should be filtered upstream (gitattributes `linguist-generated=true`), not by size — they sneak through at small sizes too.
 
 **When NOT to filter:**

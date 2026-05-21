@@ -9,7 +9,7 @@ tags: comp, amortized-analysis, dynamic-array, hash-table
 
 Many fundamental data structures rely on amortized analysis: each individual operation may occasionally be expensive, but the average cost across a sequence is bounded. Dynamic array `append`, hash-table `insert`, and union-find with path compression all look "bad" if you only inspect their worst case. Misreading those costs leads engineers to swap a perfectly good O(n) algorithm for a hand-rolled linked-list version that's measurably slower.
 
-The rule: when bounding *total* work over many operations, use amortized cost. Use worst-case per operation only when a single slow operation would violate a latency SLO.
+The rule: when bounding _total_ work over many operations, use amortized cost. Use worst-case per operation only when a single slow operation would violate a latency SLO.
 
 **Incorrect (rejecting `list.append` because "resizing is O(n)"):**
 

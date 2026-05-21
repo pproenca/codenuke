@@ -7,7 +7,7 @@ tags: valid, mojofm, tzerpos, wen, software-specific, distance
 
 ## Use MoJoFM As The Canonical Distance Between Software Clusterings
 
-When you have two clusterings of the same files — your algorithm's output and an expert's ground-truth decomposition, or two algorithms' outputs — how do you measure how close they are? **Generic metrics** (Adjusted Rand Index, Normalized Mutual Information) come from clustering literature and are fine, but they don't capture the *software-specific* notion of "how many edits to turn clustering A into clustering B?" That's what **MoJo** (**Tzerpos & Holt, "MoJo: A distance metric for software clusterings," WCRE 1999**) and its normalized variant **MoJoFM** (**Wen & Tzerpos, "An effectiveness measure for software clustering algorithms," IWPC 2004**) measure: the minimum number of **Move** and **Join** operations to convert one clustering into the other, normalized to [0, 100] where 100 = identical and 0 = maximally distant.
+When you have two clusterings of the same files — your algorithm's output and an expert's ground-truth decomposition, or two algorithms' outputs — how do you measure how close they are? **Generic metrics** (Adjusted Rand Index, Normalized Mutual Information) come from clustering literature and are fine, but they don't capture the _software-specific_ notion of "how many edits to turn clustering A into clustering B?" That's what **MoJo** (**Tzerpos & Holt, "MoJo: A distance metric for software clusterings," WCRE 1999**) and its normalized variant **MoJoFM** (**Wen & Tzerpos, "An effectiveness measure for software clustering algorithms," IWPC 2004**) measure: the minimum number of **Move** and **Join** operations to convert one clustering into the other, normalized to [0, 100] where 100 = identical and 0 = maximally distant.
 
 MoJoFM is **the** standard metric in the Software Architecture Recovery literature; published comparisons between Bunch, ACDC, Limbo, Leiden, Infomap all report MoJoFM. **If your skill or paper claims to "do clustering on code", you need to report MoJoFM** against expert decompositions on standard benchmarks — there is no other accepted way to compare to prior art.
 
@@ -99,28 +99,28 @@ def validate_clustering(predicted_clusters, ground_truth_clusters, files):
 
 **The standard benchmarks to report on:**
 
-| System | Files | Source of ground truth |
-|--------|------:|------------------------|
-| TOBEY (compiler) | 939 | Hand-crafted by experts; common benchmark |
-| Linux kernel | 8,000+ | Subsystem partition from MAINTAINERS file |
-| Mozilla | 1,500–10,000 | Module structure from build system |
-| Eclipse | 3,000+ | Plugin-bundle structure |
-| Apache Tomcat | ~700 | Package structure |
-| Apache Hadoop | ~2,000 | Module structure |
+| System           |        Files | Source of ground truth                    |
+| ---------------- | -----------: | ----------------------------------------- |
+| TOBEY (compiler) |          939 | Hand-crafted by experts; common benchmark |
+| Linux kernel     |       8,000+ | Subsystem partition from MAINTAINERS file |
+| Mozilla          | 1,500–10,000 | Module structure from build system        |
+| Eclipse          |       3,000+ | Plugin-bundle structure                   |
+| Apache Tomcat    |         ~700 | Package structure                         |
+| Apache Hadoop    |       ~2,000 | Module structure                          |
 
 For any SAR-paper comparison, report MoJoFM on at least 3 of these. Published baselines (Mitchell-Mancoridis 2006, Andritsos-Tzerpos 2005, Beck-Diehl 2013) cluster between 55 and 85 across systems.
 
 **Why MoJoFM beats ARI / NMI for software:**
 
-| Property | MoJoFM | ARI | NMI |
-|----------|--------|-----|-----|
-| Operation-based interpretability | yes (Move + Join count) | no | no |
-| Asymmetric (toward ground truth) | yes | no | no |
-| Published software baselines exist | yes (hundreds) | rare | rare |
-| Robust to cluster size imbalance | yes | yes (corrected) | yes |
-| Handles overlapping clusters | partial | no | yes (variants) |
+| Property                           | MoJoFM                  | ARI             | NMI            |
+| ---------------------------------- | ----------------------- | --------------- | -------------- |
+| Operation-based interpretability   | yes (Move + Join count) | no              | no             |
+| Asymmetric (toward ground truth)   | yes                     | no              | no             |
+| Published software baselines exist | yes (hundreds)          | rare            | rare           |
+| Robust to cluster size imbalance   | yes                     | yes (corrected) | yes            |
+| Handles overlapping clusters       | partial                 | no              | yes (variants) |
 
-Move-and-Join operations correspond to *real refactoring effort* — "X files would need to move to a different package" — making MoJoFM directly interpretable to architects. ARI and NMI report "set similarity" in dimensionless units.
+Move-and-Join operations correspond to _real refactoring effort_ — "X files would need to move to a different package" — making MoJoFM directly interpretable to architects. ARI and NMI report "set similarity" in dimensionless units.
 
 **The Tzerpos-Holt variant — MeCl, EdgeSim:**
 

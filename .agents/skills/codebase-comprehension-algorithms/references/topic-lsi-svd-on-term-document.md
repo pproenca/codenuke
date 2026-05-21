@@ -9,7 +9,7 @@ tags: topic, lsi, lsa, svd, deerwester, maletic-marcus
 
 **Latent Semantic Indexing** (Deerwester, Dumais, Furnas, Landauer, Harshman — "Indexing by latent semantic analysis," JASIS 1990) was the first method to project documents into a low-dimensional **semantic space** via truncated singular value decomposition of the term × document matrix. It's older than LDA, deterministic (no Gibbs sampler), and produces dense **document embeddings** you can use with k-means, HDBSCAN, or cosine similarity. **Maletic & Marcus** applied LSI to source code in two seminal papers (ICSM 2001, ICSE 2003), launching the IR-on-source-code subfield. LSI is still the right tool for several cases LDA mishandles.
 
-The non-obvious property: **the LSI embedding captures *synonymy* and *polysemy*** — if `auth` and `authentication` appear in overlapping contexts (after expansion), they end up nearby in the LSI space, while if `transaction` appears in both payment and database contexts it gets two distinct projections you can disambiguate. This is exactly the property you want for codebase comprehension: it makes the *concept-level* signal explicit.
+The non-obvious property: **the LSI embedding captures _synonymy_ and _polysemy_** — if `auth` and `authentication` appear in overlapping contexts (after expansion), they end up nearby in the LSI space, while if `transaction` appears in both payment and database contexts it gets two distinct projections you can disambiguate. This is exactly the property you want for codebase comprehension: it makes the _concept-level_ signal explicit.
 
 **Incorrect (TF-IDF + cosine similarity — no semantic dimension reduction):**
 
@@ -85,14 +85,14 @@ def top_k_similar(file_idx, sim_matrix, files, k=10):
 
 **Why LSI is still useful in the era of LDA and neural embeddings:**
 
-| Property | LSI | LDA | Neural (CodeBERT) |
-|----------|-----|-----|-------------------|
-| Deterministic | yes | no (Gibbs sampler) | yes (after training) |
-| Fast to fit | fast (SVD) | medium (sampling) | slow (training) |
-| Interpretable topic | partial (signed dimensions) | yes (word distributions) | no |
-| Embedding for downstream tasks | excellent | OK (topic distributions) | excellent |
-| Sensitive to vocabulary choice | yes | yes | mostly tokenizer-driven |
-| Works with small corpora | yes | so-so | no (needs pre-training) |
+| Property                       | LSI                         | LDA                      | Neural (CodeBERT)       |
+| ------------------------------ | --------------------------- | ------------------------ | ----------------------- |
+| Deterministic                  | yes                         | no (Gibbs sampler)       | yes (after training)    |
+| Fast to fit                    | fast (SVD)                  | medium (sampling)        | slow (training)         |
+| Interpretable topic            | partial (signed dimensions) | yes (word distributions) | no                      |
+| Embedding for downstream tasks | excellent                   | OK (topic distributions) | excellent               |
+| Sensitive to vocabulary choice | yes                         | yes                      | mostly tokenizer-driven |
+| Works with small corpora       | yes                         | so-so                    | no (needs pre-training) |
 
 **Use LSI when:** you need deterministic, reproducible embeddings + the ability to query "most similar files" efficiently. **Use LDA when:** you want interpretable, named topics. **Use neural embeddings when:** you have enough compute and a relevant pre-trained model.
 

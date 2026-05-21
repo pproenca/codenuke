@@ -7,7 +7,7 @@ tags: concept, lda, topic-modeling, nlp, gensim
 
 ## Use LDA over Identifier Tokens to Surface Latent Domain Topics
 
-Latent Dirichlet Allocation (Blei/Ng/Jordan, 2003) treats each source file as a "document" of identifier tokens and infers a fixed number of topics — distributions of words that co-occur. On real codebases the topics line up almost exactly with business sub-domains: `{user, account, email, session, login}` (auth), `{invoice, charge, subscription, plan, billing}` (billing), `{sitter, listing, host, application, stay}` (housesitting). LDA finds these clusters *before* you open a single file, even when no module names them. The cost of skipping it: weeks of grep-driven exploration that systematically misses themes spread across the tree.
+Latent Dirichlet Allocation (Blei/Ng/Jordan, 2003) treats each source file as a "document" of identifier tokens and infers a fixed number of topics — distributions of words that co-occur. On real codebases the topics line up almost exactly with business sub-domains: `{user, account, email, session, login}` (auth), `{invoice, charge, subscription, plan, billing}` (billing), `{sitter, listing, host, application, stay}` (housesitting). LDA finds these clusters _before_ you open a single file, even when no module names them. The cost of skipping it: weeks of grep-driven exploration that systematically misses themes spread across the tree.
 
 **Incorrect (naïve domain inference — biased toward framework noise):**
 
@@ -63,6 +63,7 @@ for tid, words in lda.print_topics(num_words=8):
 **Preprocessing matters more than the algorithm:** apply `ling-camel-snake-split` and `ling-abbreviation-expansion` to tokens first. Skipping these steps means `userId` and `user_id` look like two unrelated words and topics fragment.
 
 **When NOT to apply:**
+
 - Repos under ~200 files — eyeballing is faster and LDA's topics are unstable on small corpora
 - Monolithic single-file libraries — there's nothing to cluster
 

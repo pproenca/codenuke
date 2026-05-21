@@ -7,7 +7,7 @@ tags: valid, ari, nmi, rand-index, vinh, hubert-arabie
 
 ## Use Adjusted Rand Index And Normalized Mutual Information For Cross-Algorithm Comparison
 
-MoJoFM (`valid-mojofm-as-software-clustering-distance`) is the SAR-specific gold standard, but it's **asymmetric** (you measure distance *toward* ground truth) and not always available — sometimes you have *two algorithms* and want to ask "do they agree?" without an expert reference. The general-purpose answers are **Adjusted Rand Index** (Hubert & Arabie, "Comparing partitions," J. Classification 1985) and **Normalized Mutual Information** (Vinh, Epps, Bailey, "Information theoretic measures for clusterings comparison," ICML 2009 / JMLR 2010). Both are:
+MoJoFM (`valid-mojofm-as-software-clustering-distance`) is the SAR-specific gold standard, but it's **asymmetric** (you measure distance _toward_ ground truth) and not always available — sometimes you have _two algorithms_ and want to ask "do they agree?" without an expert reference. The general-purpose answers are **Adjusted Rand Index** (Hubert & Arabie, "Comparing partitions," J. Classification 1985) and **Normalized Mutual Information** (Vinh, Epps, Bailey, "Information theoretic measures for clusterings comparison," ICML 2009 / JMLR 2010). Both are:
 
 - **Chance-corrected**: random clusterings score ≈ 0, not the inflated baseline of plain Rand index
 - **Bounded**: ARI ∈ [-1, 1] (theoretical), [0, 1] practically; NMI ∈ [0, 1]
@@ -104,25 +104,25 @@ def random_baseline(labels_a, n_random: int = 100, seed: int = 42):
 
 **ARI vs NMI vs AMI — when to prefer which:**
 
-| Property | ARI | NMI | AMI |
-|----------|-----|-----|-----|
-| Chance-corrected | yes | only loosely | yes |
-| Penalizes imbalanced clusters | yes (heavily) | less | properly |
-| Sensitive to small clusters | yes | yes | yes |
-| Reported in most ML literature | yes | yes | rising |
-| Numerically stable for low overlap | yes | yes | sometimes unstable |
-| Recommended by Vinh-Epps-Bailey 2010 | for balanced | for general | for *exact* fairness |
+| Property                             | ARI           | NMI          | AMI                  |
+| ------------------------------------ | ------------- | ------------ | -------------------- |
+| Chance-corrected                     | yes           | only loosely | yes                  |
+| Penalizes imbalanced clusters        | yes (heavily) | less         | properly             |
+| Sensitive to small clusters          | yes           | yes          | yes                  |
+| Reported in most ML literature       | yes           | yes          | rising               |
+| Numerically stable for low overlap   | yes           | yes          | sometimes unstable   |
+| Recommended by Vinh-Epps-Bailey 2010 | for balanced  | for general  | for _exact_ fairness |
 
-The Vinh-Epps-Bailey JMLR 2010 paper is *the* reference for "which to use when" — read it for any serious clustering-evaluation study. Their bottom line: **AMI when cluster sizes vary widely, ARI when they're balanced, NMI as a fallback** (cheaper to compute).
+The Vinh-Epps-Bailey JMLR 2010 paper is _the_ reference for "which to use when" — read it for any serious clustering-evaluation study. Their bottom line: **AMI when cluster sizes vary widely, ARI when they're balanced, NMI as a fallback** (cheaper to compute).
 
 **Other useful clustering-comparison metrics:**
 
-| Metric | Use case |
-|--------|----------|
-| **Variation of Information (VI)** | Meila 2003 — symmetric, bounded by log N, interpretable as bits |
-| **Fowlkes-Mallows Index** | Useful when comparing to *hierarchical* clusterings |
-| **Jaccard Index on pairs** | Set-based; simpler interpretation |
-| **F-measure (max-match)** | Reports per-cluster agreement; useful for asymmetric "find this cluster" tasks |
+| Metric                            | Use case                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| **Variation of Information (VI)** | Meila 2003 — symmetric, bounded by log N, interpretable as bits                |
+| **Fowlkes-Mallows Index**         | Useful when comparing to _hierarchical_ clusterings                            |
+| **Jaccard Index on pairs**        | Set-based; simpler interpretation                                              |
+| **F-measure (max-match)**         | Reports per-cluster agreement; useful for asymmetric "find this cluster" tasks |
 
 **Empirical baseline:** On the standard LFR benchmark (Lancichinetti-Fortunato-Radicchi PRE 2008), Louvain achieves NMI ≈ 0.70–0.85 against ground truth; Leiden 0.78–0.88; Infomap 0.80–0.92. For software, similar values apply against expert decompositions: Andritsos-Tzerpos 2005 reports Limbo at NMI ≈ 0.72 on TOBEY; comparable Bunch and ACDC are 0.65–0.78.
 
@@ -132,6 +132,6 @@ The Vinh-Epps-Bailey JMLR 2010 paper is *the* reference for "which to use when" 
 - Overlapping clusters — both ARI and NMI assume disjoint partitions; use **overlapping NMI** (McDaid-Greene-Hurley 2011) or the **omega index**.
 - Clusterings with very different cluster counts — informative for one direction but symmetric metrics may flatten the difference; supplement with MoJoFM which is asymmetric.
 
-**Production:** scikit-learn `adjusted_rand_score`, `normalized_mutual_info_score`, `adjusted_mutual_info_score`. The `scikit-network` and `networkx-community` libraries provide more variants. For *overlapping* clusterings, `overlapping-nmi` and `cd-evaluation` packages.
+**Production:** scikit-learn `adjusted_rand_score`, `normalized_mutual_info_score`, `adjusted_mutual_info_score`. The `scikit-network` and `networkx-community` libraries provide more variants. For _overlapping_ clusterings, `overlapping-nmi` and `cd-evaluation` packages.
 
 Reference: [Information Theoretic Measures for Clusterings Comparison: Variants, Properties, Normalization and Correction for Chance (Vinh, Epps, Bailey, JMLR 2010)](https://www.jmlr.org/papers/v11/vinh10a.html)

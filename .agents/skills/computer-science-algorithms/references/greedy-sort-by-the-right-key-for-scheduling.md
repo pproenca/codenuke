@@ -7,18 +7,18 @@ tags: greedy, scheduling, sorting-key, optimization
 
 ## Sort By The Right Key — Earliest Deadline, Smallest Ratio, Largest Density
 
-A surprisingly large family of scheduling and selection problems is solved by sorting on one specific key, then sweeping. The art is identifying the *right* key. Sorting by start time, by finish time, by duration, by deadline, or by value/weight ratio all give optimal answers for *different* problems — and using the wrong key gives a fast wrong answer. The exchange argument from the previous rule tells you which key is correct.
+A surprisingly large family of scheduling and selection problems is solved by sorting on one specific key, then sweeping. The art is identifying the _right_ key. Sorting by start time, by finish time, by duration, by deadline, or by value/weight ratio all give optimal answers for _different_ problems — and using the wrong key gives a fast wrong answer. The exchange argument from the previous rule tells you which key is correct.
 
 Cheat sheet of canonical pairings:
 
-| Problem | Sort by |
-|---------|---------|
-| Activity selection (max count) | Finish time ascending |
-| Minimize max lateness | Deadline ascending |
-| Fractional knapsack (max value) | Value/weight ratio descending |
-| Job sequencing with deadlines | Profit descending (then fit each into latest free slot ≤ deadline) |
-| Interval covering | Start time ascending; pick farthest reach |
-| Huffman coding | Build from two smallest frequencies repeatedly (priority queue) |
+| Problem                         | Sort by                                                            |
+| ------------------------------- | ------------------------------------------------------------------ |
+| Activity selection (max count)  | Finish time ascending                                              |
+| Minimize max lateness           | Deadline ascending                                                 |
+| Fractional knapsack (max value) | Value/weight ratio descending                                      |
+| Job sequencing with deadlines   | Profit descending (then fit each into latest free slot ≤ deadline) |
+| Interval covering               | Start time ascending; pick farthest reach                          |
+| Huffman coding                  | Build from two smallest frequencies repeatedly (priority queue)    |
 
 **Incorrect (activity selection sorted by start time — wrong answer):**
 
@@ -47,7 +47,7 @@ def max_activities(intervals: list[tuple[int, int]]) -> int:
     return count
 ```
 
-**Fractional knapsack** (notably *only* the fractional version is greedy — 0/1 needs DP):
+**Fractional knapsack** (notably _only_ the fractional version is greedy — 0/1 needs DP):
 
 ```python
 def fractional_knapsack(items: list[tuple[int, int]], capacity: int) -> float:

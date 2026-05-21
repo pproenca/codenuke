@@ -7,7 +7,7 @@ tags: ds, balanced-bst, sorted-container, range-query
 
 ## Use A Balanced BST Or Sorted Container For Order-Sensitive Queries
 
-A hash map is faster than a balanced BST for point lookups — but it loses to a BST whenever you need any *ordered* operation: predecessor, successor, range scan, k-th smallest, or "give me the smallest key larger than x." For those, a balanced BST (`std::map`, `TreeMap`, `SortedContainers.SortedList`) gives O(log n) per operation while a hash map needs O(n) to find ordered neighbours.
+A hash map is faster than a balanced BST for point lookups — but it loses to a BST whenever you need any _ordered_ operation: predecessor, successor, range scan, k-th smallest, or "give me the smallest key larger than x." For those, a balanced BST (`std::map`, `TreeMap`, `SortedContainers.SortedList`) gives O(log n) per operation while a hash map needs O(n) to find ordered neighbours.
 
 The decision rule: use a hash map for "is x here?" and "what value does x map to?" Use an ordered structure when the question involves "next/previous/range/rank."
 

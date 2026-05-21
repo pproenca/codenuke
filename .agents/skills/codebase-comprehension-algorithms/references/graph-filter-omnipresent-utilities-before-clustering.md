@@ -7,7 +7,7 @@ tags: graph, preprocessing, omnipresent, tzerpos, noise-filtering
 
 ## Filter Omnipresent Utilities Before Clustering
 
-Every non-trivial codebase has files that *everyone* imports — `logger`, `errors`, `constants`, `utils/string`, `db/connection`, `i18n`, base classes, type-stubs. **Tzerpos & Holt (ACDC, WCRE 2000) called these "omnipresent" files** and showed they are the single largest source of clustering noise: they pull every cluster toward themselves, merge unrelated domains via shared imports, and inflate modularity scores while destroying semantic meaning. On a 5,000-file codebase, the top 50–100 most-imported modules typically account for **50–80% of total edges** in the import graph; leave them in and your "communities" are mostly "things that use the logger."
+Every non-trivial codebase has files that _everyone_ imports — `logger`, `errors`, `constants`, `utils/string`, `db/connection`, `i18n`, base classes, type-stubs. **Tzerpos & Holt (ACDC, WCRE 2000) called these "omnipresent" files** and showed they are the single largest source of clustering noise: they pull every cluster toward themselves, merge unrelated domains via shared imports, and inflate modularity scores while destroying semantic meaning. On a 5,000-file codebase, the top 50–100 most-imported modules typically account for **50–80% of total edges** in the import graph; leave them in and your "communities" are mostly "things that use the logger."
 
 The cure is mechanical: before running any clustering algorithm, identify omnipresent files and either remove them entirely or attach them to every cluster post-hoc. Use a fan-in threshold (e.g. files in the top 1–2% by fan-in), a percentage-of-modules threshold (imported by > N% of files), or — best — a TF-IDF-style inverse-document-frequency cutoff that lets the data choose.
 
@@ -82,8 +82,8 @@ ACDC (Tzerpos & Holt, WCRE 2000) and Bunch (Mancoridis et al., ICSM 1999) both r
 
 **When NOT to filter:**
 
-- You're recovering *layer* structure (kernel → util → app) — omnipresent files ARE the lower layers and you need them in.
-- You're explicitly hunting for cross-cutting concerns (logging, auth, i18n) — those *are* the omnipresent files. Use FCA (Snelting-Tip, FSE 1998) instead of community detection.
+- You're recovering _layer_ structure (kernel → util → app) — omnipresent files ARE the lower layers and you need them in.
+- You're explicitly hunting for cross-cutting concerns (logging, auth, i18n) — those _are_ the omnipresent files. Use FCA (Snelting-Tip, FSE 1998) instead of community detection.
 - The codebase is small enough (< 200 files) that the top-1% tail is 0–2 files.
 
 **Production:** ACDC ships with a configurable omnipresent threshold; SonarQube's Architecture view applies a similar fan-in cutoff before drawing dependency cycles; Sourcegraph's code-intel skips well-known stdlib modules entirely when building cross-repo graphs.

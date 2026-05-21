@@ -30,7 +30,7 @@ def range_sums(arr: list[int], queries: list[tuple[int, int]]) -> list[int]:
     return [prefix[r + 1] - prefix[l] for l, r in queries]  # O(1) per query
 ```
 
-**Difference-array variant (for many range *updates* followed by point reads):**
+**Difference-array variant (for many range _updates_ followed by point reads):**
 
 ```python
 def apply_range_increments(n: int, updates):

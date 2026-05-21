@@ -7,7 +7,7 @@ tags: valid, ablation, sensitivity, factor-analysis, attribution
 
 ## Ablate Each Input Signal And Measure The Drop In Quality
 
-You built a multi-signal pipeline (structural + co-change + lexical, weighted multilayer — see `graph-combine-signals-in-multilayer-graphs`). You report MoJoFM = 73 on a benchmark. **Which signal actually mattered?** Without ablation, you don't know — and worse, neither do your reviewers. The right experimental protocol is **leave-one-out ablation**: for each input signal, *remove* it (set its weight to 0 or rebuild the graph without it), re-run the full pipeline, and measure the drop in quality. The signal whose removal drops quality the most is doing the most work; signals whose removal *increases* quality were actually hurting.
+You built a multi-signal pipeline (structural + co-change + lexical, weighted multilayer — see `graph-combine-signals-in-multilayer-graphs`). You report MoJoFM = 73 on a benchmark. **Which signal actually mattered?** Without ablation, you don't know — and worse, neither do your reviewers. The right experimental protocol is **leave-one-out ablation**: for each input signal, _remove_ it (set its weight to 0 or rebuild the graph without it), re-run the full pipeline, and measure the drop in quality. The signal whose removal drops quality the most is doing the most work; signals whose removal _increases_ quality were actually hurting.
 
 This is the standard practice in ML research (Sutskever-Hinton 2014 "On the importance of initialization and momentum in deep learning" ablate momentum, learning rate, ...) and almost never done in software clustering. The result is often surprising: many studies that report "we combined three signals" find on ablation that one signal does 80% of the work and the others contribute noise.
 
@@ -115,7 +115,7 @@ def interpret_ablation(results):
    lexical_only        51.5
 ```
 
-Conclusion: this codebase's clustering quality is driven by **co-change**, not by structural dependencies. Lexical adds almost nothing. You can drop lexical from your pipeline (saves preprocessing time + complexity) without losing accuracy. *This* is the conclusion that ablation gives you and a single end-to-end run doesn't.
+Conclusion: this codebase's clustering quality is driven by **co-change**, not by structural dependencies. Lexical adds almost nothing. You can drop lexical from your pipeline (saves preprocessing time + complexity) without losing accuracy. _This_ is the conclusion that ablation gives you and a single end-to-end run doesn't.
 
 **Beyond signal ablation — hyperparameter and algorithm ablation:**
 
@@ -132,10 +132,11 @@ Conclusion: this codebase's clustering quality is driven by **co-change**, not b
 
 **Why ablation is non-negotiable for serious analysis:**
 
-A pipeline with N components has 2^N possible ablations. Reporting one configuration's MoJoFM (or any other metric) gives a single number. Reporting the ablation lattice gives an *attribution* — which components carry the signal, which are noise, which are redundant. Without it you can't:
+A pipeline with N components has 2^N possible ablations. Reporting one configuration's MoJoFM (or any other metric) gives a single number. Reporting the ablation lattice gives an _attribution_ — which components carry the signal, which are noise, which are redundant. Without it you can't:
+
 - Defend the pipeline design ("we tried it without X and it was 10 points worse")
 - Simplify ("we showed X contributed nothing; we removed it")
-- Generalise ("X works on Tomcat; on Jenkins, X *hurts* — interesting")
+- Generalise ("X works on Tomcat; on Jenkins, X _hurts_ — interesting")
 
 **When NOT to ablate:**
 
@@ -143,6 +144,6 @@ A pipeline with N components has 2^N possible ablations. Reporting one configura
 - Single-signal pipeline (nothing to ablate).
 - The signals are inseparable by construction (e.g. embeddings learned jointly) — ablate at a coarser granularity.
 
-**Production:** No standard tool — ablation is a *practice*, not a library. Most ML research papers include an ablation table; software-clustering research papers typically don't, which is a maturity gap the field is starting to address.
+**Production:** No standard tool — ablation is a _practice_, not a library. Most ML research papers include an ablation table; software-clustering research papers typically don't, which is a maturity gap the field is starting to address.
 
 Reference: [Evaluating the impact of software evolution on software clustering (Beck & Diehl, EMSE 2013)](https://link.springer.com/article/10.1007/s10664-012-9220-1)

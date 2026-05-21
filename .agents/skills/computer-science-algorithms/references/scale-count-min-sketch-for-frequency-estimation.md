@@ -80,7 +80,7 @@ def top_k_frequent(events, k: int):
 
 - You need exact counts (billing, fraud evidence, audit logs)
 - The number of distinct keys is small enough for `Counter` (≤ ~10⁶)
-- You need to enumerate which keys exist (CMS only estimates counts of *queried* keys)
+- You need to enumerate which keys exist (CMS only estimates counts of _queried_ keys)
 
 **Production:** Apache DataSketches (LinkedIn), Twitter Heron streaming top-k, Google AdWords click counters, network DDoS mitigation, query-plan cost estimation in databases.
 

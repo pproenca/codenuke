@@ -7,7 +7,7 @@ tags: clone, simhash, fingerprint, hamming-distance, charikar
 
 ## Use SimHash 64-bit Fingerprints for Constant-Time Similarity Lookups
 
-SimHash (Charikar, 2002) compresses a document into a 64-bit fingerprint where similar documents have fingerprints differing in only a few bits — Hamming distance estimates dissimilarity. Compared to MinHash, SimHash uses less storage (one 64-bit integer per document vs. a 128-element array), and Hamming distance is faster to compute on modern CPUs (single XOR + popcount). It's the right choice when you have *many* documents and need a similarity index that fits in cache. Google originally used it for near-duplicate web page detection on the entire crawl.
+SimHash (Charikar, 2002) compresses a document into a 64-bit fingerprint where similar documents have fingerprints differing in only a few bits — Hamming distance estimates dissimilarity. Compared to MinHash, SimHash uses less storage (one 64-bit integer per document vs. a 128-element array), and Hamming distance is faster to compute on modern CPUs (single XOR + popcount). It's the right choice when you have _many_ documents and need a similarity index that fits in cache. Google originally used it for near-duplicate web page detection on the entire crawl.
 
 **Incorrect (MD5 / SHA hash → equality test — catches only identical files, misses near-duplicates):**
 
@@ -73,10 +73,11 @@ for name, sig in records:
 | Weighted-feature similarity | MinHash + WeightedMinHash |
 | Memory-bound at huge scale | SimHash (fits 1B docs in 8 GB) |
 
-**Combine with `mine-change-coupling`:** two near-duplicate files that *also* change together are textbook copy-paste-and-edit clones — the worst kind, because the duplication is reinforced every commit. Refactor those first.
+**Combine with `mine-change-coupling`:** two near-duplicate files that _also_ change together are textbook copy-paste-and-edit clones — the worst kind, because the duplication is reinforced every commit. Refactor those first.
 
 **When NOT to apply:**
-- Need to identify duplicated *regions* within files — SimHash is whole-file; use suffix-array CPD or AST clone tools instead
+
+- Need to identify duplicated _regions_ within files — SimHash is whole-file; use suffix-array CPD or AST clone tools instead
 - Documents shorter than ~50 tokens — fingerprint is unstable; fall back to direct token comparison
 
 Reference: [Charikar, Similarity Estimation Techniques from Rounding Algorithms (STOC 2002)](https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf), [Manku, Jain & Sarma, Detecting Near-Duplicates for Web Crawling (WWW 2007)](https://www.cs.princeton.edu/courses/archive/spr05/cos598E/bib/Princeton.pdf)

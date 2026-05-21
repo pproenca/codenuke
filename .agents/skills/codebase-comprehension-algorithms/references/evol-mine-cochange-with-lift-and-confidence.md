@@ -7,11 +7,11 @@ tags: evol, lift, confidence, support, apriori, rose, zimmermann
 
 ## Mine Co-Change With Lift And Confidence, Not Raw Co-Occurrence Count
 
-Two files changed together 20 times. Is that signal? The answer is governed by the marginal frequencies. If both files change 200 times each independently (one is a config file, the other is a route table — they happen to be touched in nearly every commit), 20 co-changes is *less than chance*. If both change only 22 times each, 20 co-changes is **enormous evidence of coupling**. **Raw co-change count is uninterpretable** — you need to **normalise by the marginal frequencies**.
+Two files changed together 20 times. Is that signal? The answer is governed by the marginal frequencies. If both files change 200 times each independently (one is a config file, the other is a route table — they happen to be touched in nearly every commit), 20 co-changes is _less than chance_. If both change only 22 times each, 20 co-changes is **enormous evidence of coupling**. **Raw co-change count is uninterpretable** — you need to **normalise by the marginal frequencies**.
 
 The right metrics come from **association-rule mining** (Agrawal & Srikant, VLDB 1994), applied to version history by **Zimmermann, Weißgerber, Diehl, Zeller** in the ROSE tool ("Mining Version Histories to Guide Software Changes," TSE 2005). Three quantities:
 
-- **Support(A → B)** = P(A and B changed together) — how *common* is this co-change?
+- **Support(A → B)** = P(A and B changed together) — how _common_ is this co-change?
 - **Confidence(A → B)** = P(B changed | A changed) — when A changes, how often does B?
 - **Lift(A → B)** = P(A and B) / (P(A) · P(B)) — how much more than chance?
 
@@ -129,7 +129,7 @@ Lift = 1 means independent — co-occurrence equals product of marginals. Lift =
 
 **Special case — Apriori for itemsets > 2:**
 
-The above handles pairs. For *triples or larger* (e.g. "every time A and B change, so does C and D"), use frequent-itemset mining: **Apriori** (Agrawal-Srikant VLDB 1994) or its faster successor **FP-Growth** (Han-Pei SIGMOD 2000). The candidate-generation pattern (only k-itemsets all of whose (k-1)-subsets are frequent) prunes the search dramatically. For software, triples are rare — most coupling is pairwise — but they reveal critical cross-feature interactions when they exist.
+The above handles pairs. For _triples or larger_ (e.g. "every time A and B change, so does C and D"), use frequent-itemset mining: **Apriori** (Agrawal-Srikant VLDB 1994) or its faster successor **FP-Growth** (Han-Pei SIGMOD 2000). The candidate-generation pattern (only k-itemsets all of whose (k-1)-subsets are frequent) prunes the search dramatically. For software, triples are rare — most coupling is pairwise — but they reveal critical cross-feature interactions when they exist.
 
 **Empirical baseline:** Zimmermann et al. (TSE 2005) report ROSE's pair-level recommendations achieve **70–90% precision at top-3** for "what files should change with this one?" on Eclipse, ArgoUML, and Mozilla. Confidence and lift outperform raw count by 15–25% on these benchmarks. Gall et al. (ICSM 1998 founding paper) used pure co-change counts and demonstrated they predict architectural decisions; the lift-based refinements add ~10 precision points.
 

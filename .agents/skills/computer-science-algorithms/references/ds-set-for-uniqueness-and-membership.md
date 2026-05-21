@@ -7,7 +7,7 @@ tags: ds, set, membership, dedup
 
 ## Use A Set For Uniqueness And Membership, Not A List
 
-A set tracks "have I seen this value?" in O(1) average time. Using a list for the same purpose makes every check O(n) and every dedup pass O(n²). The two operations look identical in code (`if x in container`) but have wildly different costs — the container type is the *only* difference, and it matters for every single iteration.
+A set tracks "have I seen this value?" in O(1) average time. Using a list for the same purpose makes every check O(n) and every dedup pass O(n²). The two operations look identical in code (`if x in container`) but have wildly different costs — the container type is the _only_ difference, and it matters for every single iteration.
 
 Reach for a set whenever the question is "is this value present?" or "give me the distinct values." Reach for a `dict` if you also need a payload per key.
 

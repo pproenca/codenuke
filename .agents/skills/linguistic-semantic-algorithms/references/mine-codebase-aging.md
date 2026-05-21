@@ -7,7 +7,7 @@ tags: mine, code-age, last-modified, dead-code, stability
 
 ## Plot Per-File Age Distribution to Separate Stable Code from Forgotten Code
 
-A file untouched for 3 years is either (a) load-bearing code so solid nobody needs to change it, or (b) dead code nobody knows about. The age signal alone can't distinguish them — you also need to know whether the file is *reached* by current code. The combination is decisive: high-age + reachable = stable foundation (leave it alone, document it); high-age + unreachable = dead code (delete it). Tracking the per-file age distribution as a single metric over time also reveals when "stable code" suddenly starts changing, which is often the first sign of an upcoming refactor or incident.
+A file untouched for 3 years is either (a) load-bearing code so solid nobody needs to change it, or (b) dead code nobody knows about. The age signal alone can't distinguish them — you also need to know whether the file is _reached_ by current code. The combination is decisive: high-age + reachable = stable foundation (leave it alone, document it); high-age + unreachable = dead code (delete it). Tracking the per-file age distribution as a single metric over time also reveals when "stable code" suddenly starts changing, which is often the first sign of an upcoming refactor or incident.
 
 **Incorrect (just delete files unchanged for N years — risks deleting load-bearing code):**
 
@@ -78,10 +78,11 @@ for age_days, path in sorted(report["dead_candidate"], reverse=True)[:20]:
 
 **Pair with `mine-bus-factor`:** old + bus-factor-1 + reachable is the "Maintainer Hit by Bus" risk — load-bearing code only one person understands. Distinct from "dead but feared to delete" — same age signal, very different action.
 
-**Combine with `concept-tfidf-rare-terms`:** old files that contain high-IDF *domain* terms are stable domain code (the kind to preserve); old files containing only generic terms (string utils, hash helpers) are the safer deletion candidates.
+**Combine with `concept-tfidf-rare-terms`:** old files that contain high-IDF _domain_ terms are stable domain code (the kind to preserve); old files containing only generic terms (string utils, hash helpers) are the safer deletion candidates.
 
 **When NOT to apply:**
-- Repos where `git log` is heavily rewritten (rebases, squashes) — last-modified date is misleading; use the `committer-date` of the *first* introduction of each line via `git log -L`
+
+- Repos where `git log` is heavily rewritten (rebases, squashes) — last-modified date is misleading; use the `committer-date` of the _first_ introduction of each line via `git log -L`
 - Codebases with build-time-generated files in tree — exclude generated paths from the analysis entirely
 
 Reference: [Eick et al., Does code decay? (TSE 2001)](https://ieeexplore.ieee.org/document/895984), [vulture — find dead Python code](https://github.com/jendrikseipp/vulture)

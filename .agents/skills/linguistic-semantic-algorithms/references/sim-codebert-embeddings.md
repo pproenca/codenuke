@@ -7,7 +7,7 @@ tags: sim, codebert, embeddings, semantic-search, transformers
 
 ## Use CodeBERT Embeddings plus Cosine Similarity for Semantic Code Search
 
-CodeBERT (Microsoft, 2020) is a BERT-family model pre-trained on six programming languages plus matching natural-language docstrings. Encoding every function in a codebase into a 768-dim vector and indexing it with cosine similarity lets an agent answer "find functions semantically similar to *this one*" — even when the matches use different identifier names, different control flow, and different languages. This is the only technique on this list that crosses naming boundaries reliably; everything based on tokens or AST shape misses rewrites. The cost is a few hours of GPU encoding per million LoC; the payoff is feature-mapping queries grep will never solve.
+CodeBERT (Microsoft, 2020) is a BERT-family model pre-trained on six programming languages plus matching natural-language docstrings. Encoding every function in a codebase into a 768-dim vector and indexing it with cosine similarity lets an agent answer "find functions semantically similar to _this one_" — even when the matches use different identifier names, different control flow, and different languages. This is the only technique on this list that crosses naming boundaries reliably; everything based on tokens or AST shape misses rewrites. The cost is a few hours of GPU encoding per million LoC; the payoff is feature-mapping queries grep will never solve.
 
 **Incorrect (token overlap as a similarity proxy — misses rewrites and renames):**
 
@@ -92,6 +92,7 @@ for s, name in top:
 **For multi-language repos, use a multilingual code model** (e.g. `microsoft/unixcoder-base` or `Salesforce/codet5p-110m-embedding`). CodeBERT covers six languages, UniXcoder covers nine and produces better cross-language matches.
 
 **When NOT to apply:**
+
 - Tiny repos (<200 functions) — linear-scan AST diff is faster and gives finer-grained matches
 - Generated code (protobuf, codegen output) — embeddings of repetitive boilerplate cluster together meaninglessly
 

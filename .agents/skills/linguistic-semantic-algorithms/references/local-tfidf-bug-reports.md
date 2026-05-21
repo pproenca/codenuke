@@ -64,6 +64,7 @@ for i in top:
 **Use BM25 instead** (see `local-bm25-saturation`) on longer documents — TF saturation matters once files exceed ~500 LoC.
 
 **When NOT to apply:**
+
 - Reports that are pure stack traces with no description — TF-IDF on a stack trace alone is brittle; just open the top frame's file directly
 - Mono-language repos with extreme identifier reuse — every file scores similar TF-IDF; the technique needs vocabulary diversity to discriminate
 

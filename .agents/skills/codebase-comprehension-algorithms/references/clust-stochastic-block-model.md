@@ -9,7 +9,7 @@ tags: clust, sbm, bayesian, peixoto, mdl, graph-tool
 
 Most community detection picks a number of clusters explicitly or implicitly via a resolution parameter — wrong, the result depends on a knob you didn't know how to set. **Stochastic Block Models** treat the graph as drawn from a generative process where each node belongs to one of k blocks and the probability of an edge between two nodes depends only on their blocks. Fitting an SBM means recovering both the block assignments AND the inter-block edge-probability matrix — and **Peixoto's hierarchical SBM** (Peixoto, 2014 onward; canonical reference: "Bayesian stochastic blockmodeling," 2017) uses a **Minimum Description Length** prior so the model self-selects k. There is no number-of-clusters parameter to tune.
 
-SBMs also detect *structures other than communities*: bipartite structure ("nodes in block A only connect to block B"), core-periphery, hub-and-spoke. Modularity-based methods can't see these patterns because they're explicitly designed for assortative structure. In software, this matters: a layered architecture (controllers → services → repositories) is *disassortative* between layers — and modularity finds it badly.
+SBMs also detect _structures other than communities_: bipartite structure ("nodes in block A only connect to block B"), core-periphery, hub-and-spoke. Modularity-based methods can't see these patterns because they're explicitly designed for assortative structure. In software, this matters: a layered architecture (controllers → services → repositories) is _disassortative_ between layers — and modularity finds it badly.
 
 **Incorrect (Leiden on a layered architecture — collapses layers into one cluster per feature):**
 
@@ -104,7 +104,7 @@ M = block_affinity(state)
 
 **Why this is the right tool when you suspect structure isn't pure assortative:**
 
-The SBM is a **generative model**: it can be *checked* (does the data look like it was generated this way?), *compared* (which SBM variant fits best? — by description length), and *sampled* (does a sampled graph look like the real one?). Modularity is a *score*: you can rank partitions but can't ask whether modularity is even the right structure to look for.
+The SBM is a **generative model**: it can be _checked_ (does the data look like it was generated this way?), _compared_ (which SBM variant fits best? — by description length), and _sampled_ (does a sampled graph look like the real one?). Modularity is a _score_: you can rank partitions but can't ask whether modularity is even the right structure to look for.
 
 **Empirical baseline:** Peixoto (PRX 2014) shows that on graphs with non-assortative structure, modularity-based methods produce decompositions with **NMI ≈ 0.1 against ground truth** while degree-corrected SBM achieves **0.7–0.9**. On real software systems (Tichelaar et al. 2008 corpus), hierarchical SBM produces decompositions one-to-one with expert-defined layers in Apache Hadoop, Tomcat, and OpenJDK.
 
@@ -116,4 +116,4 @@ The SBM is a **generative model**: it can be *checked* (does the data look like 
 
 **Production:** `graph-tool` (Peixoto's library) is the reference; it has been used in academic SAR studies (Bavota et al. 2014, Corazza et al. 2016) and in network-science research for citation networks, biology, neuroscience. Not yet mainstream in industry — opportunity.
 
-Reference: [Bayesian stochastic blockmodeling (Peixoto, 2017, in *Advances in Network Clustering and Blockmodeling*)](https://arxiv.org/abs/1705.10225)
+Reference: [Bayesian stochastic blockmodeling (Peixoto, 2017, in _Advances in Network Clustering and Blockmodeling_)](https://arxiv.org/abs/1705.10225)

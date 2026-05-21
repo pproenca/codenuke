@@ -7,7 +7,7 @@ tags: lex, pos-tagging, verb-object, method-names, høst-østvold
 
 ## Extract Verb-Object Pattern From Method Names For Concept Mining
 
-`getUserById`, `validatePaymentMethod`, `dispatchOrderToFulfillment`, `cancelSubscriptionAfterTrial` — method names are tiny sentences with a **verb-object grammar**. Treating them as bags of unordered tokens throws away the relationship between *action* and *thing-acted-upon*. Extracting (verb, direct-object) pairs surfaces the underlying domain operations directly: "validate × payment-method", "dispatch × order", "cancel × subscription" — exactly the operations a domain-driven-design ubiquitous-language extraction wants.
+`getUserById`, `validatePaymentMethod`, `dispatchOrderToFulfillment`, `cancelSubscriptionAfterTrial` — method names are tiny sentences with a **verb-object grammar**. Treating them as bags of unordered tokens throws away the relationship between _action_ and _thing-acted-upon_. Extracting (verb, direct-object) pairs surfaces the underlying domain operations directly: "validate × payment-method", "dispatch × order", "cancel × subscription" — exactly the operations a domain-driven-design ubiquitous-language extraction wants.
 
 This idea goes back to **Caprile-Tonella (ICSM 1999, "Nomen est omen")** and was formalized by **Høst & Østvold (ICSE 2009, "Debugging method names")** who showed that 70%+ of Java method names follow the V-O pattern, and that mismatches (`getUser` that doesn't return a user) are real bugs. For codebase comprehension, the (verb, object) pair is a much higher-signal feature than either alone — `get × user` and `set × user` cluster differently than `get × payment` and `set × user`, even though all four contain the token `user`.
 

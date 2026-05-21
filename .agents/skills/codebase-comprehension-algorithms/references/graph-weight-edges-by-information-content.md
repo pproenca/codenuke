@@ -98,16 +98,16 @@ def jaccard_weighted(G: nx.Graph) -> nx.Graph:
     return H
 ```
 
-**Empirical baseline:** Maqbool & Babri (TSE 2007, "Hierarchical Clustering for Software Architecture Recovery") report that IDF / Jaccard weighting on the import graph improves MoJoFM agreement with expert decompositions by **15–35 points** on Mozilla, Linux kernel, and three industrial systems compared to unweighted clustering — and the *interaction* with omnipresent filtering is mildly negative (one substitutes for the other), so do whichever is easier.
+**Empirical baseline:** Maqbool & Babri (TSE 2007, "Hierarchical Clustering for Software Architecture Recovery") report that IDF / Jaccard weighting on the import graph improves MoJoFM agreement with expert decompositions by **15–35 points** on Mozilla, Linux kernel, and three industrial systems compared to unweighted clustering — and the _interaction_ with omnipresent filtering is mildly negative (one substitutes for the other), so do whichever is easier.
 
 **The four-line summary of which to use:**
 
-| Weighting | Use when |
-|-----------|----------|
-| IDF on target | Static call / import graph (target popularity is the dominant noise) |
-| PMI / Lift | Co-change graph (both endpoints vary in frequency) |
-| Jaccard on neighbours | Bipartite graphs and lexical similarity |
-| Mutual information | When both nodes have categorical features (file type, language, layer) |
+| Weighting             | Use when                                                               |
+| --------------------- | ---------------------------------------------------------------------- |
+| IDF on target         | Static call / import graph (target popularity is the dominant noise)   |
+| PMI / Lift            | Co-change graph (both endpoints vary in frequency)                     |
+| Jaccard on neighbours | Bipartite graphs and lexical similarity                                |
+| Mutual information    | When both nodes have categorical features (file type, language, layer) |
 
 **When NOT to weight:**
 

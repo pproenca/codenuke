@@ -7,9 +7,9 @@ tags: valid, resolution-limit, fortunato-barthelemy, modularity, multi-resolutio
 
 ## Be Aware Of The Resolution Limit Of Modularity Maximization
 
-**Fortunato & Barthélemy** ("Resolution limit in community detection," PNAS 2007) proved a startling result: **modularity Q maximization cannot detect communities smaller than approximately sqrt(2m)** where m is the number of edges. Below that scale, modularity *prefers* to merge small communities into larger ones, even when the small communities are perfectly cohesive and statistically distinct. This isn't a bug in Louvain or Leiden — it's a mathematical property of the modularity function itself. It applies to **every modularity-based method**: Louvain, Leiden, fast-greedy, spectral modularity, Bunch (which uses MQ, a different but related quality function with its own resolution limit).
+**Fortunato & Barthélemy** ("Resolution limit in community detection," PNAS 2007) proved a startling result: **modularity Q maximization cannot detect communities smaller than approximately sqrt(2m)** where m is the number of edges. Below that scale, modularity _prefers_ to merge small communities into larger ones, even when the small communities are perfectly cohesive and statistically distinct. This isn't a bug in Louvain or Leiden — it's a mathematical property of the modularity function itself. It applies to **every modularity-based method**: Louvain, Leiden, fast-greedy, spectral modularity, Bunch (which uses MQ, a different but related quality function with its own resolution limit).
 
-For software clustering: a codebase with 10,000 edges (m = 10,000) has sqrt(2m) ≈ 141. Any "real" community smaller than ~140 files gets merged into something larger. On a typical industrial codebase, this means **modules of 5-50 files cannot be recovered by modularity**, even when they're architecturally crisp. The codebase's *actual* fine-grained decomposition is invisible to Q-based methods.
+For software clustering: a codebase with 10,000 edges (m = 10,000) has sqrt(2m) ≈ 141. Any "real" community smaller than ~140 files gets merged into something larger. On a typical industrial codebase, this means **modules of 5-50 files cannot be recovered by modularity**, even when they're architecturally crisp. The codebase's _actual_ fine-grained decomposition is invisible to Q-based methods.
 
 The fix is **multi-resolution modularity** — use a resolution parameter γ > 1 to find finer clusters, < 1 for coarser. Sweep γ and inspect the stable plateaus. Infomap, SBM, and HDBSCAN don't suffer from the resolution limit; for important fine-grained decisions, prefer them.
 
@@ -120,24 +120,24 @@ def find_stable_resolutions(g_ig, gamma_values):
 
 **Multi-resolution alternatives that avoid the limit entirely:**
 
-| Method | How it avoids the limit |
-|--------|-------------------------|
-| **Infomap** | Map equation is per-cluster code-length, not normalized by graph total → no resolution limit |
-| **Stochastic Block Model (Peixoto)** | MDL-based; clusters can be any size that minimizes description length |
-| **HDBSCAN** | Density-based; explicit cluster_min_size parameter |
-| **Markov Clustering (MCL)** | Inflation parameter directly controls granularity; no implicit limit |
-| **Multi-Level Modularity (Reichardt-Bornholdt)** | Sweep γ explicitly — the technique above |
+| Method                                           | How it avoids the limit                                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **Infomap**                                      | Map equation is per-cluster code-length, not normalized by graph total → no resolution limit |
+| **Stochastic Block Model (Peixoto)**             | MDL-based; clusters can be any size that minimizes description length                        |
+| **HDBSCAN**                                      | Density-based; explicit cluster_min_size parameter                                           |
+| **Markov Clustering (MCL)**                      | Inflation parameter directly controls granularity; no implicit limit                         |
+| **Multi-Level Modularity (Reichardt-Bornholdt)** | Sweep γ explicitly — the technique above                                                     |
 
-The Fortunato-Barthélemy result is *the* reason "Use Infomap instead of Louvain" is the default in many modern complex-systems papers.
+The Fortunato-Barthélemy result is _the_ reason "Use Infomap instead of Louvain" is the default in many modern complex-systems papers.
 
 **Empirical scope of the problem:**
 
-| System | m (edges) | sqrt(2m) | "Lost" small clusters? |
-|--------|----------|----------|------------------------|
-| Toy ZKKC | 78 | 12.5 | No — clusters are larger than 12 |
-| Mozilla | 10K–30K | 141–245 | Yes — many "real" subsystems are < 50 files |
-| Linux | 100K+ | > 450 | Severe — many drivers/modules are tiny |
-| Industrial monorepo (1M edges) | 1M | 1414 | Catastrophic — any "small" service is invisible |
+| System                         | m (edges) | sqrt(2m) | "Lost" small clusters?                          |
+| ------------------------------ | --------- | -------- | ----------------------------------------------- |
+| Toy ZKKC                       | 78        | 12.5     | No — clusters are larger than 12                |
+| Mozilla                        | 10K–30K   | 141–245  | Yes — many "real" subsystems are < 50 files     |
+| Linux                          | 100K+     | > 450    | Severe — many drivers/modules are tiny          |
+| Industrial monorepo (1M edges) | 1M        | 1414     | Catastrophic — any "small" service is invisible |
 
 **When NOT to worry about the resolution limit:**
 
@@ -149,7 +149,7 @@ The Fortunato-Barthélemy result is *the* reason "Use Infomap instead of Louvain
 
 - You suspect "real" small modules exist and want them back.
 - Your modularity-Q output has surprisingly few, large clusters compared to the codebase's apparent feature count.
-- You're publishing — *report* whether you've checked for resolution-limit effects.
+- You're publishing — _report_ whether you've checked for resolution-limit effects.
 
 **Production:** Leiden / Louvain implementations (`leidenalg`, `python-louvain`, `networkx`, igraph) all expose the resolution parameter. The Reichardt-Bornholdt Hamiltonian is the underlying generalization; multi-resolution modularity is the SAR community's standard workaround.
 

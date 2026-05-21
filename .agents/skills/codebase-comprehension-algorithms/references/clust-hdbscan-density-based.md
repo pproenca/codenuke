@@ -7,7 +7,7 @@ tags: clust, hdbscan, dbscan, density-based, campello, embeddings
 
 ## Use HDBSCAN For Density-Based Clustering On File Embeddings
 
-When you've embedded each file into a dense vector (via LSI, code2vec, CodeBERT, or TF-IDF + SVD), you have a point cloud in ℝᵈ, not a graph — and graph-based clustering doesn't apply. **HDBSCAN** (Campello, Moulavi, Sander, PAKDD 2013) is the modern density-based clusterer: it builds a hierarchy of density-connected components, then selects clusters based on **persistent density** (clusters that survive across many density thresholds). Unlike k-means, it doesn't force you to pick k; unlike DBSCAN, it handles **clusters of varying density** in the same dataset; unlike both, it has an explicit *noise* label for points that don't belong to any cluster — exactly what you want when a codebase has well-defined feature domains plus a long tail of one-off helpers.
+When you've embedded each file into a dense vector (via LSI, code2vec, CodeBERT, or TF-IDF + SVD), you have a point cloud in ℝᵈ, not a graph — and graph-based clustering doesn't apply. **HDBSCAN** (Campello, Moulavi, Sander, PAKDD 2013) is the modern density-based clusterer: it builds a hierarchy of density-connected components, then selects clusters based on **persistent density** (clusters that survive across many density thresholds). Unlike k-means, it doesn't force you to pick k; unlike DBSCAN, it handles **clusters of varying density** in the same dataset; unlike both, it has an explicit _noise_ label for points that don't belong to any cluster — exactly what you want when a codebase has well-defined feature domains plus a long tail of one-off helpers.
 
 For codebase comprehension specifically, HDBSCAN is the right finishing step after producing file embeddings. The agent can confidently report "these 30 files form the payments cluster, these 25 the search cluster… these 12 files are scattered noise that don't belong to any feature" — which is more honest than forcing every file into some cluster.
 
@@ -95,15 +95,15 @@ def reattach_noise_by_proximity(X, labels, threshold: float = 0.6):
 
 **Why HDBSCAN beats both DBSCAN and k-means here:**
 
-| Property | k-means | DBSCAN | HDBSCAN |
-|----------|---------|--------|---------|
-| Pick k? | yes (mandatory) | no | no |
-| Variable cluster density? | no | no (single ε) | **yes** (hierarchical) |
-| Noise label? | no | yes | yes |
-| Non-spherical clusters? | no | yes | yes |
-| Outlier scoring? | no | no | **yes** |
-| Cluster persistence? | no | no | **yes** |
-| Deterministic? | yes (seeded) | yes | yes |
+| Property                  | k-means         | DBSCAN        | HDBSCAN                |
+| ------------------------- | --------------- | ------------- | ---------------------- |
+| Pick k?                   | yes (mandatory) | no            | no                     |
+| Variable cluster density? | no              | no (single ε) | **yes** (hierarchical) |
+| Noise label?              | no              | yes           | yes                    |
+| Non-spherical clusters?   | no              | yes           | yes                    |
+| Outlier scoring?          | no              | no            | **yes**                |
+| Cluster persistence?      | no              | no            | **yes**                |
+| Deterministic?            | yes (seeded)    | yes           | yes                    |
 
 **Empirical baseline:** Campello et al. (2013) showed HDBSCAN outperforms DBSCAN and Optics on synthetic and real benchmark datasets. For software: Bavota et al. (TSE 2014, "Methodbook" study) compared k-means, DBSCAN, and HDBSCAN on file embeddings from LSI; HDBSCAN produced decompositions ~10–15 NMI points closer to expert ground truth, primarily by not forcing one-off utility files into clusters.
 

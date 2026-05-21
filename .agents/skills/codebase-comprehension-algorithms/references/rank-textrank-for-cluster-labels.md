@@ -7,7 +7,7 @@ tags: rank, textrank, yake, keyword-extraction, mihalcea-tarau, labelling
 
 ## Use TextRank Or YAKE To Generate Human-Readable Cluster Labels
 
-After clustering, you have groups of files. The agent then needs to *name* each cluster — "payments", "search-indexing", "user-onboarding". The naive approach is "top-N TF-IDF terms in this cluster" which produces unigrams like `[payment, charge, refund, stripe, invoice]` — informative but not idiomatic. **TextRank** (Mihalcea & Tarau, "TextRank: Bringing order into texts," EMNLP 2004) applies PageRank to a graph of words connected by co-occurrence and surfaces **multi-word key phrases** like *"stripe payment intent"*, *"failed refund retry"*, *"webhook dispatch queue"*. **YAKE** (Campos, Mangaravite, Pasquali, Jorge, Jatowt, Nunes — "YAKE! Keyword extraction from single documents using multiple local features," Information Sciences 2020) is an unsupervised statistical alternative that ranks even better on short documents (cluster-vocabulary blobs are short).
+After clustering, you have groups of files. The agent then needs to _name_ each cluster — "payments", "search-indexing", "user-onboarding". The naive approach is "top-N TF-IDF terms in this cluster" which produces unigrams like `[payment, charge, refund, stripe, invoice]` — informative but not idiomatic. **TextRank** (Mihalcea & Tarau, "TextRank: Bringing order into texts," EMNLP 2004) applies PageRank to a graph of words connected by co-occurrence and surfaces **multi-word key phrases** like _"stripe payment intent"_, _"failed refund retry"_, _"webhook dispatch queue"_. **YAKE** (Campos, Mangaravite, Pasquali, Jorge, Jatowt, Nunes — "YAKE! Keyword extraction from single documents using multiple local features," Information Sciences 2020) is an unsupervised statistical alternative that ranks even better on short documents (cluster-vocabulary blobs are short).
 
 For codebase comprehension labels, both produce results that read like **what a senior engineer would write on a whiteboard** — not just word lists, but the actual phrases the team uses.
 
@@ -136,7 +136,7 @@ def cluster_label(cluster_files, n_words: int = 4):
 
 **Why phrases beat unigrams for cluster labels:**
 
-A cluster about "stripe payment intents" doesn't share much with a cluster about "subscription billing intents" if you look at unigrams (both contain "payment", "intent", "charge"). At the *phrase* level they're distinct: "stripe payment intent" vs "subscription billing intent" vs "invoice generation intent". Multi-word phrases capture the **compound concepts** that domain experts actually use to describe code, and labels that use these phrases are immediately recognisable to a human reviewer.
+A cluster about "stripe payment intents" doesn't share much with a cluster about "subscription billing intents" if you look at unigrams (both contain "payment", "intent", "charge"). At the _phrase_ level they're distinct: "stripe payment intent" vs "subscription billing intent" vs "invoice generation intent". Multi-word phrases capture the **compound concepts** that domain experts actually use to describe code, and labels that use these phrases are immediately recognisable to a human reviewer.
 
 **Empirical baseline:** Campos et al. (2020, YAKE paper) compared YAKE against TextRank, RAKE, KeyBERT, and KP-Miner on 20 benchmark datasets — YAKE was best on 17. For software-specific: Linstead et al. (ICSM 2007) showed multi-word keyphrases from cluster vocabularies match expert-named modules 65–80% of the time, versus 40–55% for top-TF-IDF unigrams.
 

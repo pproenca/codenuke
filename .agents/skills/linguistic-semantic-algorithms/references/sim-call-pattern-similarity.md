@@ -7,7 +7,7 @@ tags: sim, n-grams, call-sequence, behavioral, idiom-mining
 
 ## Compare Functions by Call-Sequence N-grams to Find Behavioral Twins
 
-Two functions can have identical control flow but completely different bodies — for example, a Stripe checkout flow and a PayPal checkout flow that both follow the pattern `validate → authorize → capture → record → notify`. AST/text comparison misses this because the local variables and exact method names differ. But if you extract just the *sequence of method calls* (the function's "trace") and compare n-gram sets, behavioral twins surface immediately. This finds functions that *do the same thing*, even when none of the implementation looks alike.
+Two functions can have identical control flow but completely different bodies — for example, a Stripe checkout flow and a PayPal checkout flow that both follow the pattern `validate → authorize → capture → record → notify`. AST/text comparison misses this because the local variables and exact method names differ. But if you extract just the _sequence of method calls_ (the function's "trace") and compare n-gram sets, behavioral twins surface immediately. This finds functions that _do the same thing_, even when none of the implementation looks alike.
 
 **Incorrect (compare full source text — local detail drowns the call-sequence signal):**
 
@@ -80,11 +80,12 @@ for name, grams in ranked:
 
 **Normalize call names before n-gram extraction** for cross-provider patterns. Map `charge`, `execute`, `capture` to a canonical `pay` step. The cost is a small ontology file (~50 entries for common verbs); the benefit is much higher recall.
 
-**Combine with `concept-entity-name-resolution`** for the *objects* the calls operate on. Function trace plus object trace gives a much richer behavioral fingerprint.
+**Combine with `concept-entity-name-resolution`** for the _objects_ the calls operate on. Function trace plus object trace gives a much richer behavioral fingerprint.
 
 **This is also how `mine-bug-fix-patterns` detects recurring bug-fix structures** — fixes that share a call-sequence pattern often address the same root cause class.
 
 **When NOT to apply:**
+
 - Heavily method-chained code (jQuery-style) — the trace becomes one long chain and n-grams degenerate
 - Functions under ~5 calls — trace too short for n-grams to discriminate
 

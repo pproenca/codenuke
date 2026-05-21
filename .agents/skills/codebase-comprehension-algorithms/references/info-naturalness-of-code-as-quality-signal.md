@@ -7,11 +7,11 @@ tags: info, naturalness, hindle, devanbu, n-gram, entropy
 
 ## Use Code Naturalness (N-gram Entropy) As A Codebase-Health Signal
 
-For codebase comprehension, **code naturalness** is a quantitative *typicality* signal per file and per token — it answers "is this file doing something conventional or something unique?", which is exactly the question that separates "boilerplate" from "domain logic" when mapping a codebase into business domains. **Hindle, Barr, Su, Gabel, Devanbu** ("On the Naturalness of Software," ICSE 2012) made the counterintuitive founding finding: source code is **more repetitive and more predictable than natural language**. A simple n-gram language model trained on a project's own code achieves **cross-entropy of ~3–5 bits per token** on held-out files, versus ~7–8 bits per token on English text. This *naturalness* property has three uses directly relevant to domain mapping:
+For codebase comprehension, **code naturalness** is a quantitative _typicality_ signal per file and per token — it answers "is this file doing something conventional or something unique?", which is exactly the question that separates "boilerplate" from "domain logic" when mapping a codebase into business domains. **Hindle, Barr, Su, Gabel, Devanbu** ("On the Naturalness of Software," ICSE 2012) made the counterintuitive founding finding: source code is **more repetitive and more predictable than natural language**. A simple n-gram language model trained on a project's own code achieves **cross-entropy of ~3–5 bits per token** on held-out files, versus ~7–8 bits per token on English text. This _naturalness_ property has three uses directly relevant to domain mapping:
 
 1. **Surprising tokens are often bugs.** Ray-Hellendoorn-Devanbu et al. (FSE 2016, "On the Naturalness of Buggy Code") showed that bug-fix commits change code at tokens with **measurably higher entropy** under a clean-code language model. Naturalness flags buggy regions even without specifying what the bug is.
-2. **Idioms emerge as low-entropy patterns.** Allamanis & Sutton ("Mining Idioms from Source Code," MSR 2014) used naturalness to mine common code idioms — useful for *describing what a codebase does*.
-3. **Codebase fluency varies.** Tu, Su, Devanbu (FSE 2014, "On the Localness of Software") showed that naturalness is *local*: a token's entropy is much lower under a model trained on the surrounding directory than the whole project. This is a quantitative signal of architectural cohesion.
+2. **Idioms emerge as low-entropy patterns.** Allamanis & Sutton ("Mining Idioms from Source Code," MSR 2014) used naturalness to mine common code idioms — useful for _describing what a codebase does_.
+3. **Codebase fluency varies.** Tu, Su, Devanbu (FSE 2014, "On the Localness of Software") showed that naturalness is _local_: a token's entropy is much lower under a model trained on the surrounding directory than the whole project. This is a quantitative signal of architectural cohesion.
 
 For codebase comprehension, naturalness gives the agent a **per-token confidence score**: high naturalness regions are conventional; low naturalness regions are unique or surprising. The latter is where features live (and where bugs hide).
 
@@ -103,18 +103,18 @@ def per_token_surprise(tokens: list[str], counts, total_context, vocab_size, n: 
 **Three uses of naturalness for codebase comprehension:**
 
 1. **Cluster typicality**: compute average cross-entropy per cluster. Low-entropy clusters are repetitive (CRUD endpoints, generated code, glue); high-entropy clusters do unique things (core algorithms, business rules).
-2. **File centrality (alternative to PageRank)**: a file whose code is well-predicted by the rest of the project is *typical*; a file with unique vocabulary patterns is *novel* and tends to be architecturally important.
+2. **File centrality (alternative to PageRank)**: a file whose code is well-predicted by the rest of the project is _typical_; a file with unique vocabulary patterns is _novel_ and tends to be architecturally important.
 3. **Bug-prediction prior**: regions of high surprise correlate with bug hotspots (Ray et al. FSE 2016); flag them for extra agent attention during code review.
 
 **Quantitative baselines (from the literature):**
 
-| Code corpus | Cross-entropy (bits/token) | Source |
-|-------------|---------------------------:|--------|
-| English text (Brown corpus) | 7.5–8.5 | classical NLP |
-| Java (10 OSS projects, Hindle 2012) | **3.0–4.5** | ICSE 2012 |
-| Python (numpy + scipy) | 4.0–5.5 | Allamanis-Sutton MSR 2014 |
-| English bug fixes | 7.0–8.5 | Ray et al. FSE 2016 |
-| Code bug fixes (pre-fix vs post-fix) | **+0.5–1.0 bits before fix** | Ray et al. FSE 2016 |
+| Code corpus                          |   Cross-entropy (bits/token) | Source                    |
+| ------------------------------------ | ---------------------------: | ------------------------- |
+| English text (Brown corpus)          |                      7.5–8.5 | classical NLP             |
+| Java (10 OSS projects, Hindle 2012)  |                  **3.0–4.5** | ICSE 2012                 |
+| Python (numpy + scipy)               |                      4.0–5.5 | Allamanis-Sutton MSR 2014 |
+| English bug fixes                    |                      7.0–8.5 | Ray et al. FSE 2016       |
+| Code bug fixes (pre-fix vs post-fix) | **+0.5–1.0 bits before fix** | Ray et al. FSE 2016       |
 
 Code is roughly **twice as predictable** as English. Buggy code is roughly **30% less predictable** than correct code by the same project's standard.
 

@@ -7,7 +7,7 @@ tags: comp, complexity, algorithm-selection, big-o
 
 ## Pick Algorithm Class From The Input Bound, Not From Familiarity
 
-The largest performance wins come from matching the algorithm's asymptotic class to the input size *before* writing code. A rough rule of thumb for a 1-second budget on commodity hardware: O(n²) is fine up to n ≈ 10⁴, O(n log n) up to n ≈ 10⁶, O(n) up to n ≈ 10⁸. Writing a nested-loop solution when n is 10⁶ produces 10¹² operations — no constant-factor or language optimization recovers that.
+The largest performance wins come from matching the algorithm's asymptotic class to the input size _before_ writing code. A rough rule of thumb for a 1-second budget on commodity hardware: O(n²) is fine up to n ≈ 10⁴, O(n log n) up to n ≈ 10⁶, O(n) up to n ≈ 10⁸. Writing a nested-loop solution when n is 10⁶ produces 10¹² operations — no constant-factor or language optimization recovers that.
 
 Decide the target class from the bound first, then pick a concrete algorithm in that class.
 

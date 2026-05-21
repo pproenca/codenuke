@@ -7,7 +7,7 @@ tags: clone, tree-edit-distance, zhang-shasha, ast-similarity, exact-match
 
 ## Compute Zhang-Shasha Tree Edit Distance for Subtree Similarity Scoring
 
-Zhang-Shasha (1989) computes the minimum number of node insertions, deletions, and label changes to turn one ordered tree into another. Unlike GumTree, which is an approximation tuned for speed and human-readable edit scripts, Zhang-Shasha gives the *exact* optimal cost. Use it when you need ground-truth distance for benchmarking, for ranking small clone candidates precisely, or as a similarity primitive in a larger clustering pipeline. Modern implementations (e.g. APTED, an O(n²) descendant) run in seconds on AST pairs up to a few thousand nodes.
+Zhang-Shasha (1989) computes the minimum number of node insertions, deletions, and label changes to turn one ordered tree into another. Unlike GumTree, which is an approximation tuned for speed and human-readable edit scripts, Zhang-Shasha gives the _exact_ optimal cost. Use it when you need ground-truth distance for benchmarking, for ranking small clone candidates precisely, or as a similarity primitive in a larger clustering pipeline. Modern implementations (e.g. APTED, an O(n²) descendant) run in seconds on AST pairs up to a few thousand nodes.
 
 **Incorrect (compare AST node count or histogram of node types — coarse, position-blind):**
 
@@ -82,6 +82,7 @@ for i, a in enumerate(names):
 **Combine with `clone-minhash-lsh`:** use MinHash on sub-tree shingles to find candidate clone pairs (fast), then run APTED only on candidates (precise). The pipeline scales to whole-codebase clone detection with exact final scoring on the candidates.
 
 **When NOT to apply:**
+
 - Large AST trees (>5k nodes) — quadratic time is the practical limit; use approximate methods
 - Languages with extremely flat ASTs (raw lists of statements) — TED becomes pure label-edit and doesn't reflect structural similarity well; use semantic embeddings instead
 

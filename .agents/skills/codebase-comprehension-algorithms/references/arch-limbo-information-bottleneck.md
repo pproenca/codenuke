@@ -7,9 +7,9 @@ tags: arch, limbo, information-bottleneck, andritsos, tzerpos, tishby
 
 ## Use Limbo To Cluster Files By Preserving Information About Their Features
 
-**Limbo** (sCAlable Information BOttleneck — **Andritsos & Tzerpos, WCRE 2003 / ICSE 2005**) applies **Tishby's Information Bottleneck method** (Tishby, Pereira, Bialek, "The information bottleneck method," 1999) to software clustering. The Information Bottleneck framework asks a fundamentally different question from modularity or MQ: *"Compress the file representation into k clusters while preserving as much information as possible about what features each file has."* Mathematically: minimise mutual information I(File; Cluster) subject to maximising I(Cluster; Feature). The result is the **most-compressed possible cluster assignment that still tells you almost everything about each file's features.**
+**Limbo** (sCAlable Information BOttleneck — **Andritsos & Tzerpos, WCRE 2003 / ICSE 2005**) applies **Tishby's Information Bottleneck method** (Tishby, Pereira, Bialek, "The information bottleneck method," 1999) to software clustering. The Information Bottleneck framework asks a fundamentally different question from modularity or MQ: _"Compress the file representation into k clusters while preserving as much information as possible about what features each file has."_ Mathematically: minimise mutual information I(File; Cluster) subject to maximising I(Cluster; Feature). The result is the **most-compressed possible cluster assignment that still tells you almost everything about each file's features.**
 
-This is one of the most theoretically grounded clustering algorithms in software engineering, and almost no one outside the SAR research community has heard of it. Limbo's contribution is making the IB framework *scalable* via the **DCF (Distributional Cluster Features) matrix** — a single representation of each cluster as a probability distribution over features, updated incrementally as clusters merge.
+This is one of the most theoretically grounded clustering algorithms in software engineering, and almost no one outside the SAR research community has heard of it. Limbo's contribution is making the IB framework _scalable_ via the **DCF (Distributional Cluster Features) matrix** — a single representation of each cluster as a probability distribution over features, updated incrementally as clusters merge.
 
 **Incorrect (TF-IDF + cosine + k-means — picks k arbitrarily, no information-theoretic guarantee):**
 
@@ -134,14 +134,14 @@ def limbo_information_curve(P, k_range=(2, 30)):
 
 When you cluster, you make a lossy compression: F (files) → C (clusters). You want C to be small (compression) but to preserve information about whatever you care about — call it Y (features, behaviour, future tasks). The IB optimum minimises I(F; C) − β · I(C; Y) for some trade-off β. As β increases, you preserve more about Y at the cost of less compression. The Limbo dendrogram traces the entire frontier; you pick the operating point.
 
-For software: F = files, Y = features (identifiers, imports, etc.), C = clusters. The clusters at any cut of the Limbo dendrogram are the *most informative* clusters of that size — a guarantee that modularity, MQ, or k-means cannot provide.
+For software: F = files, Y = features (identifiers, imports, etc.), C = clusters. The clusters at any cut of the Limbo dendrogram are the _most informative_ clusters of that size — a guarantee that modularity, MQ, or k-means cannot provide.
 
-**Empirical baseline:** Andritsos & Tzerpos (ICSE 2005) showed Limbo matches or beats Bunch on TOBEY, Linux kernel, Mozilla, and X11 on MoJoFM, while being **2–5× faster than Bunch's genetic-algorithm variant** on systems > 1000 files (Bunch with hill-climbing is comparable in wall-clock to Limbo). The information-loss curve also makes Limbo *self-describing*: you can see exactly when adding more clusters stops helping.
+**Empirical baseline:** Andritsos & Tzerpos (ICSE 2005) showed Limbo matches or beats Bunch on TOBEY, Linux kernel, Mozilla, and X11 on MoJoFM, while being **2–5× faster than Bunch's genetic-algorithm variant** on systems > 1000 files (Bunch with hill-climbing is comparable in wall-clock to Limbo). The information-loss curve also makes Limbo _self-describing_: you can see exactly when adding more clusters stops helping.
 
 **When NOT to use:**
 
 - Very small datasets — IB needs reasonable joint distributions; few files means sparse, noisy estimates.
-- Non-distributional features (continuous, ordinal) — IB's framework is for *categorical* features. Use spectral or HDBSCAN on continuous embeddings.
+- Non-distributional features (continuous, ordinal) — IB's framework is for _categorical_ features. Use spectral or HDBSCAN on continuous embeddings.
 - Speed-critical streaming clustering — Limbo is O(n²) per merge step; not online.
 
 **Production:** Original `LIMBO` tool from York University. Re-implementations exist in research papers; the `pyLIMBO` Python port has the agglomerative variant. The IB framework itself has many implementations (`information_bottleneck` package) but software-specific tooling is rare.

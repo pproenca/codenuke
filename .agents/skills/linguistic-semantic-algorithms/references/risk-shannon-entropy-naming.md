@@ -70,12 +70,12 @@ for r in results[:20]:
 
 **Interpret normalized entropy thresholds:**
 
-| Norm-H | Meaning | Action |
-|---|---|---|
-| 0.0-0.3 | name is concentrated in one module — *appropriate* | leave it |
-| 0.3-0.6 | spread across a few modules — *usually fine* | check by hand |
-| 0.6-0.85 | spread broadly — *likely overloaded* | rename in some contexts |
-| 0.85-1.0 | uniform across the whole codebase — *definitely overloaded* | rename per use |
+| Norm-H   | Meaning                                                     | Action                  |
+| -------- | ----------------------------------------------------------- | ----------------------- |
+| 0.0-0.3  | name is concentrated in one module — _appropriate_          | leave it                |
+| 0.3-0.6  | spread across a few modules — _usually fine_                | check by hand           |
+| 0.6-0.85 | spread broadly — _likely overloaded_                        | rename in some contexts |
+| 0.85-1.0 | uniform across the whole codebase — _definitely overloaded_ | rename per use          |
 
 **Don't rename naively — replace per context with a more specific term.** `data` in `billing/` becomes `invoice_payload`; `data` in `auth/` becomes `credential`. The point of identifying overloaded names is to fix them locally with names that mean something, not to globally substitute.
 
@@ -86,6 +86,7 @@ for r in results[:20]:
 **Test against Zipf's law as a sanity check.** Identifier-token frequency in a well-named codebase roughly follows Zipf's law (the n-th most-common token appears ~1/n as often as the most-common). Codebases with severe naming debt show flatter distributions; that's an alternative aggregate signal of naming health.
 
 **When NOT to apply:**
+
 - Tiny repos (<20 files) — entropy is unstable; eyeball is fine
 - Heavily-shared utility identifiers by design (`logger`, `db`, `app`) — these will always have high entropy; whitelist them
 

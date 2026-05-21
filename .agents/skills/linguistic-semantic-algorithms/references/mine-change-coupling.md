@@ -7,7 +7,7 @@ tags: mine, change-coupling, git, temporal, architectural-debt
 
 ## Compute Change Coupling from Git History to Find Hidden Architectural Couplings
 
-Two files that consistently change in the same commit are *coupled in fact*, regardless of what the import graph says. This is the single most counter-intuitive finding from repository mining: change-coupled files are usually NOT statically coupled — they share a domain concept that lives in different layers (e.g., a frontend form and the backend validator), and a change to one always requires a change to the other. Compute the conditional probability `P(B changes | A changes)` over the last 12 months of history. Pairs with P > 0.5 across many commits are strong architectural debt signals: either they should be unified, or the duplication should be made explicit and tested.
+Two files that consistently change in the same commit are _coupled in fact_, regardless of what the import graph says. This is the single most counter-intuitive finding from repository mining: change-coupled files are usually NOT statically coupled — they share a domain concept that lives in different layers (e.g., a frontend form and the backend validator), and a change to one always requires a change to the other. Compute the conditional probability `P(B changes | A changes)` over the last 12 months of history. Pairs with P > 0.5 across many commits are strong architectural debt signals: either they should be unified, or the duplication should be made explicit and tested.
 
 **Incorrect (rely on the static dependency graph alone — misses cross-layer coupling):**
 
@@ -80,13 +80,14 @@ for score, n, a, b in sorted(results, reverse=True)[:15]:
 
 **Filter "megacommits".** A commit touching 100 files (rename, formatting pass, mass refactor) inflates every pair. The `len(files) > 25` filter is the simplest and most effective; tune for your repo's normal commit size.
 
-**Drop file-rename history.** `git log --follow` per file is required if a high-coupling pair is actually the *same file* before and after a rename. Code Maat handles this automatically; rolling your own, run `git log --follow --name-only` and merge renamed paths under a canonical name.
+**Drop file-rename history.** `git log --follow` per file is required if a high-coupling pair is actually the _same file_ before and after a rename. Code Maat handles this automatically; rolling your own, run `git log --follow --name-only` and merge renamed paths under a canonical name.
 
 **Combine with `graph-louvain-modules`:** if two files have high change-coupling but live in different Louvain communities, you have architectural drift. The structure says they're separate; history says they're one.
 
 **This is Adam Tornhill's signature technique** ([Your Code as a Crime Scene](https://pragprog.com/titles/atcrime2/your-code-as-a-crime-scene-second-edition/)). The book is the canonical reference for this whole category — read it before doing serious repository mining.
 
 **When NOT to apply:**
+
 - Repos under ~3 months old — not enough commit history for stable coupling
 - Trunk-based-development repos with squashed PRs only — the commit unit is too coarse; mine PRs instead of commits
 

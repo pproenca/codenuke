@@ -9,7 +9,7 @@ tags: divide, partitioning, pivot, randomization
 
 Quicksort and quickselect both rely on partitioning around a pivot. With a deterministic "first element" or "last element" pivot, sorted-or-nearly-sorted input degrades to O(n²) — and adversaries can craft inputs that exploit any fixed pivot rule. Two robust mitigations: (1) **randomize** the pivot — expected O(n log n) regardless of input; (2) **median-of-three** (pick the median of first, middle, last) — works well in practice and beats random for nearly-sorted data.
 
-The deeper lesson generalizes beyond partitioning: any divide-and-conquer that splits work unevenly degrades the recursion. If T(n) = T(αn) + T((1-α)n) + O(n) with α very small (e.g. 0.01), the recursion is still O(n log n) (any α < 1 keeps it logarithmic in *depth*) — but with α = 0 it's O(n²).
+The deeper lesson generalizes beyond partitioning: any divide-and-conquer that splits work unevenly degrades the recursion. If T(n) = T(αn) + T((1-α)n) + O(n) with α very small (e.g. 0.01), the recursion is still O(n log n) (any α < 1 keeps it logarithmic in _depth_) — but with α = 0 it's O(n²).
 
 **Incorrect (first-element pivot — O(n²) on sorted input):**
 

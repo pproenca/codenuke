@@ -9,7 +9,7 @@ tags: str, kmp, substring-search, pattern-matching
 
 Naive `for i in range(n): if text[i:i+m] == pattern` is O(n·m) worst case — adversarial inputs like `"aaaaa..."` searching for `"aaaab"` trigger the worst case on every position. Stdlib `str.find` / `re.search` use Boyer-Moore-Horspool or similar with sub-linear average performance; for guaranteed linear worst case, write KMP (Knuth-Morris-Pratt) — O(n+m) for any input. The Z-function and the Rabin-Karp rolling hash are linear-expected alternatives that also handle multi-pattern or 2D variants.
 
-For *most* code, `str.find` is the answer. Reach for KMP / Z when you need to *also* answer "where does the pattern match repeated in the text," or when you're solving a problem that doesn't reduce to a single find call.
+For _most_ code, `str.find` is the answer. Reach for KMP / Z when you need to _also_ answer "where does the pattern match repeated in the text," or when you're solving a problem that doesn't reduce to a single find call.
 
 **Incorrect (naive substring search — O(n·m)):**
 

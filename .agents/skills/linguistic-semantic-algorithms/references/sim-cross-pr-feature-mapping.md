@@ -70,6 +70,7 @@ for score, pr in find_precedent(request):
 **Combine with `mine-change-coupling`:** the prior PRs' co-changed file set is a starting plan for the new feature — files that have historically moved together should move together again.
 
 **When NOT to apply:**
+
 - Repos with fewer than ~100 merged PRs — the index is too sparse to find meaningful neighbours
 - PR descriptions are template-only ("fix bug") — body text carries no signal; rely on file-path overlap alone
 

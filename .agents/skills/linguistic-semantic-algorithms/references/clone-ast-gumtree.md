@@ -7,7 +7,7 @@ tags: clone, gumtree, ast-diff, edit-script, falleri
 
 ## Use the GumTree Algorithm for Fine-Grained AST Differencing
 
-`git diff` works on lines; it shows reformatting as a massive change and reorderings as deletions-plus-insertions. The GumTree algorithm (Falleri et al., 2014) works on AST nodes and produces a *node-level edit script* — "method `processOrder` was moved from class `A` to class `B`, then 3 statements were swapped". The same machinery detects fine-grained syntactic clones: two methods are clones if the edit script between their ASTs is small. This is the right tool for behavioural diff in code review, refactoring impact analysis, and Type-2/Type-3 clone detection.
+`git diff` works on lines; it shows reformatting as a massive change and reorderings as deletions-plus-insertions. The GumTree algorithm (Falleri et al., 2014) works on AST nodes and produces a _node-level edit script_ — "method `processOrder` was moved from class `A` to class `B`, then 3 statements were swapped". The same machinery detects fine-grained syntactic clones: two methods are clones if the edit script between their ASTs is small. This is the right tool for behavioural diff in code review, refactoring impact analysis, and Type-2/Type-3 clone detection.
 
 **Incorrect (line-based diff — confuses reformatting and movement with substantive change):**
 
@@ -56,13 +56,14 @@ def clone_score(left_method: str, right_method: str, tree_size: int) -> float:
 
 **Use [GumTree's standard library implementations](https://github.com/GumTreeDiff/gumtree)** — Java is the reference, but Python (`gumtree-python`) and JS (`gumtree-js`) wrappers exist for whichever runtime fits your tooling.
 
-**Better than `tree-sitter`-based diff for many cases.** Tree-sitter gives you the AST; GumTree gives you the *mapping between two ASTs*. The mapping is the hard part, and GumTree's top-down + bottom-up matching is the best general-purpose algorithm available.
+**Better than `tree-sitter`-based diff for many cases.** Tree-sitter gives you the AST; GumTree gives you the _mapping between two ASTs_. The mapping is the hard part, and GumTree's top-down + bottom-up matching is the best general-purpose algorithm available.
 
-**Combine with `mine-change-coupling`:** when two files change together (high coupling) AND their AST diffs are *symmetric* (the same logical change in both), they're cousin-clones that should share an abstraction. The combined signal directly proposes a refactor.
+**Combine with `mine-change-coupling`:** when two files change together (high coupling) AND their AST diffs are _symmetric_ (the same logical change in both), they're cousin-clones that should share an abstraction. The combined signal directly proposes a refactor.
 
 **Use the edit script in PR review** for cleaner reviewer experience. A change with 240 text-diff lines but only 4 GumTree actions is a low-risk refactor. A change with 30 text-diff lines but 50 GumTree actions is a deceptively-small commit with broad semantic impact. Both are misleading on text-diff alone.
 
 **When NOT to apply:**
+
 - Tiny snippets (<10 AST nodes) — every clone-score sits near 1.0 and discrimination fails
 - Languages without a robust parser in the GumTree ecosystem — fall back to tree-sitter + Zhang-Shasha (see `clone-zhang-shasha-ted`)
 

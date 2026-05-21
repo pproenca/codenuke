@@ -93,18 +93,18 @@ print(f"Leiden:  Q={leiden_Q:.4f}, 0/{len(partition)} disconnected (guaranteed)"
 
 **Why Louvain has this defect:**
 
-Louvain optimises modularity in two phases (local moves + community aggregation), each greedy. During aggregation, an entire community becomes one super-node — and during subsequent moves, members of that super-node move *together* as a block. After several aggregation passes, the "community" can be a topologically disconnected ghost. Leiden adds a **refinement** phase between local-move and aggregation that breaks each community into well-connected sub-pieces first, eliminating the failure mode. The paper proves this guarantees connectedness.
+Louvain optimises modularity in two phases (local moves + community aggregation), each greedy. During aggregation, an entire community becomes one super-node — and during subsequent moves, members of that super-node move _together_ as a block. After several aggregation passes, the "community" can be a topologically disconnected ghost. Leiden adds a **refinement** phase between local-move and aggregation that breaks each community into well-connected sub-pieces first, eliminating the failure mode. The paper proves this guarantees connectedness.
 
 **Empirical results (Traag et al. 2019, Table 1 / Figs 2-3):**
 
-| Dataset | Louvain Q | Leiden Q | Louvain badly-connected | Leiden badly-connected |
-|---------|-----------|----------|------------------------|------------------------|
-| Karate | 0.4449 | 0.4449 | 0 | 0 |
-| Power | 0.9385 | 0.9388 | ~5% | 0 |
-| Live Journal | 0.7510 | 0.7575 | ~11% | 0 |
-| Web-UK-2005 | 0.9803 | 0.9881 | ~25% | 0 |
+| Dataset      | Louvain Q | Leiden Q | Louvain badly-connected | Leiden badly-connected |
+| ------------ | --------- | -------- | ----------------------- | ---------------------- |
+| Karate       | 0.4449    | 0.4449   | 0                       | 0                      |
+| Power        | 0.9385    | 0.9388   | ~5%                     | 0                      |
+| Live Journal | 0.7510    | 0.7575   | ~11%                    | 0                      |
+| Web-UK-2005  | 0.9803    | 0.9881   | ~25%                    | 0                      |
 
-The paper reports **up to ~16% strictly *disconnected*** and **up to ~25% *badly connected*** (includes disconnected + internally fragmented). The Web-UK case is dramatic: a quarter of Louvain's nodes are in mathematically broken communities. Leiden eliminates the defect entirely.
+The paper reports **up to ~16% strictly _disconnected_** and **up to ~25% _badly connected_** (includes disconnected + internally fragmented). The Web-UK case is dramatic: a quarter of Louvain's nodes are in mathematically broken communities. Leiden eliminates the defect entirely.
 
 **When NOT to switch:**
 

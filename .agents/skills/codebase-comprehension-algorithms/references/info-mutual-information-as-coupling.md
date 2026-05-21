@@ -11,7 +11,7 @@ Standard coupling metrics (CBO — Coupling Between Objects, fan-in, fan-out, li
 
 - Non-linear dependence (B changes if A changes a lot OR not at all, but not "a little")
 - Multi-modal coupling (B changes whenever A is in {state₁, state₃} but not state₂)
-- Time-shifted coupling (B changes one commit *after* A)
+- Time-shifted coupling (B changes one commit _after_ A)
 - Heteroscedastic coupling (variance of B depends on A)
 
 For codebase comprehension, MI is the right tool when you suspect coupling exists but standard metrics show nothing — typically because the coupling is conditional, gated, or rare. It's also the foundation for the Information Bottleneck method (`arch-limbo-information-bottleneck`) and for several feature-selection algorithms.
@@ -123,15 +123,15 @@ mi_continuous = mutual_info_regression(np.array(x).reshape(-1, 1), np.array(y))
 
 **Why MI catches what lift and correlation miss:**
 
-| Coupling pattern | Lift sees it? | Pearson correlation sees it? | MI sees it? |
-|------------------|---------------|------------------------------|-------------|
-| A always changes when B changes | Yes | Yes | Yes |
-| A changes more when B changes a lot, less when a little | Partial | Yes (linear) | Yes |
-| A changes when B is in state 1 or 3 only | No | No (non-monotonic) | **Yes** |
-| A changes after B (with lag) | No (synchronous) | No (synchronous) | **Yes** (use lagged) |
-| Variance(A) depends on B but mean(A) doesn't | No | No | **Yes** |
+| Coupling pattern                                        | Lift sees it?    | Pearson correlation sees it? | MI sees it?          |
+| ------------------------------------------------------- | ---------------- | ---------------------------- | -------------------- |
+| A always changes when B changes                         | Yes              | Yes                          | Yes                  |
+| A changes more when B changes a lot, less when a little | Partial          | Yes (linear)                 | Yes                  |
+| A changes when B is in state 1 or 3 only                | No               | No (non-monotonic)           | **Yes**              |
+| A changes after B (with lag)                            | No (synchronous) | No (synchronous)             | **Yes** (use lagged) |
+| Variance(A) depends on B but mean(A) doesn't            | No               | No                           | **Yes**              |
 
-The non-monotonic case is particularly relevant in software: a file gets touched when *certain* operations on another file happen, not all operations. Lift averages across all operations and dilutes the signal; MI keeps it.
+The non-monotonic case is particularly relevant in software: a file gets touched when _certain_ operations on another file happen, not all operations. Lift averages across all operations and dilutes the signal; MI keeps it.
 
 **Empirical baseline:** MI as a coupling metric on software has been studied by Bavota et al. (TSE 2014, "An Empirical Study on the Developers' Perception of Software Coupling"), Allamanis & Sutton (MSR 2014, "Mining idioms from source code"), and is the foundation of feature-selection methods in bug-prediction. MI consistently identifies couplings missed by lift in 10–25% of cases, primarily conditional and time-shifted dependencies.
 

@@ -9,7 +9,7 @@ tags: str, trie, prefix, autocomplete
 
 When the workload is "given a dictionary of n strings and many incoming queries, does any string start with this prefix / which strings start with this prefix?", a hash-set of full strings doesn't help — it can only answer exact matches. A **trie** (prefix tree) stores all n words in space O(total characters) and answers "does any word have prefix p?" in O(|p|) regardless of n. For autocomplete-style use cases this is decisive: with n = 10⁶ words and average query length 10, naive scan is 10⁷ ops per query; trie is 10 ops.
 
-For *only* "is this exact string in the dictionary?", a `set` is better — O(|p|) on average, smaller constant factor.
+For _only_ "is this exact string in the dictionary?", a `set` is better — O(|p|) on average, smaller constant factor.
 
 **Incorrect (linear scan for prefix match — O(n·m) per query):**
 
@@ -69,6 +69,6 @@ class Trie:
 **Variants for related problems:**
 
 - **Suffix trie** of one string — answer any substring query in O(|q|); but uses O(n²) space for naive construction. Use **suffix array** or **suffix automaton** instead in practice.
-- **Aho-Corasick** — multi-pattern KMP on a trie. Finds all occurrences of *all* dictionary words in a text in O(text + dict + matches).
+- **Aho-Corasick** — multi-pattern KMP on a trie. Finds all occurrences of _all_ dictionary words in a text in O(text + dict + matches).
 
 Reference: [Competitive Programmer's Handbook §26 — String algorithms (Trie)](https://cses.fi/book/book.pdf)

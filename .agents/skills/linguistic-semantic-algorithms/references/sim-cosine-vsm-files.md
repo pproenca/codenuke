@@ -7,7 +7,7 @@ tags: sim, vsm, tfidf, cosine-similarity, lightweight
 
 ## Use TF-IDF Vector Space Model for File Similarity When No GPU Is Available
 
-CodeBERT embeddings dominate quality, but they need a GPU to build and 500MB+ to ship. For "find files like *this one*" inside an agent loop where every call is in-context, the classical TF-IDF Vector Space Model is the right tool: build the matrix once in milliseconds, query in microseconds, and the answers are good enough to surface non-obvious file relationships. It catches files with shared vocabulary even when imports don't link them — the "everyone forgot this is also a Booking service" case. Use neural embeddings for semantic equivalence across renames; use VSM for "what else uses the same business words?".
+CodeBERT embeddings dominate quality, but they need a GPU to build and 500MB+ to ship. For "find files like _this one_" inside an agent loop where every call is in-context, the classical TF-IDF Vector Space Model is the right tool: build the matrix once in milliseconds, query in microseconds, and the answers are good enough to surface non-obvious file relationships. It catches files with shared vocabulary even when imports don't link them — the "everyone forgot this is also a Booking service" case. Use neural embeddings for semantic equivalence across renames; use VSM for "what else uses the same business words?".
 
 **Incorrect (filename / path substring matching — misses files that talk about the same thing under different names):**
 
@@ -62,6 +62,7 @@ for i in top:
 **Combine with `concept-entity-name-resolution` upstream.** Apply the canonical variant map before TF-IDF — otherwise `user` and `usr` produce two separate columns and similarity dilutes.
 
 **When NOT to apply:**
+
 - When you need cross-language matching — VSM is purely lexical; use CodeBERT/UniXcoder
 - Codebases where naming has drifted heavily — entity resolution alone won't save you; embeddings or PDG is required
 

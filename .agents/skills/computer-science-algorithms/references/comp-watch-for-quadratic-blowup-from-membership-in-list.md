@@ -7,7 +7,7 @@ tags: comp, membership, set, hash-table
 
 ## Avoid Linear `in` Checks Inside Loops
 
-A `value in some_list` check is O(n). When that check sits inside a loop over n items, the whole structure is O(n²) — and it's invisible because each line *looks* like a single operation. This is the most common accidental quadratic algorithm in code review, and it scales catastrophically: at n = 10⁴ it's tolerable, at n = 10⁵ it's a 10-second pause, at n = 10⁶ it never finishes.
+A `value in some_list` check is O(n). When that check sits inside a loop over n items, the whole structure is O(n²) — and it's invisible because each line _looks_ like a single operation. This is the most common accidental quadratic algorithm in code review, and it scales catastrophically: at n = 10⁴ it's tolerable, at n = 10⁵ it's a 10-second pause, at n = 10⁶ it never finishes.
 
 Whenever you check membership repeatedly, the container holding the items must be a `set` or `dict`, not a `list` or `tuple`.
 

@@ -7,7 +7,7 @@ tags: graph, louvain, community-detection, modularity, refactoring
 
 ## Apply Louvain Community Detection to Reveal Natural Module Boundaries
 
-The folder structure of a 5-year-old codebase rarely matches its actual modular structure. Files that used to belong together have drifted across directories; files that share no real coupling sit next to each other. Louvain community detection (Blondel et al., 2008) maximizes graph modularity in O(N log N) — fast enough for million-node graphs — and partitions the import/call graph into communities that *actually* coheres. Differences between this partition and the directory tree are a directly-actionable list of files to move.
+The folder structure of a 5-year-old codebase rarely matches its actual modular structure. Files that used to belong together have drifted across directories; files that share no real coupling sit next to each other. Louvain community detection (Blondel et al., 2008) maximizes graph modularity in O(N log N) — fast enough for million-node graphs — and partitions the import/call graph into communities that _actually_ coheres. Differences between this partition and the directory tree are a directly-actionable list of files to move.
 
 **Incorrect (use directory structure as the modular partition — assumes folders match reality):**
 
@@ -58,11 +58,12 @@ for i, comm in enumerate(sorted(communities, key=len, reverse=True)[:6]):
 
 **A modularity Q above ~0.4 means the codebase has real modular structure;** below 0.2 means it is a "ball of mud" — the algorithm finds little to partition. Knowing this upfront sets expectations for any refactoring effort.
 
-**Pair with `concept-tfidf-rare-terms` per community** to *name* the communities. A community's top TF-IDF domain terms are usually a coherent label.
+**Pair with `concept-tfidf-rare-terms` per community** to _name_ the communities. A community's top TF-IDF domain terms are usually a coherent label.
 
-**Combine with `mine-change-coupling`:** Louvain on the *temporal* coupling graph (files that change together) often differs sharply from Louvain on the *static* import graph. The difference points to architectural drift: places where structure says one thing and history says another.
+**Combine with `mine-change-coupling`:** Louvain on the _temporal_ coupling graph (files that change together) often differs sharply from Louvain on the _static_ import graph. The difference points to architectural drift: places where structure says one thing and history says another.
 
 **When NOT to apply:**
+
 - Codebases where one giant file imports everything — Louvain collapses into one community
 - When you need stable community membership across runs — Louvain is non-deterministic without `seed=`; use Leiden ([leidenalg](https://leidenalg.readthedocs.io/)) for guaranteed convergence
 

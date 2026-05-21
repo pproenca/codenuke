@@ -7,11 +7,11 @@ tags: dp, correctness, optimal-substructure, proof
 
 ## Prove Optimal Substructure Before Writing The DP
 
-DP requires *optimal substructure*: the optimal answer to a problem must be expressible in terms of optimal answers to subproblems. If this property doesn't hold, your recurrence will be wrong on some inputs — and the bug is invisible until adversarial cases hit production. The classic failure mode: greedy-shaped problems where the locally-optimal choice rules out the globally-optimal one further down.
+DP requires _optimal substructure_: the optimal answer to a problem must be expressible in terms of optimal answers to subproblems. If this property doesn't hold, your recurrence will be wrong on some inputs — and the bug is invisible until adversarial cases hit production. The classic failure mode: greedy-shaped problems where the locally-optimal choice rules out the globally-optimal one further down.
 
-Before coding, write down: (1) the subproblem definition, (2) why the optimal solution of the full problem must use the optimal solution of *some* subproblem, (3) which subproblem to combine. If step (2) is hand-wavy, the DP is unsound.
+Before coding, write down: (1) the subproblem definition, (2) why the optimal solution of the full problem must use the optimal solution of _some_ subproblem, (3) which subproblem to combine. If step (2) is hand-wavy, the DP is unsound.
 
-**Incorrect (DP that lacks optimal substructure — longest *simple* path on a general graph):**
+**Incorrect (DP that lacks optimal substructure — longest _simple_ path on a general graph):**
 
 ```python
 def longest_simple_path(graph, start, end):

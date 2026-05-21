@@ -9,7 +9,7 @@ tags: info, mdl, rissanen, model-selection, parsimony, occams-razor
 
 The **Minimum Description Length** principle (Rissanen, "Modeling by shortest data description," Automatica 1978) is the information-theoretic formalisation of Occam's razor: among models that explain the data, prefer the one whose **total description length** — code-length to specify the model PLUS code-length to specify the data given the model — is shortest. For clustering and topic modelling, this gives a principled way to choose K: the K that minimises **L(model) + L(data | model)** is the right one.
 
-Many of the algorithms in this skill use MDL internally — **Infomap's map equation** is an MDL formulation; **Peixoto's hierarchical SBM** uses MDL for K selection; **Limbo** is an information-theoretic agglomerative clusterer with an MDL stopping criterion. Knowing the MDL framework lets you (1) pick K for *any* clustering / topic model, (2) compare across different model families on the same footing, and (3) detect overfitting (when L(data | model) drops below L(model) decay → you're memorising noise).
+Many of the algorithms in this skill use MDL internally — **Infomap's map equation** is an MDL formulation; **Peixoto's hierarchical SBM** uses MDL for K selection; **Limbo** is an information-theoretic agglomerative clusterer with an MDL stopping criterion. Knowing the MDL framework lets you (1) pick K for _any_ clustering / topic model, (2) compare across different model families on the same footing, and (3) detect overfitting (when L(data | model) drops below L(model) decay → you're memorising noise).
 
 **Incorrect (pick K by eyeballing an elbow on a quality curve):**
 
@@ -120,11 +120,11 @@ Description length composes naturally: if you have model M and data D, total com
 
 **Practical notes:**
 
-| Pitfall | Workaround |
-|---------|------------|
-| Continuous parameters need "precision" — what bit-width? | Use 8-bit (256 values per parameter) as default; the choice usually doesn't change K* by more than ±1 |
-| Two-part code is an *upper bound* on MDL | For tighter, use **NML (Normalized Maximum Likelihood)** or **stochastic complexity** — see Grünwald book |
-| Different model classes use different code books | Compare *like with like*: kmeans vs kmeans across K, LDA vs LDA across K. Cross-family comparison needs careful normalization |
+| Pitfall                                                  | Workaround                                                                                                                    |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Continuous parameters need "precision" — what bit-width? | Use 8-bit (256 values per parameter) as default; the choice usually doesn't change K\* by more than ±1                        |
+| Two-part code is an _upper bound_ on MDL                 | For tighter, use **NML (Normalized Maximum Likelihood)** or **stochastic complexity** — see Grünwald book                     |
+| Different model classes use different code books         | Compare _like with like_: kmeans vs kmeans across K, LDA vs LDA across K. Cross-family comparison needs careful normalization |
 
 **Empirical baseline:** Rissanen (Annals of Statistics 1986, "Stochastic complexity and modeling") proved MDL is consistent — it picks the right model with probability 1 as N → ∞. For finite-data clustering: Hansen-Yu (J. Amer. Statist. Assoc. 2001) showed MDL beats AIC and BIC on simulation studies for choosing the number of mixture components. Peixoto's hierarchical SBM uses MDL throughout and produces decompositions that match expert ground truth within MoJoFM = 75–90% on standard software benchmarks.
 
@@ -134,6 +134,6 @@ Description length composes naturally: if you have model M and data D, total com
 - Cross-validation is available and computationally feasible — CV is often easier to explain and roughly equivalent for clustering.
 - The model class doesn't have a natural code book (kernel methods, deep networks) — MDL is hard to apply; use cross-validation or held-out likelihood.
 
-**Production:** MDL is implicit in Peixoto's `graph-tool`, Rosvall-Bergstrom's Infomap, Andritsos-Tzerpos's Limbo. Direct MDL libraries: `mdl-pca` for PCA component selection; `pymdl` for general MDL applications. The Grünwald book (*The Minimum Description Length Principle*, MIT 2007) is the canonical reference.
+**Production:** MDL is implicit in Peixoto's `graph-tool`, Rosvall-Bergstrom's Infomap, Andritsos-Tzerpos's Limbo. Direct MDL libraries: `mdl-pca` for PCA component selection; `pymdl` for general MDL applications. The Grünwald book (_The Minimum Description Length Principle_, MIT 2007) is the canonical reference.
 
 Reference: [Modeling by Shortest Data Description (Rissanen, Automatica 1978)](https://www.sciencedirect.com/science/article/abs/pii/0005109878900055)

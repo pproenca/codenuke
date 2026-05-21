@@ -13,7 +13,7 @@ Most community-detection algorithms (Louvain, Leiden, Infomap) ignore edge direc
 2. Split the SCC across clusters (almost always wrong — the cycle says "we are inseparable"),
 3. Or worse, drift between (1) and (2) across runs, producing unstable clusterings.
 
-The fix is mechanical and predates every clustering algorithm: **find SCCs with Tarjan's or Kosaraju's algorithm (O(V + E)), collapse each SCC to a single super-node, and you have a DAG**. Cluster the DAG; expand SCCs back at the end. This is the *condensation* of the graph, and it's been standard practice in compiler theory since the 1970s, but is almost never applied before community detection in software analysis.
+The fix is mechanical and predates every clustering algorithm: **find SCCs with Tarjan's or Kosaraju's algorithm (O(V + E)), collapse each SCC to a single super-node, and you have a DAG**. Cluster the DAG; expand SCCs back at the end. This is the _condensation_ of the graph, and it's been standard practice in compiler theory since the 1970s, but is almost never applied before community detection in software analysis.
 
 **Incorrect (Louvain on a cyclic dependency graph — splits the cycle, hides the real structure):**
 
@@ -118,7 +118,7 @@ def recursive_cluster(G: nx.DiGraph, max_scc: int = 50):
 
 **Why this is non-obvious:**
 
-The SAR literature treats SCCs as a *quality signal* (cycles are bad) rather than a *preprocessing step*. Sarkar et al. (TSE 2009, "Discovery of Architectural Layers and Measurement of Layering Violations in Source Code") use SCC presence as a modularity penalty. But for the agent's job — finding domains — cycles aren't bad, they're *information*: a cycle says "these things are inseparable, treat them as one." Collapsing makes that explicit and stabilises every downstream algorithm.
+The SAR literature treats SCCs as a _quality signal_ (cycles are bad) rather than a _preprocessing step_. Sarkar et al. (TSE 2009, "Discovery of Architectural Layers and Measurement of Layering Violations in Source Code") use SCC presence as a modularity penalty. But for the agent's job — finding domains — cycles aren't bad, they're _information_: a cycle says "these things are inseparable, treat them as one." Collapsing makes that explicit and stabilises every downstream algorithm.
 
 **When NOT to collapse:**
 

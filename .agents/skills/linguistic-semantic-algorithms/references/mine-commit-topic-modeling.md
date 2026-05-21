@@ -84,6 +84,7 @@ for month in sorted(monthly):
 **Combine with `mine-hotspots-churn-complexity`:** topics that dominated last quarter map to the files most likely to have entered hotspot status. Run hotspots, filter by which topics modified them, and you have a defect-prediction list scoped to recent work.
 
 **When NOT to apply:**
+
 - Conventional Commit repos where messages are formulaic (`fix(api): bump`) — too little text per commit; mine PR bodies instead
 - Repos with squash-merge only and one-word PR titles — corpus is too sparse; combine with file-path tokens to enrich signal
 

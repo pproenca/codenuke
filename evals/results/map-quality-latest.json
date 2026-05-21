@@ -56,65 +56,29 @@
       "kind": "cli-command",
       "source": "package-json-bin",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "src/cli.ts"
-      ],
+      "ownedFilePaths": ["src/cli.ts"],
       "contextFiles": 4,
       "tests": 3,
-      "tags": [
-        "node",
-        "cli"
-      ],
-      "trustBoundaries": [
-        "user-input",
-        "filesystem",
-        "process-exec"
-      ],
+      "tags": ["node", "cli"],
+      "trustBoundaries": ["user-input", "filesystem", "process-exec"],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_cli-command_c708252bd0",
           "targetTitle": "Node source src/:cli",
           "score": 0.708,
-          "signals": [
-            "cli",
-            "main",
-            "entrypoint",
-            "run",
-            "bootstrap",
-            "usr",
-            "argv",
-            "meta"
-          ]
+          "signals": ["cli", "main", "entrypoint", "run", "bootstrap", "usr", "argv", "meta"]
         },
         {
           "targetFeatureId": "feat_cli-command_5ab4ccecb2",
           "targetTitle": "Node source src/cli",
           "score": 0.212,
-          "signals": [
-            "cli",
-            "main",
-            "command",
-            "package",
-            "entrypoint",
-            "run",
-            "bootstrap",
-            "usr"
-          ]
+          "signals": ["cli", "main", "command", "package", "entrypoint", "run", "bootstrap", "usr"]
         },
         {
           "targetFeatureId": "feat_library_710c9f5545",
           "targetTitle": "Node source scripts",
           "score": 0.111,
-          "signals": [
-            "cli",
-            "bin",
-            "main",
-            "package",
-            "command",
-            "run",
-            "usr",
-            "argv"
-          ]
+          "signals": ["cli", "bin", "main", "package", "command", "run", "usr", "argv"]
         }
       ]
     },
@@ -124,68 +88,29 @@
       "kind": "cli-command",
       "source": "node-source-group",
       "ownedFiles": 2,
-      "ownedFilePaths": [
-        "src/cli/bootstrap.ts",
-        "src/cli/main.ts"
-      ],
+      "ownedFilePaths": ["src/cli/bootstrap.ts", "src/cli/main.ts"],
       "contextFiles": 4,
       "tests": 3,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "user-input",
-        "process-exec"
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["user-input", "process-exec"],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_cd7e86d6bc",
           "targetTitle": "Node source src/workflow#1",
           "score": 0.336,
-          "signals": [
-            "flag",
-            "name",
-            "status",
-            "triage",
-            "command",
-            "kind",
-            "finding",
-            "result"
-          ]
+          "signals": ["flag", "name", "status", "triage", "command", "kind", "finding", "result"]
         },
         {
           "targetFeatureId": "feat_library_da25a734ad",
           "targetTitle": "Node source src/platform",
           "score": 0.296,
-          "signals": [
-            "handler",
-            "name",
-            "command",
-            "triage",
-            "finding",
-            "result",
-            "kind",
-            "typeof"
-          ]
+          "signals": ["handler", "name", "command", "triage", "finding", "result", "kind", "typeof"]
         },
         {
           "targetFeatureId": "feat_library_477e10e1dd",
           "targetTitle": "Node source src/provider",
           "score": 0.275,
-          "signals": [
-            "name",
-            "kind",
-            "result",
-            "reasoning",
-            "finding",
-            "typeof",
-            "parsed",
-            "json"
-          ]
+          "signals": ["name", "kind", "result", "reasoning", "finding", "typeof", "parsed", "json"]
         }
       ]
     },
@@ -195,37 +120,17 @@
       "kind": "cli-command",
       "source": "node-source-group",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "src/cli.ts"
-      ],
+      "ownedFilePaths": ["src/cli.ts"],
       "contextFiles": 9,
       "tests": 8,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "user-input",
-        "process-exec"
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["user-input", "process-exec"],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_cli-command_1358c9d984",
           "targetTitle": "CLI command codenuke",
           "score": 0.708,
-          "signals": [
-            "cli",
-            "main",
-            "entrypoint",
-            "run",
-            "bootstrap",
-            "usr",
-            "argv",
-            "meta"
-          ]
+          "signals": ["cli", "main", "entrypoint", "run", "bootstrap", "usr", "argv", "meta"]
         },
         {
           "targetFeatureId": "feat_cli-command_5ab4ccecb2",
@@ -246,11 +151,7 @@
           "targetFeatureId": "feat_library_7e5ce720dc",
           "targetTitle": "Node source src/testing",
           "score": 0.147,
-          "signals": [
-            "group",
-            "script",
-            "typescript"
-          ]
+          "signals": ["group", "script", "typescript"]
         }
       ]
     },
@@ -260,18 +161,11 @@
       "kind": "config",
       "source": "shared-infra-heuristic",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "tsconfig.json"
-      ],
+      "ownedFilePaths": ["tsconfig.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "config"
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["config"],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -280,30 +174,17 @@
       "kind": "config",
       "source": "shared-infra-heuristic",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "vitest.config.ts"
-      ],
+      "ownedFilePaths": ["vitest.config.ts"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "config"
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["config"],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_60d9d5e52f",
           "targetTitle": "Node package codenuke",
           "score": 0.295,
-          "signals": [
-            "vitest",
-            "restore",
-            "mock",
-            "timeout",
-            "include"
-          ]
+          "signals": ["vitest", "restore", "mock", "timeout", "include"]
         }
       ]
     },
@@ -313,18 +194,11 @@
       "kind": "config",
       "source": "shared-infra-heuristic",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "config"
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["config"],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -333,18 +207,11 @@
       "kind": "config",
       "source": "shared-infra-heuristic",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "oxlint.json"
-      ],
+      "ownedFilePaths": ["oxlint.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "config"
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["config"],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -353,20 +220,10 @@
       "kind": "library",
       "source": "node-source-group",
       "ownedFiles": 3,
-      "ownedFilePaths": [
-        "src/provider/index.ts",
-        "src/provider/json.ts",
-        "src/provider/schema.ts"
-      ],
+      "ownedFilePaths": ["src/provider/index.ts", "src/provider/json.ts", "src/provider/schema.ts"],
       "contextFiles": 2,
       "tests": 1,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
@@ -403,16 +260,7 @@
           "targetFeatureId": "feat_cli-command_5ab4ccecb2",
           "targetTitle": "Node source src/cli",
           "score": 0.275,
-          "signals": [
-            "name",
-            "kind",
-            "result",
-            "reasoning",
-            "finding",
-            "typeof",
-            "parsed",
-            "json"
-          ]
+          "signals": ["name", "kind", "result", "reasoning", "finding", "typeof", "parsed", "json"]
         }
       ]
     },
@@ -430,51 +278,26 @@
       ],
       "contextFiles": 39,
       "tests": 0,
-      "tags": [
-        "node",
-        "package",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "package", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_config_57f59ddd1e",
           "targetTitle": "Project config vitest.config.ts",
           "score": 0.295,
-          "signals": [
-            "vitest",
-            "restore",
-            "mock",
-            "timeout",
-            "include"
-          ]
+          "signals": ["vitest", "restore", "mock", "timeout", "include"]
         },
         {
           "targetFeatureId": "feat_library_693a4bb18b",
           "targetTitle": "Node source src/mappers#1",
           "score": 0.086,
-          "signals": [
-            "rooted",
-            "package",
-            "vitest",
-            "metadata",
-            "context",
-            "review",
-            "include"
-          ]
+          "signals": ["rooted", "package", "vitest", "metadata", "context", "review", "include"]
         },
         {
           "targetFeatureId": "feat_library_afdb32f756",
           "targetTitle": "Node source src/mappers#2",
           "score": 0.085,
-          "signals": [
-            "package",
-            "metadata",
-            "context",
-            "rooted",
-            "include"
-          ]
+          "signals": ["package", "metadata", "context", "rooted", "include"]
         }
       ]
     },
@@ -500,59 +323,26 @@
       ],
       "contextFiles": 9,
       "tests": 8,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_afdb32f756",
           "targetTitle": "Node source src/mappers#2",
           "score": 0.623,
-          "signals": [
-            "seed",
-            "info",
-            "char",
-            "index",
-            "name",
-            "prefixe",
-            "depth",
-            "route"
-          ]
+          "signals": ["seed", "info", "char", "index", "name", "prefixe", "depth", "route"]
         },
         {
           "targetFeatureId": "feat_library_da25a734ad",
           "targetTitle": "Node source src/platform",
           "score": 0.452,
-          "signals": [
-            "info",
-            "composer",
-            "manager",
-            "name",
-            "child",
-            "entry",
-            "framework",
-            "exist"
-          ]
+          "signals": ["info", "composer", "manager", "name", "child", "entry", "framework", "exist"]
         },
         {
           "targetFeatureId": "feat_library_c38b86af31",
           "targetTitle": "Node source src/mapping",
           "score": 0.433,
-          "signals": [
-            "seed",
-            "evidence",
-            "mapper",
-            "index",
-            "map",
-            "existing",
-            "feature",
-            "sample"
-          ]
+          "signals": ["seed", "evidence", "mapper", "index", "map", "existing", "feature", "sample"]
         }
       ]
     },
@@ -562,19 +352,10 @@
       "kind": "library",
       "source": "node-source-group",
       "ownedFiles": 2,
-      "ownedFilePaths": [
-        "scripts/package-smoke.mjs",
-        "scripts/text-pocket-poc.mjs"
-      ],
+      "ownedFilePaths": ["scripts/package-smoke.mjs", "scripts/text-pocket-poc.mjs"],
       "contextFiles": 2,
       "tests": 1,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
@@ -596,31 +377,13 @@
           "targetFeatureId": "feat_library_c38b86af31",
           "targetTitle": "Node source src/mapping",
           "score": 0.309,
-          "signals": [
-            "weight",
-            "token",
-            "left",
-            "right",
-            "signal",
-            "count",
-            "map",
-            "index"
-          ]
+          "signals": ["weight", "token", "left", "right", "signal", "count", "map", "index"]
         },
         {
           "targetFeatureId": "feat_library_da25a734ad",
           "targetTitle": "Node source src/platform",
           "score": 0.272,
-          "signals": [
-            "line",
-            "candidate",
-            "window",
-            "signal",
-            "result",
-            "index",
-            "json",
-            "join"
-          ]
+          "signals": ["line", "candidate", "window", "signal", "result", "index", "json", "join"]
         }
       ]
     },
@@ -630,29 +393,17 @@
       "kind": "library",
       "source": "node-source-group",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "src/testing/test-helpers.ts"
-      ],
+      "ownedFilePaths": ["src/testing/test-helpers.ts"],
       "contextFiles": 2,
       "tests": 1,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_cli-command_c708252bd0",
           "targetTitle": "Node source src/:cli",
           "score": 0.147,
-          "signals": [
-            "group",
-            "script",
-            "typescript"
-          ]
+          "signals": ["group", "script", "typescript"]
         },
         {
           "targetFeatureId": "feat_cli-command_5ab4ccecb2",
@@ -692,19 +443,10 @@
       "kind": "library",
       "source": "node-source-group",
       "ownedFiles": 2,
-      "ownedFilePaths": [
-        "src/workflow/test-coverage.ts",
-        "src/workflow/validation.ts"
-      ],
+      "ownedFilePaths": ["src/workflow/test-coverage.ts", "src/workflow/validation.ts"],
       "contextFiles": 7,
       "tests": 6,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
@@ -775,59 +517,26 @@
       ],
       "contextFiles": 9,
       "tests": 8,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_693a4bb18b",
           "targetTitle": "Node source src/mappers#1",
           "score": 0.623,
-          "signals": [
-            "seed",
-            "info",
-            "char",
-            "index",
-            "name",
-            "prefixe",
-            "depth",
-            "route"
-          ]
+          "signals": ["seed", "info", "char", "index", "name", "prefixe", "depth", "route"]
         },
         {
           "targetFeatureId": "feat_library_da25a734ad",
           "targetTitle": "Node source src/platform",
           "score": 0.499,
-          "signals": [
-            "python",
-            "info",
-            "manager",
-            "ruby",
-            "name",
-            "entry",
-            "exist",
-            "table"
-          ]
+          "signals": ["python", "info", "manager", "ruby", "name", "entry", "exist", "table"]
         },
         {
           "targetFeatureId": "feat_library_c38b86af31",
           "targetTitle": "Node source src/mapping",
           "score": 0.409,
-          "signals": [
-            "seed",
-            "mapper",
-            "index",
-            "map",
-            "valid",
-            "reason",
-            "seen",
-            "owned"
-          ]
+          "signals": ["seed", "mapper", "index", "map", "valid", "reason", "seen", "owned"]
         }
       ]
     },
@@ -844,59 +553,26 @@
       ],
       "contextFiles": 3,
       "tests": 2,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_cd7e86d6bc",
           "targetTitle": "Node source src/workflow#1",
           "score": 0.451,
-          "signals": [
-            "feature",
-            "evidence",
-            "token",
-            "weight",
-            "index",
-            "left",
-            "right",
-            "map"
-          ]
+          "signals": ["feature", "evidence", "token", "weight", "index", "left", "right", "map"]
         },
         {
           "targetFeatureId": "feat_library_693a4bb18b",
           "targetTitle": "Node source src/mappers#1",
           "score": 0.433,
-          "signals": [
-            "seed",
-            "evidence",
-            "mapper",
-            "index",
-            "map",
-            "existing",
-            "feature",
-            "sample"
-          ]
+          "signals": ["seed", "evidence", "mapper", "index", "map", "existing", "feature", "sample"]
         },
         {
           "targetFeatureId": "feat_library_afdb32f756",
           "targetTitle": "Node source src/mappers#2",
           "score": 0.409,
-          "signals": [
-            "seed",
-            "mapper",
-            "index",
-            "map",
-            "valid",
-            "reason",
-            "seen",
-            "owned"
-          ]
+          "signals": ["seed", "mapper", "index", "map", "valid", "reason", "seen", "owned"]
         }
       ]
     },
@@ -922,13 +598,7 @@
       ],
       "contextFiles": 7,
       "tests": 6,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
@@ -950,16 +620,7 @@
           "targetFeatureId": "feat_library_c38b86af31",
           "targetTitle": "Node source src/mapping",
           "score": 0.451,
-          "signals": [
-            "feature",
-            "evidence",
-            "token",
-            "weight",
-            "index",
-            "left",
-            "right",
-            "map"
-          ]
+          "signals": ["feature", "evidence", "token", "weight", "index", "left", "right", "map"]
         },
         {
           "targetFeatureId": "feat_library_477e10e1dd",
@@ -999,29 +660,14 @@
       ],
       "contextFiles": 4,
       "tests": 3,
-      "tags": [
-        "node",
-        "typescript",
-        "source-group",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "typescript", "source-group", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": [
         {
           "targetFeatureId": "feat_library_afdb32f756",
           "targetTitle": "Node source src/mappers#2",
           "score": 0.499,
-          "signals": [
-            "python",
-            "info",
-            "manager",
-            "ruby",
-            "name",
-            "entry",
-            "exist",
-            "table"
-          ]
+          "signals": ["python", "info", "manager", "ruby", "name", "entry", "exist", "table"]
         },
         {
           "targetFeatureId": "feat_library_cd7e86d6bc",
@@ -1042,16 +688,7 @@
           "targetFeatureId": "feat_library_693a4bb18b",
           "targetTitle": "Node source src/mappers#1",
           "score": 0.452,
-          "signals": [
-            "info",
-            "composer",
-            "manager",
-            "name",
-            "child",
-            "entry",
-            "framework",
-            "exist"
-          ]
+          "signals": ["info", "composer", "manager", "name", "child", "entry", "framework", "exist"]
         }
       ]
     },
@@ -1061,21 +698,11 @@
       "kind": "release",
       "source": "package-json-script",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "node",
-        "package-script",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["node", "package-script", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -1084,21 +711,11 @@
       "kind": "release",
       "source": "package-json-script",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "node",
-        "package-script",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["node", "package-script", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -1107,21 +724,11 @@
       "kind": "release",
       "source": "package-json-script",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "node",
-        "package-script",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["node", "package-script", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -1130,21 +737,11 @@
       "kind": "release",
       "source": "package-json-script",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "node",
-        "package-script",
-        "project:codenuke",
-        "project-root:."
-      ],
-      "trustBoundaries": [
-        "process-exec",
-        "filesystem"
-      ],
+      "tags": ["node", "package-script", "project:codenuke", "project-root:."],
+      "trustBoundaries": ["process-exec", "filesystem"],
       "semanticEvidence": []
     },
     {
@@ -1153,17 +750,10 @@
       "kind": "test-suite",
       "source": "package-json-script",
       "ownedFiles": 1,
-      "ownedFilePaths": [
-        "package.json"
-      ],
+      "ownedFilePaths": ["package.json"],
       "contextFiles": 0,
       "tests": 0,
-      "tags": [
-        "node",
-        "package-script",
-        "project:codenuke",
-        "project-root:."
-      ],
+      "tags": ["node", "package-script", "project:codenuke", "project-root:."],
       "trustBoundaries": [],
       "semanticEvidence": []
     }
@@ -1228,11 +818,7 @@
                 "length"
               ]
             },
-            "expectedSignals": [
-              "config",
-              "runtime",
-              "loader"
-            ],
+            "expectedSignals": ["config", "runtime", "loader"],
             "missingSignals": []
           },
           {
@@ -1245,15 +831,9 @@
               "targetFeatureId": "feat_library_10bee8e39e",
               "targetTitle": "Node source src/retry-policy-selector",
               "score": 0.532,
-              "signals": [
-                "policy",
-                "retry"
-              ]
+              "signals": ["policy", "retry"]
             },
-            "expectedSignals": [
-              "policy",
-              "retry"
-            ],
+            "expectedSignals": ["policy", "retry"],
             "missingSignals": []
           }
         ],
@@ -1332,18 +912,9 @@
               "targetFeatureId": "feat_library_7eb44ec80e",
               "targetTitle": "Node source src/checkout-delivery",
               "score": 0.285,
-              "signals": [
-                "checkout",
-                "carrier",
-                "fulfillment",
-                "zone"
-              ]
+              "signals": ["checkout", "carrier", "fulfillment", "zone"]
             },
-            "expectedSignals": [
-              "checkout",
-              "carrier",
-              "fulfillment"
-            ],
+            "expectedSignals": ["checkout", "carrier", "fulfillment"],
             "missingSignals": []
           }
         ],
@@ -1422,19 +993,9 @@
               "targetFeatureId": "feat_library_92277e0cc3",
               "targetTitle": "Node source src/payments",
               "score": 0.257,
-              "signals": [
-                "payment",
-                "customer",
-                "ledger",
-                "amount",
-                "account"
-              ]
+              "signals": ["payment", "customer", "ledger", "amount", "account"]
             },
-            "expectedSignals": [
-              "customer",
-              "ledger",
-              "payment"
-            ],
+            "expectedSignals": ["customer", "ledger", "payment"],
             "missingSignals": []
           },
           {
@@ -1447,20 +1008,9 @@
               "targetFeatureId": "feat_library_0414417625",
               "targetTitle": "Node source src/serializer",
               "score": 0.326,
-              "signals": [
-                "token",
-                "raw",
-                "normalize",
-                "replace",
-                "trim",
-                "case",
-                "lower"
-              ]
+              "signals": ["token", "raw", "normalize", "replace", "trim", "case", "lower"]
             },
-            "expectedSignals": [
-              "normalize",
-              "token"
-            ],
+            "expectedSignals": ["normalize", "token"],
             "missingSignals": []
           }
         ],

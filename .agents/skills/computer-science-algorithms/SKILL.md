@@ -9,7 +9,7 @@ A practitioner-oriented reference for choosing and implementing classical algori
 
 **Scope:** the patterns that show up in everyday production code review, reasonable interview / contest problems, **and the at-scale toolbox** (sketches, streaming, distributed primitives) — not an exhaustive cover of CLRS. Topics intentionally outside the current version: network flow, modular arithmetic, Bellman-Ford and Floyd-Warshall as standalone rules, SCC (Tarjan/Kosaraju), computational geometry, FFT, Manacher / Z-function as standalone rules. They're flagged inline in the relevant rules.
 
-Distilled from CLRS (*Introduction to Algorithms*, 4th ed.), Sedgewick & Wayne (*Algorithms*, 4th ed., Princeton), Skiena's *Algorithm Design Manual*, Laaksonen's *Competitive Programmer's Handbook*, [cp-algorithms.com](https://cp-algorithms.com/), and the [USACO Guide](https://usaco.guide).
+Distilled from CLRS (_Introduction to Algorithms_, 4th ed.), Sedgewick & Wayne (_Algorithms_, 4th ed., Princeton), Skiena's _Algorithm Design Manual_, Laaksonen's _Competitive Programmer's Handbook_, [cp-algorithms.com](https://cp-algorithms.com/), and the [USACO Guide](https://usaco.guide).
 
 ## When to Apply
 
@@ -24,17 +24,17 @@ Use these rules when:
 
 ## Rule Categories By Priority
 
-| # | Category | Prefix | Impact | Why it cascades |
-|---|----------|--------|--------|-----------------|
-| 1 | Asymptotic Complexity & Algorithm Selection | `comp-` | CRITICAL | Wrong O() class makes every other optimization irrelevant |
-| 2 | Data Structure Selection | `ds-` | CRITICAL | The container determines which operations are cheap |
-| 3 | Sorting & Searching | `srch-` | HIGH | Foundation for greedy, two-pointer, sweep-line, binary-search-on-the-answer |
-| 4 | Dynamic Programming | `dp-` | HIGH | Exponential → polynomial transformations |
-| 5 | Graph Algorithms | `graph-` | HIGH | Networks, dependencies, routing, scheduling all reduce to graphs |
-| 6 | Divide & Conquer / Recursion | `divide-` | MEDIUM-HIGH | Logarithmic-factor speedups; stack-depth and recurrence traps |
-| 7 | Greedy Algorithms | `greedy-` | MEDIUM | Fast when correct, silently wrong when not |
-| 8 | String & Sequence Algorithms | `str-` | MEDIUM | Pattern matching, parsing, substring queries |
-| 9 | Scale & Probabilistic Algorithms | `scale-` | MEDIUM | Sketches, streaming, distributed primitives — situational, decisive when they apply |
+| #   | Category                                    | Prefix    | Impact      | Why it cascades                                                                     |
+| --- | ------------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------- |
+| 1   | Asymptotic Complexity & Algorithm Selection | `comp-`   | CRITICAL    | Wrong O() class makes every other optimization irrelevant                           |
+| 2   | Data Structure Selection                    | `ds-`     | CRITICAL    | The container determines which operations are cheap                                 |
+| 3   | Sorting & Searching                         | `srch-`   | HIGH        | Foundation for greedy, two-pointer, sweep-line, binary-search-on-the-answer         |
+| 4   | Dynamic Programming                         | `dp-`     | HIGH        | Exponential → polynomial transformations                                            |
+| 5   | Graph Algorithms                            | `graph-`  | HIGH        | Networks, dependencies, routing, scheduling all reduce to graphs                    |
+| 6   | Divide & Conquer / Recursion                | `divide-` | MEDIUM-HIGH | Logarithmic-factor speedups; stack-depth and recurrence traps                       |
+| 7   | Greedy Algorithms                           | `greedy-` | MEDIUM      | Fast when correct, silently wrong when not                                          |
+| 8   | String & Sequence Algorithms                | `str-`    | MEDIUM      | Pattern matching, parsing, substring queries                                        |
+| 9   | Scale & Probabilistic Algorithms            | `scale-`  | MEDIUM      | Sketches, streaming, distributed primitives — situational, decisive when they apply |
 
 ## Quick Reference
 
@@ -134,12 +134,12 @@ Code examples are in Python (most readable across audiences). The reasoning gene
 
 ## Reference Files
 
-| File | Description |
-|------|-------------|
-| [references/_sections.md](references/_sections.md) | Category definitions and ordering |
-| [assets/templates/_template.md](assets/templates/_template.md) | Template for new rules |
-| [metadata.json](metadata.json) | Version and reference information |
-| [AGENTS.md](AGENTS.md) | Auto-built TOC navigation |
+| File                                                            | Description                       |
+| --------------------------------------------------------------- | --------------------------------- |
+| [references/\_sections.md](references/_sections.md)             | Category definitions and ordering |
+| [assets/templates/\_template.md](assets/templates/_template.md) | Template for new rules            |
+| [metadata.json](metadata.json)                                  | Version and reference information |
+| [AGENTS.md](AGENTS.md)                                          | Auto-built TOC navigation         |
 
 ## Related Skills
 

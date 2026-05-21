@@ -7,7 +7,7 @@ tags: concept, tfidf, domain-vocabulary, idf, corpus-comparison
 
 ## Use TF-IDF Against a Generic Corpus to Separate Domain Vocabulary from Framework Noise
 
-The most-frequent words in a codebase are always framework words — `request`, `controller`, `response`, `model` — not domain words. To isolate domain vocabulary, compute Term Frequency in *this* codebase but use Inverse Document Frequency from a *generic* code corpus (a sample of unrelated open-source projects in the same language). Terms with high TF in this repo and high IDF against the generic corpus are *domain-specific*. `controller` has high TF here but low IDF (every repo uses it) → demoted. `sitterApplication` has high TF here and high IDF (no other repo uses it) → promoted to the top. The result is a ranked list of words that genuinely define what this codebase is about.
+The most-frequent words in a codebase are always framework words — `request`, `controller`, `response`, `model` — not domain words. To isolate domain vocabulary, compute Term Frequency in _this_ codebase but use Inverse Document Frequency from a _generic_ code corpus (a sample of unrelated open-source projects in the same language). Terms with high TF in this repo and high IDF against the generic corpus are _domain-specific_. `controller` has high TF here but low IDF (every repo uses it) → demoted. `sitterApplication` has high TF here and high IDF (no other repo uses it) → promoted to the top. The result is a ranked list of words that genuinely define what this codebase is about.
 
 **Incorrect (raw frequency — top results are always framework noise):**
 
@@ -68,7 +68,8 @@ for score, w, c in scored[:25]:
 **For multi-token entities:** compute TF-IDF on the noun-phrase output of `concept-noun-phrase-mining`, not on bare tokens. Single tokens are too coarse; the phrase `sitter_application` is more informative than `sitter` and `application` separately.
 
 **When NOT to apply:**
-- Repos that *are* the framework (e.g., Django itself) — generic corpus excludes the very repo you're scoring
+
+- Repos that _are_ the framework (e.g., Django itself) — generic corpus excludes the very repo you're scoring
 - Highly multilingual codebases — IDF only works against a same-language reference corpus
 
 Reference: [Salton & Buckley, Term-Weighting Approaches in Automatic Text Retrieval](https://nlp.stanford.edu/IR-book/pdf/06vect.pdf), [Sparck Jones, A statistical interpretation of term specificity (1972)](https://www.staff.city.ac.uk/~sbrp622/idfpapers/ksj_orig.pdf)

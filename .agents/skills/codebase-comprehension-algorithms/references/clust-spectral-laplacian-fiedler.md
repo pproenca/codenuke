@@ -7,11 +7,11 @@ tags: clust, spectral, laplacian, fiedler, ng-jordan-weiss, normalized-cut
 
 ## Use Spectral Clustering When Cuts And Algebraic Connectivity Matter
 
-**Spectral clustering** is fundamentally different from modularity, MDL, or flow-based methods: it treats clustering as a **graph-cut problem**. The graph Laplacian L = D − A (where D is the degree matrix, A the adjacency) has a deep property: its **second-smallest eigenvalue λ₂** (the Fiedler value, also called *algebraic connectivity*) measures how well-connected the graph is, and the **corresponding eigenvector** (the Fiedler vector) gives the optimal **2-way normalized cut**. Extend to k eigenvectors and you get the optimal k-way cut (Shi-Malik 2000; Ng-Jordan-Weiss, NIPS 2001).
+**Spectral clustering** is fundamentally different from modularity, MDL, or flow-based methods: it treats clustering as a **graph-cut problem**. The graph Laplacian L = D − A (where D is the degree matrix, A the adjacency) has a deep property: its **second-smallest eigenvalue λ₂** (the Fiedler value, also called _algebraic connectivity_) measures how well-connected the graph is, and the **corresponding eigenvector** (the Fiedler vector) gives the optimal **2-way normalized cut**. Extend to k eigenvectors and you get the optimal k-way cut (Shi-Malik 2000; Ng-Jordan-Weiss, NIPS 2001).
 
-For software analysis, spectral clustering shines in three cases: (1) when you want the *minimum-disruption* decomposition (where can you cut the codebase with the fewest cross-cluster dependencies?), (2) when you want to *measure* how cleanly decomposable the codebase is (λ₂ is a quantitative answer), and (3) when you want to visualise the codebase by embedding nodes into low-dimensional space via the top-k eigenvectors (the spectral embedding is what t-SNE / UMAP would call the "good" projection of the graph).
+For software analysis, spectral clustering shines in three cases: (1) when you want the _minimum-disruption_ decomposition (where can you cut the codebase with the fewest cross-cluster dependencies?), (2) when you want to _measure_ how cleanly decomposable the codebase is (λ₂ is a quantitative answer), and (3) when you want to visualise the codebase by embedding nodes into low-dimensional space via the top-k eigenvectors (the spectral embedding is what t-SNE / UMAP would call the "good" projection of the graph).
 
-**Incorrect (Louvain when you actually want to *cut* the graph):**
+**Incorrect (Louvain when you actually want to _cut_ the graph):**
 
 ```python
 import networkx as nx

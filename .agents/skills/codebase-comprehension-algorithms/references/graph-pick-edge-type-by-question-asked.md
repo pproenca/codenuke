@@ -9,16 +9,16 @@ tags: graph, edge-semantics, call-graph, import-graph, co-change, bipartite
 
 A codebase is not "a graph." It's at least four overlapping graphs, and each surfaces a different structure:
 
-| Graph | Edge | Surfaces | Best for |
-|-------|------|----------|----------|
-| **Call graph** | `f` calls `g` | Runtime behaviour, control flow | "What does this feature *execute*?" |
-| **Import / dependency graph** | module A imports B | Static coupling | "What modules form a unit?" |
-| **Co-change graph** | A and B changed in same commit | Evolutionary coupling (developer intent) | "What do humans treat as one feature?" |
-| **File × identifier bipartite** | file F mentions term T | Lexical / semantic | "What's this code *about*?" |
+| Graph                           | Edge                           | Surfaces                                 | Best for                               |
+| ------------------------------- | ------------------------------ | ---------------------------------------- | -------------------------------------- |
+| **Call graph**                  | `f` calls `g`                  | Runtime behaviour, control flow          | "What does this feature _execute_?"    |
+| **Import / dependency graph**   | module A imports B             | Static coupling                          | "What modules form a unit?"            |
+| **Co-change graph**             | A and B changed in same commit | Evolutionary coupling (developer intent) | "What do humans treat as one feature?" |
+| **File × identifier bipartite** | file F mentions term T         | Lexical / semantic                       | "What's this code _about_?"            |
 
-Generic community detection (Louvain, Leiden, Infomap) doesn't care which one you give it. *You* care, because each surfaces a different decomposition and the agent's job determines which is right. Building a single combined graph and clustering it (without thinking) is the worst of all worlds — signals contradict, noise dominates, and the result is unstable across runs.
+Generic community detection (Louvain, Leiden, Infomap) doesn't care which one you give it. _You_ care, because each surfaces a different decomposition and the agent's job determines which is right. Building a single combined graph and clustering it (without thinking) is the worst of all worlds — signals contradict, noise dominates, and the result is unstable across runs.
 
-The non-obvious finding from the SAR literature (Shtern-Tzerpos survey, ASE 2012; Beck-Diehl, EMSE 2013): **co-change clustering disagrees with structural clustering on 30–50% of file assignments** in mature codebases, and *both* are right — they answer different questions.
+The non-obvious finding from the SAR literature (Shtern-Tzerpos survey, ASE 2012; Beck-Diehl, EMSE 2013): **co-change clustering disagrees with structural clustering on 30–50% of file assignments** in mature codebases, and _both_ are right — they answer different questions.
 
 **Incorrect (build "a dependency graph", cluster, present as truth):**
 
@@ -90,7 +90,7 @@ def multilayer(G_call, G_import, G_cochange, alpha=(0.3, 0.3, 0.4)):
 
 - Tiny commit history (< ~200 commits) — co-change is dominated by initial scaffolding commits and is useless.
 - No test coverage — runtime call graph is unreliable; fall back to static.
-- Polyglot mono-repo — separate by language first, *then* cluster within each, then stitch.
+- Polyglot mono-repo — separate by language first, _then_ cluster within each, then stitch.
 
 **Production:** Microsoft CodeBook (Begel et al.) and IBM CodeStation (Bull et al.) both let users pick the edge type interactively for exactly this reason. Sourcegraph maintains call, import, and co-change graphs separately; jQAssistant exposes them as separate Neo4j relationship types.
 

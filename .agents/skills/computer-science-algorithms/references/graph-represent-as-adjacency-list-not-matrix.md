@@ -7,7 +7,7 @@ tags: graph, adjacency-list, representation, sparse
 
 ## Represent Sparse Graphs As Adjacency Lists, Not Matrices
 
-An adjacency *matrix* uses V² memory and forces every traversal to scan all V neighbours of every node — O(V²) work regardless of how many edges exist. For sparse graphs (E = O(V) or O(V log V)), that's catastrophic: a road network with 10⁶ nodes and 10⁷ edges fits in ~80 MB as an adjacency list but needs 1 TB as a matrix. Adjacency *lists* store only the edges that exist, giving O(V+E) iteration.
+An adjacency _matrix_ uses V² memory and forces every traversal to scan all V neighbours of every node — O(V²) work regardless of how many edges exist. For sparse graphs (E = O(V) or O(V log V)), that's catastrophic: a road network with 10⁶ nodes and 10⁷ edges fits in ~80 MB as an adjacency list but needs 1 TB as a matrix. Adjacency _lists_ store only the edges that exist, giving O(V+E) iteration.
 
 The rule of thumb: prefer adjacency lists by default. Reach for a matrix only when (1) the graph is dense (E close to V²), or (2) the algorithm needs O(1) edge-existence queries (Floyd-Warshall, transitive closure), or (3) V is small (≤ ~1000).
 

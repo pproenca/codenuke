@@ -66,6 +66,7 @@ for p in pathlib.Path("src").rglob("*.py"):
 **This rule is upstream of every other rule in this skill.** If you forget it, every downstream signal degrades — topics fragment, clone detection misses, bug localization scores noisier matches. Validate it FIRST.
 
 **When NOT to apply:**
+
 - Code where identifiers are intentional opaque codes (compiler-generated names, obfuscated builds) — splitting produces garbage
 - Single-language repos where the convention is strictly enforced (e.g., only snake_case) — a simpler split-on-underscore is sufficient
 

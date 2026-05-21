@@ -7,7 +7,7 @@ tags: arch, dsm, design-structure-matrix, steward, eppinger, partitioning
 
 ## Use Design Structure Matrix Partitioning To Find Block-Diagonal Architecture
 
-The **Design Structure Matrix (DSM)** — originally Steward's "design dependency matrix" (Steward, IEEE TEM 1981) and popularised in product engineering by **Eppinger (MIT, 1990s)** — represents a system as a **square N×N matrix** where row i, column j is "1" if element i depends on element j. The killer move is **partitioning / sequencing**: reorder rows and columns simultaneously so that the matrix becomes as **block-triangular** as possible. After reordering, the structure of the system becomes *visually obvious*:
+The **Design Structure Matrix (DSM)** — originally Steward's "design dependency matrix" (Steward, IEEE TEM 1981) and popularised in product engineering by **Eppinger (MIT, 1990s)** — represents a system as a **square N×N matrix** where row i, column j is "1" if element i depends on element j. The killer move is **partitioning / sequencing**: reorder rows and columns simultaneously so that the matrix becomes as **block-triangular** as possible. After reordering, the structure of the system becomes _visually obvious_:
 
 - A **lower-triangular** DSM means a clean acyclic layering (presentation → service → repository, or kernel → drivers → apps).
 - A **block-diagonal** DSM means independent subsystems.
@@ -119,21 +119,22 @@ print(f"{len(result['scc_blocks'])} SCC blocks; the rest is a clean DAG")
 
 **Why DSM partitioning is uniquely valuable:**
 
-A community-detection algorithm gives you a *set* of clusters. A DSM gives you:
+A community-detection algorithm gives you a _set_ of clusters. A DSM gives you:
+
 1. **An ordering** of the entire codebase (what's upstream of what)
 2. **Cycle visibility** — exactly where the feedback loops are, sized as blocks
 3. **A graphical representation** that an architect can read in 30 seconds (especially with a tool that draws the matrix)
 4. **A history-friendly representation** — DSM diffs across releases show whether you're growing or shrinking cycles
 
-For agent-driven codebase comprehension, the DSM is the right *summary* once clustering has been done — it composes well with any of the other algorithms in this skill. Lattix specifically targets the "rules" extension: declare desired DSM topology (no upward marks!) and let CI enforce it.
+For agent-driven codebase comprehension, the DSM is the right _summary_ once clustering has been done — it composes well with any of the other algorithms in this skill. Lattix specifically targets the "rules" extension: declare desired DSM topology (no upward marks!) and let CI enforce it.
 
-**Empirical baseline:** MacCormack, Rusnak, Baldwin (2006) used DSM partitioning to compute "propagation cost" (a measure of how many components a change typically affects). Mozilla's pre-refactor propagation cost was 17.4%; post-refactor 2.7%. Linux's was 7.4%. Closed-source proprietary codebases averaged 25%+. DSM made these differences *visible* and *comparable* in a way modularity scores never could.
+**Empirical baseline:** MacCormack, Rusnak, Baldwin (2006) used DSM partitioning to compute "propagation cost" (a measure of how many components a change typically affects). Mozilla's pre-refactor propagation cost was 17.4%; post-refactor 2.7%. Linux's was 7.4%. Closed-source proprietary codebases averaged 25%+. DSM made these differences _visible_ and _comparable_ in a way modularity scores never could.
 
 **When NOT to use:**
 
 - Very large codebases (> 5,000 files) — DSM matrices become unreadable without heavy sub-sampling or hierarchical drill-down.
 - Codebases without clear module boundaries — DSM at file granularity is too fine; DSM at package level is the usual sweet spot.
-- Use cases where the *ordering* doesn't matter (e.g. you're computing pure feature similarity) — DSM's main value is the visualization.
+- Use cases where the _ordering_ doesn't matter (e.g. you're computing pure feature similarity) — DSM's main value is the visualization.
 
 **Production:** **Lattix LDM** (commercial) is the canonical software DSM tool — used at Microsoft, Boeing, Ford. Open-source alternatives: **DV-8** (Drexel), **NDepend** (commercial .NET), **PyDSM** for Python. MIT's DSM Forum maintains the academic discourse.
 

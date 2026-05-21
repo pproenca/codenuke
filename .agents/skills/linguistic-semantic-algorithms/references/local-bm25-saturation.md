@@ -7,7 +7,7 @@ tags: local, bm25, ir, ranking, length-normalization
 
 ## Use BM25 over TF-IDF when Source Files Vary Greatly in Length
 
-TF-IDF treats a 100-LoC file and a 5000-LoC file with the same vocabulary as equally relevant — long files have inflated TF and dominate the ranking. BM25 (Robertson & Spärck Jones, 1994) fixes both problems: a length-normalization factor adjusts for file size, and a TF-saturation function (`k1` parameter) prevents repeated occurrences from gaining more than logarithmic weight. The result: BM25 reliably picks the *most relevant* file rather than the *longest* file. It's the ranking function in Elasticsearch / Lucene, in Sourcegraph, and in every serious code-search system built in the last decade. Default it for any bug-localization or feature-localization task in a repo with diverse file sizes.
+TF-IDF treats a 100-LoC file and a 5000-LoC file with the same vocabulary as equally relevant — long files have inflated TF and dominate the ranking. BM25 (Robertson & Spärck Jones, 1994) fixes both problems: a length-normalization factor adjusts for file size, and a TF-saturation function (`k1` parameter) prevents repeated occurrences from gaining more than logarithmic weight. The result: BM25 reliably picks the _most relevant_ file rather than the _longest_ file. It's the ranking function in Elasticsearch / Lucene, in Sourcegraph, and in every serious code-search system built in the last decade. Default it for any bug-localization or feature-localization task in a repo with diverse file sizes.
 
 **Incorrect (raw TF-IDF — long files dominate, repeated terms inflate scores linearly):**
 
@@ -64,6 +64,7 @@ for s, p in ranked:
 ```
 
 **Tune k1 and b per corpus.**
+
 - `k1` (default 1.5): how quickly TF saturates. Lower (1.0) for code with extreme repetition (logs); higher (2.0) for prose-like documents.
 - `b` (default 0.75): how aggressive length normalization is. b=1 fully normalizes; b=0 disables it.
 
@@ -76,6 +77,7 @@ For source code with mixed file sizes, the defaults are good. For markdown-heavy
 **Combine with `local-embedding-bug-text`** in a re-ranking pipeline: BM25 retrieves the top-100 candidates fast; an embedding model re-ranks the top-100 with semantic similarity. Final precision exceeds either alone.
 
 **When NOT to apply:**
+
 - Tiny indexes (<200 files) — overhead exceeds value; raw cosine TF-IDF is enough
 - Code in a single language with extremely uniform file sizes — length normalization gains are marginal
 

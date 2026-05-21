@@ -7,7 +7,7 @@ tags: arch, bunch, mq, modularization-quality, mancoridis, search-based
 
 ## Use Bunch's Modularization Quality As A Software-Specific Fitness Function
 
-Generic community detection (Louvain, Leiden, Infomap) maximises *modularity Q*, a metric defined for general graphs. **Modularization Quality (MQ)** is the software-specific cousin from **Mancoridis et al. (ICSM 1998, "Using Automatic Clustering to Produce High-Level System Organizations of Source Code")** — it's tailored to the way software dependencies actually distribute. MQ rewards **intra-cluster cohesion** (edges that stay inside clusters) and penalises **inter-cluster coupling** (edges that cross clusters), normalised so a single huge cluster doesn't trivially win. Bunch's contribution wasn't MQ alone — it was *using MQ as a fitness function* for **hill-climbing or genetic-algorithm search** over the partition space, which is what lets it match expert decompositions on real codebases.
+Generic community detection (Louvain, Leiden, Infomap) maximises _modularity Q_, a metric defined for general graphs. **Modularization Quality (MQ)** is the software-specific cousin from **Mancoridis et al. (ICSM 1998, "Using Automatic Clustering to Produce High-Level System Organizations of Source Code")** — it's tailored to the way software dependencies actually distribute. MQ rewards **intra-cluster cohesion** (edges that stay inside clusters) and penalises **inter-cluster coupling** (edges that cross clusters), normalised so a single huge cluster doesn't trivially win. Bunch's contribution wasn't MQ alone — it was _using MQ as a fitness function_ for **hill-climbing or genetic-algorithm search** over the partition space, which is what lets it match expert decompositions on real codebases.
 
 The relevant insight: software dependency graphs have features (omnipresent utilities, hierarchical layering, naming-prefix coherence) that MQ captures and Q misses. Mitchell & Mancoridis (TSE 2006) showed MQ beats Q by 5–15 MoJoFM points on the standard benchmark systems (TOBEY, Linux kernel, Mozilla).
 
@@ -132,9 +132,9 @@ print(f"Bunch  : {len(bunch):>2} clusters,  Q={bunch_Q:.3f}  MQ={bunch_MQ:.3f}")
 
 **Why MQ matters and why the genetic-algorithm variant matters even more:**
 
-MQ's per-cluster *cluster factor* — μᵢ / (μᵢ + 0.5·boundary) — is essentially a **micro-modularity** for that one cluster, summed across the partition. The 0.5 weight balances cohesion against coupling; the formula self-penalises tiny clusters (low μᵢ kills the score) and giant clusters (huge boundary kills the score). This implicitly enforces "reasonable cluster size" without any explicit prior — a property modularity Q lacks (Q exhibits the resolution limit; see `valid-be-aware-of-resolution-limit`).
+MQ's per-cluster _cluster factor_ — μᵢ / (μᵢ + 0.5·boundary) — is essentially a **micro-modularity** for that one cluster, summed across the partition. The 0.5 weight balances cohesion against coupling; the formula self-penalises tiny clusters (low μᵢ kills the score) and giant clusters (huge boundary kills the score). This implicitly enforces "reasonable cluster size" without any explicit prior — a property modularity Q lacks (Q exhibits the resolution limit; see `valid-be-aware-of-resolution-limit`).
 
-The genetic-algorithm variant (NSGA-II — Praditwong, Harman, Yao, TSE 2011, "Software Module Clustering as a Multi-Objective Search Problem") treats MQ and *number of clusters* as competing objectives, producing a Pareto front of solutions. Useful when the agent should *report alternatives* rather than impose one.
+The genetic-algorithm variant (NSGA-II — Praditwong, Harman, Yao, TSE 2011, "Software Module Clustering as a Multi-Objective Search Problem") treats MQ and _number of clusters_ as competing objectives, producing a Pareto front of solutions. Useful when the agent should _report alternatives_ rather than impose one.
 
 **When NOT to use:**
 

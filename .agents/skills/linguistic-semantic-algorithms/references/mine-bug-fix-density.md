@@ -7,7 +7,7 @@ tags: mine, bug-fix, defect-prediction, commit-classification, fix-density
 
 ## Rank Files by Bug-Fix Density to Find Defect Magnets
 
-A "defect magnet" is a file where most of the recent commits are bug fixes, not features. The signal is direct: classify each commit as bug-fix vs non-bug-fix using commit-message regex (`fix`, `bug`, ticket prefixes), then compute per-file fix density = bug-fix-commits / total-commits over the last year. Files above 50% are defect magnets — they're the ones the team keeps patching. They almost always also score high on `mine-hotspots-churn-complexity`, but density adds the extra signal that the *content* of the changes is reactive. They're rewrite candidates, not refactor candidates.
+A "defect magnet" is a file where most of the recent commits are bug fixes, not features. The signal is direct: classify each commit as bug-fix vs non-bug-fix using commit-message regex (`fix`, `bug`, ticket prefixes), then compute per-file fix density = bug-fix-commits / total-commits over the last year. Files above 50% are defect magnets — they're the ones the team keeps patching. They almost always also score high on `mine-hotspots-churn-complexity`, but density adds the extra signal that the _content_ of the changes is reactive. They're rewrite candidates, not refactor candidates.
 
 **Incorrect (count all commits as equal — misses the reactive vs proactive distinction):**
 
@@ -85,7 +85,8 @@ for r in magnets[:15]:
 **Combine with `mine-hotspots-churn-complexity`:** a file in the top decile of BOTH hotspots and fix density is a rewrite candidate. Refactoring won't help — the design is wrong.
 
 **When NOT to apply:**
-- Repos with rebase-and-squash workflow where fix commits get rolled into feature commits — fix density is artificially low; mine *original* PR commits instead
+
+- Repos with rebase-and-squash workflow where fix commits get rolled into feature commits — fix density is artificially low; mine _original_ PR commits instead
 - Recently-rewritten files — they will look like defect magnets transiently while bugs in the rewrite stabilize; require ≥ 9-month window
 
 Reference: [Mockus & Votta, Identifying reasons for software changes using historic databases (ICSM 2000)](https://ieeexplore.ieee.org/document/883024), [Tornhill, Software Design X-Rays (Chapter 4)](https://pragprog.com/titles/atevol/software-design-x-rays/)

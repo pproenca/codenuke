@@ -7,7 +7,7 @@ tags: arch, reflexion-model, murphy-notkin-sullivan, hypothesis-driven, mapping
 
 ## Use The Reflexion Model To Compare Hypothesized vs Actual Architecture
 
-The **Reflexion Model** (Murphy, Notkin, Sullivan — "Software Reflexion Models: Bridging the Gap Between Source and High-Level Models," FSE 1995; expanded TSE 2001) is the architecture-recovery technique that *every* working software engineer should know about, and almost none do. The premise is delightful: you don't have to discover the architecture from scratch — you have a hypothesis (the architecture you *think* the codebase has, or the architecture in the wiki, or the architecture the founder once drew on a napkin), and you can **check it against reality** by mapping each file to a hypothesized box, computing the actual dependencies, and reporting on three categories:
+The **Reflexion Model** (Murphy, Notkin, Sullivan — "Software Reflexion Models: Bridging the Gap Between Source and High-Level Models," FSE 1995; expanded TSE 2001) is the architecture-recovery technique that _every_ working software engineer should know about, and almost none do. The premise is delightful: you don't have to discover the architecture from scratch — you have a hypothesis (the architecture you _think_ the codebase has, or the architecture in the wiki, or the architecture the founder once drew on a napkin), and you can **check it against reality** by mapping each file to a hypothesized box, computing the actual dependencies, and reporting on three categories:
 
 1. **Convergences** — edges that exist in both the hypothesis AND the source code. The architecture is right here.
 2. **Divergences** — edges in the source code NOT in the hypothesis. Surprise dependencies, often architectural debt.
@@ -113,21 +113,21 @@ surprises = divergence_details(G, hypothesis_mapping, reflexion["divergent"])
 **The reflexion iteration loop:**
 
 1. Run reflexion with hypothesis H₀.
-2. For each divergence, decide: *bug* (fix the code, e.g. extract a shared module) or *missing rule* (update H to H₁).
-3. For each absence, decide: *missing feature* (add the connection) or *missing rule* (update H).
+2. For each divergence, decide: _bug_ (fix the code, e.g. extract a shared module) or _missing rule_ (update H to H₁).
+3. For each absence, decide: _missing feature_ (add the connection) or _missing rule_ (update H).
 4. Re-run with H₁. Iterate until reflexion is "stable" — divergences and absences are intentional.
 
-This is how architects *actually* keep documentation honest. It's the foundation of architecture-as-code tools (Structurizr, jQAssistant, ArchUnit) and dependency-cruiser-style enforcement.
+This is how architects _actually_ keep documentation honest. It's the foundation of architecture-as-code tools (Structurizr, jQAssistant, ArchUnit) and dependency-cruiser-style enforcement.
 
 **Why this beats clustering for many architecture-recovery tasks:**
 
-Clustering recovers *a* partition — but is it *the right* partition? Only the human team knows. Reflexion makes the partition explicit, comparable, and iteratively refinable. It's also **incremental**: as the codebase evolves, you re-run reflexion in CI; new divergences are reported immediately. Clustering can't do that — its output varies with seed and slight graph changes.
+Clustering recovers _a_ partition — but is it _the right_ partition? Only the human team knows. Reflexion makes the partition explicit, comparable, and iteratively refinable. It's also **incremental**: as the codebase evolves, you re-run reflexion in CI; new divergences are reported immediately. Clustering can't do that — its output varies with seed and slight graph changes.
 
 **Empirical baseline:** Murphy-Notkin-Sullivan (FSE 1995) reported the reflexion technique uncovering ~80% of architectural debt in Microsoft Excel (250+ KLOC) in 4–6 hours of architect time, against months for full bottom-up recovery. Bowman, Holt, Brewster (ICSM 1999) replicated on Linux kernel and found reflexion + an initial layered hypothesis converged in ~10 iterations.
 
 **When NOT to use:**
 
-- You truly have no hypothesis — start with clustering, then *convert the clusters into a hypothesis* and switch to reflexion mode.
+- You truly have no hypothesis — start with clustering, then _convert the clusters into a hypothesis_ and switch to reflexion mode.
 - The codebase is so small (< 20 files) that reflexion adds bureaucracy.
 - The architecture is itself in flux — re-running reflexion daily, churning hypotheses, is exhausting.
 

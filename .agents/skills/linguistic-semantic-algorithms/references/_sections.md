@@ -3,9 +3,9 @@
 This file defines all sections, their ordering, impact levels, and descriptions.
 The section ID (in parentheses) is the filename prefix used to group rules.
 
-Categories are ordered by **insight-per-effort** — how much non-obvious truth the technique extracts from a codebase or its history relative to how easy it is to apply. The first two answer the highest-leverage questions: *what business entities live in this code?* and *where else does this concept already exist?*
+Categories are ordered by **insight-per-effort** — how much non-obvious truth the technique extracts from a codebase or its history relative to how easy it is to apply. The first two answer the highest-leverage questions: _what business entities live in this code?_ and _where else does this concept already exist?_
 
-Note: a category's impact level is the impact of its *best* rules. Individual rules within a CRITICAL category may carry HIGH or MEDIUM-HIGH impact themselves — they're still in the highest-leverage category because the top rules in that category are CRITICAL. Inspect each rule's frontmatter for its specific impact level.
+Note: a category's impact level is the impact of its _best_ rules. Individual rules within a CRITICAL category may carry HIGH or MEDIUM-HIGH impact themselves — they're still in the highest-leverage category because the top rules in that category are CRITICAL. Inspect each rule's frontmatter for its specific impact level.
 
 ---
 
@@ -22,7 +22,7 @@ Note: a category's impact level is the impact of its *best* rules. Individual ru
 ## 3. Architectural Topology (graph)
 
 **Impact:** HIGH  
-**Description:** Treats imports, calls, and references as a graph so PageRank, betweenness centrality, Louvain communities, strongly-connected components, and minimum-feedback-arc-set surface the *shape* of the codebase — core modules, bottlenecks, natural module boundaries, and cycle tangles invisible at the file level.
+**Description:** Treats imports, calls, and references as a graph so PageRank, betweenness centrality, Louvain communities, strongly-connected components, and minimum-feedback-arc-set surface the _shape_ of the codebase — core modules, bottlenecks, natural module boundaries, and cycle tangles invisible at the file level.
 
 ## 4. Co-Change & Temporal Mining (mine)
 

@@ -75,6 +75,7 @@ for combined, path, bm, fc in ranked:
 **Tune `FIX_RE` per team conventions.** Without good fix-classification (see `mine-bug-fix-density`), the prior is noisy. Use Conventional Commits or a trained classifier when possible.
 
 **When NOT to apply:**
+
 - New codebases (< 6 months) — fix history is too sparse, prior is unreliable
 - Repos with massive recent reorganization (file moves invalidate per-path history) — re-attribute via `git log --follow` first, or run history mining on the new layout once it stabilizes
 

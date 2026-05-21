@@ -64,6 +64,7 @@ print(query_tokens)
 **This rule alone is the smallest improvement in this category** but compounds with the others. The full preprocessing chain (split + expand + stem) typically collapses 30-50% of vocabulary into shared roots — which is the difference between TF-IDF working and TF-IDF being noise on identifier-heavy code.
 
 **When NOT to apply:**
+
 - Languages with rich morphology (Finnish, Turkish) — Porter is English-only; use a language-appropriate stemmer or lemmatizer
 - Single-token identifier search (find every place that defines `User` class) — stemming over-matches; use exact match instead
 

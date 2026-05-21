@@ -5,7 +5,7 @@ description: Use this skill whenever mapping out an unfamiliar codebase, hunting
 
 # pproenca Linguistic and Semantic Algorithms Best Practices
 
-Reference of 40 algorithms an agent should reach for when extracting structure, meaning, history, or risk signals from source code and commit data. Categories are ordered by **insight-per-effort** — how much non-obvious truth the technique exposes relative to how easy it is to apply. The first two categories target the highest-leverage questions: *what business entities live in this code?* and *where else does this concept already exist?* — questions that grep and intuition cannot answer.
+Reference of 40 algorithms an agent should reach for when extracting structure, meaning, history, or risk signals from source code and commit data. Categories are ordered by **insight-per-effort** — how much non-obvious truth the technique exposes relative to how easy it is to apply. The first two categories target the highest-leverage questions: _what business entities live in this code?_ and _where else does this concept already exist?_ — questions that grep and intuition cannot answer.
 
 ## When to Apply
 
@@ -20,16 +20,16 @@ Reach for these algorithms when:
 
 ## Rule Categories by Priority
 
-| Priority | Category | Impact | Prefix | Question answered |
-|---|---|---|---|---|
-| 1 | Concept & Domain Extraction | CRITICAL | `concept-` | What business entities live in this code? |
-| 2 | Semantic Similarity & Feature Mapping | CRITICAL | `sim-` | Where else does this concept already exist? |
-| 3 | Architectural Topology | HIGH | `graph-` | What is the shape of this codebase? |
-| 4 | Co-Change & Temporal Mining | HIGH | `mine-` | What hidden couplings does history reveal? |
-| 5 | Clone & Duplication Detection | MEDIUM-HIGH | `clone-` | Where are we repeating ourselves? |
-| 6 | Bug & Feature Localization | MEDIUM-HIGH | `local-` | Given a description, where in code? |
-| 7 | Identifier Linguistics | MEDIUM | `ling-` | How to prepare tokens so the other algorithms work? |
-| 8 | Complexity & Risk Metrics | MEDIUM | `risk-` | Where is the danger concentrated? |
+| Priority | Category                              | Impact      | Prefix     | Question answered                                   |
+| -------- | ------------------------------------- | ----------- | ---------- | --------------------------------------------------- |
+| 1        | Concept & Domain Extraction           | CRITICAL    | `concept-` | What business entities live in this code?           |
+| 2        | Semantic Similarity & Feature Mapping | CRITICAL    | `sim-`     | Where else does this concept already exist?         |
+| 3        | Architectural Topology                | HIGH        | `graph-`   | What is the shape of this codebase?                 |
+| 4        | Co-Change & Temporal Mining           | HIGH        | `mine-`    | What hidden couplings does history reveal?          |
+| 5        | Clone & Duplication Detection         | MEDIUM-HIGH | `clone-`   | Where are we repeating ourselves?                   |
+| 6        | Bug & Feature Localization            | MEDIUM-HIGH | `local-`   | Given a description, where in code?                 |
+| 7        | Identifier Linguistics                | MEDIUM      | `ling-`    | How to prepare tokens so the other algorithms work? |
+| 8        | Complexity & Risk Metrics             | MEDIUM      | `risk-`    | Where is the danger concentrated?                   |
 
 ## Quick Reference
 
@@ -102,12 +102,14 @@ Reach for these algorithms when:
 Pick the category that matches the user's question, then read one or two specific rules from that category. Most rules cite combinable partners ("Combine with `mine-change-coupling`...") that compound the signal — read the partner rule when you need higher precision.
 
 For unfamiliar repos, the highest-ROI starting sequence is:
+
 1. `graph-pagerank-core` → read the top-20 most central files
 2. `concept-lda-topic-modeling` + `concept-tfidf-rare-terms` → identify the business themes
 3. `mine-hotspots-churn-complexity` → find where the bugs concentrate
 4. `mine-change-coupling` → uncover hidden architectural couplings
 
 For a single-task bug or feature, the pipeline is:
+
 1. `local-bm25-saturation` (broad candidates) → `local-embedding-bug-text` (semantic re-rank) → `local-history-prior-localization` (fix-history boost)
 2. `sim-cross-pr-feature-mapping` for prior precedent on new features
 3. `mine-change-coupling` to surface partner files that historically move together
@@ -118,8 +120,8 @@ Always preprocess identifier tokens via `ling-camel-snake-split` → `ling-abbre
 
 ## Reference Files
 
-| File | Description |
-|------|-------------|
-| [references/_sections.md](references/_sections.md) | Category definitions and impact ordering |
-| [assets/templates/_template.md](assets/templates/_template.md) | Template for adding new algorithm rules |
-| [metadata.json](metadata.json) | Version and reference information |
+| File                                                            | Description                              |
+| --------------------------------------------------------------- | ---------------------------------------- |
+| [references/\_sections.md](references/_sections.md)             | Category definitions and impact ordering |
+| [assets/templates/\_template.md](assets/templates/_template.md) | Template for adding new algorithm rules  |
+| [metadata.json](metadata.json)                                  | Version and reference information        |

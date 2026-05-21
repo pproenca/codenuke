@@ -7,7 +7,7 @@ tags: lex, stop-words, vocabulary, programming-language, noise-reduction
 
 ## Build A Stop-Word List Specific To Programming Languages
 
-English stop-word lists (NLTK's, scikit-learn's `ENGLISH_STOP_WORDS`) were designed for prose — `the`, `and`, `but`. They do almost nothing on source code, where the noise is **language keywords** (`function`, `class`, `return`, `void`), **generic verbs** (`get`, `set`, `is`, `has`, `do`, `make`, `create`, `update`, `delete`), **generic nouns** (`data`, `info`, `value`, `result`, `item`, `manager`, `handler`, `helper`, `util`), and **type stubs** (`Object`, `String`, `int`, `bool`). On a typical TypeScript codebase these account for **30–50% of all identifier tokens** after splitting, and they are *the* reason that naive LDA on source code produces topics like "(data, info, value, manager, util)" instead of useful domain terms.
+English stop-word lists (NLTK's, scikit-learn's `ENGLISH_STOP_WORDS`) were designed for prose — `the`, `and`, `but`. They do almost nothing on source code, where the noise is **language keywords** (`function`, `class`, `return`, `void`), **generic verbs** (`get`, `set`, `is`, `has`, `do`, `make`, `create`, `update`, `delete`), **generic nouns** (`data`, `info`, `value`, `result`, `item`, `manager`, `handler`, `helper`, `util`), and **type stubs** (`Object`, `String`, `int`, `bool`). On a typical TypeScript codebase these account for **30–50% of all identifier tokens** after splitting, and they are _the_ reason that naive LDA on source code produces topics like "(data, info, value, manager, util)" instead of useful domain terms.
 
 The fix is to assemble a stop-word list specifically for code. Three layers: (1) the language's reserved keywords, (2) a curated generic-software vocabulary, (3) corpus-specific high-frequency-low-IDF terms identified from the codebase itself. The third layer is the highest-impact and the most often skipped.
 
@@ -102,7 +102,7 @@ def tokenize_with_stops(source: str, stops: set[str]) -> list[str]:
 **When NOT to use the aggressive list:**
 
 - You're studying naming conventions themselves (research question: how do developers name things?) — keep everything in.
-- Domain-specific framework where "manager" or "handler" *is* a domain term (e.g. messaging middleware where Handler is a first-class concept).
+- Domain-specific framework where "manager" or "handler" _is_ a domain term (e.g. messaging middleware where Handler is a first-class concept).
 - Single-class hierarchies where layer names (Service / Repository / Controller) carry the architectural signal you want to recover.
 
 **Production:** GitHub's CodeSearch tokenizer applies a multi-layer stop-word list per language; SonarQube's natural-language linters bundle a programming-stop-word list; spaCy has a small `software-stopwords` community-maintained list (incomplete; prefer the curated approach above).

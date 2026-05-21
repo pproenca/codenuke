@@ -9,12 +9,12 @@ tags: rank, hits, kleinberg, hubs, authorities
 
 PageRank gives one number per node — total importance. **HITS** (Hyperlink-Induced Topic Search; **Kleinberg, "Authoritative sources in a hyperlinked environment," JACM 1999**) gives **two**: a **hub score** (the node points to many high-authority things) and an **authority score** (the node is pointed to by many high-hub things). The two scores capture orthogonal roles:
 
-- **High authority, low hub**: implementation files — leaf services, repositories, data accessors. *Many things call them; they call few.*
-- **High hub, low authority**: orchestrators — controllers, request handlers, top-level entry points. *They call many things; few call them.*
+- **High authority, low hub**: implementation files — leaf services, repositories, data accessors. _Many things call them; they call few._
+- **High hub, low authority**: orchestrators — controllers, request handlers, top-level entry points. _They call many things; few call them._
 - **High both**: middleware — services that compose other services. The architectural glue.
 - **Low both**: peripheral utilities, dead code.
 
-For codebase comprehension, this is the **shape of the architecture** in two numbers per file. The PageRank-top files are typically high authority *or* high hub but rarely both — knowing which is which tells the agent what kind of file it's reading.
+For codebase comprehension, this is the **shape of the architecture** in two numbers per file. The PageRank-top files are typically high authority _or_ high hub but rarely both — knowing which is which tells the agent what kind of file it's reading.
 
 **Incorrect (single importance score conflates the two roles):**
 
@@ -105,15 +105,15 @@ def architectural_map(hubs, authorities, n_per_role: int = 10):
 
 **Why HITS and PageRank are complementary:**
 
-PageRank assumes you want a *single* notion of importance — a node's score is mass passed around the graph until convergence. HITS recognises that **importance is bipartite** in directed graphs: receivers and emitters can be ranked separately. This matters most in software because **the architectural role IS bipartite**: a controller is *defined* as an emitter (it dispatches to handlers), a repository is *defined* as a receiver (handlers call into it). HITS recovers this structure directly.
+PageRank assumes you want a _single_ notion of importance — a node's score is mass passed around the graph until convergence. HITS recognises that **importance is bipartite** in directed graphs: receivers and emitters can be ranked separately. This matters most in software because **the architectural role IS bipartite**: a controller is _defined_ as an emitter (it dispatches to handlers), a repository is _defined_ as a receiver (handlers call into it). HITS recovers this structure directly.
 
-| Architecture pattern | What HITS reveals |
-|---------------------|--------------------|
-| MVC / 3-tier | Controllers = top hubs; Repositories = top authorities; Services = middleware |
-| Plugin system | Plugin host = top hub; Plugins = top authorities |
-| Event-driven | Publishers = high hubs; Handlers = high authorities |
-| Layered (kernel / driver / app) | Apps = top hubs; Kernel = top authority; Drivers = middleware |
-| Microservice mesh | API gateway = top hub; Data services = top authorities |
+| Architecture pattern            | What HITS reveals                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| MVC / 3-tier                    | Controllers = top hubs; Repositories = top authorities; Services = middleware |
+| Plugin system                   | Plugin host = top hub; Plugins = top authorities                              |
+| Event-driven                    | Publishers = high hubs; Handlers = high authorities                           |
+| Layered (kernel / driver / app) | Apps = top hubs; Kernel = top authority; Drivers = middleware                 |
+| Microservice mesh               | API gateway = top hub; Data services = top authorities                        |
 
 **Empirical baseline:** HITS is less applied to software clustering than PageRank — its main use has been in citation networks and the web. The applications that exist (Bavota et al. ICSM 2013 on Java OSS systems, Wettel-Lanza ICPC 2008 on visualisation) confirm the orchestrator-vs-implementation interpretation transfers cleanly.
 

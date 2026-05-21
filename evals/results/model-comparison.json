@@ -274,12 +274,8 @@
       "baselineFindings": 0,
       "modelFindings": 0,
       "findingDelta": 0,
-      "baselineGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
-      "modelGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
+      "baselineGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
+      "modelGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
       "modelErrors": []
     },
     {
@@ -289,12 +285,8 @@
       "baselineFindings": 0,
       "modelFindings": 1,
       "findingDelta": 1,
-      "baselineGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
-      "modelGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
+      "baselineGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
+      "modelGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
       "modelErrors": []
     },
     {
@@ -306,9 +298,7 @@
       "findingDelta": null,
       "baselineGuidanceResources": [],
       "modelGuidanceResources": [],
-      "modelErrors": [
-        "fix requested but no matching finding was found"
-      ]
+      "modelErrors": ["fix requested but no matching finding was found"]
     },
     {
       "slug": "mock-simplify",
@@ -317,12 +307,8 @@
       "baselineFindings": 1,
       "modelFindings": 1,
       "findingDelta": 0,
-      "baselineGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
-      "modelGuidanceResources": [
-        "workflow.trusted-refactor-regression-coverage"
-      ],
+      "baselineGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
+      "modelGuidanceResources": ["workflow.trusted-refactor-regression-coverage"],
       "modelErrors": []
     }
   ],

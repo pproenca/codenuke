@@ -7,7 +7,7 @@ tags: graph, scc, tarjan, cycles, dependency-tangles
 
 ## Use Strongly Connected Components to Find Dependency Cycle Tangles
 
-A clean codebase has a directed acyclic dependency graph. A *real* codebase has cycles — `A.py` imports `B.py`, which imports `C.py`, which imports `A.py`. These cycles often hide behind multi-step paths and are invisible to "did you add a circular import?" linters. Tarjan's SCC algorithm finds every strongly-connected component (every maximal set of files where everyone can reach everyone) in O(V+E). Any SCC with size > 1 is a tangle — a cluster of files that must move together because they cannot be separated. Refactoring starts with knowing where the tangles are.
+A clean codebase has a directed acyclic dependency graph. A _real_ codebase has cycles — `A.py` imports `B.py`, which imports `C.py`, which imports `A.py`. These cycles often hide behind multi-step paths and are invisible to "did you add a circular import?" linters. Tarjan's SCC algorithm finds every strongly-connected component (every maximal set of files where everyone can reach everyone) in O(V+E). Any SCC with size > 1 is a tangle — a cluster of files that must move together because they cannot be separated. Refactoring starts with knowing where the tangles are.
 
 **Incorrect (catch cycles only when Python raises ImportError — most cycles hide):**
 
@@ -62,6 +62,7 @@ for i, scc in enumerate(sccs[:5]):
 **Combine with `mine-change-coupling`:** SCCs whose members ALSO change together are real coupling. SCCs whose members never change together are accidents of the static graph — usually safe to leave.
 
 **When NOT to apply:**
+
 - Languages where circular imports are intentional (Haskell modules) — SCCs aren't a defect signal there
 - Codebases with heavy lazy imports — static analysis under-reports the graph; combine with runtime import tracing
 

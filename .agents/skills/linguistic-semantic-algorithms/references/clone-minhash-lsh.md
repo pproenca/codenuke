@@ -7,7 +7,7 @@ tags: clone, minhash, lsh, near-duplicate, sublinear-search
 
 ## Use MinHash plus LSH to Find Near-Duplicate Code at Repository Scale
 
-Pairwise Jaccard similarity on N files is O(N²) — quadratic and unrunnable on real repos. MinHash (Broder, 1997) replaces each file's k-shingle set with a fixed-size signature whose collisions estimate Jaccard. Locality-Sensitive Hashing on those signatures then makes the *search* sub-linear — given a query signature, you find all candidates above a similarity threshold in roughly O(log N). On a million-file mono-repo, finding all near-duplicate pairs above 0.7 Jaccard takes minutes, not days. This is the workhorse for Type-1 and most Type-2 clone detection across an enterprise codebase.
+Pairwise Jaccard similarity on N files is O(N²) — quadratic and unrunnable on real repos. MinHash (Broder, 1997) replaces each file's k-shingle set with a fixed-size signature whose collisions estimate Jaccard. Locality-Sensitive Hashing on those signatures then makes the _search_ sub-linear — given a query signature, you find all candidates above a similarity threshold in roughly O(log N). On a million-file mono-repo, finding all near-duplicate pairs above 0.7 Jaccard takes minutes, not days. This is the workhorse for Type-1 and most Type-2 clone detection across an enterprise codebase.
 
 **Incorrect (all-pairs Jaccard — quadratic, infeasible above ~10k files):**
 
@@ -71,15 +71,16 @@ for path, sig in sigs.items():
             print(f"  ~{est:.2f}  {path}  ~~  {nbr}")
 ```
 
-**Tune k (shingle size).** Too small (k=2) → noise; too large (k=10) → misses small clones. k=5 for source code, k=3 for short identifiers, k=9 for natural-language text. Always shingle on *tokens*, not characters — character shingles match by syntax, token shingles match by meaning.
+**Tune k (shingle size).** Too small (k=2) → noise; too large (k=10) → misses small clones. k=5 for source code, k=3 for short identifiers, k=9 for natural-language text. Always shingle on _tokens_, not characters — character shingles match by syntax, token shingles match by meaning.
 
-**Use weighted MinHash for IDF-aware similarity.** Plain MinHash treats every shingle equally. Real interesting clones share *rare* shingles, not common ones. [datasketch.WeightedMinHashGenerator](http://ekzhu.com/datasketch/weightedminhash.html) takes IDF weights and dramatically improves precision when paired with `concept-tfidf-rare-terms`.
+**Use weighted MinHash for IDF-aware similarity.** Plain MinHash treats every shingle equally. Real interesting clones share _rare_ shingles, not common ones. [datasketch.WeightedMinHashGenerator](http://ekzhu.com/datasketch/weightedminhash.html) takes IDF weights and dramatically improves precision when paired with `concept-tfidf-rare-terms`.
 
 **LSH banding chooses the precision-recall tradeoff.** `MinHashLSH(threshold=0.7)` solves for (b, r) such that recall is high at Jaccard ≥ 0.7. Lower threshold → more bands → more candidates → slower query but higher recall. Sweep 0.5/0.7/0.9 and pick by clone-purpose.
 
-**Combine with `clone-suffix-array-cpd`** for precise clone boundaries. MinHash tells you *which* files are similar; suffix-array CPD tells you *where in the file* the duplicated tokens are.
+**Combine with `clone-suffix-array-cpd`** for precise clone boundaries. MinHash tells you _which_ files are similar; suffix-array CPD tells you _where in the file_ the duplicated tokens are.
 
 **When NOT to apply:**
+
 - Code translated between languages — token sets differ; use embeddings (`sim-codebert-embeddings`) instead
 - Tiny repos (<500 files) — MinHash overhead exceeds savings; plain Jaccard is fine
 

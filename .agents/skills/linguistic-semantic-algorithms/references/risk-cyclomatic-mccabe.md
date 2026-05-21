@@ -7,7 +7,7 @@ tags: risk, cyclomatic, mccabe, complexity, radon
 
 ## Measure McCabe Cyclomatic Complexity to Quantify Per-Function Branch Risk
 
-Cyclomatic complexity (McCabe, 1976) counts the number of linearly-independent paths through a function: every `if`, `for`, `while`, `case`, and `and/or` short-circuit adds one. The result is also a lower bound on the number of test cases needed for full branch coverage. It's the oldest and simplest complexity metric and the easiest to interpret: a function with CC ≤ 10 is easy to test; CC > 15 is hard; CC > 30 is almost certainly mis-structured. Use it as the *complexity* dimension in `mine-hotspots-churn-complexity` and as a per-file gate in code review.
+Cyclomatic complexity (McCabe, 1976) counts the number of linearly-independent paths through a function: every `if`, `for`, `while`, `case`, and `and/or` short-circuit adds one. The result is also a lower bound on the number of test cases needed for full branch coverage. It's the oldest and simplest complexity metric and the easiest to interpret: a function with CC ≤ 10 is easy to test; CC > 15 is hard; CC > 30 is almost certainly mis-structured. Use it as the _complexity_ dimension in `mine-hotspots-churn-complexity` and as a per-file gate in code review.
 
 **Incorrect (lines of code as a complexity proxy — completely insensitive to branching):**
 
@@ -52,16 +52,17 @@ for r in danger[:15]:
 
 **Interpret with McCabe's published thresholds:**
 
-| CC range | Rank | Risk | Action |
-|---|---|---|---|
-| 1-5 | A | low | leave it alone |
-| 6-10 | B | OK | OK if intentional |
-| 11-20 | C | high | refactor candidate |
-| 21-30 | D | very high | refactor or split |
-| 31-40 | E | critical | rewrite the function |
-| 41+ | F | unmaintainable | rewrite without question |
+| CC range | Rank | Risk           | Action                   |
+| -------- | ---- | -------------- | ------------------------ |
+| 1-5      | A    | low            | leave it alone           |
+| 6-10     | B    | OK             | OK if intentional        |
+| 11-20    | C    | high           | refactor candidate       |
+| 21-30    | D    | very high      | refactor or split        |
+| 31-40    | E    | critical       | rewrite the function     |
+| 41+      | F    | unmaintainable | rewrite without question |
 
 **Per-language tooling:**
+
 - Python: `radon`, `mccabe`
 - Java: `pmd`, `checkstyle`, `spotbugs`
 - JS / TS: `eslint-plugin-complexity`, `ts-prune`
@@ -76,6 +77,7 @@ for r in danger[:15]:
 **Combine with `mine-hotspots-churn-complexity`** — CC × revisions is the canonical hotspot score. A high-CC function that nobody changes is acceptable risk; a high-CC function that changes weekly is a bug factory.
 
 **When NOT to apply:**
+
 - Pure data files / constants — CC is trivially 1 for any non-branching code; metric provides no signal
 - Generated parser code — CC is artificially high but the function is correct by construction; exclude generated paths
 

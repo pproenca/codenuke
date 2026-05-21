@@ -72,13 +72,14 @@ for path, line, kind, name in flags[:25]:
 
 **This is the simplest rule in this skill, and one of the most overlooked.** Most codebases have a 5-10% rate of convention violations; surfacing them gives clear, agreed-upon renaming tasks that improve readability with zero design risk.
 
-**Use the *rate* as a code-health metric.** A codebase with <2% violation rate has disciplined naming; >15% means naming convention isn't being enforced and other naming-based heuristics (clone detection, similarity ranking) will degrade.
+**Use the _rate_ as a code-health metric.** A codebase with <2% violation rate has disciplined naming; >15% means naming convention isn't being enforced and other naming-based heuristics (clone detection, similarity ranking) will degrade.
 
 **Combine with `concept-noun-phrase-mining`:** the noun phrases in your codebase represent domain entities. POS-mismatched functions or classes block extraction — fix them first, then re-run mining for better coverage.
 
 **Pre-tag with a frame** (`"I want to ${word} it."`). Tagging a bare word out of context produces unreliable POS labels for ambiguous words like "log" or "match". A grammatical frame disambiguates without adding much code.
 
 **When NOT to apply:**
+
 - Languages where the convention is opposite or absent (Lisp, Haskell idioms differ) — adapt the rule or skip
 - Domain-specific languages where identifiers are physical units (`meters`, `volts`) — POS tagging produces noise; whitelist heavily
 

@@ -7,7 +7,7 @@ tags: evol, logical-coupling, gall, hidden-coupling, architecture
 
 ## Treat Logical Coupling As The Architectural Signal Static Analysis Misses
 
-**Gall, Hajek, Jazayeri** ("Detection of logical coupling based on product release history," ICSM 1998) introduced **Logical Coupling**: two source artefacts are *logically coupled* if they consistently change together, even when no static dependency exists between them. The finding was startling at the time: across telecom-product releases, **30–50% of the strongest coupling** measured by co-change had no corresponding edge in the static call/import graph. The coupling was *hidden* — through shared protocols, shared numeric constants, runtime configuration, event buses, distributed transactions, or just convention ("when we add a new auth method, we also have to update three unrelated files").
+**Gall, Hajek, Jazayeri** ("Detection of logical coupling based on product release history," ICSM 1998) introduced **Logical Coupling**: two source artefacts are _logically coupled_ if they consistently change together, even when no static dependency exists between them. The finding was startling at the time: across telecom-product releases, **30–50% of the strongest coupling** measured by co-change had no corresponding edge in the static call/import graph. The coupling was _hidden_ — through shared protocols, shared numeric constants, runtime configuration, event buses, distributed transactions, or just convention ("when we add a new auth method, we also have to update three unrelated files").
 
 For codebase comprehension, this is the most important finding from 30 years of mining-software-repositories research: **the architecture you can see is not the architecture you have**. Files that change together belong together regardless of what the import graph says. Logical coupling has consistently been shown to be a stronger predictor of bug propagation (Hassan-Holt ICSE 2004), refactoring opportunities (D'Ambros, Lanza, Robbes ICSE 2009), and feature ownership (Bird et al. FSE 2009) than static dependencies alone.
 
@@ -124,17 +124,17 @@ def combined_coupling_graph(G_static: nx.Graph, pair_count, file_count, total_co
 
 Static analysis sees only **what the language allows you to express**. Logical coupling sees **what developers actually intend to keep in sync**. Examples where the divergence is large:
 
-| Coupling type | Visible to static? | Visible to logical? |
-|---------------|--------------------|--------------------:|
-| Direct import / call | Yes | Yes |
-| DI / Spring autowiring | Partial | Yes |
-| Event bus topic strings | No | Yes |
-| Shared config keys / feature flags | No | Yes |
-| Distributed transaction coordination | No | Yes |
-| Implicit constants ("user_role_id = 42") | No | Yes |
-| Protocol-level coordination (DB schema ↔ model) | No | Yes |
-| Test fixtures coordinated with prod files | Partial | Yes |
-| Generated code regeneration | No | Yes |
+| Coupling type                                   | Visible to static? | Visible to logical? |
+| ----------------------------------------------- | ------------------ | ------------------: |
+| Direct import / call                            | Yes                |                 Yes |
+| DI / Spring autowiring                          | Partial            |                 Yes |
+| Event bus topic strings                         | No                 |                 Yes |
+| Shared config keys / feature flags              | No                 |                 Yes |
+| Distributed transaction coordination            | No                 |                 Yes |
+| Implicit constants ("user_role_id = 42")        | No                 |                 Yes |
+| Protocol-level coordination (DB schema ↔ model) | No                 |                 Yes |
+| Test fixtures coordinated with prod files       | Partial            |                 Yes |
+| Generated code regeneration                     | No                 |                 Yes |
 
 **Empirical baseline:** Gall et al. (ICSM 1998) on the Lucent-style telecom platform: 30–40% of coupling was hidden. D'Ambros-Lanza-Robbes (ICSE 2009, "Visualizing co-change information with the evolution radar") replicated on five OSS systems with 25–55% hidden rates. Hassan-Holt (ICSE 2004) showed that combining static + logical predicts change-propagation correctly 70% more often than static alone.
 
@@ -150,7 +150,7 @@ Static analysis sees only **what the language allows you to express**. Logical c
 
 - Insufficient history (< 100 feature commits) — logical signal is noise.
 - Codebase recently went through a giant refactor — old logical coupling reflects old architecture.
-- You explicitly want the *static* picture for compile-time analysis.
+- You explicitly want the _static_ picture for compile-time analysis.
 
 **Production:** GitLens "files changed together" shows logical coupling. Software Improvement Group's BetterCodeHub uses logical coupling as one of its architectural quality metrics. Microsoft's CodeFlow recommendation engine uses logical coupling. Open-source: `cochange` and `gittutorial` tools.
 

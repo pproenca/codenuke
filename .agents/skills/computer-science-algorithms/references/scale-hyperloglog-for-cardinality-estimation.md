@@ -72,7 +72,7 @@ def distinct_users(events):
 
 - You need an exact count (audit, compliance, billing)
 - Cardinality is small enough that a hash set fits (n < ~10⁵)
-- You need to *enumerate* the distinct items, not just count them
+- You need to _enumerate_ the distinct items, not just count them
 
 **Production:** Redis `PFADD/PFCOUNT/PFMERGE` is HLL. Presto/Trino, Snowflake, BigQuery, Spark all expose HLL-backed `approx_count_distinct`. Druid stores HLLs as the primary aggregate for unique-counts at ingest time.
 

@@ -7,7 +7,7 @@ tags: risk, halstead, volume, effort-estimation, language-agnostic
 
 ## Use Halstead Volume for a Language-Agnostic Size and Effort Metric
 
-Halstead (1977) measured "size" not in lines but in distinct operators (`if`, `+`, `=`) and operands (variables, literals). The volume metric `V = (n₁ + n₂) × log₂(η₁ + η₂)` correlates with effort to read/write/test a piece of code far better than LoC alone, and it doesn't lie when the language is dense (Python, Haskell) vs verbose (Java, Go). On its own it's noisy, but as a *language-independent* size dimension to combine with CC or cognitive complexity, it produces complexity rankings that survive language migrations and tooling changes. Useful for cross-repo or cross-language comparisons where LoC and CC are unfairly biased.
+Halstead (1977) measured "size" not in lines but in distinct operators (`if`, `+`, `=`) and operands (variables, literals). The volume metric `V = (n₁ + n₂) × log₂(η₁ + η₂)` correlates with effort to read/write/test a piece of code far better than LoC alone, and it doesn't lie when the language is dense (Python, Haskell) vs verbose (Java, Go). On its own it's noisy, but as a _language-independent_ size dimension to combine with CC or cognitive complexity, it produces complexity rankings that survive language migrations and tooling changes. Useful for cross-repo or cross-language comparisons where LoC and CC are unfairly biased.
 
 **Incorrect (compare files across languages by LoC — Python and Java look incomparable):**
 
@@ -58,11 +58,12 @@ for r in results[:10]:
 - **Difficulty (D)**: how hard to understand — `η₁/2 × N₂/η₂`. High D means many operations on few unique operands (dense, hard to follow).
 - **Effort (E)**: `V × D`. The composite "how much work to write/maintain this".
 
-**Halstead's time formula (V × D / 18 = seconds) is well-known to be a rough fit at best.** It systematically over-estimates for modern languages with built-in collections and abstractions. Use the metrics as *relative* comparators, not as absolute time estimates.
+**Halstead's time formula (V × D / 18 = seconds) is well-known to be a rough fit at best.** It systematically over-estimates for modern languages with built-in collections and abstractions. Use the metrics as _relative_ comparators, not as absolute time estimates.
 
 **Use it to compare implementations across languages.** When migrating a Python service to Go (or v.v.), Halstead volume gives a defensible "is the new version really simpler?" comparison that LoC can't. A Go version with 2× the LoC but 0.7× the Halstead volume is genuinely simpler — its operator/operand density is lower.
 
 **Per-language tooling:**
+
 - Python: `radon`
 - Java: `pmd` has a Halstead plugin
 - JS / TS: `escomplex`, `complexity-report`
@@ -74,6 +75,7 @@ for r in results[:10]:
 **Combine with `mine-bus-factor`:** high Halstead volume + bus-factor 1 = a single person carrying a large maintenance load. The kind of finding that should change capacity planning.
 
 **When NOT to apply:**
+
 - Single-file scripts under ~50 LoC — Halstead's counts are too small for stable ratios
 - Heavily code-generated files — operator counts are inflated by the generator's repetitive patterns; exclude from analysis
 

@@ -7,7 +7,7 @@ tags: concept, ddd, bounded-context, louvain, community-detection
 
 ## Detect DDD Bounded Contexts via Louvain Communities Plus Vocabulary Divergence
 
-A bounded context (Evans, Domain-Driven Design) is a region of the codebase where a shared term has a single, internally consistent meaning. Real codebases don't declare their bounded contexts — they emerge from naming and call-graph topology. Two signals identify them with high precision: (1) Louvain community detection on the file-level import graph identifies densely-connected clusters; (2) Jensen-Shannon divergence on the per-cluster identifier-vocabulary distribution confirms the clusters use *different* vocabularies. When both signals agree, you have a bounded context. The output is a partition of the codebase that maps to real domain boundaries — for refactoring, micro-service extraction, or just for orientation.
+A bounded context (Evans, Domain-Driven Design) is a region of the codebase where a shared term has a single, internally consistent meaning. Real codebases don't declare their bounded contexts — they emerge from naming and call-graph topology. Two signals identify them with high precision: (1) Louvain community detection on the file-level import graph identifies densely-connected clusters; (2) Jensen-Shannon divergence on the per-cluster identifier-vocabulary distribution confirms the clusters use _different_ vocabularies. When both signals agree, you have a bounded context. The output is a partition of the codebase that maps to real domain boundaries — for refactoring, micro-service extraction, or just for orientation.
 
 **Incorrect (use the directory structure as bounded contexts — assumes folders match domains):**
 
@@ -81,11 +81,12 @@ for i, comm in enumerate(communities):
 # Context 5: |files|=27 JS=0.31 top_terms=['user', 'session', 'auth', 'token', 'login', ...]
 ```
 
-**Validate against the team's mental model.** The output is a *candidate* partition — show it to a domain expert and ask "does this match how you think about the system?". Real bounded contexts that the algorithm misses signal places where the code's structure has drifted from the domain.
+**Validate against the team's mental model.** The output is a _candidate_ partition — show it to a domain expert and ask "does this match how you think about the system?". Real bounded contexts that the algorithm misses signal places where the code's structure has drifted from the domain.
 
 **Combined with `mine-change-coupling`:** files that change together across contexts are leaky abstractions. Co-change between bounded contexts is a refactoring signal — those files belong in a shared kernel.
 
 **When NOT to apply:**
+
 - Monolithic codebases with no internal module boundaries — Louvain returns one giant community
 - Codebases following strict layered architecture — the layers will be detected as "contexts" but they aren't; weight by `concept-tfidf-rare-terms` to confirm domain divergence
 

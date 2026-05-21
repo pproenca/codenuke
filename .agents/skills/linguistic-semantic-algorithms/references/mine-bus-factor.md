@@ -7,7 +7,7 @@ tags: mine, bus-factor, authorship, knowledge-risk, git-blame
 
 ## Compute Per-File Bus Factor from Authorship Concentration
 
-The "bus factor" of a file is the number of authors whose departure would leave nobody on the team who still knows how it works. It's traditionally estimated by intuition, badly. The algorithmic answer is to compute per-author share of lines authored over the last N months — if a single author owns >75% of a file's lines, the bus factor of that file is 1. Aggregated to the directory or module level, this produces a heat map of "if you lost author X, here's what stops working". Run this once a quarter. Pair high-bus-factor files with high-churn files — those are the files to pair-program on *now*.
+The "bus factor" of a file is the number of authors whose departure would leave nobody on the team who still knows how it works. It's traditionally estimated by intuition, badly. The algorithmic answer is to compute per-author share of lines authored over the last N months — if a single author owns >75% of a file's lines, the bus factor of that file is 1. Aggregated to the directory or module level, this produces a heat map of "if you lost author X, here's what stops working". Run this once a quarter. Pair high-bus-factor files with high-churn files — those are the files to pair-program on _now_.
 
 **Incorrect (eyeball `git shortlog` per file — slow, inconsistent, ranks by commit count not LoC):**
 
@@ -77,13 +77,14 @@ for r in risk[:15]:
 
 **Filter authors who have left the company.** A 92%-share by someone who left 2 years ago means bus factor 0, not 1. Cross-reference against your HR feed or maintain a `.former-employees` list.
 
-**Aggregate to module level too.** A directory where every file has bus-factor 1 to a *different* person has aggregate bus-factor 1 too — losing any of those people loses parts of the module. Compute Gini of authorship across the module.
+**Aggregate to module level too.** A directory where every file has bus-factor 1 to a _different_ person has aggregate bus-factor 1 too — losing any of those people loses parts of the module. Compute Gini of authorship across the module.
 
 **Combine with `mine-hotspots-churn-complexity`:** a file that is bus-factor-1 AND a hotspot is the codebase's single highest risk. Pair-program on it this quarter, regardless of whether anyone is "available". Code Maat's `knowledge-loss` analysis automates this combination.
 
 **This is industry-standard at large companies.** Microsoft Research has published several papers using these exact metrics ([Bird et al.](https://www.microsoft.com/en-us/research/publication/dont-touch-my-code-examining-the-effects-of-ownership-on-software-quality/)) — high author concentration correlates with defect rate in their data.
 
 **When NOT to apply:**
+
 - Repos following strict code-review with broad reviewer pools — blame may not reflect knowledge ownership; weight by reviewer history too
 - Recently-restructured repos — git blame can attribute lines to a refactor commit and obscure real authorship; use `git log --follow --patch -S<line>` for spot checks
 

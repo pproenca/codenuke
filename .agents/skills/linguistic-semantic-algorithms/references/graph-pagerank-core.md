@@ -7,7 +7,7 @@ tags: graph, pagerank, import-graph, centrality, networkx
 
 ## Run PageRank on the Import Graph to Find the Codebase Core
 
-When you join a new codebase, the highest-leverage move is to read the ~20 files that everything else depends on — the "core" — *before* reading any features. PageRank on the directed import graph identifies these files automatically. A file imported by many other important files gets a high score. The eigenvector behind the algorithm bakes in the recursive property: importance is conferred by other important things. The output is a ranked file list; reading the top 20 gives you the codebase's mental model in an afternoon, not three weeks.
+When you join a new codebase, the highest-leverage move is to read the ~20 files that everything else depends on — the "core" — _before_ reading any features. PageRank on the directed import graph identifies these files automatically. A file imported by many other important files gets a high score. The eigenvector behind the algorithm bakes in the recursive property: importance is conferred by other important things. The output is a ranked file list; reading the top 20 gives you the codebase's mental model in an afternoon, not three weeks.
 
 **Incorrect (sort by in-degree — confuses popular with central):**
 
@@ -62,15 +62,16 @@ for path, score in top:
 # 0.0289  src/domain/sitter/repository.py
 ```
 
-**Reverse the edge direction** to find files that *use* the most rather than files that *are used* the most — useful for finding the top-level entry points of the system. `nx.pagerank(G.reverse())`.
+**Reverse the edge direction** to find files that _use_ the most rather than files that _are used_ the most — useful for finding the top-level entry points of the system. `nx.pagerank(G.reverse())`.
 
 **Weight by import frequency** if your language allows multiple imports from the same module (Python's `from x import a, b, c`). Counting each `import` statement as edge weight slightly improves precision on heavily-fanned-in modules.
 
 **Read the top-20 in order on day one.** This is the single highest-ROI orientation activity in a new codebase — far more than reading READMEs or top-level directories.
 
-**Combine with `mine-hotspots-churn-complexity`:** files high on PageRank *and* high on churn × complexity are the architectural debt magnets. Reading them tells you where the codebase's pain lives.
+**Combine with `mine-hotspots-churn-complexity`:** files high on PageRank _and_ high on churn × complexity are the architectural debt magnets. Reading them tells you where the codebase's pain lives.
 
 **When NOT to apply:**
+
 - Monorepos with many independent packages — run PageRank per package, not globally; otherwise low-coupling packages dilute the score
 - Dynamic-import-heavy codebases (factory patterns) — static import graph misses runtime dependencies; use a runtime call profile instead
 

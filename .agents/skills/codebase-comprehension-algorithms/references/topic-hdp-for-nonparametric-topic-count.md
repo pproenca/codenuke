@@ -111,11 +111,11 @@ lda_coherence = compute_coherence(lda_check, ...)
 
 **Why this matters: the model selection problem is real:**
 
-Picking K is the dominant *manual* step in topic-modelling pipelines and the dominant source of irreproducibility. Two analysts running LDA on the same codebase but picking K = 20 vs K = 40 will report very different "what this codebase is about" results. HDP eliminates this knob entirely; the data picks K. For agent-driven analysis where the goal is *self-describing* output, HDP is uniquely valuable: the agent can report "I found 32 topics" without ever needing the operator to set K.
+Picking K is the dominant _manual_ step in topic-modelling pipelines and the dominant source of irreproducibility. Two analysts running LDA on the same codebase but picking K = 20 vs K = 40 will report very different "what this codebase is about" results. HDP eliminates this knob entirely; the data picks K. For agent-driven analysis where the goal is _self-describing_ output, HDP is uniquely valuable: the agent can report "I found 32 topics" without ever needing the operator to set K.
 
 **Mathematical intuition (one paragraph):**
 
-A Dirichlet Process DP(α, G₀) is a "distribution over distributions" that, when sampled, yields a discrete distribution with countably-infinite support. The number of *distinct* values you see in N samples grows as O(α log N) — sublinear, so most "atoms" get tiny posterior mass. HDP nests two DPs: one at the corpus level (generates a master topic catalog) and one per-document (samples topics from the catalog). The hierarchy ensures topics are shared across documents (unlike a flat DP per document). Inference is via Gibbs sampling or variational methods.
+A Dirichlet Process DP(α, G₀) is a "distribution over distributions" that, when sampled, yields a discrete distribution with countably-infinite support. The number of _distinct_ values you see in N samples grows as O(α log N) — sublinear, so most "atoms" get tiny posterior mass. HDP nests two DPs: one at the corpus level (generates a master topic catalog) and one per-document (samples topics from the catalog). The hierarchy ensures topics are shared across documents (unlike a flat DP per document). Inference is via Gibbs sampling or variational methods.
 
 **Empirical baseline:** Teh-Jordan-Beal-Blei (JASA 2006) showed HDP recovers within 2% of LDA's coherence on the standard NIPS / AP corpora while learning K automatically. For software: Grant-Cordy (MSR 2010) and Asuncion et al. (Information Sciences 2010) applied HDP-LDA to software and reported it converges to K consistent with expert estimates of architectural granularity (Mozilla: ~40-50 architectural concerns; Eclipse: ~80-100).
 

@@ -106,9 +106,9 @@ labels = agg.fit_predict(D)
 
 Kolmogorov complexity K(x) is the length of the shortest program that produces x. The conditional complexity K(x | y) is the length of the shortest program that produces x given y. **Universal similarity** is defined as `max(K(x|y), K(y|x)) / max(K(x), K(y))` — if y "explains" most of x's information, they're similar. K(·) is uncomputable, but it can be **approximated** from above by any real-world compressor: C(x) ≥ K(x) within a constant. The NCD formula above is the practical approximation; Li-Vitanyi proved it converges to the true universal similarity as the compressor improves.
 
-**Why this matters: NCD is a *universal* distance metric:**
+**Why this matters: NCD is a _universal_ distance metric:**
 
-It works on text, source code, audio, DNA sequences, binary files — anywhere a string-compressor works. The same NCD code that clusters source files also clusters Bach fugues (Cilibrasi-Vitanyi did this), DNA sequences (Li et al. PNAS 2001), and SARS-CoV-2 genomes (Lu et al. 2020). For software analysis, the universality means you can compare *across types of artefacts*: source files, build configs, schema files, generated code — all with the same metric.
+It works on text, source code, audio, DNA sequences, binary files — anywhere a string-compressor works. The same NCD code that clusters source files also clusters Bach fugues (Cilibrasi-Vitanyi did this), DNA sequences (Li et al. PNAS 2001), and SARS-CoV-2 genomes (Lu et al. 2020). For software analysis, the universality means you can compare _across types of artefacts_: source files, build configs, schema files, generated code — all with the same metric.
 
 **Empirical baseline:** Cilibrasi-Vitanyi (2005) classified 36 mammal mitochondrial DNA sequences with 100% accuracy versus the gold-standard phylogenetic tree. On source code: Cohen-Sayer et al. (2010) compared NCD with TF-IDF on a JavaScript repository, NCD matched TF-IDF on classification accuracy while requiring zero feature engineering. Specifically for cross-language similarity, NCD is the only viable feature-free method.
 
@@ -116,7 +116,7 @@ It works on text, source code, audio, DNA sequences, binary files — anywhere a
 
 - Very large files (> 1 MB each) — gzip is O(n) but the n² file pairs become expensive. Pre-filter or use signature-based variants (Cebrián et al. "The normalized compression distance is resistant to noise," IEEE TIT 2007).
 - Files with widely different sizes — NCD penalises size differences. Truncate or pad to similar length first.
-- You need an *interpretable* distance — NCD = 0.6 doesn't translate to anything semantic. Use only when you don't need to *explain* the distance.
+- You need an _interpretable_ distance — NCD = 0.6 doesn't translate to anything semantic. Use only when you don't need to _explain_ the distance.
 
 **Production:** The `python-complearn` library implements NCD with multiple compressors. CompLearn (C++) is the canonical Vitanyi-lab tool. Bioinformatics uses NCD extensively (`alfpy` for sequence comparison). Modern variant: **gzip-based text classification** (Jiang et al., ACL 2023, "Less is More: Parameter-Free Text Classification with Gzip") showed NCD-based kNN beats BERT on several benchmark tasks — a stunning revival of the technique.
 

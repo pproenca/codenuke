@@ -41,6 +41,7 @@ const fixtureNames = readdirSync(fixturesRoot, { withFileTypes: true })
   .map((entry) => entry.name)
   .toSorted();
 const fixtureDefinitions = fixtureNames.map((name) => readFixtureDefinition(name));
+const fixtureDefinitionFailures = validateFixtureDefinitions(fixtureDefinitions);
 const protectedBefore = protectedSnapshot(fixtureDefinitions);
 
 try {
@@ -49,13 +50,20 @@ try {
   const mutationFailures = protectedMutationFailures(protectedBefore, protectedAfter);
   const aggregate = aggregateResults(results);
   const hardConstraintFailures = [
+    ...fixtureDefinitionFailures,
     ...mutationFailures,
     ...results.flatMap((result) => result.hardConstraintFailures),
   ];
+  const readiness = productionReadiness({
+    results,
+    fixtureDefinitionFailures,
+    mutationFailures,
+  });
   const decision = semanticRoiDecision({
     aggregate,
     hardConstraintFailures,
     results,
+    readiness,
   });
   const output = {
     schemaVersion: 1,
@@ -68,9 +76,10 @@ try {
       provider: "mock",
     },
     sealedEvaluator: {
-      protectedFiles: protectedBefore.size,
+      protectedRepoFiles: protectedBefore.size,
       mutationFailures,
     },
+    productionReadiness: readiness,
     ledger: {
       path: ledgerPath,
       appendOnly: true,
@@ -84,8 +93,11 @@ try {
         "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
         "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
         "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
+        "Fixture definitions must declare a change scenario, current cost, target cost, and validation command before a positive ROI score can count.",
+        "Fixture evaluator files are hash-checked inside copied worktrees, so fix and future-change steps cannot mutate tests, behavior scripts, or project test config.",
         "Future-change probes measure whether treatment reduces touch points versus control.",
         "Future-change probes define the change scenario, current cost, target cost, and cost dimensions before scoring easier change.",
+        "Production readiness requires multiple positive future-change scenarios plus a semantic false-positive trap.",
         "The run records hard constraint failures separately from quality metrics.",
       ],
       proxyEvidence: [],
@@ -96,7 +108,7 @@ try {
       nextInputs:
         decision.status === "keep"
           ? [
-              "Expand the sealed constraint corpus and add optional model-backed repeated samples before claiming live-provider ROI.",
+              "Use this deterministic gate for production mapper/refactoring ROI changes; add new sealed scenarios as new refactoring classes become supported.",
             ]
           : ["Inspect failed hard constraints or fixture deltas before changing implementation."],
     },
@@ -135,6 +147,7 @@ function readFixtureDefinition(name) {
     behaviorInvariants: definition.behaviorInvariants ?? [],
     expectedTransformation: definition.expectedTransformation ?? null,
     futureChangeProbe: definition.futureChangeProbe ?? null,
+    protectedPaths: definition.protectedPaths ?? [],
     review: definition.review ?? {},
     fix: definition.fix ?? {},
     revalidate: definition.revalidate ?? {},

@@ -7,7 +7,7 @@ tags: scale, aho-corasick, multi-pattern, automaton
 
 ## Use Aho-Corasick For Searching Many Patterns Against The Same Text
 
-When you need to find all occurrences of **many** patterns in a text, calling KMP or `str.find` once per pattern is O(P × |T|) — for P = 10⁵ patterns and a 10⁹-byte text, that's 10¹⁴ operations. **Aho-Corasick (1975)** builds a trie of all patterns, adds *failure links* (Knuth-Morris-Pratt style suffix transitions), and walks the text **once** in O(|T| + total pattern length + number of matches). The same per-character cost regardless of how many patterns you're matching.
+When you need to find all occurrences of **many** patterns in a text, calling KMP or `str.find` once per pattern is O(P × |T|) — for P = 10⁵ patterns and a 10⁹-byte text, that's 10¹⁴ operations. **Aho-Corasick (1975)** builds a trie of all patterns, adds _failure links_ (Knuth-Morris-Pratt style suffix transitions), and walks the text **once** in O(|T| + total pattern length + number of matches). The same per-character cost regardless of how many patterns you're matching.
 
 This is the foundation of: virus scanners (ClamAV scans for 10⁶+ signatures simultaneously), DNA motif search, content filters / profanity blocklists, malware string matching, dictionary-based tokenization, fast spam-keyword detection at email scale.
 

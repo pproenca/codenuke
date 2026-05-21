@@ -9,7 +9,7 @@ tags: graph, multilayer, multiplex, fusion, combined-signals
 
 A single edge type cannot capture a codebase. Structural edges (calls, imports) miss DI and dynamic dispatch. Lexical edges miss intent. Co-change edges miss never-changed code. The right answer is a **multilayer graph** — same node set (files), multiple edge sets (one per signal) — and a clustering algorithm aware of the layered structure. This is the dominant finding of the last decade of SAR research: Bavota et al. (TSE 2013), Beck-Diehl (EMSE 2013), Corazza-Di Martino-Maggio-Scanniello (JSS 2016) all report that **combined-signal clustering beats single-signal by 15–30 MoJoFM points** on standardised corpora.
 
-The two important sub-decisions are: (1) how to *weigh* layers (so a dense layer doesn't drown a sparse layer) and (2) which algorithm to use on the result. Naively summing edge weights produces garbage because layers live on different scales.
+The two important sub-decisions are: (1) how to _weigh_ layers (so a dense layer doesn't drown a sparse layer) and (2) which algorithm to use on the result. Naively summing edge weights produces garbage because layers live on different scales.
 
 **Incorrect (sum raw edge weights — the densest layer wins):**
 
@@ -116,13 +116,13 @@ def consensus_clustering(layers: list[nx.Graph]) -> list[set]:
     return nxc.louvain_communities(M, weight="weight")
 ```
 
-**Why α matters and how to set it:** in the absence of expert ground truth, do a sensitivity sweep — fit clusterings at α = (0.6, 0.2, 0.2), (0.4, 0.4, 0.2), (0.2, 0.4, 0.4), etc., and pick the configuration that maximises *intrinsic* modularity Q (Newman 2006) or — better — *predictive* co-change accuracy on held-out commits (see `valid-cochange-prediction-as-ground-truth-proxy`). Beck-Diehl (EMSE 2013) report that α weights are remarkably stable across systems — ~40/40/20 (structural/co-change/lexical) is a good default.
+**Why α matters and how to set it:** in the absence of expert ground truth, do a sensitivity sweep — fit clusterings at α = (0.6, 0.2, 0.2), (0.4, 0.4, 0.2), (0.2, 0.4, 0.4), etc., and pick the configuration that maximises _intrinsic_ modularity Q (Newman 2006) or — better — _predictive_ co-change accuracy on held-out commits (see `valid-cochange-prediction-as-ground-truth-proxy`). Beck-Diehl (EMSE 2013) report that α weights are remarkably stable across systems — ~40/40/20 (structural/co-change/lexical) is a good default.
 
 **When NOT to use:**
 
 - One signal is empty or near-empty (very little history, no comments, generated code) — fall back to single-layer.
 - Strict time budget — Mucha's multilayer modularity is ~5–10× slower than single-layer Louvain.
-- You're answering a *specific* question (just runtime impact? just feature boundaries?) — use the single layer for that question (see `graph-pick-edge-type-by-question-asked`).
+- You're answering a _specific_ question (just runtime impact? just feature boundaries?) — use the single layer for that question (see `graph-pick-edge-type-by-question-asked`).
 
 **Production:** Microsoft's CODEMINE platform fuses structural and co-change signals for cross-cutting concern detection; LinkedIn's monorepo tools use a weighted-multilayer clustering for ownership inference; Google's Code Search backs ranking with a multilayer call+lexical signal.
 

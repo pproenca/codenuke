@@ -7,7 +7,7 @@ tags: sim, pdg, type-4-clones, semantic-clones, isomorphism
 
 ## Find Type-4 Clones via Program Dependence Graph Isomorphism
 
-A Type-4 clone is two functions that compute the same thing but share *no* identifiers and use *different* control flow — a `for` loop summing a list and a `reduce(add, ...)` call. Text diff, AST diff, and even embeddings sometimes miss these. The Program Dependence Graph (PDG) — nodes for each statement, edges for control- and data-dependencies — is the right representation: semantically-equivalent code produces isomorphic PDGs even when written entirely differently. Komondoor & Horwitz's PDG-based clone detection (2001) finds clones text-based tools never see. The technique is heavy (subgraph isomorphism is NP-hard in general), but with anchor-pruning and small-PDG approximations it scales to whole repos.
+A Type-4 clone is two functions that compute the same thing but share _no_ identifiers and use _different_ control flow — a `for` loop summing a list and a `reduce(add, ...)` call. Text diff, AST diff, and even embeddings sometimes miss these. The Program Dependence Graph (PDG) — nodes for each statement, edges for control- and data-dependencies — is the right representation: semantically-equivalent code produces isomorphic PDGs even when written entirely differently. Komondoor & Horwitz's PDG-based clone detection (2001) finds clones text-based tools never see. The technique is heavy (subgraph isomorphism is NP-hard in general), but with anchor-pruning and small-PDG approximations it scales to whole repos.
 
 **Incorrect (token shingling / AST diff misses the semantic match):**
 
@@ -74,6 +74,7 @@ def is_semantic_clone(a: ast.FunctionDef, b: ast.FunctionDef) -> bool:
 **Use bigger building blocks for production:** [DECKARD](https://github.com/skyhover/Deckard) for AST-based scale-friendly clone detection, [NiCad](https://www.txl.ca/txl-nicaddownload.html) for parameterized clones, [Oreo](https://github.com/Mondego/oreo-artifact) for ML-augmented Type-4 detection.
 
 **When NOT to apply:**
+
 - Functions under ~5 statements — the PDG is too small to discriminate; many false positives
 - Real-time / interactive use — even with prefiltering, PDG isomorphism is too slow for IDE-time checks
 

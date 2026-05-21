@@ -112,11 +112,11 @@ def _shingles(text: str, k: int = 5):
 **LSH parameter tuning (the "S-curve"):** with b bands × r rows = num_perm signature positions, the probability two docs of similarity s end up in the same bucket is approximately `1 - (1 - s^r)^b`. Pick (b, r) so the S-curve has its inflection point near your threshold:
 
 | Threshold | num_perm | bands | rows |
-|-----------|----------|-------|------|
-| 0.5 | 128 | 64 | 2 |
-| 0.7 | 128 | 32 | 4 |
-| 0.8 | 128 | 16 | 8 |
-| 0.9 | 128 | 8 | 16 |
+| --------- | -------- | ----- | ---- |
+| 0.5       | 128      | 64    | 2    |
+| 0.7       | 128      | 32    | 4    |
+| 0.8       | 128      | 16    | 8    |
+| 0.9       | 128      | 8     | 16   |
 
 Lower threshold → more bands, fewer rows per band → more collisions, more candidates to verify, more recall, less precision.
 

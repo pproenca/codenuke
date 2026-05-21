@@ -7,7 +7,7 @@ tags: graph, betweenness, centrality, bottleneck, refactoring-targets
 
 ## Use Betweenness Centrality to Find Bottleneck Modules
 
-Betweenness centrality measures how often a node sits on the shortest path between other pairs of nodes. In a code graph, a high-betweenness file is a *bottleneck*: changes to it ripple across the graph, and removing it would shatter the dependency structure. These files are rarely the most-imported (PageRank already finds those) — they're typically modest-import-count files sitting on critical paths between sub-systems. They are exactly the files where one careless refactor breaks five seemingly-unrelated features.
+Betweenness centrality measures how often a node sits on the shortest path between other pairs of nodes. In a code graph, a high-betweenness file is a _bottleneck_: changes to it ripple across the graph, and removing it would shatter the dependency structure. These files are rarely the most-imported (PageRank already finds those) — they're typically modest-import-count files sitting on critical paths between sub-systems. They are exactly the files where one careless refactor breaks five seemingly-unrelated features.
 
 **Incorrect (look at imports / lines-of-code — both miss path-criticality):**
 
@@ -61,13 +61,14 @@ for path, score in top:
 # 0.084  src/adapters/messaging/dispatch.py
 ```
 
-**Compare with PageRank.** A file high on PageRank but low on betweenness is a popular dependency (e.g., a logging helper). A file high on betweenness but low on PageRank is a *bridge* — far more dangerous to refactor without care, because its callers are diverse.
+**Compare with PageRank.** A file high on PageRank but low on betweenness is a popular dependency (e.g., a logging helper). A file high on betweenness but low on PageRank is a _bridge_ — far more dangerous to refactor without care, because its callers are diverse.
 
-**Use edge-betweenness for cycle-breaking decisions.** `nx.edge_betweenness_centrality(G)` ranks *edges* the same way; the highest-scoring edges are the import statements you should delete first when breaking a tangle (see `graph-feedback-arcs`).
+**Use edge-betweenness for cycle-breaking decisions.** `nx.edge_betweenness_centrality(G)` ranks _edges_ the same way; the highest-scoring edges are the import statements you should delete first when breaking a tangle (see `graph-feedback-arcs`).
 
-**Combine with `mine-change-coupling`:** a high-betweenness file that also has high temporal coupling with many others is a refactoring target — it carries architectural load *and* changes constantly.
+**Combine with `mine-change-coupling`:** a high-betweenness file that also has high temporal coupling with many others is a refactoring target — it carries architectural load _and_ changes constantly.
 
 **When NOT to apply:**
+
 - Densely-connected graphs (everything imports everything) — betweenness scores all converge and the ranking is uninformative
 - Real-time use — betweenness on a 50k-node graph takes minutes even with sampling; precompute and store
 

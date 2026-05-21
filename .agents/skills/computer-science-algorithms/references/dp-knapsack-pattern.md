@@ -10,8 +10,9 @@ tags: dp, knapsack, subset-sum, pseudo-polynomial
 Many problems reduce to "pick a subset that maximizes value subject to a capacity constraint": 0/1 knapsack, subset-sum, partition into equal halves, coin change (count), bounded ways-to-make-change. They all share the recurrence `dp[i][w] = max/min/count of (skip item i, take item i)`. Recognizing this pattern collapses a 2ⁿ subset enumeration into O(n·W) — pseudo-polynomial because W can itself be exponential in input bits, but practical when W is bounded.
 
 The two flavours:
-- **0/1 knapsack**: each item once. Inner loop runs *downwards* in the rolling array to prevent using the same item twice.
-- **Unbounded knapsack (coin change)**: items reusable. Inner loop runs *upwards*.
+
+- **0/1 knapsack**: each item once. Inner loop runs _downwards_ in the rolling array to prevent using the same item twice.
+- **Unbounded knapsack (coin change)**: items reusable. Inner loop runs _upwards_.
 
 **Incorrect (exponential subset enumeration — O(2ⁿ)):**
 

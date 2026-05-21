@@ -7,11 +7,11 @@ tags: clust, infomap, mdl, random-walks, rosvall, bergstrom, information-theoret
 
 ## Use Infomap When You Want To Compress Flow, Not Maximize Modularity
 
-Modularity-based methods (Louvain, Leiden) ask: *"which partition has more intra-community edges than chance?"* — that's a *density* question. **Infomap** (Rosvall & Bergstrom, PNAS 2008, "Maps of random walks on complex networks reveal community structure") asks a fundamentally different question: *"which partition produces the shortest description of a random walker's trajectory?"* — a *flow* question. It encodes random walks using a two-level code (Huffman-style: one codebook per community + a codebook for community-to-community transitions) and finds the partition that minimises the total **map equation** L(M) — a description length, in bits.
+Modularity-based methods (Louvain, Leiden) ask: _"which partition has more intra-community edges than chance?"_ — that's a _density_ question. **Infomap** (Rosvall & Bergstrom, PNAS 2008, "Maps of random walks on complex networks reveal community structure") asks a fundamentally different question: _"which partition produces the shortest description of a random walker's trajectory?"_ — a _flow_ question. It encodes random walks using a two-level code (Huffman-style: one codebook per community + a codebook for community-to-community transitions) and finds the partition that minimises the total **map equation** L(M) — a description length, in bits.
 
-The two answers can be very different. For a software call graph where requests *flow* through layers (entry → router → handler → service → DB), Infomap recovers the *layers*; modularity recovers *blob-shaped* communities that cross layers. Lancichinetti & Fortunato's LFR benchmark (PRE 2009) and the comparative reviews of Yang et al. (Sci. Rep. 2016) consistently rank Infomap top on directed and flow-meaningful graphs, where modularity-based methods place 5th–10th.
+The two answers can be very different. For a software call graph where requests _flow_ through layers (entry → router → handler → service → DB), Infomap recovers the _layers_; modularity recovers _blob-shaped_ communities that cross layers. Lancichinetti & Fortunato's LFR benchmark (PRE 2009) and the comparative reviews of Yang et al. (Sci. Rep. 2016) consistently rank Infomap top on directed and flow-meaningful graphs, where modularity-based methods place 5th–10th.
 
-This is the second-most-cited community detection algorithm after Louvain, and almost no software-clustering paper uses it. Try it whenever the edges represent *flow* (calls, data transfer, control transfer).
+This is the second-most-cited community detection algorithm after Louvain, and almost no software-clustering paper uses it. Try it whenever the edges represent _flow_ (calls, data transfer, control transfer).
 
 **Incorrect (Leiden on a directed call graph — collapses layers into blobs):**
 
@@ -74,24 +74,25 @@ flat, hier = extract_communities(im, name_to_id)
 **Why the map equation captures something Modularity misses:**
 
 The map equation L(M) = q · H(Q) + Σᵢ pᵢ · H(Pᵢ) where:
+
 - q = probability the walker exits its current module
 - H(Q) = entropy of inter-module transitions
 - pᵢ = probability of being in module i
 - H(Pᵢ) = entropy of intra-module transitions
 
-Minimising L(M) means choosing modules so that the walker rarely crosses module boundaries (most steps stay inside) AND the within-module dynamics are predictable. This captures *flow communities* — sets of nodes the walker tends to stay within — which is exactly what a "feature domain" looks like in a call graph: requests bounce around within a domain, occasionally hop to another.
+Minimising L(M) means choosing modules so that the walker rarely crosses module boundaries (most steps stay inside) AND the within-module dynamics are predictable. This captures _flow communities_ — sets of nodes the walker tends to stay within — which is exactly what a "feature domain" looks like in a call graph: requests bounce around within a domain, occasionally hop to another.
 
 **When to use Infomap vs Leiden:**
 
-| Situation | Algorithm |
-|-----------|-----------|
-| Directed graph with meaningful flow (calls, control transfer) | **Infomap** |
-| Undirected graph, density question (who is connected to whom) | Leiden |
-| Need explicit hierarchy | Infomap (native) or Leiden multi-resolution |
-| Very large graph (10⁶+ nodes) | Both scale; igraph-Leiden slightly faster |
-| Sparse, low-modularity graph | Infomap (less prone to resolution limit) |
+| Situation                                                     | Algorithm                                   |
+| ------------------------------------------------------------- | ------------------------------------------- |
+| Directed graph with meaningful flow (calls, control transfer) | **Infomap**                                 |
+| Undirected graph, density question (who is connected to whom) | Leiden                                      |
+| Need explicit hierarchy                                       | Infomap (native) or Leiden multi-resolution |
+| Very large graph (10⁶+ nodes)                                 | Both scale; igraph-Leiden slightly faster   |
+| Sparse, low-modularity graph                                  | Infomap (less prone to resolution limit)    |
 
-**Empirical baseline (Lancichinetti-Fortunato benchmark, LFR):** on the standard LFR benchmark with mixing parameter μ = 0.5 (moderately mixed communities), Infomap recovers true communities with NMI ≈ 0.85; Louvain 0.70; Leiden 0.78. On undirected benchmarks the three are typically comparable (Yang et al. 2016 arXiv:1807.01130) — Infomap's advantage concentrates in *directed, flow-meaningful* graphs (citation networks, web link graphs, software call graphs). On real software call graphs (Mancoridis benchmark), Infomap matches or exceeds Bunch's MQ-optimized clusterings.
+**Empirical baseline (Lancichinetti-Fortunato benchmark, LFR):** on the standard LFR benchmark with mixing parameter μ = 0.5 (moderately mixed communities), Infomap recovers true communities with NMI ≈ 0.85; Louvain 0.70; Leiden 0.78. On undirected benchmarks the three are typically comparable (Yang et al. 2016 arXiv:1807.01130) — Infomap's advantage concentrates in _directed, flow-meaningful_ graphs (citation networks, web link graphs, software call graphs). On real software call graphs (Mancoridis benchmark), Infomap matches or exceeds Bunch's MQ-optimized clusterings.
 
 **When NOT to use:**
 

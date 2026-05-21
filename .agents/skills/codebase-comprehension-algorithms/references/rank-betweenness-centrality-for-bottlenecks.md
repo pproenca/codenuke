@@ -7,13 +7,13 @@ tags: rank, betweenness, freeman, bottleneck, bridge
 
 ## Use Betweenness Centrality To Find Cross-Domain Bottlenecks
 
-PageRank tells you what's important *within* the dependency flow. **Betweenness centrality** (Freeman, "A set of measures of centrality based on betweenness," Sociometry 1977) tells you what sits *between* groups — the **bridges and bottlenecks**. Formally: betweenness(v) is the fraction of shortest paths in the graph that pass through v. A node with high betweenness is on the cross-roads of many paths; remove it and many node pairs lose their shortest connection.
+PageRank tells you what's important _within_ the dependency flow. **Betweenness centrality** (Freeman, "A set of measures of centrality based on betweenness," Sociometry 1977) tells you what sits _between_ groups — the **bridges and bottlenecks**. Formally: betweenness(v) is the fraction of shortest paths in the graph that pass through v. A node with high betweenness is on the cross-roads of many paths; remove it and many node pairs lose their shortest connection.
 
 For software, high-betweenness files are typically one of three things:
 
 1. **Architectural pivots** — files like an API gateway, an event dispatcher, or a service registry that legitimately route between subsystems
 2. **Code smells / God classes** — files that have accreted unrelated responsibilities until they sit in the middle of every dependency path (often refactoring candidates)
-3. **Boundaries between recovered clusters** — the file *between* the payment cluster and the user cluster, where domain leakage happens
+3. **Boundaries between recovered clusters** — the file _between_ the payment cluster and the user cluster, where domain leakage happens
 
 For agent-driven analysis, the top-10 betweenness files combined with the cluster assignments tell you **where the architectural boundaries actually live** — and whether they're respected.
 
@@ -106,15 +106,15 @@ def classify_bridge(file, neighbor_clusters, own_cluster, G):
 
 **Why betweenness specifically:**
 
-| Centrality | What it measures | Best for |
-|------------|------------------|----------|
-| Degree | Local popularity | Quick popularity rank |
-| Closeness | Average distance to all | "How quickly can this reach everything?" |
-| PageRank | Transitive importance | "What's in the architectural spine?" |
-| HITS | Hub vs authority | "What's a controller vs leaf?" |
-| **Betweenness** | **On shortest paths** | **"Where are the bridges and bottlenecks?"** |
+| Centrality      | What it measures        | Best for                                     |
+| --------------- | ----------------------- | -------------------------------------------- |
+| Degree          | Local popularity        | Quick popularity rank                        |
+| Closeness       | Average distance to all | "How quickly can this reach everything?"     |
+| PageRank        | Transitive importance   | "What's in the architectural spine?"         |
+| HITS            | Hub vs authority        | "What's a controller vs leaf?"               |
+| **Betweenness** | **On shortest paths**   | **"Where are the bridges and bottlenecks?"** |
 
-Betweenness is the unique answer to "if I removed this file, would large parts of the codebase become disconnected from each other?" That's exactly the question you ask when investigating *architectural debt* (because high-betweenness files are change-amplifiers).
+Betweenness is the unique answer to "if I removed this file, would large parts of the codebase become disconnected from each other?" That's exactly the question you ask when investigating _architectural debt_ (because high-betweenness files are change-amplifiers).
 
 **Empirical baseline:** Sarkar, Kak, Rama (TSE 2009, "Discovery of Architectural Layers and Measurement of Layering Violations in Source Code") used betweenness explicitly to find layering violators — files whose betweenness is "wrong" given their layer. Wang et al. (ICSE 2018) showed top-betweenness files in OSS projects predict bug fixes 30–50% better than random — betweenness is a proxy for change risk.
 

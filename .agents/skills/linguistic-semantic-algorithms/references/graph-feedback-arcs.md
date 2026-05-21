@@ -7,7 +7,7 @@ tags: graph, feedback-arc-set, cycle-breaking, refactoring, eades
 
 ## Approximate Minimum Feedback Arc Set to Choose the Smallest Cycle-Breaking Cut
 
-Once `graph-scc-cycle-tangles` has found a tangle, the next question is: what is the smallest set of import statements I can delete (or invert) to make the tangle acyclic? That set is called a Feedback Arc Set, and finding the *minimum* is NP-hard. But the Eades–Lin–Smyth greedy approximation runs in O(V+E) and produces a feedback arc set within a small constant factor of optimum on real codebases. The output is a ranked list of edges to break — far more actionable than "this tangle has 12 files, good luck."
+Once `graph-scc-cycle-tangles` has found a tangle, the next question is: what is the smallest set of import statements I can delete (or invert) to make the tangle acyclic? That set is called a Feedback Arc Set, and finding the _minimum_ is NP-hard. But the Eades–Lin–Smyth greedy approximation runs in O(V+E) and produces a feedback arc set within a small constant factor of optimum on real codebases. The output is a ranked list of edges to break — far more actionable than "this tangle has 12 files, good luck."
 
 **Incorrect (delete an arbitrary edge in each cycle — often picks the wrong one):**
 
@@ -79,11 +79,12 @@ for u, v in cut:
 
 **Weight edges by cost-of-breaking** to bias the cut toward cheap edges to remove. A useful weight: number of identifiers actually imported from the module. Edges that import many symbols are harder to break (you'd have to provide alternatives for each); edges importing one symbol are cheap. Apply the weight by duplicating cheap edges or by replacing the greedy delta with a weighted variant.
 
-**Use the inverse of the FAS as a refactor plan.** The ordering produced by Eades-Lin-Smyth is the dependency order you should aim for *after* the refactor. Files near the start of the ordering should depend on nothing in the tangle; files near the end depend on everything. Make the ordering match physical module layout.
+**Use the inverse of the FAS as a refactor plan.** The ordering produced by Eades-Lin-Smyth is the dependency order you should aim for _after_ the refactor. Files near the start of the ordering should depend on nothing in the tangle; files near the end depend on everything. Make the ordering match physical module layout.
 
 **Combine with `graph-betweenness-bottlenecks`:** edges in the FAS that are also high in edge-betweenness are doubly motivated to delete — they break cycles AND reduce graph fragility.
 
 **When NOT to apply:**
+
 - Tangles under 4-5 files — eyeballing the cycle and picking by hand is faster
 - Cycles you can't break by edge removal (legitimate mutual recursion) — use dependency inversion (interfaces) instead; FAS gives the answer but you implement it differently
 

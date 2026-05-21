@@ -88,13 +88,13 @@ In t = 3–5 steps a random walker explores its local neighborhood — typically
 
 **When to use Walktrap vs Leiden vs Infomap:**
 
-| Question | Algorithm |
-|----------|-----------|
-| Need a hierarchy with a specific number of leaves | Walktrap |
-| Want pairwise distances for "most similar to X" queries | Walktrap (or node2vec embeddings) |
-| Large directed graph, flow structure matters | Infomap |
-| Standard undirected modularity question | Leiden |
-| Graph has < 5,000 nodes and you want a defensible flat decomposition | Walktrap |
+| Question                                                             | Algorithm                         |
+| -------------------------------------------------------------------- | --------------------------------- |
+| Need a hierarchy with a specific number of leaves                    | Walktrap                          |
+| Want pairwise distances for "most similar to X" queries              | Walktrap (or node2vec embeddings) |
+| Large directed graph, flow structure matters                         | Infomap                           |
+| Standard undirected modularity question                              | Leiden                            |
+| Graph has < 5,000 nodes and you want a defensible flat decomposition | Walktrap                          |
 
 **Empirical baseline:** Pons-Latapy (2005) compared Walktrap with Girvan-Newman, Newman fast-greedy, and Markov clustering on the LFR benchmark and on biological networks. Walktrap matched or beat all baselines on graphs with up to 5,000 nodes, sometimes with significantly less computation than Girvan-Newman. For software systems, Maqbool & Babri (TSE 2007) found Walktrap competitive with Bunch on Mozilla and Linux kernel, with hierarchical output being a major usability advantage over Bunch's flat output.
 

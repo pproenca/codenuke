@@ -7,7 +7,7 @@ tags: dp, state-design, recurrence, correctness
 
 ## Define DP State Precisely Before Writing The Recurrence
 
-A DP solution is correct only if the state captures everything the recurrence needs to make a decision *without looking at the past*. The most common DP bug is an underspecified state — the answer depends on something not in the state, so the cache returns the wrong value for a "matching" key. The second most common bug is an over-specified state — extra dimensions that don't affect the recurrence inflate the cache and slow the algorithm.
+A DP solution is correct only if the state captures everything the recurrence needs to make a decision _without looking at the past_. The most common DP bug is an underspecified state — the answer depends on something not in the state, so the cache returns the wrong value for a "matching" key. The second most common bug is an over-specified state — extra dimensions that don't affect the recurrence inflate the cache and slow the algorithm.
 
 Always write the state definition as one English sentence before coding: "f(i, j) is the length of the longest common subsequence of `a[0..i]` and `b[0..j]`." If you can't say that sentence cleanly, the recurrence isn't ready.
 
@@ -54,7 +54,7 @@ def can_partition(arr: list[int]) -> bool:
 
 **Heuristic for finding the right state:**
 
-Run the brute-force recursion mentally. At each call, ask: "what are *all* the things that determine the answer of this call?" Every one of those goes into the state. Anything that's a function of those (sum, count, set) gets included only if it can't be re-derived.
+Run the brute-force recursion mentally. At each call, ask: "what are _all_ the things that determine the answer of this call?" Every one of those goes into the state. Anything that's a function of those (sum, count, set) gets included only if it can't be re-derived.
 
 **Watch for the "set" trap:** if the state seems to require "which subset have I chosen," you typically need bitmask DP (state is an integer 0..2ⁿ-1) — feasible only for n ≤ ~20.
 

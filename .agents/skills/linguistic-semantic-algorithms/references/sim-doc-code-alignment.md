@@ -7,7 +7,7 @@ tags: sim, embeddings, docs, drift-detection, retrieval
 
 ## Embed Documentation and Code in the Same Space to Detect Drift
 
-Docs go stale because code changes faster than the people who wrote the docs. Worse, *no one notices* until a user files a bug. Encode every docstring/markdown section and every function body into the same embedding space (CodeBERT does this — it was trained on paired NL+code). Then for every doc paragraph, find its nearest-neighbor function. If the cosine similarity is below threshold or the function it points to has changed substantially since the doc was last edited, the doc is drifting. The output is a ranked list of "docs most likely to be wrong" — a maintenance backlog from a single batch job.
+Docs go stale because code changes faster than the people who wrote the docs. Worse, _no one notices_ until a user files a bug. Encode every docstring/markdown section and every function body into the same embedding space (CodeBERT does this — it was trained on paired NL+code). Then for every doc paragraph, find its nearest-neighbor function. If the cosine similarity is below threshold or the function it points to has changed substantially since the doc was last edited, the doc is drifting. The output is a ranked list of "docs most likely to be wrong" — a maintenance backlog from a single batch job.
 
 **Incorrect (manual periodic doc audits — they don't happen, or happen too late):**
 
@@ -79,9 +79,10 @@ for i, d in enumerate(docs):
 
 **Surface in PR review.** A pre-merge check that runs this against changed functions and flags affected doc sections forces drift to surface at write time, not at user-bug time.
 
-**Combine with `local-embedding-bug-text`:** when a user reports a bug, the doc paragraphs flagged by drift in the affected area are first candidates for the bug being a *documented contract that the code no longer honours*.
+**Combine with `local-embedding-bug-text`:** when a user reports a bug, the doc paragraphs flagged by drift in the affected area are first candidates for the bug being a _documented contract that the code no longer honours_.
 
 **When NOT to apply:**
+
 - Docs that are reference-only API docs auto-generated from docstrings — they can't drift independently
 - Conceptual / architectural docs without code referents — these will all show low cosine; tune threshold or skip the directory
 

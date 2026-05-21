@@ -68,13 +68,13 @@ target = ring.shard_for("user:42:profile")
 
 **Vnode count tradeoff:**
 
-| Vnodes per node | Load imbalance (std dev) | Memory overhead |
-|-----------------|--------------------------|-----------------|
-| 1 (no vnodes) | ~100% — terrible | minimal |
-| 10 | ~30% | small |
-| 100 | ~10% | moderate |
-| 200-500 | ~3-5% | typical production sweet spot |
-| 10000 | <1% | only for very large rings |
+| Vnodes per node | Load imbalance (std dev) | Memory overhead               |
+| --------------- | ------------------------ | ----------------------------- |
+| 1 (no vnodes)   | ~100% — terrible         | minimal                       |
+| 10              | ~30%                     | small                         |
+| 100             | ~10%                     | moderate                      |
+| 200-500         | ~3-5%                    | typical production sweet spot |
+| 10000           | <1%                      | only for very large rings     |
 
 **Alternatives:**
 

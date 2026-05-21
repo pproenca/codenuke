@@ -127,18 +127,18 @@ for file_idx, p in unstable:
 
 **Why consensus matters for software clustering:**
 
-A clustering that depends on the seed isn't telling you about the *codebase* — it's telling you about *seed 42*. Consensus surfaces the **invariant** structure across runs, which is what an architect cares about. The same idea is used in bioinformatics (Monti et al. 2003 found consensus essential for cancer-subtype clustering) and is now standard in any rigorous network-clustering pipeline.
+A clustering that depends on the seed isn't telling you about the _codebase_ — it's telling you about _seed 42_. Consensus surfaces the **invariant** structure across runs, which is what an architect cares about. The same idea is used in bioinformatics (Monti et al. 2003 found consensus essential for cancer-subtype clustering) and is now standard in any rigorous network-clustering pipeline.
 
 For software specifically, Lancichinetti & Fortunato (Sci. Rep. 2012) showed that consensus across 50 Louvain runs **closes most of the gap** between Louvain and Infomap on the LFR benchmark — a free improvement. The same applies to software graphs.
 
 **How many runs N to use:**
 
-| N | When |
-|---|------|
-| 10 | Quick sanity check; minimum for stability reporting |
-| **30** | **Standard** — Lancichinetti-Fortunato recommendation |
-| 100 | Publication-quality; high-confidence numbers |
-| 1000 | Overkill for clustering; OK for bootstrap-based uncertainty estimation |
+| N      | When                                                                   |
+| ------ | ---------------------------------------------------------------------- |
+| 10     | Quick sanity check; minimum for stability reporting                    |
+| **30** | **Standard** — Lancichinetti-Fortunato recommendation                  |
+| 100    | Publication-quality; high-confidence numbers                           |
+| 1000   | Overkill for clustering; OK for bootstrap-based uncertainty estimation |
 
 **Empirical baseline:** Lancichinetti-Fortunato (Sci. Rep. 2012) report that consensus clustering with N=50 over Louvain achieves NMI ≈ 0.85 on LFR benchmark vs single-run NMI ≈ 0.70. For software: Beck-Diehl (EMSE 2013) replicated on six open-source systems and found consensus improves MoJoFM by 3–8 points and dramatically reduces inter-run variance (sd from 0.05 to < 0.01).
 

@@ -7,7 +7,7 @@ tags: comp, space-complexity, memory, streaming
 
 ## Treat Space Complexity As First-Class, Not An Afterthought
 
-Time complexity dominates undergraduate teaching, but in production, space is what kills services: O(n) auxiliary memory at n = 10⁹ exhausts RAM long before time becomes the issue. Worse, allocating O(n) when O(1) exists creates GC pressure, cache misses, and page faults that *also* destroy time performance. Always state the algorithm's space complexity alongside its time complexity, and prefer streaming/iterator forms when consuming large inputs.
+Time complexity dominates undergraduate teaching, but in production, space is what kills services: O(n) auxiliary memory at n = 10⁹ exhausts RAM long before time becomes the issue. Worse, allocating O(n) when O(1) exists creates GC pressure, cache misses, and page faults that _also_ destroy time performance. Always state the algorithm's space complexity alongside its time complexity, and prefer streaming/iterator forms when consuming large inputs.
 
 For DP, this matters doubly: many DP recurrences only depend on the last 1-2 rows, allowing O(n) space to collapse to O(1) without changing the algorithm.
 

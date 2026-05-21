@@ -34,11 +34,11 @@ def fib(n: int) -> int:
 
 **Master Theorem cheat sheet for T(n) = a·T(n/b) + Θ(n^d):**
 
-| Case | Condition | Result |
-|------|-----------|--------|
-| 1 | a < bᵈ — work dominated by combine step | Θ(n^d) |
-| 2 | a = bᵈ — balanced | Θ(n^d · log n) |
-| 3 | a > bᵈ — work dominated by leaves | Θ(n^(log_b a)) |
+| Case | Condition                               | Result         |
+| ---- | --------------------------------------- | -------------- |
+| 1    | a < bᵈ — work dominated by combine step | Θ(n^d)         |
+| 2    | a = bᵈ — balanced                       | Θ(n^d · log n) |
+| 3    | a > bᵈ — work dominated by leaves       | Θ(n^(log_b a)) |
 
 Worked examples: merge sort `T(n)=2T(n/2)+Θ(n)` → case 2, Θ(n log n). Binary search `T(n)=T(n/2)+Θ(1)` → case 2 with d=0, Θ(log n). Karatsuba `T(n)=3T(n/2)+Θ(n)` → case 3, Θ(n^log₂3) ≈ Θ(n^1.585).
 

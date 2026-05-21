@@ -81,6 +81,7 @@ full_map = {**COMMON_ABBREV}                         # then merge mined map
 **Combine with `concept-entity-name-resolution`** for the most aggressive normalization. Abbreviation expansion handles spelling variants of the same word; entity resolution handles synonyms (`user` ↔ `customer` ↔ `member`). The two complement.
 
 **When NOT to apply:**
+
 - Codebases with intentionally-cryptic identifiers (heavily golfed code, generated symbols) — expansion adds noise
 - Single-letter loop variables (`i`, `j`, `k`) — exclude from expansion entirely; they carry no semantic content
 

@@ -61,31 +61,34 @@ for r in risky[:15]:
 
 **Interpreting Cognitive Complexity scores:**
 
-| Cognitive | Action |
-|---|---|
-| 0-5 | trivially readable |
-| 6-10 | requires focus, OK |
-| 11-15 | refactor candidate |
-| 16-30 | hard to maintain — split |
-| 31+ | rewrite; nobody can hold this in their head |
+| Cognitive | Action                                      |
+| --------- | ------------------------------------------- |
+| 0-5       | trivially readable                          |
+| 6-10      | requires focus, OK                          |
+| 11-15     | refactor candidate                          |
+| 16-30     | hard to maintain — split                    |
+| 31+       | rewrite; nobody can hold this in their head |
 
 **Cognitive vs Cyclomatic in CI gates.**
+
 - Use **CC** for test surface — you must cover that many independent paths.
 - Use **Cognitive** for review and maintenance — you must be able to understand it.
 
 Best practice in production: fail builds on **both**, with cognitive having the lower threshold (15) and CC having the higher (20). This favors flat-but-branchy structures over nested-and-branchy ones.
 
 **Per-language implementations:**
+
 - Python: `complexipy`, `cognitive-complexity-py`
 - JS / TS: `eslint-plugin-sonarjs` with `sonarjs/cognitive-complexity`
 - Java: SonarQube native, `pmd-cognitive-complexity-rule`
 - Multi-language: SonarQube Cloud (Sonar's own product)
 
-**Combine with `risk-cyclomatic-mccabe`** as a two-dimensional risk view. A function high on cognitive but low on CC is *deeply nested with few branches* — a small refactor (extract method, early return) typically halves it. A function high on CC but low on cognitive is *flat with many branches* — usually fine if intentional.
+**Combine with `risk-cyclomatic-mccabe`** as a two-dimensional risk view. A function high on cognitive but low on CC is _deeply nested with few branches_ — a small refactor (extract method, early return) typically halves it. A function high on CC but low on cognitive is _flat with many branches_ — usually fine if intentional.
 
 **Combine with `mine-hotspots-churn-complexity`** by using Cognitive instead of CC in the formula. SonarSource's internal benchmarks report better bug-prediction correlation when cognitive replaces cyclomatic (no public number is available, so calibrate on your own labelled fix-history before relying on the gain).
 
 **When NOT to apply:**
+
 - Generated code — irrelevant, by definition not maintained by humans
 - DSL or rule-engine files (e.g., long match-cases over enum values) — cognitive over-penalizes; tune the threshold for these paths
 

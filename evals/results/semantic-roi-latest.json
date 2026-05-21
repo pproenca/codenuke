@@ -87,10 +87,7 @@
         "id": "constraint.format-money-duplication",
         "type": "duplicated-domain-rule",
         "description": "Changing formatter money display rules requires edits in checkout and invoice formatter slices.",
-        "evidencePaths": [
-          "src/checkout-format/format.ts",
-          "src/invoice-format/format.ts"
-        ],
+        "evidencePaths": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
         "controlIdentified": false,
         "treatmentIdentified": true
       },
@@ -140,10 +137,7 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-format/format.ts",
-            "src/invoice-format/format.ts"
-          ],
+          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
           "patchSizeLines": 2,
           "replacements": 2,
           "validation": [
@@ -158,10 +152,7 @@
           "validationPassed": true,
           "cost": {
             "touchPoints": 2,
-            "changedFiles": [
-              "src/checkout-format/format.ts",
-              "src/invoice-format/format.ts"
-            ],
+            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
             "patchSizeLines": 2,
             "validationCommands": 1,
             "validationPassed": true
@@ -204,11 +195,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": [
-                    "format",
-                    "invoice",
-                    "summary"
-                  ]
+                  "signals": ["format", "invoice", "summary"]
                 }
               ]
             }
@@ -237,11 +224,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": [
-                    "format",
-                    "invoice",
-                    "summary"
-                  ]
+                  "signals": ["format", "invoice", "summary"]
                 }
               ]
             }
@@ -300,9 +283,7 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 1,
-          "changedFiles": [
-            "src/money-format/format.ts"
-          ],
+          "changedFiles": ["src/money-format/format.ts"],
           "patchSizeLines": 1,
           "replacements": 1,
           "validation": [
@@ -317,9 +298,7 @@
           "validationPassed": true,
           "cost": {
             "touchPoints": 1,
-            "changedFiles": [
-              "src/money-format/format.ts"
-            ],
+            "changedFiles": ["src/money-format/format.ts"],
             "patchSizeLines": 1,
             "validationCommands": 1,
             "validationPassed": true
@@ -342,10 +321,7 @@
           "currentCost": {
             "touchPoints": 2,
             "patchSizeLines": 2,
-            "changedFiles": [
-              "src/checkout-format/format.ts",
-              "src/invoice-format/format.ts"
-            ],
+            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
             "validationCommands": 1
           },
           "targetCost": {
@@ -362,19 +338,14 @@
         },
         "controlCost": {
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-format/format.ts",
-            "src/invoice-format/format.ts"
-          ],
+          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
           "patchSizeLines": 2,
           "validationCommands": 1,
           "validationPassed": true
         },
         "treatmentCost": {
           "touchPoints": 1,
-          "changedFiles": [
-            "src/money-format/format.ts"
-          ],
+          "changedFiles": ["src/money-format/format.ts"],
           "patchSizeLines": 1,
           "validationCommands": 1,
           "validationPassed": true

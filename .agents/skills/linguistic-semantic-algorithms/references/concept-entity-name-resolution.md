@@ -88,6 +88,7 @@ for variant in ("user", "usr", "u", "useraccount", "accountholder", "customer"):
 **Use the canonical map as a preprocessing step** for `concept-lda-topic-modeling`, `concept-identifier-cooccurrence-network`, and `ir-tfidf-bug-localization`. All three improve substantially when their input vocabulary is consolidated.
 
 **When NOT to apply:**
+
 - Codebases under ~500 distinct tokens — manual inspection is faster
 - When the variants represent legitimately different concepts (`asyncUser` vs `syncUser` in a perf-sensitive API)
 

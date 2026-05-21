@@ -7,7 +7,7 @@ tags: clone, suffix-array, cpd, token-level, pmd
 
 ## Use Token-Level Suffix Arrays for Precise Clone Boundary Detection
 
-MinHash and SimHash tell you which files are similar; they don't tell you *which lines*. For that you need a suffix array over the entire codebase's token stream. Build the array once, find longest common substrings between every pair, and the algorithm hands you exact clone regions — start file, start line, length in tokens. This is the algorithm behind [PMD CPD](https://pmd.github.io/pmd/pmd_userdocs_cpd.html) (Copy/Paste Detector), used at Google, Microsoft, and most large engineering orgs. It catches the exact "we wrote this same 40-line block in 7 places" situation that aggregate similarity scores blur.
+MinHash and SimHash tell you which files are similar; they don't tell you _which lines_. For that you need a suffix array over the entire codebase's token stream. Build the array once, find longest common substrings between every pair, and the algorithm hands you exact clone regions — start file, start line, length in tokens. This is the algorithm behind [PMD CPD](https://pmd.github.io/pmd/pmd_userdocs_cpd.html) (Copy/Paste Detector), used at Google, Microsoft, and most large engineering orgs. It catches the exact "we wrote this same 40-line block in 7 places" situation that aggregate similarity scores blur.
 
 **Incorrect (diff every-pair to find common blocks — O(n²·m), days on a real repo):**
 
@@ -81,6 +81,7 @@ for ln, af, ai, bf, bi in clones[:10]:
 **Combine with `clone-minhash-lsh` for a two-stage pipeline:** MinHash to find candidate file pairs (fast), suffix array within each pair (precise). Together they handle whole-repo Type-1/2 clone detection on >10M LoC in under an hour.
 
 **When NOT to apply:**
+
 - Cross-language clone detection — token streams are incompatible; use AST or embedding methods
 - Generated code (protobuf, GraphQL schemas) — they all clone-match each other meaninglessly; exclude or ignore by file pattern
 

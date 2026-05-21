@@ -65,6 +65,7 @@ for phrase, n in phrase_counts.most_common(50):
 **Combine with `ling-abbreviation-expansion`** before chunking — without expansion, `pet_sit_appl` reads as three short noun tokens and the chunker drops it.
 
 **When NOT to apply:**
+
 - Languages where identifiers are short cryptic codes (legacy Fortran, COBOL) — POS tagging on `EMPMAST` is useless
 - Codebases written in a language other than English — load a non-English spaCy model or skip
 

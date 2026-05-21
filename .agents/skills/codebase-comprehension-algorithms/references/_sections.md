@@ -35,19 +35,19 @@ Order is by impact (CRITICAL → MEDIUM). The codebase-comprehension pipeline ru
 ## 6. Topic Modelling on Source Code (topic)
 
 **Impact:** HIGH  
-**Description:** Once you have clusters, you have to *name* them — and the same machinery surfaces themes directly from identifier and comment text. Latent Semantic Indexing (Maletic-Marcus, 2001), Latent Dirichlet Allocation (Blei et al., 2003), Non-negative Matrix Factorization, and Hierarchical Dirichlet Processes for non-parametric topic counts each project the file × term matrix into a low-rank semantic space. Coherence (NPMI / UMass) — not perplexity — is the right model-selection criterion. Scope: latent topics over identifier/comment corpora; the broader information-theoretic toolbox lives in the `info` category.
+**Description:** Once you have clusters, you have to _name_ them — and the same machinery surfaces themes directly from identifier and comment text. Latent Semantic Indexing (Maletic-Marcus, 2001), Latent Dirichlet Allocation (Blei et al., 2003), Non-negative Matrix Factorization, and Hierarchical Dirichlet Processes for non-parametric topic counts each project the file × term matrix into a low-rank semantic space. Coherence (NPMI / UMass) — not perplexity — is the right model-selection criterion. Scope: latent topics over identifier/comment corpora; the broader information-theoretic toolbox lives in the `info` category.
 
 ## 7. Evolutionary Coupling & Co-Change Mining (evol)
 
 **Impact:** HIGH  
-**Description:** Files that change together belong together. Logical Coupling (Gall et al., 1998) and frequent-itemset mining on commit history (Zimmermann's ROSE, ICSE 2004) often beat static analysis at recovering true coupling because they capture *intent* — what developers treat as one feature — rather than syntax. The non-obvious parts are filtering large commits, applying temporal decay, and computing lift / support / confidence rather than raw co-change count.
+**Description:** Files that change together belong together. Logical Coupling (Gall et al., 1998) and frequent-itemset mining on commit history (Zimmermann's ROSE, ICSE 2004) often beat static analysis at recovering true coupling because they capture _intent_ — what developers treat as one feature — rather than syntax. The non-obvious parts are filtering large commits, applying temporal decay, and computing lift / support / confidence rather than raw co-change count.
 
 ## 8. Information-Theoretic Methods (info)
 
 **Impact:** MEDIUM-HIGH  
-**Description:** Compression-based distance (Normalized Compression Distance, Cilibrasi-Vitanyi 2005) lets you cluster files without ever extracting a feature; mutual information measures coupling without a distributional assumption; Minimum Description Length picks model complexity rigorously; identifier-naming entropy (Hindle's "naturalness", ICSE 2012) is a quality signal on the codebase itself. Niche but decisive when applicable, and almost never taught outside complex-systems and information-theory courses. Scope: information-theoretic distance and criteria *not* tied to topic models (those live in the `topic` category).
+**Description:** Compression-based distance (Normalized Compression Distance, Cilibrasi-Vitanyi 2005) lets you cluster files without ever extracting a feature; mutual information measures coupling without a distributional assumption; Minimum Description Length picks model complexity rigorously; identifier-naming entropy (Hindle's "naturalness", ICSE 2012) is a quality signal on the codebase itself. Niche but decisive when applicable, and almost never taught outside complex-systems and information-theory courses. Scope: information-theoretic distance and criteria _not_ tied to topic models (those live in the `topic` category).
 
 ## 9. Centrality, Hierarchy & Labelling (rank)
 
 **Impact:** MEDIUM  
-**Description:** Once the codebase is clustered, the agent needs to know *which* clusters and *which files within them* matter. PageRank (Page-Brin 1999) on the dependency graph surfaces architecturally central modules; HITS (Kleinberg 1999) separates hub orchestrators from authority leaves; betweenness centrality finds bottlenecks. For labelling, graph-based keyword extraction (TextRank, YAKE) outperforms naive top-TF-IDF on cluster vocabularies.
+**Description:** Once the codebase is clustered, the agent needs to know _which_ clusters and _which files within them_ matter. PageRank (Page-Brin 1999) on the dependency graph surfaces architecturally central modules; HITS (Kleinberg 1999) separates hub orchestrators from authority leaves; betweenness centrality finds bottlenecks. For labelling, graph-based keyword extraction (TextRank, YAKE) outperforms naive top-TF-IDF on cluster vocabularies.

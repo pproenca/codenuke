@@ -7,9 +7,9 @@ tags: graph, bipartite, file-term, lsi, lexical
 
 ## Build A Bipartite File × Term Graph When Identifiers Carry The Signal
 
-A call graph misses every edge that goes through a DI container, every dynamic dispatch through an interface, every event-bus subscription, every YAML-wired handler. In a heavily DI-ed Java or TypeScript codebase, the *static* call graph can show 30–60% of the runtime edges (Bavota et al., ICPC 2013). The signal you're losing — *what concept does this file belong to?* — is sitting in the identifiers and comments. A **bipartite graph with files on one side and identifier terms on the other** (after lexical preprocessing, see the `lex-` rules) captures it directly, and can be clustered with co-clustering / bi-clustering algorithms designed exactly for this shape.
+A call graph misses every edge that goes through a DI container, every dynamic dispatch through an interface, every event-bus subscription, every YAML-wired handler. In a heavily DI-ed Java or TypeScript codebase, the _static_ call graph can show 30–60% of the runtime edges (Bavota et al., ICPC 2013). The signal you're losing — _what concept does this file belong to?_ — is sitting in the identifiers and comments. A **bipartite graph with files on one side and identifier terms on the other** (after lexical preprocessing, see the `lex-` rules) captures it directly, and can be clustered with co-clustering / bi-clustering algorithms designed exactly for this shape.
 
-Bipartite-aware methods are the right tool: regular Louvain on a projection loses information. Use **Stochastic Block Models for bipartite graphs** (Peixoto's `graph-tool`), **bipartite spectral co-clustering** (Dhillon, KDD 2001), or **Latent Semantic Indexing** (Deerwester 1990, applied to software by Maletic-Marcus, ICSE 2001) — all of which produce *paired* clusters: which files belong together AND which terms describe them.
+Bipartite-aware methods are the right tool: regular Louvain on a projection loses information. Use **Stochastic Block Models for bipartite graphs** (Peixoto's `graph-tool`), **bipartite spectral co-clustering** (Dhillon, KDD 2001), or **Latent Semantic Indexing** (Deerwester 1990, applied to software by Maletic-Marcus, ICSE 2001) — all of which produce _paired_ clusters: which files belong together AND which terms describe them.
 
 **Incorrect (call graph only — missing the lexical signal entirely):**
 
@@ -130,7 +130,7 @@ def bipartite_coclustering(G: nx.Graph, k: int = 8):
 
 **Why this is the right shape:**
 
-The structural call graph and the lexical bipartite graph encode *different* equivalence relations. Co-clustering forces them to agree, and the disagreement reveals interesting cases: files that talk about the same things but don't call each other (cross-cutting concerns: logging, auth, validation) and files that call each other but don't share vocabulary (data-mapping layers — they translate between domains).
+The structural call graph and the lexical bipartite graph encode _different_ equivalence relations. Co-clustering forces them to agree, and the disagreement reveals interesting cases: files that talk about the same things but don't call each other (cross-cutting concerns: logging, auth, validation) and files that call each other but don't share vocabulary (data-mapping layers — they translate between domains).
 
 **Empirical baseline:** Corazza et al. (ICSM 2010, "LDA-based topic model for software architecture recovery") report bipartite/lexical methods produce decompositions ~10–20 MoJoFM points better than structural-only on Java systems where DI is heavy; for codebases with little DI (C, Go, low-level Rust) the structural graph wins.
 
