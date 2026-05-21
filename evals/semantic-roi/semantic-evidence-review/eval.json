@@ -32,6 +32,34 @@
   "futureChangeProbe": {
     "name": "change money display prefix",
     "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
+    "changeScenario": {
+      "class": "domain formatting rule variation",
+      "scenario": "Change the money display prefix for every formatter that renders invoice totals.",
+      "whyThisMeasuresEasier": "The same conceptual rule change should cross fewer formatter slices after the refactor because the money-formatting decision has one home.",
+      "costDimensions": [
+        "change-amplification",
+        "blast-radius",
+        "verification-cost",
+        "reversibility"
+      ],
+      "currentCost": {
+        "touchPoints": 2,
+        "patchSizeLines": 2,
+        "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+        "validationCommands": 1
+      },
+      "targetCost": {
+        "touchPointsMax": 1,
+        "patchSizeLinesMax": 1,
+        "changedFilesMax": 1,
+        "validationCommands": 1
+      },
+      "easierWhen": [
+        "treatment touches fewer files for the same conceptual money-formatting change",
+        "treatment keeps behavior validation green",
+        "treatment localizes the change to the shared money formatter"
+      ]
+    },
     "replacement": {
       "paths": [
         "src/checkout-format/format.ts",

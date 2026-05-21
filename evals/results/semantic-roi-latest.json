@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:49:25.404Z",
-  "startedAt": "2026-05-21T07:49:22.671Z",
+  "generatedAt": "2026-05-21T07:52:56.286Z",
+  "startedAt": "2026-05-21T07:52:53.741Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -64,6 +64,7 @@
       "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
       "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
       "Future-change probes measure whether treatment reduces touch points versus control.",
+      "Future-change probes define the change scenario, current cost, target cost, and cost dimensions before scoring easier change.",
       "The run records hard constraint failures separately from quality metrics."
     ],
     "proxyEvidence": [],
@@ -131,7 +132,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 36,
+            "durationMs": 33,
             "error": null
           }
         ],
@@ -150,11 +151,21 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 34,
+              "durationMs": 33,
               "error": null
             }
           ],
-          "validationPassed": true
+          "validationPassed": true,
+          "cost": {
+            "touchPoints": 2,
+            "changedFiles": [
+              "src/checkout-format/format.ts",
+              "src/invoice-format/format.ts"
+            ],
+            "patchSizeLines": 2,
+            "validationCommands": 1,
+            "validationPassed": true
+          }
         }
       },
       "treatment": {
@@ -239,7 +250,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_5321c4fe8a",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_d9bbf02e72",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-format/format.ts",
@@ -281,7 +292,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 50,
+            "durationMs": 33,
             "error": null
           }
         ],
@@ -299,16 +310,75 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 34,
+              "durationMs": 32,
               "error": null
             }
           ],
-          "validationPassed": true
+          "validationPassed": true,
+          "cost": {
+            "touchPoints": 1,
+            "changedFiles": [
+              "src/money-format/format.ts"
+            ],
+            "patchSizeLines": 1,
+            "validationCommands": 1,
+            "validationPassed": true
+          }
         }
       },
       "futureChange": {
         "enabled": true,
         "name": "change money display prefix",
+        "scenario": {
+          "class": "domain formatting rule variation",
+          "scenario": "Change the money display prefix for every formatter that renders invoice totals.",
+          "whyThisMeasuresEasier": "The same conceptual rule change should cross fewer formatter slices after the refactor because the money-formatting decision has one home.",
+          "costDimensions": [
+            "change-amplification",
+            "blast-radius",
+            "verification-cost",
+            "reversibility"
+          ],
+          "currentCost": {
+            "touchPoints": 2,
+            "patchSizeLines": 2,
+            "changedFiles": [
+              "src/checkout-format/format.ts",
+              "src/invoice-format/format.ts"
+            ],
+            "validationCommands": 1
+          },
+          "targetCost": {
+            "touchPointsMax": 1,
+            "patchSizeLinesMax": 1,
+            "changedFilesMax": 1,
+            "validationCommands": 1
+          },
+          "easierWhen": [
+            "treatment touches fewer files for the same conceptual money-formatting change",
+            "treatment keeps behavior validation green",
+            "treatment localizes the change to the shared money formatter"
+          ]
+        },
+        "controlCost": {
+          "touchPoints": 2,
+          "changedFiles": [
+            "src/checkout-format/format.ts",
+            "src/invoice-format/format.ts"
+          ],
+          "patchSizeLines": 2,
+          "validationCommands": 1,
+          "validationPassed": true
+        },
+        "treatmentCost": {
+          "touchPoints": 1,
+          "changedFiles": [
+            "src/money-format/format.ts"
+          ],
+          "patchSizeLines": 1,
+          "validationCommands": 1,
+          "validationPassed": true
+        },
         "controlTouchPoints": 2,
         "treatmentTouchPoints": 1,
         "touchPointReduction": 1,

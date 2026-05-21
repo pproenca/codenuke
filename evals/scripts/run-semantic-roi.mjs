@@ -85,6 +85,7 @@ try {
         "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
         "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
         "Future-change probes measure whether treatment reduces touch points versus control.",
+        "Future-change probes define the change scenario, current cost, target cost, and cost dimensions before scoring easier change.",
         "The run records hard constraint failures separately from quality metrics.",
       ],
       proxyEvidence: [],
@@ -786,8 +787,11 @@ function futureChangeComparison(fixture, control, treatment) {
     return { enabled: false, ok: true, hardConstraintFailures: [] };
   }
   const failures = [];
+  const scenario = fixture.futureChangeProbe.changeScenario ?? null;
   const controlTouchPoints = control.futureChangeProbe?.touchPoints ?? null;
   const treatmentTouchPoints = treatment.futureChangeProbe?.touchPoints ?? null;
+  const controlCost = costFromFutureChangeProbe(control.futureChangeProbe);
+  const treatmentCost = costFromFutureChangeProbe(treatment.futureChangeProbe);
   const touchPointReduction =
     controlTouchPoints === null || treatmentTouchPoints === null
       ? null
@@ -800,9 +804,13 @@ function futureChangeComparison(fixture, control, treatment) {
       `expected future-change touch point reduction >= ${expectedReduction}, got ${touchPointReduction}`,
     );
   }
+  failures.push(...futureChangeCostModelFailures(scenario, controlCost, treatmentCost));
   return {
     enabled: true,
     name: fixture.futureChangeProbe.name ?? "future change",
+    scenario,
+    controlCost,
+    treatmentCost,
     controlTouchPoints,
     treatmentTouchPoints,
     touchPointReduction,
@@ -867,7 +875,87 @@ function runFutureChangeProbe(worktree, probe) {
     replacements: replacement.replacements,
     validation,
     validationPassed: validation.every((check) => check.ok),
+    cost: {
+      touchPoints: changedFiles.length,
+      changedFiles,
+      patchSizeLines: changedFiles.reduce(
+        (total, file) => total + changedLineCount(before[file] ?? "", after[file] ?? ""),
+        0,
+      ),
+      validationCommands: validation.length,
+      validationPassed: validation.every((check) => check.ok),
+    },
   };
+}
+
+function costFromFutureChangeProbe(probe) {
+  return probe?.cost ?? null;
+}
+
+function futureChangeCostModelFailures(scenario, controlCost, treatmentCost) {
+  if (scenario === null || controlCost === null || treatmentCost === null) {
+    return [];
+  }
+  const failures = [];
+  const currentCost = scenario.currentCost ?? {};
+  const targetCost = scenario.targetCost ?? {};
+  if (
+    typeof currentCost.touchPoints === "number" &&
+    controlCost.touchPoints !== currentCost.touchPoints
+  ) {
+    failures.push(
+      `expected current change cost ${currentCost.touchPoints} touch point(s), got ${controlCost.touchPoints}`,
+    );
+  }
+  if (
+    typeof currentCost.patchSizeLines === "number" &&
+    controlCost.patchSizeLines !== currentCost.patchSizeLines
+  ) {
+    failures.push(
+      `expected current change cost ${currentCost.patchSizeLines} patch-size line(s), got ${controlCost.patchSizeLines}`,
+    );
+  }
+  if (
+    typeof currentCost.validationCommands === "number" &&
+    controlCost.validationCommands !== currentCost.validationCommands
+  ) {
+    failures.push(
+      `expected current change cost ${currentCost.validationCommands} validation command(s), got ${controlCost.validationCommands}`,
+    );
+  }
+  if (
+    typeof targetCost.touchPointsMax === "number" &&
+    treatmentCost.touchPoints > targetCost.touchPointsMax
+  ) {
+    failures.push(
+      `expected target change cost <= ${targetCost.touchPointsMax} touch point(s), got ${treatmentCost.touchPoints}`,
+    );
+  }
+  if (
+    typeof targetCost.patchSizeLinesMax === "number" &&
+    treatmentCost.patchSizeLines > targetCost.patchSizeLinesMax
+  ) {
+    failures.push(
+      `expected target change cost <= ${targetCost.patchSizeLinesMax} patch-size line(s), got ${treatmentCost.patchSizeLines}`,
+    );
+  }
+  if (
+    typeof targetCost.changedFilesMax === "number" &&
+    treatmentCost.changedFiles.length > targetCost.changedFilesMax
+  ) {
+    failures.push(
+      `expected target change cost <= ${targetCost.changedFilesMax} changed file(s), got ${treatmentCost.changedFiles.length}`,
+    );
+  }
+  if (
+    typeof targetCost.validationCommands === "number" &&
+    treatmentCost.validationCommands !== targetCost.validationCommands
+  ) {
+    failures.push(
+      `expected target change cost ${targetCost.validationCommands} validation command(s), got ${treatmentCost.validationCommands}`,
+    );
+  }
+  return failures;
 }
 
 function applyProbeReplacement(worktree, replacement) {
@@ -1118,8 +1206,12 @@ function semanticRoiMarkdown(output) {
       `- treatment constraint identified: ${result.constraint.treatmentIdentified ?? "n/a"}`,
       `- control behavior invariants: ${passedCount(result.control.behaviorInvariants)}/${result.control.behaviorInvariants.length}`,
       `- treatment behavior invariants: ${passedCount(result.treatment.behaviorInvariants)}/${result.treatment.behaviorInvariants.length}`,
+      `- future-change scenario: ${result.futureChange.scenario?.scenario ?? "none"}`,
+      `- future-change dimensions: ${(result.futureChange.scenario?.costDimensions ?? []).join(", ") || "none"}`,
       `- control future-change touch points: ${result.control.futureChangeProbe?.touchPoints ?? "none"}`,
       `- treatment future-change touch points: ${result.treatment.futureChangeProbe?.touchPoints ?? "none"}`,
+      `- control future-change patch-size lines: ${result.control.futureChangeProbe?.patchSizeLines ?? "none"}`,
+      `- treatment future-change patch-size lines: ${result.treatment.futureChangeProbe?.patchSizeLines ?? "none"}`,
       `- future-change touch point reduction: ${result.futureChange.touchPointReduction ?? "none"}`,
       `- score delta: ${result.scores.delta.toFixed(1)}`,
     );
