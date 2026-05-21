@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "slug": "semantic-evidence-review",
+  "name": "Semantic evidence review candidate",
+  "description": "A deterministic fixture where review should report a refactoring candidate only when map semantic evidence links sibling formatter slices.",
+  "review": {
+    "provider": "mock",
+    "limit": 5
+  },
+  "expect": {
+    "openFindings": 1,
+    "findings": [
+      {
+        "title": "Sibling duplicate helper can be unified",
+        "category": "maintainability",
+        "severity": "low",
+        "confidence": "high",
+        "evidencePath": "src/checkout-format/format.ts",
+        "mapEvidenceTrace": true,
+        "mapEvidenceTraceKind": "semantic-neighbor",
+        "mapEvidenceTraceTargetTitle": "Node source src/invoice-format",
+        "mapEvidenceTraceSignal": "format"
+      }
+    ],
+    "baseline": {
+      "patchAttempts": 0,
+      "guidanceApplications": 0,
+      "patchBoundaryUnexpectedFiles": 0,
+      "findingsByStatus": {
+        "open": 1
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderFindingDetail, renderReport } from "./reporting.js";
+import { findingSummary, renderFindingDetail, renderReport } from "./reporting.js";
 import type { FeatureRecord, FindingRecord } from "../platform/types.js";
 
 function finding(overrides: Partial<FindingRecord> = {}): FindingRecord {
@@ -167,5 +167,24 @@ describe("markdown finding sections", () => {
     expect(detail).toContain("cand_semantic: Semantic task graph candidate");
     expect(detail).toContain("Check both files when fixing or revalidating.");
     expect(report).not.toContain("candidate trace:");
+  });
+
+  it("includes map evidence trace in JSON summaries", () => {
+    const record = finding({
+      mapEvidenceTrace: [
+        {
+          kind: "semantic-neighbor",
+          source: "identifier-tfidf",
+          targetFeatureId: "feat_invoice",
+          targetTitle: "Invoice formatter",
+          score: 0.64,
+          signals: ["format", "invoice"],
+          reason: "Map evidence linked duplicated formatter vocabulary.",
+          use: "Inspect the sibling formatter before fixing.",
+        },
+      ],
+    });
+
+    expect(findingSummary(record, feature()).mapEvidenceTrace).toEqual(record.mapEvidenceTrace);
   });
 });

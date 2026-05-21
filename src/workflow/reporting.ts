@@ -22,6 +22,7 @@ export type FindingSummary = {
   minimumFixScope: string;
   guidance: FindingRecord["guidance"];
   candidateTrace: FindingRecord["candidateTrace"];
+  mapEvidenceTrace: NonNullable<FindingRecord["mapEvidenceTrace"]>;
   next: string;
 };
 
@@ -212,6 +213,7 @@ export function findingSummary(
     minimumFixScope: finding.minimumFixScope,
     guidance: finding.guidance,
     candidateTrace: finding.candidateTrace,
+    mapEvidenceTrace: finding.mapEvidenceTrace ?? [],
     next: `codenuke show --finding ${finding.findingId}`,
   };
 }

@@ -577,6 +577,30 @@ function matchesFinding(item, expected) {
       return false;
     }
   }
+  const mapEvidenceTrace = Array.isArray(item.mapEvidenceTrace) ? item.mapEvidenceTrace : [];
+  if (expected.mapEvidenceTrace === true && mapEvidenceTrace.length === 0) {
+    return false;
+  }
+  if (
+    expected.mapEvidenceTraceKind !== undefined &&
+    !mapEvidenceTrace.some((entry) => entry.kind === expected.mapEvidenceTraceKind)
+  ) {
+    return false;
+  }
+  if (
+    expected.mapEvidenceTraceTargetTitle !== undefined &&
+    !mapEvidenceTrace.some((entry) => entry.targetTitle === expected.mapEvidenceTraceTargetTitle)
+  ) {
+    return false;
+  }
+  if (
+    expected.mapEvidenceTraceSignal !== undefined &&
+    !mapEvidenceTrace.some((entry) =>
+      (entry.signals ?? []).includes(expected.mapEvidenceTraceSignal),
+    )
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -594,6 +618,14 @@ function normalizeItems(items) {
           startLine: entry.startLine ?? null,
           endLine: entry.endLine ?? null,
           symbol: entry.symbol ?? null,
+        }))
+      : [],
+    mapEvidenceTrace: Array.isArray(item.mapEvidenceTrace)
+      ? item.mapEvidenceTrace.map((entry) => ({
+          kind: entry.kind,
+          source: entry.source,
+          targetTitle: entry.targetTitle,
+          signals: entry.signals ?? [],
         }))
       : [],
   }));

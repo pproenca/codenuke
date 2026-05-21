@@ -269,6 +269,79 @@ const mockProvider: Provider = {
     };
   },
   async review(_root: string, prompt: string): Promise<ReviewOutput> {
+    if (prompt.includes("TODO_SEMANTIC_REFACTOR")) {
+      if (!prompt.includes("Map semantic evidence:\n[")) {
+        return {
+          findings: [],
+          inspected: {
+            files: ["src/checkout-format/format.ts"],
+            symbols: [],
+            notes: ["mock semantic evidence missing"],
+          },
+        };
+      }
+      return {
+        findings: [
+          {
+            title: "Sibling duplicate helper can be unified",
+            category: "maintainability",
+            severity: "low",
+            confidence: "high",
+            evidence: [
+              {
+                path: "src/checkout-format/format.ts",
+                startLine: null,
+                endLine: null,
+                symbol: "formatCheckoutInvoiceSummary",
+                quote: "TODO_SEMANTIC_REFACTOR",
+              },
+            ],
+            reasoning:
+              "Mock provider found a refactoring marker only after map semantic evidence linked it to a sibling formatter.",
+            reproduction: null,
+            recommendation:
+              "Inspect the sibling invoice formatter and unify the shared summary formatting behavior.",
+            whyTestsDoNotAlreadyCoverThis:
+              "The deterministic fixture checks candidate discovery, not runtime formatting behavior.",
+            suggestedRegressionTest:
+              "Add a shared formatter test that covers checkout and invoice summary rows.",
+            minimumFixScope:
+              "Refactor only the checkout and invoice formatter helpers plus their focused tests.",
+            candidateTrace: mockCandidateTrace(prompt),
+            mapEvidenceTrace: [
+              {
+                kind: "semantic-neighbor",
+                source: "identifier-tfidf",
+                targetFeatureId: "mock_semantic_neighbor",
+                targetTitle: "Node source src/invoice-format",
+                score: 0.64,
+                signals: ["format", "invoice", "summary"],
+                reason:
+                  "Identifier vocabulary links checkout summary formatting to the invoice formatter slice.",
+                use: "Review both formatter slices before choosing a refactoring boundary.",
+              },
+            ],
+            guidance: {
+              applied: [
+                {
+                  resourceId: "catalog.dispensables.duplicate-code",
+                  title: "Duplicate Code",
+                  kind: "signal",
+                  role: "supporting",
+                  reason: "Semantic map evidence points to a sibling implementation to compare.",
+                  use: "Unify duplicated formatter behavior only after checking both slices.",
+                },
+              ],
+            },
+          },
+        ],
+        inspected: {
+          files: ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+          symbols: ["formatCheckoutInvoiceSummary", "formatInvoiceSummaryRow"],
+          notes: ["mock semantic evidence finding"],
+        },
+      };
+    }
     if (prompt.includes("TODO_SIMPLIFY")) {
       return {
         findings: [
