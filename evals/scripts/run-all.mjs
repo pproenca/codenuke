@@ -17,11 +17,6 @@ const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const fixturesRoot = join(repoRoot, "evals", "fixtures");
 const resultsRoot = join(repoRoot, "evals", "results");
 const cli = join(repoRoot, "dist", "cli.js");
-const providerOverride = envValue("CODENUKE_EVAL_PROVIDER");
-const modelOverride = envValue("CODENUKE_EVAL_MODEL");
-const reasoningEffortOverride = envValue("CODENUKE_EVAL_REASONING_EFFORT");
-const expectationMode = envValue("CODENUKE_EVAL_EXPECTATIONS") ?? "strict";
-const resultsFile = envValue("CODENUKE_EVAL_RESULTS") ?? "latest.json";
 const guidanceManifest = readJson(join(repoRoot, "resources", "refactoring", "manifest.json"));
 const guidanceCoverageConfig =
   readOptionalJson(join(repoRoot, "evals", "guidance-coverage.json")) ?? {};
@@ -51,7 +46,7 @@ for (const fixtureName of fixtureNames) {
 }
 
 const guidanceCoverageMatrix = guidanceCoverageMatrixFromResults(results);
-if (expectationMode !== "record" && guidanceCoverageMatrix.totals.unownedResources > 0) {
+if (guidanceCoverageMatrix.totals.unownedResources > 0) {
   const unowned = guidanceCoverageMatrix.resources
     .filter((resource) => resource.status === "unowned")
     .map((resource) => resource.id)
@@ -67,10 +62,9 @@ const output = {
   startedAt,
   cli: "node dist/cli.js",
   mode: {
-    expectations: expectationMode,
-    providerOverride,
-    model: modelOverride,
-    reasoningEffort: reasoningEffortOverride,
+    deterministic: true,
+    expectations: "strict",
+    provider: "mock",
   },
   totals: {
     fixtures: results.length,
@@ -86,13 +80,13 @@ const output = {
 };
 
 mkdirSync(resultsRoot, { recursive: true });
-writeFileSync(join(resultsRoot, resultsFile), `${JSON.stringify(output, null, 2)}\n`);
+writeFileSync(join(resultsRoot, "latest.json"), `${JSON.stringify(output, null, 2)}\n`);
 writeFileSync(
   join(resultsRoot, "guidance-coverage-matrix.json"),
   `${JSON.stringify(guidanceCoverageMatrix, null, 2)}\n`,
 );
 
-if ((fixtureFailures > 0 || suiteFailures.length > 0) && expectationMode !== "record") {
+if (fixtureFailures > 0 || suiteFailures.length > 0) {
   process.exitCode = 1;
 }
 
@@ -105,7 +99,10 @@ function runFixture(fixtureName) {
 
   try {
     cpSync(join(fixtureRoot, "files"), worktree, { recursive: true });
-    const provider = providerOverride ?? definition.review?.provider ?? "mock";
+    const provider = definition.review?.provider ?? "mock";
+    if (provider !== "mock") {
+      throw new Error(`eval fixtures must use the mock provider, got ${provider}`);
+    }
     const limit = String(definition.review?.limit ?? 1);
 
     if (definition.fix?.enabled === true) {
@@ -114,15 +111,7 @@ function runFixture(fixtureName) {
     runCli(worktree, ["init", "--force", "--json"]);
     const map = parseJson(runCli(worktree, ["map", "--json"]));
     const review = parseJson(
-      runCli(worktree, [
-        "review",
-        "--provider",
-        provider,
-        "--limit",
-        limit,
-        ...modelArgs(definition.review),
-        "--json",
-      ]),
+      runCli(worktree, ["review", "--provider", provider, "--limit", limit, "--json"]),
     );
     const report = parseJson(runCli(worktree, ["report", "--status", "open", "--json"]));
     const fix = runFixStep(worktree, provider, definition, report);
@@ -132,14 +121,8 @@ function runFixture(fixtureName) {
         ? report
         : parseJson(runCli(worktree, ["report", "--json"]));
     const baseline = baselineFromState(worktree, report, finalReport);
-    const score =
-      expectationMode === "record"
-        ? { ok: true, errors: [] }
-        : scoreReport(definition.expect, report);
-    const baselineScore =
-      expectationMode === "record"
-        ? { ok: true, errors: [] }
-        : scoreBaseline(definition.expect?.baseline, baseline);
+    const score = scoreReport(definition.expect, report);
+    const baselineScore = scoreBaseline(definition.expect?.baseline, baseline);
 
     return {
       schemaVersion: 1,
@@ -198,15 +181,7 @@ function runFixStep(worktree, provider, definition, report) {
     throw new Error(`fix requested but no matching finding was found`);
   }
   const fixOutput = parseJson(
-    runCli(worktree, [
-      "fix",
-      "--provider",
-      provider,
-      "--finding",
-      finding.id,
-      ...modelArgs(definition.fix),
-      "--json",
-    ]),
+    runCli(worktree, ["fix", "--provider", provider, "--finding", finding.id, "--json"]),
   );
   return {
     findingId: finding.id,
@@ -227,15 +202,7 @@ function runRevalidateStep(worktree, provider, definition, findingId) {
     throw new Error("revalidate requested but no fixed finding id is available");
   }
   const revalidateOutput = parseJson(
-    runCli(worktree, [
-      "revalidate",
-      "--provider",
-      provider,
-      "--finding",
-      findingId,
-      ...modelArgs(definition.revalidate),
-      "--json",
-    ]),
+    runCli(worktree, ["revalidate", "--provider", provider, "--finding", findingId, "--json"]),
   );
   return {
     findingId,
@@ -547,17 +514,6 @@ function uniqueSorted(values) {
   return [...new Set(values)].toSorted();
 }
 
-function modelArgs(definition) {
-  const model = modelOverride ?? definition?.model;
-  const reasoningEffort = reasoningEffortOverride ?? definition?.reasoningEffort;
-  return [
-    ...(typeof model === "string" && model.length > 0 ? ["--model", model] : []),
-    ...(typeof reasoningEffort === "string" && reasoningEffort.length > 0
-      ? ["--reasoning-effort", reasoningEffort]
-      : []),
-  ];
-}
-
 function matchesFinding(item, expected) {
   if (expected.title !== undefined && item.title !== expected.title) {
     return false;
@@ -736,11 +692,6 @@ function readJson(path) {
 
 function readOptionalJson(path) {
   return existsSync(path) ? readJson(path) : null;
-}
-
-function envValue(name) {
-  const value = process.env[name]?.trim();
-  return value === undefined || value.length === 0 ? null : value;
 }
 
 function parseJson(text) {

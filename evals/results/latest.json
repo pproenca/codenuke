@@ -1,13 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T08:17:31.709Z",
-  "startedAt": "2026-05-21T08:17:23.367Z",
+  "generatedAt": "2026-05-21T08:35:50.667Z",
+  "startedAt": "2026-05-21T08:35:42.850Z",
   "cli": "node dist/cli.js",
   "mode": {
+    "deterministic": true,
     "expectations": "strict",
-    "providerOverride": null,
-    "model": null,
-    "reasoningEffort": null
+    "provider": "mock"
   },
   "totals": {
     "fixtures": 13,
@@ -20,7 +19,7 @@
   },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-21T08:17:31.709Z",
+    "generatedAt": "2026-05-21T08:35:50.667Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -39,26 +38,15 @@
         "id": "catalog.dispensables.duplicate-code",
         "title": "Duplicate Code",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "duplicate-block",
-          "repeated-lines",
-          "repeated-switch-like-branches"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["duplicate-block", "repeated-lines", "repeated-switch-like-branches"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-conditional",
-          "guidance-duplicate"
-        ],
+        "selectedBy": ["guidance-conditional", "guidance-duplicate"],
         "appliedBy": [
           {
             "fixture": "mock-refactor",
             "action": "applied",
-            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_f1388b5350"
+            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8"
           }
         ],
         "reservedBy": [],
@@ -68,21 +56,10 @@
         "id": "catalog.bloaters.long-method",
         "title": "Long Method",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "large-function-like-block",
-          "many-branches",
-          "nested-conditionals"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["large-function-like-block", "many-branches", "nested-conditionals"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-long-method",
-          "semantic-evidence-review"
-        ],
+        "selectedBy": ["guidance-long-method", "semantic-evidence-review"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -91,18 +68,10 @@
         "id": "catalog.bloaters.long-parameter-list",
         "title": "Long Parameter List",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "long-parameter-list"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["long-parameter-list"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-long-parameters"
-        ],
+        "selectedBy": ["guidance-long-parameters"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -111,19 +80,10 @@
         "id": "catalog.object-orientation-abusers.switch-statements",
         "title": "Switch Statements",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "repeated-switch-like-branches",
-          "many-branches"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["repeated-switch-like-branches", "many-branches"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-conditional"
-        ],
+        "selectedBy": ["guidance-conditional"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -132,18 +92,10 @@
         "id": "catalog.dispensables.comments",
         "title": "Comments",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "commented-complex-block"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["commented-complex-block"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-comments"
-        ],
+        "selectedBy": ["guidance-comments"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -152,18 +104,10 @@
         "id": "catalog.dispensables.speculative-generality",
         "title": "Speculative Generality",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "many-small-delegating-functions"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["many-small-delegating-functions"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-middle-man"
-        ],
+        "selectedBy": ["guidance-middle-man"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -172,19 +116,10 @@
         "id": "catalog.couplers.middle-man",
         "title": "Middle Man",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "many-small-delegating-functions",
-          "delegation-wrapper"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["many-small-delegating-functions", "delegation-wrapper"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-middle-man"
-        ],
+        "selectedBy": ["guidance-middle-man"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -193,18 +128,10 @@
         "id": "catalog.couplers.message-chains",
         "title": "Message Chains",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "message-chain"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["message-chain"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-message-chain"
-        ],
+        "selectedBy": ["guidance-message-chain"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -213,11 +140,7 @@
         "id": "catalog.bloaters.data-clumps",
         "title": "Data Clumps",
         "kind": "signal",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
+        "stages": ["review", "fix", "revalidate"],
         "selectWhen": [],
         "selectable": false,
         "selectedBy": [],
@@ -233,14 +156,8 @@
         "id": "techniques.composing-methods.extract-method",
         "title": "Extract Method",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "large-function-like-block",
-          "duplicate-block"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["large-function-like-block", "duplicate-block"],
         "selectable": true,
         "selectedBy": [
           "guidance-comments",
@@ -256,18 +173,10 @@
         "id": "techniques.composing-methods.inline-method",
         "title": "Inline Method",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "delegation-wrapper",
-          "many-small-delegating-functions"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["delegation-wrapper", "many-small-delegating-functions"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-middle-man"
-        ],
+        "selectedBy": ["guidance-middle-man"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -276,17 +185,10 @@
         "id": "techniques.composing-methods.extract-variable",
         "title": "Extract Variable",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
+        "stages": ["fix", "revalidate"],
         "selectWhen": [],
         "selectable": false,
-        "selectedBy": [
-          "guidance-comments",
-          "guidance-long-method",
-          "semantic-evidence-review"
-        ],
+        "selectedBy": ["guidance-comments", "guidance-long-method", "semantic-evidence-review"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -295,20 +197,10 @@
         "id": "techniques.simplifying-conditional-expressions.decompose-conditional",
         "title": "Decompose Conditional",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "nested-conditionals",
-          "many-branches"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["nested-conditionals", "many-branches"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-conditional",
-          "guidance-long-method",
-          "semantic-evidence-review"
-        ],
+        "selectedBy": ["guidance-conditional", "guidance-long-method", "semantic-evidence-review"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -317,19 +209,10 @@
         "id": "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
         "title": "Consolidate Duplicate Conditional Fragments",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "repeated-switch-like-branches",
-          "duplicate-block"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["repeated-switch-like-branches", "duplicate-block"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-conditional",
-          "guidance-duplicate"
-        ],
+        "selectedBy": ["guidance-conditional", "guidance-duplicate"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -338,17 +221,10 @@
         "id": "techniques.simplifying-method-calls.introduce-parameter-object",
         "title": "Introduce Parameter Object",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "long-parameter-list"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["long-parameter-list"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-long-parameters"
-        ],
+        "selectedBy": ["guidance-long-parameters"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -357,19 +233,10 @@
         "id": "techniques.simplifying-method-calls.preserve-whole-object",
         "title": "Preserve Whole Object",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "long-parameter-list",
-          "message-chain"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["long-parameter-list", "message-chain"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-long-parameters",
-          "guidance-message-chain"
-        ],
+        "selectedBy": ["guidance-long-parameters", "guidance-message-chain"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -378,15 +245,10 @@
         "id": "techniques.simplifying-method-calls.remove-parameter",
         "title": "Remove Parameter",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
+        "stages": ["fix", "revalidate"],
         "selectWhen": [],
         "selectable": false,
-        "selectedBy": [
-          "guidance-long-parameters"
-        ],
+        "selectedBy": ["guidance-long-parameters"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -395,18 +257,10 @@
         "id": "techniques.moving-features-between-objects.remove-middle-man",
         "title": "Remove Middle Man",
         "kind": "technique",
-        "stages": [
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "delegation-wrapper",
-          "many-small-delegating-functions"
-        ],
+        "stages": ["fix", "revalidate"],
+        "selectWhen": ["delegation-wrapper", "many-small-delegating-functions"],
         "selectable": true,
-        "selectedBy": [
-          "guidance-middle-man"
-        ],
+        "selectedBy": ["guidance-middle-man"],
         "appliedBy": [],
         "reservedBy": [],
         "status": "covered"
@@ -415,14 +269,8 @@
         "id": "workflow.trusted-refactor-regression-coverage",
         "title": "Trusted Refactor Regression Coverage",
         "kind": "workflow",
-        "stages": [
-          "review",
-          "fix",
-          "revalidate"
-        ],
-        "selectWhen": [
-          "missing-linked-tests"
-        ],
+        "stages": ["review", "fix", "revalidate"],
+        "selectWhen": ["missing-linked-tests"],
         "selectable": true,
         "selectedBy": [
           "guidance-comments",
@@ -450,7 +298,7 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 581,
+      "durationMs": 537,
       "provider": "mock",
       "map": {
         "features": 6,
@@ -532,7 +380,7 @@
       "name": "Guidance comments fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 562,
+      "durationMs": 543,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -568,18 +416,13 @@
             "techniques.composing-methods.extract-variable",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "primaryResources": [
-            "catalog.dispensables.comments"
-          ],
+          "primaryResources": ["catalog.dispensables.comments"],
           "supportingResources": [
             "techniques.composing-methods.extract-method",
             "techniques.composing-methods.extract-variable",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "detectedShapeNames": [
-            "commented-complex-block",
-            "missing-linked-tests"
-          ],
+          "detectedShapeNames": ["commented-complex-block", "missing-linked-tests"],
           "promptedResources": [
             "catalog.dispensables.comments",
             "techniques.composing-methods.extract-method",
@@ -632,7 +475,7 @@
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 601,
+      "durationMs": 539,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -735,7 +578,7 @@
       "name": "Guidance duplicate-code fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 559,
+      "durationMs": 542,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -771,19 +614,13 @@
             "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "primaryResources": [
-            "catalog.dispensables.duplicate-code"
-          ],
+          "primaryResources": ["catalog.dispensables.duplicate-code"],
           "supportingResources": [
             "techniques.composing-methods.extract-method",
             "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "detectedShapeNames": [
-            "duplicate-block",
-            "missing-linked-tests",
-            "repeated-lines"
-          ],
+          "detectedShapeNames": ["duplicate-block", "missing-linked-tests", "repeated-lines"],
           "promptedResources": [
             "catalog.dispensables.duplicate-code",
             "techniques.composing-methods.extract-method",
@@ -836,7 +673,7 @@
       "name": "Guidance long-method fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 617,
+      "durationMs": 543,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -873,19 +710,14 @@
             "techniques.simplifying-conditional-expressions.decompose-conditional",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "primaryResources": [
-            "catalog.bloaters.long-method"
-          ],
+          "primaryResources": ["catalog.bloaters.long-method"],
           "supportingResources": [
             "techniques.composing-methods.extract-method",
             "techniques.composing-methods.extract-variable",
             "techniques.simplifying-conditional-expressions.decompose-conditional",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "detectedShapeNames": [
-            "large-function-like-block",
-            "missing-linked-tests"
-          ],
+          "detectedShapeNames": ["large-function-like-block", "missing-linked-tests"],
           "promptedResources": [
             "catalog.bloaters.long-method",
             "techniques.composing-methods.extract-method",
@@ -939,7 +771,7 @@
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 605,
+      "durationMs": 540,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -976,19 +808,14 @@
             "techniques.simplifying-method-calls.remove-parameter",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "primaryResources": [
-            "catalog.bloaters.long-parameter-list"
-          ],
+          "primaryResources": ["catalog.bloaters.long-parameter-list"],
           "supportingResources": [
             "techniques.simplifying-method-calls.introduce-parameter-object",
             "techniques.simplifying-method-calls.preserve-whole-object",
             "techniques.simplifying-method-calls.remove-parameter",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "detectedShapeNames": [
-            "long-parameter-list",
-            "missing-linked-tests"
-          ],
+          "detectedShapeNames": ["long-parameter-list", "missing-linked-tests"],
           "promptedResources": [
             "catalog.bloaters.long-parameter-list",
             "techniques.simplifying-method-calls.introduce-parameter-object",
@@ -1042,7 +869,7 @@
       "name": "Guidance message-chain fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 594,
+      "durationMs": 536,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1077,17 +904,12 @@
             "techniques.simplifying-method-calls.preserve-whole-object",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "primaryResources": [
-            "catalog.couplers.message-chains"
-          ],
+          "primaryResources": ["catalog.couplers.message-chains"],
           "supportingResources": [
             "techniques.simplifying-method-calls.preserve-whole-object",
             "workflow.trusted-refactor-regression-coverage"
           ],
-          "detectedShapeNames": [
-            "message-chain",
-            "missing-linked-tests"
-          ],
+          "detectedShapeNames": ["message-chain", "missing-linked-tests"],
           "promptedResources": [
             "catalog.couplers.message-chains",
             "techniques.simplifying-method-calls.preserve-whole-object",
@@ -1139,7 +961,7 @@
       "name": "Guidance middle-man fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 578,
+      "durationMs": 543,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1242,7 +1064,7 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 572,
+      "durationMs": 533,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1272,19 +1094,11 @@
         "guidanceSelection": {
           "audits": 1,
           "detectedShapes": 1,
-          "selectedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
-          "primaryResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
           "supportingResources": [],
-          "detectedShapeNames": [
-            "missing-linked-tests"
-          ],
-          "promptedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
             "catalog.bloaters.long-method",
@@ -1332,7 +1146,7 @@
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 575,
+      "durationMs": 541,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1362,19 +1176,11 @@
         "guidanceSelection": {
           "audits": 1,
           "detectedShapes": 1,
-          "selectedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
-          "primaryResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
           "supportingResources": [],
-          "detectedShapeNames": [
-            "missing-linked-tests"
-          ],
-          "promptedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
             "catalog.bloaters.long-method",
@@ -1422,7 +1228,7 @@
       "name": "Mock refactoring marker",
       "ok": true,
       "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 1240,
+      "durationMs": 1212,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1480,7 +1286,7 @@
       "fix": {
         "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
         "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_f1388b5350",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8",
         "filesChanged": 0,
         "changedFiles": "none",
         "commands": 0,
@@ -1526,7 +1332,7 @@
           "notUsedResources": 0,
           "resourceActions": [
             {
-              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_f1388b5350",
+              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8",
               "findingId": null,
               "resourceId": "catalog.dispensables.duplicate-code",
               "action": "applied"
@@ -1567,7 +1373,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 589,
+      "durationMs": 586,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1633,19 +1439,11 @@
         "guidanceSelection": {
           "audits": 1,
           "detectedShapes": 1,
-          "selectedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
-          "primaryResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
+          "primaryResources": ["workflow.trusted-refactor-regression-coverage"],
           "supportingResources": [],
-          "detectedShapeNames": [
-            "missing-linked-tests"
-          ],
-          "promptedResources": [
-            "workflow.trusted-refactor-regression-coverage"
-          ],
+          "detectedShapeNames": ["missing-linked-tests"],
+          "promptedResources": ["workflow.trusted-refactor-regression-coverage"],
           "rejectedResources": [
             "catalog.bloaters.data-clumps",
             "catalog.bloaters.long-method",
@@ -1695,7 +1493,7 @@
       "name": "Semantic evidence review candidate",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 629,
+      "durationMs": 587,
       "provider": "mock",
       "map": {
         "features": 16,
@@ -1729,11 +1527,7 @@
                 "kind": "semantic-neighbor",
                 "source": "identifier-tfidf",
                 "targetTitle": "Node source src/invoice-format",
-                "signals": [
-                  "format",
-                  "invoice",
-                  "summary"
-                ]
+                "signals": ["format", "invoice", "summary"]
               }
             ]
           }
@@ -1762,11 +1556,7 @@
                 "kind": "semantic-neighbor",
                 "source": "identifier-tfidf",
                 "targetTitle": "Node source src/invoice-format",
-                "signals": [
-                  "format",
-                  "invoice",
-                  "summary"
-                ]
+                "signals": ["format", "invoice", "summary"]
               }
             ]
           }
@@ -1799,10 +1589,7 @@
             "techniques.composing-methods.extract-variable",
             "techniques.simplifying-conditional-expressions.decompose-conditional"
           ],
-          "detectedShapeNames": [
-            "missing-linked-tests",
-            "nested-conditionals"
-          ],
+          "detectedShapeNames": ["missing-linked-tests", "nested-conditionals"],
           "promptedResources": [
             "catalog.bloaters.long-method",
             "techniques.composing-methods.extract-method",

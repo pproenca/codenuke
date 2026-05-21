@@ -52,12 +52,10 @@ export type MapProgressEvent = {
 
 export type MapOptions = {
   onProgress?: (event: MapProgressEvent) => void;
-  semanticEvidence?: boolean;
 };
 
 export type MapFeatureSeedOptions = {
   repoIndex?: RepoIndex;
-  semanticEvidence?: boolean;
 };
 
 type GatedFeatureMapper = FeatureMapper & {
@@ -209,12 +207,7 @@ export async function mapFeatures(
 ): Promise<MapResult> {
   const { seeds, repoIndex } = await collectSeeds(root, options);
   return {
-    ...(await mapFeatureSeeds(root, project, existing, seeds, {
-      repoIndex,
-      ...(options.semanticEvidence === undefined
-        ? {}
-        : { semanticEvidence: options.semanticEvidence }),
-    })),
+    ...(await mapFeatureSeeds(root, project, existing, seeds, { repoIndex })),
     repoIndex,
   };
 }
@@ -288,9 +281,7 @@ export async function mapFeatureSeeds(
   const features: FeatureRecord[] = [];
   let created = 0;
   let changed = 0;
-  const featuresWithEvidence = semanticEvidenceEnabled(options.semanticEvidence)
-    ? await attachSemanticEvidence(root, discoveredFeatures)
-    : discoveredFeatures;
+  const featuresWithEvidence = await attachSemanticEvidence(root, discoveredFeatures);
   for (const feature of featuresWithEvidence) {
     const previous = existingById.get(feature.featureId);
     const featureChanged =
@@ -316,13 +307,6 @@ export async function mapFeatureSeeds(
     changed,
     stale: existing.filter((feature) => !mappedFeatureIds.has(feature.featureId)).length,
   };
-}
-
-function semanticEvidenceEnabled(option: boolean | undefined): boolean {
-  if (option !== undefined) {
-    return option;
-  }
-  return process.env["CODENUKE_SEMANTIC_EVIDENCE"] !== "0";
 }
 
 function featureIdentity(

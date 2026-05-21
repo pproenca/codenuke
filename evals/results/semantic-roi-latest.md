@@ -8,7 +8,8 @@ positive future-change fixtures: 2
 semantic false-positive traps: 1
 
 ## Proven Behavior
-- The deterministic harness runs the same fixture with semantic evidence disabled and enabled.
+
+- The deterministic harness runs the same fixture with semantic evidence hidden from the control state and visible in the treatment state.
 - The control run exposes no semantic-neighbor links and produces no finding.
 - The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.
 - Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.
@@ -21,20 +22,25 @@ semantic false-positive traps: 1
 - The run records hard constraint failures separately from quality metrics.
 
 ## Proxy Evidence
+
 - none
 
-## Unproven Model-backed ROI
-- Live model-backed ROI remains out of scope for this deterministic command.
+## Out Of Scope
+
+- Live-provider ROI remains out of scope for this deterministic command.
 
 ## Blockers
+
 - none
 
 ## Next Inputs
+
 - Use this deterministic gate for production mapper/refactoring ROI changes; add new sealed scenarios as new refactoring classes become supported.
 
 ## Fixtures
 
 ### pricing-rule-locality
+
 - control findings: 0
 - treatment findings: 1
 - control semantic links: 0
@@ -62,6 +68,7 @@ semantic false-positive traps: 1
 - score delta: 180.0
 
 ### semantic-evidence-review
+
 - control findings: 0
 - treatment findings: 1
 - control semantic links: 0
@@ -89,6 +96,7 @@ semantic false-positive traps: 1
 - score delta: 180.0
 
 ### semantic-false-positive-trap
+
 - control findings: 0
 - treatment findings: 0
 - control semantic links: 0

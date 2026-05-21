@@ -108,59 +108,6 @@ describe("mapFeatures", () => {
     );
   });
 
-  it("can disable semantic evidence for control eval runs", async () => {
-    const root = await fixtureRoot("codenuke-map-semantic-evidence-off-");
-    await writeFixture(
-      root,
-      "src/invoice.ts",
-      "export function calculateInvoiceTotal(customerInvoiceLines: PaymentLine[]) { return customerInvoiceLines.length; }\n",
-    );
-    await writeFixture(
-      root,
-      "src/charge.ts",
-      "export function reconcileInvoiceCharges(customerInvoiceCharges: ChargeRecord[]) { return customerInvoiceCharges.length; }\n",
-    );
-    const project = await detectProject(root);
-    const seeds: FeatureSeed[] = [
-      {
-        title: "Invoice totals",
-        summary: "Calculates invoice totals.",
-        kind: "service",
-        source: "test-seed",
-        confidence: "high",
-        entryPath: "src/invoice.ts",
-        identityKey: "invoice",
-        symbol: null,
-        route: null,
-        command: null,
-        ownedFiles: [{ path: "src/invoice.ts", reason: "invoice service" }],
-        tags: ["invoice"],
-        trustBoundaries: [],
-        skipNearbyTests: true,
-      },
-      {
-        title: "Invoice charge reconciliation",
-        summary: "Reconciles invoice charges.",
-        kind: "service",
-        source: "test-seed",
-        confidence: "high",
-        entryPath: "src/charge.ts",
-        identityKey: "charge",
-        symbol: null,
-        route: null,
-        command: null,
-        ownedFiles: [{ path: "src/charge.ts", reason: "charge service" }],
-        tags: ["invoice"],
-        trustBoundaries: [],
-        skipNearbyTests: true,
-      },
-    ];
-
-    const result = await mapFeatureSeeds(root, project, [], seeds, { semanticEvidence: false });
-
-    expect(result.features.map((feature) => feature.semanticEvidence)).toEqual([[], []]);
-  });
-
   it("normalizes common identifier inflections for semantic evidence", async () => {
     const root = await fixtureRoot("codenuke-map-semantic-inflections-");
     await writeFixture(

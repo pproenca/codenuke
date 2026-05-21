@@ -1,11 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T08:17:05.670Z",
-  "startedAt": "2026-05-21T08:16:59.686Z",
+  "generatedAt": "2026-05-21T08:35:56.719Z",
+  "startedAt": "2026-05-21T08:35:50.738Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
-    "modelBacked": false,
     "provider": "mock"
   },
   "sealedEvaluator": {
@@ -83,7 +82,7 @@
   },
   "audit": {
     "provenBehavior": [
-      "The deterministic harness runs the same fixture with semantic evidence disabled and enabled.",
+      "The deterministic harness runs the same fixture with semantic evidence hidden from the control state and visible in the treatment state.",
       "The control run exposes no semantic-neighbor links and produces no finding.",
       "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
       "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
@@ -96,9 +95,7 @@
       "The run records hard constraint failures separately from quality metrics."
     ],
     "proxyEvidence": [],
-    "unprovenModelBackedRoi": [
-      "Live model-backed ROI remains out of scope for this deterministic command."
-    ],
+    "outOfScope": ["Live-provider ROI remains out of scope for this deterministic command."],
     "blockers": [],
     "nextInputs": [
       "Use this deterministic gate for production mapper/refactoring ROI changes; add new sealed scenarios as new refactoring classes become supported."
@@ -115,10 +112,7 @@
         "id": "constraint.member-discount-duplication",
         "type": "duplicated-domain-rule",
         "description": "Changing the member discount rule requires edits in checkout and subscription pricing slices.",
-        "evidencePaths": [
-          "src/checkout-pricing/price.ts",
-          "src/subscription-pricing/price.ts"
-        ],
+        "evidencePaths": ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
         "controlIdentified": false,
         "treatmentIdentified": true
       },
@@ -166,7 +160,7 @@
             "name": "pricing outputs stay equivalent",
             "command": "node behavior/check-pricing.mjs",
             "ok": true,
-            "durationMs": 73,
+            "durationMs": 71,
             "error": null
           }
         ],
@@ -174,10 +168,7 @@
           "name": "change member discount rate",
           "description": "A representative future change should update both checkout and subscription member discounts with fewer touch points after the shared policy exists.",
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-pricing/price.ts",
-            "src/subscription-pricing/price.ts"
-          ],
+          "changedFiles": ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
           "patchSizeLines": 2,
           "replacements": 2,
           "validation": [
@@ -185,17 +176,14 @@
               "name": "pricing outputs use updated member discount rate",
               "command": "node behavior/check-pricing.mjs",
               "ok": true,
-              "durationMs": 69,
+              "durationMs": 70,
               "error": null
             }
           ],
           "validationPassed": true,
           "cost": {
             "touchPoints": 2,
-            "changedFiles": [
-              "src/checkout-pricing/price.ts",
-              "src/subscription-pricing/price.ts"
-            ],
+            "changedFiles": ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
             "patchSizeLines": 2,
             "validationCommands": 1,
             "validationPassed": true
@@ -244,11 +232,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/subscription-pricing",
-                  "signals": [
-                    "pricing",
-                    "discount",
-                    "total"
-                  ]
+                  "signals": ["pricing", "discount", "total"]
                 }
               ]
             }
@@ -277,11 +261,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/subscription-pricing",
-                  "signals": [
-                    "pricing",
-                    "discount",
-                    "total"
-                  ]
+                  "signals": ["pricing", "discount", "total"]
                 }
               ]
             }
@@ -290,7 +270,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-f3368ca347-_459777323a",
+          "patchAttempt": "pat_fnd-sig-feat-library-f3368ca347-_fccff1add3",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-pricing/price.ts",
@@ -333,7 +313,7 @@
             "name": "pricing outputs stay equivalent",
             "command": "node behavior/check-pricing.mjs",
             "ok": true,
-            "durationMs": 70,
+            "durationMs": 71,
             "error": null
           }
         ],
@@ -341,9 +321,7 @@
           "name": "change member discount rate",
           "description": "A representative future change should update both checkout and subscription member discounts with fewer touch points after the shared policy exists.",
           "touchPoints": 1,
-          "changedFiles": [
-            "src/pricing-rules/member-discount.ts"
-          ],
+          "changedFiles": ["src/pricing-rules/member-discount.ts"],
           "patchSizeLines": 1,
           "replacements": 1,
           "validation": [
@@ -358,9 +336,7 @@
           "validationPassed": true,
           "cost": {
             "touchPoints": 1,
-            "changedFiles": [
-              "src/pricing-rules/member-discount.ts"
-            ],
+            "changedFiles": ["src/pricing-rules/member-discount.ts"],
             "patchSizeLines": 1,
             "validationCommands": 1,
             "validationPassed": true
@@ -383,10 +359,7 @@
           "currentCost": {
             "touchPoints": 2,
             "patchSizeLines": 2,
-            "changedFiles": [
-              "src/checkout-pricing/price.ts",
-              "src/subscription-pricing/price.ts"
-            ],
+            "changedFiles": ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
             "validationCommands": 1
           },
           "targetCost": {
@@ -403,19 +376,14 @@
         },
         "controlCost": {
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-pricing/price.ts",
-            "src/subscription-pricing/price.ts"
-          ],
+          "changedFiles": ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
           "patchSizeLines": 2,
           "validationCommands": 1,
           "validationPassed": true
         },
         "treatmentCost": {
           "touchPoints": 1,
-          "changedFiles": [
-            "src/pricing-rules/member-discount.ts"
-          ],
+          "changedFiles": ["src/pricing-rules/member-discount.ts"],
           "patchSizeLines": 1,
           "validationCommands": 1,
           "validationPassed": true
@@ -472,10 +440,7 @@
         "id": "constraint.format-money-duplication",
         "type": "duplicated-domain-rule",
         "description": "Changing formatter money display rules requires edits in checkout and invoice formatter slices.",
-        "evidencePaths": [
-          "src/checkout-format/format.ts",
-          "src/invoice-format/format.ts"
-        ],
+        "evidencePaths": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
         "controlIdentified": false,
         "treatmentIdentified": true
       },
@@ -531,10 +496,7 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-format/format.ts",
-            "src/invoice-format/format.ts"
-          ],
+          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
           "patchSizeLines": 2,
           "replacements": 2,
           "validation": [
@@ -542,17 +504,14 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 69,
+              "durationMs": 70,
               "error": null
             }
           ],
           "validationPassed": true,
           "cost": {
             "touchPoints": 2,
-            "changedFiles": [
-              "src/checkout-format/format.ts",
-              "src/invoice-format/format.ts"
-            ],
+            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
             "patchSizeLines": 2,
             "validationCommands": 1,
             "validationPassed": true
@@ -601,11 +560,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": [
-                    "format",
-                    "invoice",
-                    "summary"
-                  ]
+                  "signals": ["format", "invoice", "summary"]
                 }
               ]
             }
@@ -634,11 +589,7 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": [
-                    "format",
-                    "invoice",
-                    "summary"
-                  ]
+                  "signals": ["format", "invoice", "summary"]
                 }
               ]
             }
@@ -647,7 +598,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_7f5935e726",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_117789b13e",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-format/format.ts",
@@ -689,7 +640,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 71,
+            "durationMs": 73,
             "error": null
           }
         ],
@@ -697,9 +648,7 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 1,
-          "changedFiles": [
-            "src/money-format/format.ts"
-          ],
+          "changedFiles": ["src/money-format/format.ts"],
           "patchSizeLines": 1,
           "replacements": 1,
           "validation": [
@@ -707,16 +656,14 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 70,
+              "durationMs": 69,
               "error": null
             }
           ],
           "validationPassed": true,
           "cost": {
             "touchPoints": 1,
-            "changedFiles": [
-              "src/money-format/format.ts"
-            ],
+            "changedFiles": ["src/money-format/format.ts"],
             "patchSizeLines": 1,
             "validationCommands": 1,
             "validationPassed": true
@@ -739,10 +686,7 @@
           "currentCost": {
             "touchPoints": 2,
             "patchSizeLines": 2,
-            "changedFiles": [
-              "src/checkout-format/format.ts",
-              "src/invoice-format/format.ts"
-            ],
+            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
             "validationCommands": 1
           },
           "targetCost": {
@@ -759,19 +703,14 @@
         },
         "controlCost": {
           "touchPoints": 2,
-          "changedFiles": [
-            "src/checkout-format/format.ts",
-            "src/invoice-format/format.ts"
-          ],
+          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
           "patchSizeLines": 2,
           "validationCommands": 1,
           "validationPassed": true
         },
         "treatmentCost": {
           "touchPoints": 1,
-          "changedFiles": [
-            "src/money-format/format.ts"
-          ],
+          "changedFiles": ["src/money-format/format.ts"],
           "patchSizeLines": 1,
           "validationCommands": 1,
           "validationPassed": true

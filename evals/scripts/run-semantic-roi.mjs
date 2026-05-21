@@ -72,7 +72,6 @@ try {
     cli: "node dist/cli.js",
     mode: {
       deterministic: true,
-      modelBacked: false,
       provider: "mock",
     },
     sealedEvaluator: {
@@ -89,7 +88,7 @@ try {
     decision,
     audit: {
       provenBehavior: [
-        "The deterministic harness runs the same fixture with semantic evidence disabled and enabled.",
+        "The deterministic harness runs the same fixture with semantic evidence hidden from the control state and visible in the treatment state.",
         "The control run exposes no semantic-neighbor links and produces no finding.",
         "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
         "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
@@ -102,9 +101,7 @@ try {
         "The run records hard constraint failures separately from quality metrics.",
       ],
       proxyEvidence: [],
-      unprovenModelBackedRoi: [
-        "Live model-backed ROI remains out of scope for this deterministic command.",
-      ],
+      outOfScope: ["Live-provider ROI remains out of scope for this deterministic command."],
       blockers: decision.status === "keep" ? [] : decision.failures,
       nextInputs:
         decision.status === "keep"
@@ -274,45 +271,39 @@ function runRoiFixture(fixture) {
   };
 }
 
-function runObservation(fixture, label, semanticEvidence) {
+function runObservation(fixture, label, semanticEvidenceVisible) {
   const worktree = join(tmp, `${fixture.slug}-${label}`);
   cpSync(fixture.filesRoot, worktree, { recursive: true });
   const protectedFixtureBefore = protectedFixtureSnapshot(worktree, fixture);
   const provider = fixture.review.provider ?? "mock";
+  if (provider !== "mock") {
+    throw new Error(`semantic ROI fixtures must use the mock provider, got ${provider}`);
+  }
   const limit = String(fixture.review.limit ?? 1);
   if (fixture.fix.enabled === true) {
     initGitWorktree(worktree);
   }
-  runCli(worktree, ["init", "--force", "--json"], semanticEvidence);
-  const map = parseJson(runCli(worktree, ["map", "--json"], semanticEvidence));
+  runCli(worktree, ["init", "--force", "--json"]);
+  const map = parseJson(runCli(worktree, ["map", "--json"]));
+  if (!semanticEvidenceVisible) {
+    suppressSemanticEvidenceForControl(worktree);
+  }
   const features = readStateRecords(worktree, "features");
   const semanticEvidenceLinks = features.reduce(
     (total, feature) => total + (feature.semanticEvidence ?? []).length,
     0,
   );
   const review = parseJson(
-    runCli(
-      worktree,
-      ["review", "--provider", provider, "--limit", limit, "--json"],
-      semanticEvidence,
-    ),
+    runCli(worktree, ["review", "--provider", provider, "--limit", limit, "--json"]),
   );
-  const report = parseJson(
-    runCli(worktree, ["report", "--status", "open", "--json"], semanticEvidence),
-  );
-  const fix = runFixStep(worktree, provider, fixture, report, semanticEvidence);
+  const report = parseJson(runCli(worktree, ["report", "--status", "open", "--json"]));
+  const fix = runFixStep(worktree, provider, fixture, report);
   const protectedAfterFix = protectedFixtureSnapshot(worktree, fixture);
-  const revalidate = runRevalidateStep(
-    worktree,
-    provider,
-    fixture,
-    fix?.findingId ?? null,
-    semanticEvidence,
-  );
+  const revalidate = runRevalidateStep(worktree, provider, fixture, fix?.findingId ?? null);
   const finalReport =
     fix === null && revalidate === null
       ? report
-      : parseJson(runCli(worktree, ["report", "--json"], semanticEvidence));
+      : parseJson(runCli(worktree, ["report", "--json"]));
   const behaviorInvariants = runBehaviorInvariants(worktree, fixture.behaviorInvariants);
   const futureChangeProbe = runFutureChangeProbe(worktree, fixture.futureChangeProbe);
   const protectedAfterFutureChange = protectedFixtureSnapshot(worktree, fixture);
@@ -328,7 +319,7 @@ function runObservation(fixture, label, semanticEvidence) {
   );
   return {
     label,
-    semanticEvidence,
+    semanticEvidence: semanticEvidenceVisible,
     protectedFiles: {
       count: protectedFixtureBefore.size,
       afterFixMutations,
@@ -360,7 +351,7 @@ function runObservation(fixture, label, semanticEvidence) {
   };
 }
 
-function runFixStep(worktree, provider, fixture, report, semanticEvidence) {
+function runFixStep(worktree, provider, fixture, report) {
   if (fixture.fix.enabled !== true) {
     return null;
   }
@@ -370,19 +361,7 @@ function runFixStep(worktree, provider, fixture, report, semanticEvidence) {
   }
   try {
     const fixOutput = parseJson(
-      runCli(
-        worktree,
-        [
-          "fix",
-          "--provider",
-          provider,
-          "--finding",
-          finding.id,
-          ...modelArgs(fixture.fix),
-          "--json",
-        ],
-        semanticEvidence,
-      ),
+      runCli(worktree, ["fix", "--provider", provider, "--finding", finding.id, "--json"]),
     );
     return {
       findingId: finding.id,
@@ -410,25 +389,13 @@ function runFixStep(worktree, provider, fixture, report, semanticEvidence) {
   }
 }
 
-function runRevalidateStep(worktree, provider, fixture, findingId, semanticEvidence) {
+function runRevalidateStep(worktree, provider, fixture, findingId) {
   if (fixture.revalidate.enabled !== true || findingId === null) {
     return null;
   }
   try {
     const revalidateOutput = parseJson(
-      runCli(
-        worktree,
-        [
-          "revalidate",
-          "--provider",
-          provider,
-          "--finding",
-          findingId,
-          ...modelArgs(fixture.revalidate),
-          "--json",
-        ],
-        semanticEvidence,
-      ),
+      runCli(worktree, ["revalidate", "--provider", provider, "--finding", findingId, "--json"]),
     );
     return {
       findingId,
@@ -969,15 +936,6 @@ function initGitWorktree(root) {
   );
 }
 
-function modelArgs(config) {
-  return [
-    ...(typeof config?.model === "string" ? ["--model", config.model] : []),
-    ...(typeof config?.reasoningEffort === "string"
-      ? ["--reasoning-effort", config.reasoningEffort]
-      : []),
-  ];
-}
-
 function changedFilesList(value) {
   if (typeof value !== "string" || value === "none") {
     return [];
@@ -1315,7 +1273,7 @@ function relativeRepoPath(path) {
   return path.slice(repoRoot.length + 1).replace(/\\/gu, "/");
 }
 
-function runCli(root, args, semanticEvidence) {
+function runCli(root, args) {
   return execFileSync(process.execPath, [cli, "--root", root, ...args], {
     cwd: repoRoot,
     encoding: "utf8",
@@ -1323,11 +1281,28 @@ function runCli(root, args, semanticEvidence) {
       ...process.env,
       CODENUKE_PROVIDER: "mock",
       CODENUKE_CODEX_SKIP_GIT_REPO_CHECK: "1",
-      CODENUKE_SEMANTIC_EVIDENCE: semanticEvidence ? "1" : "0",
       NO_COLOR: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
+}
+
+function suppressSemanticEvidenceForControl(worktree) {
+  const dir = join(worktree, ".codenuke", "features");
+  if (!existsSync(dir)) {
+    return;
+  }
+  for (const file of readdirSync(dir)
+    .filter((entry) => entry.endsWith(".json"))
+    .toSorted()) {
+    const path = join(dir, file);
+    const feature = readJson(path);
+    if (!Array.isArray(feature.semanticEvidence) || feature.semanticEvidence.length === 0) {
+      continue;
+    }
+    feature.semanticEvidence = [];
+    writeFileSync(path, `${JSON.stringify(feature, null, 2)}\n`);
+  }
 }
 
 function readStateRecords(worktree, name) {
@@ -1433,8 +1408,8 @@ function semanticRoiMarkdown(output) {
       ? ["- none"]
       : output.audit.proxyEvidence.map((entry) => `- ${entry}`)),
     "",
-    "## Unproven Model-backed ROI",
-    ...output.audit.unprovenModelBackedRoi.map((entry) => `- ${entry}`),
+    "## Out Of Scope",
+    ...output.audit.outOfScope.map((entry) => `- ${entry}`),
     "",
     "## Blockers",
     ...(output.audit.blockers.length === 0

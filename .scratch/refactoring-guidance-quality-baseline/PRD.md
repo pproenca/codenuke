@@ -27,9 +27,9 @@ The user needs confidence that codenuke has not become a generic issue finder, a
 
 ## Solution
 
-Build a focused Agent Quality Baseline for refactoring guidance quality. The baseline will add representative deterministic fixtures, align the Refactoring Resource manifest with shape detection, adjust Guidance Selection ranking so concrete refactoring signals lead, and define a separate model-backed comparison workflow for GPT-5.5/Codex prompt tuning.
+Build a focused Agent Quality Baseline for refactoring guidance quality. The baseline will add representative deterministic fixtures, align the Refactoring Resource manifest with shape detection, and adjust Guidance Selection ranking so concrete refactoring signals lead.
 
-The implementation should treat evals as the product contract for the refactoring workflow. Deterministic evals should remain stable and CI-friendly. Model-backed evals should be opt-in and used to compare prompts, reasoning effort, and guidance library changes against clear expected outcomes.
+The implementation should treat `pnpm eval` as the product contract for the refactoring workflow. Evals should remain stable, deterministic, CI-friendly, and representative of clear expected outcomes.
 
 The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outcome, success criteria, allowed side effects, evidence rules, and output shape; keep stable prompt content first and dynamic repository context last; avoid detailed process instructions unless required; use structured outputs where available; and tune reasoning effort only against representative eval results.
 
@@ -58,10 +58,10 @@ The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outco
 21. As a codenuke maintainer, I want Codex/GPT-5.5 prompts to be outcome-first, so that the model optimizes for the product contract rather than following brittle step lists.
 22. As a codenuke maintainer, I want provider-specific prompt rendering, so that Codex can use structured output without redundant schema prose while providers that need prose still get it.
 23. As a codenuke maintainer, I want stable prompt sections before dynamic feature context, so that prompt caching can work better where supported.
-24. As a codenuke maintainer, I want model evals that compare reasoning effort, so that high or xhigh is used only when it measurably improves quality.
-25. As a codenuke maintainer, I want model evals that compare prompt variants, so that prompt changes are selected by evidence rather than taste.
+24. As a codenuke maintainer, I want reasoning effort changes judged by product evidence, so that high or xhigh is used only when it measurably improves quality.
+25. As a codenuke maintainer, I want prompt variants judged by deterministic fixtures first, so that prompt changes are selected by evidence rather than taste.
 26. As a codenuke maintainer, I want deterministic evals to remain fast, so that they can run locally and in package verification.
-27. As a codenuke maintainer, I want model-backed evals to be opt-in, so that normal development does not depend on external model availability.
+27. As a codenuke maintainer, I want local evals to avoid external model availability, so that normal development stays reliable.
 28. As a codenuke maintainer, I want eval results to report guidance quality separately from workflow health, so that failures point to the right layer.
 29. As a codenuke maintainer, I want eval results to summarize false positives and false negatives, so that prompt and selector changes can be compared consistently.
 30. As a codenuke maintainer, I want eval fixtures to be small but realistic, so that they are easy to review and still representative of real code.
@@ -70,7 +70,7 @@ The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outco
 33. As a codenuke maintainer, I want a clear distinction between Refactoring Signals and Refactoring Findings, so that smells do not become automatic findings.
 34. As a codenuke maintainer, I want clean fixtures to prove that signals are leads rather than proof, so that codenuke remains conservative.
 35. As a codenuke maintainer, I want documentation explaining what the baseline measures, so that contributors know when a prompt or resource change is acceptable.
-36. As a codenuke maintainer, I want documentation explaining what the baseline does not measure, so that deterministic evals are not mistaken for real model quality.
+36. As a codenuke maintainer, I want documentation explaining what the baseline does not measure, so that deterministic evals are not mistaken for live-provider quality.
 37. As a codenuke user, I want codenuke to suggest small behavior-preserving changes, so that I can trust the fix loop.
 38. As a codenuke user, I want findings to avoid broad product-risk language, so that the tool stays aligned with refactoring and simplification.
 39. As a codenuke user, I want test-gap recommendations to appear only when they support safe refactoring or are explicitly the selected finding, so that codenuke does not become a test coverage nag.
@@ -95,10 +95,9 @@ The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outco
 - Avoid generic bug-hunting language in review prompts and prompt tests. The review mission should be refactoring, simplification, and behavior-preserving maintainability improvement.
 - Use provider capability awareness for output schema handling. Codex/GPT-5.5 should rely on structured output where available; providers that need prompt-level schema prose may keep it.
 - Keep stable prompt content before dynamic feature/file context where the provider surface allows it, so that prompt caching has a stable prefix.
-- Keep default reasoning effort at medium for GPT-5.5/Codex. Only recommend high or xhigh when model-backed baseline comparisons show a measurable improvement.
-- Add an opt-in model-backed eval mode for GPT-5.5/Codex prompt comparisons. It should be separate from deterministic CI and package smoke checks.
-- Model-backed eval results should compare prompt variant, model, reasoning effort, selected resources, finding precision, finding recall against expected refactoring opportunities, and output validity.
-- Documentation should explain the baseline's purpose, how to add a fixture, how to interpret failures, and when to run deterministic versus model-backed evals.
+- Keep default reasoning effort at medium for GPT-5.5/Codex unless `pnpm eval` and a separate live-provider design justify changing it.
+- Do not add a second local eval mode for GPT-5.5/Codex prompt comparisons in this baseline.
+- Documentation should explain the baseline's purpose, how to add a fixture, how to interpret failures, and what `pnpm eval` does not prove.
 - Preserve existing CLI commands and durable schemas unless a schema addition is required for eval reporting. Any schema addition must remain backward-compatible.
 - Preserve the explicit fix/revalidate workflow. Review does not edit files, and fix remains finding-scoped.
 
@@ -114,7 +113,7 @@ The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outco
 - Add eval scoring tests with intentionally failing fixture snapshots so failure messages are readable enough for AFK agents.
 - Add documentation tests only if the repo already has a pattern for them; otherwise rely on focused docs review and package smoke checks.
 - Continue running the normal verification sequence for non-trivial changes: typecheck, lint, test, build, eval, and package smoke.
-- Keep model-backed evals out of mandatory CI unless the project later adds a stable credentialed environment and accepted variance policy.
+- Keep live-provider comparisons out of mandatory CI unless the project later adds a stable credentialed environment, accepted variance policy, and a separate design.
 
 ## Out of Scope
 
@@ -122,8 +121,8 @@ The GPT-5.5/Codex prompt contract should follow OpenAI guidance: state the outco
 - Broadening finding categories beyond the refactoring-focused review contract.
 - Rewriting the whole Refactoring Catalog.
 - Adding language-specific AST analyzers in this PRD.
-- Making model-backed evals mandatory in local development or CI.
-- Changing the public CLI command shape unless required for an opt-in model eval flag.
+- Adding a second local eval path for live-provider comparisons.
+- Changing the public CLI command shape for prompt experiments.
 - Changing package publishing behavior beyond ensuring eval and resource changes are represented in smoke checks.
 - Adding automatic commits, pushes, PR creation, or landing behavior to fix workflows.
 - Replacing the current deterministic mock provider.

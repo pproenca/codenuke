@@ -31,71 +31,23 @@ Run:
 pnpm eval
 ```
 
-Map-quality research uses a smaller Karpathy/autoresearch-style loop: build the
-local CLI, run `map` twice against an isolated state directory, score durable
-Feature Slice structure, and write a JSON baseline. This is the metric for
-mapper iterations before review/fix behavior is considered.
+`pnpm eval` is the only local eval gate. It builds the CLI, runs the
+deterministic fixture loop, writes `evals/results/latest.json`, writes
+`evals/results/guidance-coverage-matrix.json`, and then runs the semantic ROI
+gate. The ROI gate writes `evals/results/semantic-roi-latest.json`,
+`evals/results/semantic-roi-latest.md`, and an append-only ledger at
+`evals/results/semantic-roi-ledger.jsonl`.
 
-```bash
-pnpm eval:map
-```
-
-The result scores Feature Slice ID stability, idempotence, reviewable source
-coverage, safe ownership, bounded feature size, linked tests, and semantic
-evidence links. Override the output path with `CODENUKE_MAP_QUALITY_RESULTS` or
-`--results <path>` when running exploratory experiments. Semantic evidence is
-map-time `identifier-tfidf` neighbor evidence persisted on Feature Slices, not
-provider review output.
-
-When run against the repository root, `pnpm eval:map` also runs deterministic
-fixtures under `evals/map-quality/`. These fixtures declare expected semantic
-neighbors and forbidden false-neighbor pairs so mapper experiments can be kept
-or discarded against an auditable quality surface, following the
-Karpathy/autoresearch pattern of fixed metric plus bounded experiment surface.
-The JSON result includes a `decision.status` of `keep` or `discard`, based on
-Feature Slice stability, idempotence, safe ownership, and fixture pass/fail
-checks.
-Fixtures should include rejective cases, not only positive examples. For
-example, abbreviation fixtures should prove that `cfg` can match `config` while
-generic `context` or `environment` vocabulary does not create unrelated
-semantic-neighbor links. Implementation-noise fixtures should prove that
-repeated generic code-body words such as `read`, `key`, `cache`, `writer`, and
-`handler` do not outrank stronger path and Feature metadata vocabulary.
-
-For opt-in model-backed prompt comparisons, run:
-
-```bash
-pnpm eval:model
-```
-
-Model evals default to `codex`, `gpt-5.5`, and `medium` reasoning effort, write
-`evals/results/model-latest.json`, and use record-only expectations so they do
-not become mandatory CI gates. They also write
-`evals/results/model-comparison.json` and
-`evals/results/model-comparison.md` against `evals/results/latest.json`.
-Override with `CODENUKE_EVAL_PROVIDER`, `CODENUKE_EVAL_MODEL`,
-`CODENUKE_EVAL_REASONING_EFFORT`, `CODENUKE_EVAL_EXPECTATIONS`,
-`CODENUKE_EVAL_RESULTS`, and `CODENUKE_EVAL_BASELINE`. Interpret model evals by
-comparing prompt/model/reasoning settings, selected resources, reported
-findings, false positives on clean fixtures, missed representative Refactoring
-Signals, output validity, and patch/revalidation behavior. Keep deterministic
-`pnpm eval` as the package verification gate.
-
-The fixture loop is intentionally local and deterministic. Historical OSS
-benchmarks should build on this result format later rather than replacing it.
-
-Semantic ROI research uses a stricter scenario-based gate:
-
-```bash
-pnpm eval:semantic-roi
-```
-
-This command runs each ROI fixture twice, with semantic evidence disabled and
-enabled. Positive fixtures must declare a concrete future-change scenario,
-current cost, target cost, behavior invariants, expected transformation, fix,
-and revalidation. The gate then measures whether the treatment refactor keeps
-behavior green and makes the same future change cheaper by touch points,
-changed files, patch-size lines, and validation commands.
+Semantic ROI is scenario-based. Each ROI fixture runs a control observation and
+a treatment observation. Both observations use the same production `map`
+command; the harness strips semantic-neighbor links from the copied control
+state after mapping so the production mapper has one behavior while the eval can
+still measure evidence impact. Positive fixtures must declare a concrete
+future-change scenario, current cost, target cost, behavior invariants,
+expected transformation, fix, and revalidation. The gate then measures whether
+the treatment refactor keeps behavior green and makes the same future change
+cheaper by touch points, changed files, patch-size lines, and validation
+commands.
 
 The semantic ROI gate is production-ready only when it has at least two positive
 future-change fixtures, at least one semantic false-positive trap, all required
@@ -105,7 +57,3 @@ mutations. Protected evaluator files include behavior scripts, tests, package
 metadata, TypeScript config, and any fixture-declared protected paths. Fix and
 future-change probes may change source files, but they must not change the
 sealed evaluator.
-
-Use `eval:map` to decide whether map evidence improved structurally. Use
-`eval:semantic-roi` to decide whether that evidence makes a defined class of
-future change more local while preserving behavior.

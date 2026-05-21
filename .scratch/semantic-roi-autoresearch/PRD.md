@@ -4,7 +4,7 @@ Status: ready-for-agent
 
 ## Goal
 
-Implement a sealed Semantic ROI Autoresearch Harness that proves whether semantic map evidence improves codenuke review/fix quality. Completion is verified by a deterministic A/B eval command, provisionally named `pnpm eval:semantic-roi`, that runs the same sealed fixtures with semantic evidence disabled and enabled, rejects test/eval/scorer mutation, writes an experiment ledger with per-fixture metrics, aggregate delta, hard constraint failures, and a keep/discard decision, and passes the normal verification suite.
+Implement a sealed Semantic ROI Autoresearch Harness that proves whether semantic map evidence improves codenuke review/fix quality. Completion is verified by `pnpm eval`, which runs the same sealed fixtures with semantic evidence hidden from the copied control state and visible in the treatment state, rejects test/eval/scorer mutation, writes an experiment ledger with per-fixture metrics, aggregate delta, hard constraint failures, and a keep/discard decision, and passes the normal verification suite.
 
 Preserve the existing Trusted Refactoring Workflow safety model: review remains read-only, fix remains finding-scoped, normal fix may still add focused tests, and ROI proof runs must reject test, fixture, sealed-evaluator-behavior-check, scorer, generated-output, local-state, lockfile, and agent-skill mutation.
 
@@ -12,7 +12,7 @@ Use production mapping, semantic evidence, workflow, prompt, provider, eval-runn
 
 Between iterations, inspect the failed evidence layer first: evaluator integrity, semantic evidence mode switching, A/B isolation, review candidate quality, fix quality, Patch Boundary health, validation health, and ledger decision. If the harness cannot be made defensible without changing the sealed evaluator or weakening codenuke safety constraints, stop with attempted paths, evidence gathered, blocker, and the next decision needed.
 
-The implementation is done when `pnpm eval:semantic-roi` exists, writes a ledger record with control/treatment/delta/decision evidence, enforces hard constraints, produces a final audit report that separates proven behavior, proxy evidence, unproven model-backed ROI, and blockers, and the following verification passes: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm eval`, `pnpm eval:map`, and `pnpm eval:semantic-roi`.
+The implementation is done when `pnpm eval` writes a ledger record with control/treatment/delta/decision evidence, enforces hard constraints, produces a final audit report that separates proven behavior, proxy evidence, out-of-scope live-provider ROI, and blockers, and the following verification passes: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm eval`, and `pnpm pack:smoke`.
 
 ## Autoresearch Principle
 
@@ -94,8 +94,8 @@ Expected behavior:
 
 For maintainers improving codenuke itself, this change adds a new eval behavior:
 
-1. The maintainer runs `pnpm eval:semantic-roi`.
-2. The command runs sealed control/treatment comparisons with semantic evidence disabled and enabled.
+1. The maintainer runs `pnpm eval`.
+2. The command runs sealed control/treatment comparisons with semantic evidence hidden from the copied control state and visible in the treatment state.
 3. The command rejects evaluator/test/scorer mutation during measured ROI experiments.
 4. The command writes an experiment ledger with per-fixture metrics, aggregate delta, hard constraint failures, and keep/discard/crash/blocked decision.
 5. The command exits non-zero when treatment does not beat control or when any hard constraint fails.
@@ -141,23 +141,23 @@ The concern is that codenuke may have copied the surface shape of autoresearch w
 
 Build a sealed Semantic ROI Autoresearch Harness for codenuke's Trusted Refactoring Workflow.
 
-The harness will run controlled A/B experiments over the same fixtures, same provider, same model settings, and same Change Scope. The control run disables semantic map evidence. The treatment run enables semantic map evidence. The harness then scores whether semantic evidence improves review/fix quality without increasing false positives, Patch Boundary failures, validation failures, or test/evaluator mutation.
+The harness will run controlled A/B experiments over the same fixtures, same deterministic provider, and same Change Scope. The control run hides semantic map evidence from copied eval state after mapping. The treatment run keeps semantic map evidence visible. The harness then scores whether semantic evidence improves review/fix quality without increasing false positives, Patch Boundary failures, validation failures, or test/evaluator mutation.
 
 The evaluator must be sealed during experiments. Fixtures, fixture expectations, sealed evaluator behavior checks, scoring logic, comparison logic, and no-mutation policies are part of the fixed harness. The mutable research surface is limited to production code and prompt/resource surfaces that can plausibly improve semantic evidence, Guidance Selection, review prompting, fix prompting, or revalidation behavior.
 
 The harness should produce a durable experiment ledger with baseline, control, treatment, metrics, constraint failures, keep/discard decision, and short rationale. A change is kept only when treatment improves the agreed composite score and all safety constraints pass. A change is discarded when it improves one visible fixture by weakening evaluator integrity, changing tests, broadening patch scope, or increasing false positives.
 
-This PRD extends the existing map-quality autoresearch ADR. The map-quality loop proves semantic evidence can be produced stably. This PRD proves whether that evidence produces better review/fix outcomes.
+This PRD extends the unified semantic ROI eval ADR. The local gate proves semantic evidence can be produced stably and can improve measured review/fix outcomes through `pnpm eval`.
 
 ## User Stories
 
 1. As a codenuke maintainer, I want a sealed evaluator for semantic ROI, so that agentic experiments cannot improve the score by editing fixtures, tests, or scoring rules.
 2. As a codenuke maintainer, I want a clear mutable research surface, so that agents know which production modules they may change during semantic ROI experiments.
-3. As a codenuke maintainer, I want a control run with semantic evidence disabled, so that absolute model behavior is not mistaken for semantic algorithm impact.
-4. As a codenuke maintainer, I want a treatment run with semantic evidence enabled, so that I can measure the delta caused by map-time semantic evidence.
-5. As a codenuke maintainer, I want the same provider and model settings used for control and treatment, so that the comparison isolates semantic evidence as the variable.
+3. As a codenuke maintainer, I want a control run with semantic evidence hidden from copied eval state, so that absolute model behavior is not mistaken for semantic algorithm impact.
+4. As a codenuke maintainer, I want a treatment run with semantic evidence visible, so that I can measure the delta caused by map-time semantic evidence.
+5. As a codenuke maintainer, I want the same deterministic provider used for control and treatment, so that the comparison isolates semantic evidence as the variable.
 6. As a codenuke maintainer, I want deterministic fixtures for candidate discovery, so that the harness can fail quickly when semantic evidence no longer reaches review.
-7. As a codenuke maintainer, I want model-backed fixtures for candidate quality, so that ROI is measured against real provider judgment rather than mock-only behavior.
+7. As a codenuke maintainer, I want sealed fixtures for candidate quality, so that ROI is measured against the product contract rather than ad hoc judgment.
 8. As a codenuke maintainer, I want sealed evaluator behavior checks, so that fixes cannot pass by changing visible expectations only.
 9. As a codenuke maintainer, I want the harness to reject changed test files during ROI experiments, so that the agent cannot win by rewriting tests to match its patch.
 10. As a codenuke maintainer, I want the harness to reject changed eval fixtures, so that the agent cannot move the benchmark while claiming improvement.
@@ -178,32 +178,32 @@ This PRD extends the existing map-quality autoresearch ADR. The map-quality loop
 25. As a codenuke maintainer, I want Guidance Selection impact separated from semantic map impact, so that improvements can be attributed to the right subsystem.
 26. As a codenuke maintainer, I want review quality separated from fix quality, so that a semantic improvement in discovery is not hidden by a weak patching provider.
 27. As a codenuke maintainer, I want fix quality separated from revalidation quality, so that revalidation failures do not obscure whether the patch was actually good.
-28. As a codenuke maintainer, I want deterministic and model-backed metrics reported separately, so that CI-friendly checks are not confused with live model ROI.
+28. As a codenuke maintainer, I want metrics reported by layer, so that review, fix, revalidation, and future-change failures are not confused.
 29. As a codenuke maintainer, I want per-fixture deltas, so that a composite score can be debugged when one fixture improves and another regresses.
 30. As a codenuke maintainer, I want aggregate deltas, so that a semantic change can be judged by the whole benchmark rather than one cherry-picked fixture.
 31. As a codenuke maintainer, I want an experiment ledger, so that overnight or repeated runs leave an auditable trail of kept, discarded, and crashed experiments.
 32. As a codenuke maintainer, I want a baseline-first run, so that every experiment has an explicit starting point before changes are judged.
 33. As a codenuke maintainer, I want a mechanical keep/discard decision, so that agents cannot hand-wave an inconclusive result as progress.
 34. As a codenuke maintainer, I want a crash status, so that failed runs are logged without being confused with quality regressions.
-35. As a codenuke maintainer, I want a timeout policy for model-backed runs, so that an experiment cannot hang indefinitely.
-36. As a codenuke maintainer, I want a fixed provider/model/reasoning configuration in each comparison, so that model drift and parameter changes are visible.
-37. As a codenuke maintainer, I want model variance recorded, so that a single lucky model run is not overclaimed as durable ROI.
-38. As a codenuke maintainer, I want repeated model-backed samples to be optional, so that expensive provider comparisons can be run deliberately.
+35. As a codenuke maintainer, I want eval commands to fail promptly, so that an experiment cannot hang indefinitely.
+36. As a codenuke maintainer, I want fixed provider configuration in each comparison, so that semantic evidence remains the measured variable.
+37. As a codenuke maintainer, I want live-provider variance treated as out of scope for the local gate, so that a lucky provider run is not overclaimed as durable ROI.
+38. As a codenuke maintainer, I want future live-provider research to require a new explicit design, so that it does not become a second local eval path by accident.
 39. As a codenuke maintainer, I want local deterministic checks to remain fast, so that the sealed harness can still run during ordinary development.
 40. As a codenuke maintainer, I want ROI experiments to run in isolated worktrees or isolated state, so that .codenuke state and generated results do not pollute the user's repository.
 41. As a codenuke maintainer, I want generated result files kept out of winning commits unless explicitly requested, so that experiment artifacts do not churn the repo.
 42. As a codenuke maintainer, I want the harness to preserve dirty-worktree safeguards, so that autoresearch-style experiments do not silently overwrite user work.
 43. As a codenuke maintainer, I want experiment branches or checkpoints to be explicit, so that keep/discard does not run destructive git operations on unrelated user changes.
 44. As a codenuke maintainer, I want an experiment to fail if it edits package lockfiles, generated output, local state, or agent skills, so that ROI proof stays focused on product code.
-45. As a codenuke maintainer, I want the semantic evidence switch to be explicit, so that control and treatment runs are easy to inspect and reproduce.
-46. As a codenuke maintainer, I want semantic evidence disabled without deleting mapper code, so that the control path uses the same mapper except for evidence injection.
-47. As a codenuke maintainer, I want review prompts to record whether semantic evidence was enabled, so that stored runs can be interpreted later.
+45. As a codenuke maintainer, I want the semantic evidence control method to be explicit, so that control and treatment runs are easy to inspect and reproduce.
+46. As a codenuke maintainer, I want semantic evidence hidden in the eval control state without adding a production mapper switch, so that the control path still starts from the same mapper output.
+47. As a codenuke maintainer, I want review prompts to record whether semantic evidence was visible, so that stored runs can be interpreted later.
 48. As a codenuke maintainer, I want fix and revalidation prompts to carry the same map evidence trace when applicable, so that downstream stages can use the evidence consistently.
 49. As a codenuke maintainer, I want failure messages to identify the failed layer, so that an AFK agent can distinguish evaluator mutation, mapping regression, review miss, fix failure, or revalidation failure.
 50. As an AFK agent, I want the PRD to name deep modules and stable interfaces, so that I can implement this without rediscovering the architecture.
 51. As an AFK agent, I want tests for no-mutation guards, so that I do not accidentally create a harness that can be gamed.
 52. As an AFK agent, I want tests for A/B scoring, so that the treatment only wins when it beats the control under the agreed metrics.
-53. As an AFK agent, I want tests for semantic evidence disabling, so that the control condition is real and not just another treatment run.
+53. As an AFK agent, I want tests for semantic evidence hiding in copied control state, so that the control condition is real and not just another treatment run.
 54. As an AFK agent, I want tests for result ledger decisions, so that keep, discard, crash, and blocked statuses are stable external behavior.
 55. As an AFK agent, I want docs for adding new ROI fixtures, so that future benchmark expansion preserves evaluator integrity.
 56. As an AFK agent, I want docs that explain why normal fix may change tests but ROI proof may not, so that contributors do not collapse the two policies.
@@ -217,12 +217,11 @@ This PRD extends the existing map-quality autoresearch ADR. The map-quality loop
 - Do not include fixture files, fixture expectations, sealed evaluator behavior checks, scoring logic, comparison logic, local issue tracker files, generated results, package lockfiles, local state, generated build output, or agent skills in the mutable research surface.
 - Add a deep module for evaluator integrity. Its interface should accept a root, a sealed evaluator definition, and a before/after snapshot, then return mutation violations with paths, categories, and reasons.
 - Add a deep module for semantic ROI comparison. Its interface should accept control observations and treatment observations, then return per-fixture scores, aggregate scores, deltas, constraint failures, and a keep/discard/crash decision.
-- Add a deep module for semantic evidence mode. Its interface should make semantic evidence explicitly enabled or disabled during map/review/fix/revalidation runs without requiring fixture rewrites.
+- Keep semantic evidence as default production mapper behavior. The harness may hide it only by rewriting copied eval state after `map`.
 - Add a deep module for experiment execution. Its interface should run baseline, control, and treatment in isolated workspaces or isolated state directories and return structured observations without leaking local state into the user's repo.
 - Add a deep module for result ledger writing. Its interface should append untracked experiment results with commit/checkpoint identity, provider configuration, metric values, status, and description.
-- Keep deterministic and model-backed ROI modes separate. Deterministic mode proves contracts and mutation guards. Model-backed mode proves live-provider quality deltas.
-- The deterministic mode should be suitable for local verification and package smoke checks. It should not depend on provider credentials.
-- The model-backed mode should be opt-in and should record provider, model, reasoning effort, run count, timeout, and raw result references.
+- Keep one local ROI gate. It proves contracts and mutation guards without provider credentials.
+- Live-provider ROI is out of scope until it has a new design that does not add a second local eval path.
 - The first ROI metric should be a composite score over candidate recall at review scope, false positives, map evidence trace correctness, fix success, Patch Boundary health, validation health, changed-file count, and patch size.
 - The composite score should also carry hard constraints. Evaluator mutation, test mutation, unexpected Patch Boundary changes, validation failures, malformed provider output, or dirty-worktree violations can force discard even when some quality metric improves.
 - The keep/discard policy should be mechanical. Keep only if treatment improves the composite score over control and all hard constraints pass. Discard if treatment regresses, is equal with greater complexity, or trips a hard constraint. Keep equal quality only when implementation complexity is meaningfully reduced without weakening constraints.
@@ -234,40 +233,36 @@ This PRD extends the existing map-quality autoresearch ADR. The map-quality loop
 - Store whether semantic evidence was enabled on observed runs or result records, so later analysis can distinguish control and treatment.
 - Extend report/eval output only with backward-compatible fields.
 - Keep the semantic ROI fixture set small at first, but include at least one sibling duplicate/refactoring-scope fixture, one semantic false-positive trap, one fix-scope fixture, and one revalidation sibling-risk fixture.
-- The first model-backed ROI fixture set should include examples where semantic evidence should help, examples where it should be ignored, and examples where it should narrow scope rather than broaden it.
+- Future live-provider research should include examples where semantic evidence should help, examples where it should be ignored, and examples where it should narrow scope rather than broaden it.
 - The harness should produce readable failure messages that identify the failed concept using domain language: Feature Slice, Refactoring Signal, Refactoring Finding, Guidance Selection, Guidance Trace, Patch Boundary, Guidance Application, and Agent Quality Baseline.
-- Documentation should explain how this PRD relates to the guidance-backed workflow PRD and map-quality autoresearch ADR. The prior work remains valid; this PRD adds the proof layer for review/fix ROI.
+- Documentation should explain how this PRD relates to the guidance-backed workflow PRD and unified semantic ROI eval ADR.
 
 ## Testing Decisions
 
-- Good tests should assert external behavior and sealed contracts, not private helper details. The important behaviors are evaluator immutability, A/B isolation, semantic evidence mode switching, score calculation, hard-constraint enforcement, and durable result reporting.
+- Good tests should assert external behavior and sealed contracts, not private helper details. The important behaviors are evaluator immutability, A/B isolation, semantic evidence hiding in copied control state, score calculation, hard-constraint enforcement, and durable result reporting.
 - Test the evaluator integrity module with representative mutations: fixture source change, fixture expected finding change, sealed evaluator behavior check change, scoring code change, generated result change, local state change, package lockfile change, and unrelated production change.
 - Test that evaluator mutations are rejected even if the file contents are restored after a run but the snapshot detects a changed checksum during the experiment.
 - Test the no-test-mutation rule with changed production code plus changed tests. The ROI harness should reject this even though normal codenuke fix may allow focused test changes.
 - Test that production-only changes inside the declared mutable research surface are allowed by the integrity guard.
-- Test semantic evidence mode switching by running the same fixture with evidence disabled and enabled, verifying the control observation does not expose semantic-neighbor evidence while the treatment observation does.
+- Test semantic evidence control handling by running the same fixture twice, stripping evidence from copied control state, and verifying the control observation does not expose semantic-neighbor evidence while the treatment observation does.
 - Test the ROI comparison module with control/treatment fixtures where treatment improves, regresses, ties with lower complexity, ties with higher complexity, trips a hard constraint, and crashes.
 - Test that candidate recall and false positive scoring are independent. A treatment that finds more candidates but also emits unrelated Refactoring Findings should not automatically win.
 - Test map evidence trace scoring. A finding should get credit only when the trace points to the expected semantic neighbor and includes expected signals.
 - Test fix scoring against sealed behavior checks. A patch should not receive fix-success credit only because visible tests pass.
 - Test Patch Boundary scoring. A treatment that edits outside the allowed finding scope should fail the hard constraint even if the output is otherwise plausible.
 - Test result ledger writing. It should append records with provider configuration, semantic evidence mode, score summary, decision, status, and short description without requiring generated result files to be committed.
-- Test dry-run or preview output for the harness so agents can inspect what would run before spending model-backed eval budget.
-- Test error messages for missing provider configuration in model-backed mode. Missing credentials should produce blocked, not a misleading discard.
-- Test timeout handling in model-backed mode with a controlled command or provider stub.
 - Test fixture authoring docs by adding at least one new fixture through the documented shape during implementation.
-- Reuse existing eval runner tests, workflow tests, reporting tests, provider tests, patch boundary tests, and map-quality eval patterns as prior art.
-- Run the normal broad verification sequence before handoff: typecheck, lint, test, build, deterministic eval, map-quality eval, and package smoke when the package surface changes.
-- Model-backed ROI evals should not become mandatory CI until the project has an accepted variance policy and stable provider credentials.
+- Reuse existing eval runner tests, workflow tests, reporting tests, provider tests, and patch boundary tests as prior art.
+- Run the normal broad verification sequence before handoff: typecheck, lint, test, build, eval, and package smoke when the package surface changes.
 
 ## Out of Scope
 
 - Proving that every future semantic algorithm is valuable.
-- Replacing the existing map-quality autoresearch loop.
+- Reintroducing a standalone map-quality loop.
 - Replacing the guidance-backed workflow PRD.
 - Turning codenuke into a general bug finder, security scanner, or product-risk reviewer.
 - Letting ROI experiments weaken the normal review, fix, revalidation, dirty-worktree, or Patch Boundary safety model.
-- Making model-backed ROI evals mandatory for every local development run.
+- Reintroducing live-provider ROI evals without a separate design.
 - Allowing the experiment loop to edit eval fixtures, sealed evaluator behavior checks, expected outputs, scoring logic, generated build output, local state, package lockfiles, or agent skills.
 - Adding automatic production commits, pushes, PR creation, or landing behavior.
 - Requiring normal user-facing fix to stop adding tests. The no-test-mutation policy applies to sealed ROI proof runs, not ordinary Trusted Refactoring Workflow use.

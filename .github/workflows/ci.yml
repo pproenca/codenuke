@@ -27,4 +27,5 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm eval
       - run: pnpm pack:smoke
