@@ -2,25 +2,26 @@ import { join } from "node:path";
 import { pathExists } from "../platform/fs.js";
 import { FeatureSeed } from "./types.js";
 
+export const configSeedFiles = [
+  "package.json",
+  "tsconfig.json",
+  "turbo.json",
+  "oxlint.json",
+  "vitest.config.ts",
+  "go.mod",
+  "Cargo.toml",
+  "Cargo.lock",
+  "rust-toolchain.toml",
+  "Package.swift",
+  "composer.json",
+  "composer.lock",
+  "phpunit.xml",
+  "Makefile",
+] as const;
+
 export async function configSeeds(root: string): Promise<FeatureSeed[]> {
-  const candidates = [
-    "package.json",
-    "tsconfig.json",
-    "turbo.json",
-    "oxlint.json",
-    "vitest.config.ts",
-    "go.mod",
-    "Cargo.toml",
-    "Cargo.lock",
-    "rust-toolchain.toml",
-    "Package.swift",
-    "composer.json",
-    "composer.lock",
-    "phpunit.xml",
-    "Makefile",
-  ];
   const seeds: FeatureSeed[] = [];
-  for (const file of candidates) {
+  for (const file of configSeedFiles) {
     if (await pathExists(join(root, file))) {
       seeds.push({
         title: `Project config ${file}`,

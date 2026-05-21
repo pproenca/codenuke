@@ -227,8 +227,21 @@ describe("providerJsonSchema", () => {
         "minimum",
         "maximum",
         "multipleOf",
+        "default",
       ]),
     );
+  });
+
+  it("normalizes object schemas for Codex strict structured output", () => {
+    const schemas = [agentMapJsonSchema, reviewJsonSchema, fixPlanJsonSchema, revalidateJsonSchema];
+
+    for (const schema of schemas) {
+      for (const objectSchema of objectSchemas(schema)) {
+        const properties = Object.keys(objectSchema.properties);
+        expect(objectSchema.additionalProperties).toBe(false);
+        expect(objectSchema.required).toEqual(properties);
+      }
+    }
   });
 
   it("keeps provider review categories focused on refactoring", () => {
@@ -361,6 +374,37 @@ function schemaKeys(value: unknown): string[] {
     return [];
   }
   return Object.entries(value).flatMap(([key, item]) => [key, ...schemaKeys(item)]);
+}
+
+function objectSchemas(value: unknown): Array<{
+  properties: Record<string, unknown>;
+  required: unknown;
+  additionalProperties: unknown;
+}> {
+  if (Array.isArray(value)) {
+    return value.flatMap(objectSchemas);
+  }
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  const output: Array<{
+    properties: Record<string, unknown>;
+    required: unknown;
+    additionalProperties: unknown;
+  }> = [];
+  const record = value as Record<string, unknown>;
+  if (isRecord(record["properties"])) {
+    output.push({
+      properties: record["properties"],
+      required: record["required"],
+      additionalProperties: record["additionalProperties"],
+    });
+  }
+  return output.concat(Object.values(record).flatMap(objectSchemas));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 describe("parseAcpxAgent", () => {

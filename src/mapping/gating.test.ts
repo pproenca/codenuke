@@ -21,4 +21,22 @@ describe("mapper gating", () => {
 
     expect(started).toEqual(["node", "config"]);
   });
+
+  it("uses the shared config seed list for config mapper gating", async () => {
+    const root = await fixtureRoot("codenuke-map-gated-config-");
+    await writeFixture(root, "oxlint.json", "{}\n");
+
+    const project = await detectProject(root);
+    const started: string[] = [];
+    const result = await mapFeatures(root, project, [], {
+      onProgress: (event) => {
+        if (event.event === "mapper-start") {
+          started.push(event.mapper);
+        }
+      },
+    });
+
+    expect(started).toEqual(["config"]);
+    expect(result.features.map((feature) => feature.title)).toEqual(["Project config oxlint.json"]);
+  });
 });

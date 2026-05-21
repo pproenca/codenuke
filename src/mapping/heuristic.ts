@@ -2,7 +2,7 @@ import { nowIso } from "../platform/fs.js";
 import { stableFeatureJson } from "../workflow/feature-equivalence.js";
 import { stableId } from "../platform/id.js";
 import { cCppSeeds } from "../mappers/c-cpp.js";
-import { configSeeds } from "../mappers/config.js";
+import { configSeedFiles, configSeeds } from "../mappers/config.js";
 import { goSeeds } from "../mappers/go.js";
 import { appleSeeds } from "../mappers/apple.js";
 import { gradleSeeds } from "../mappers/gradle.js";
@@ -63,23 +63,6 @@ export type MapFeatureSeedOptions = {
 type GatedFeatureMapper = FeatureMapper & {
   shouldRun?: (context: MapperContext) => boolean;
 };
-
-const configSeedFiles = [
-  "package.json",
-  "tsconfig.json",
-  "turbo.json",
-  "oxlint.json",
-  "vitest.config.ts",
-  "go.mod",
-  "Cargo.toml",
-  "Cargo.lock",
-  "rust-toolchain.toml",
-  "Package.swift",
-  "composer.json",
-  "composer.lock",
-  "phpunit.xml",
-  "Makefile",
-] as const;
 
 const featureMappers: GatedFeatureMapper[] = [
   { name: "node", map: nodeSeeds, shouldRun: hasNodeSignal },
