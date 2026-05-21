@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T08:35:56.719Z",
-  "startedAt": "2026-05-21T08:35:50.738Z",
+  "generatedAt": "2026-05-21T09:18:42.133Z",
+  "startedAt": "2026-05-21T09:18:35.864Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -160,7 +160,7 @@
             "name": "pricing outputs stay equivalent",
             "command": "node behavior/check-pricing.mjs",
             "ok": true,
-            "durationMs": 71,
+            "durationMs": 74,
             "error": null
           }
         ],
@@ -176,7 +176,7 @@
               "name": "pricing outputs use updated member discount rate",
               "command": "node behavior/check-pricing.mjs",
               "ok": true,
-              "durationMs": 70,
+              "durationMs": 72,
               "error": null
             }
           ],
@@ -270,7 +270,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-f3368ca347-_fccff1add3",
+          "patchAttempt": "pat_fnd-sig-feat-library-f3368ca347-_bd39dcf274",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-pricing/price.ts",
@@ -313,7 +313,7 @@
             "name": "pricing outputs stay equivalent",
             "command": "node behavior/check-pricing.mjs",
             "ok": true,
-            "durationMs": 71,
+            "durationMs": 72,
             "error": null
           }
         ],
@@ -329,7 +329,7 @@
               "name": "pricing outputs use updated member discount rate",
               "command": "node behavior/check-pricing.mjs",
               "ok": true,
-              "durationMs": 72,
+              "durationMs": 73,
               "error": null
             }
           ],
@@ -504,7 +504,7 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 70,
+              "durationMs": 79,
               "error": null
             }
           ],
@@ -598,7 +598,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_117789b13e",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_0f336c13fd",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-format/format.ts",
@@ -640,7 +640,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 73,
+            "durationMs": 72,
             "error": null
           }
         ],
@@ -656,7 +656,7 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 69,
+              "durationMs": 71,
               "error": null
             }
           ],

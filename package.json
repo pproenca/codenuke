@@ -1,6 +1,6 @@
 {
   "name": "codenuke",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Automated code review for reliable, trusted refactoring.",
   "license": "MIT",
   "bin": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T08:35:50.667Z",
-  "startedAt": "2026-05-21T08:35:42.850Z",
+  "generatedAt": "2026-05-21T09:18:35.791Z",
+  "startedAt": "2026-05-21T09:18:27.676Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -19,7 +19,7 @@
   },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-21T08:35:50.667Z",
+    "generatedAt": "2026-05-21T09:18:35.791Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -46,7 +46,7 @@
           {
             "fixture": "mock-refactor",
             "action": "applied",
-            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8"
+            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_aa9fd16e43"
           }
         ],
         "reservedBy": [],
@@ -298,7 +298,7 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 537,
+      "durationMs": 551,
       "provider": "mock",
       "map": {
         "features": 6,
@@ -380,7 +380,7 @@
       "name": "Guidance comments fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 543,
+      "durationMs": 548,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -475,7 +475,7 @@
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 539,
+      "durationMs": 570,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -578,7 +578,7 @@
       "name": "Guidance duplicate-code fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 542,
+      "durationMs": 576,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -673,7 +673,7 @@
       "name": "Guidance long-method fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 543,
+      "durationMs": 562,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -771,7 +771,7 @@
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 540,
+      "durationMs": 560,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -869,7 +869,7 @@
       "name": "Guidance message-chain fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 536,
+      "durationMs": 550,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -961,7 +961,7 @@
       "name": "Guidance middle-man fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 543,
+      "durationMs": 559,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1064,7 +1064,7 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 533,
+      "durationMs": 561,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1146,7 +1146,7 @@
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 541,
+      "durationMs": 549,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1228,7 +1228,7 @@
       "name": "Mock refactoring marker",
       "ok": true,
       "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 1212,
+      "durationMs": 1309,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1286,7 +1286,7 @@
       "fix": {
         "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
         "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_aa9fd16e43",
         "filesChanged": 0,
         "changedFiles": "none",
         "commands": 0,
@@ -1332,7 +1332,7 @@
           "notUsedResources": 0,
           "resourceActions": [
             {
-              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_75e79d84e8",
+              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_aa9fd16e43",
               "findingId": null,
               "resourceId": "catalog.dispensables.duplicate-code",
               "action": "applied"
@@ -1373,7 +1373,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 586,
+      "durationMs": 562,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1493,7 +1493,7 @@
       "name": "Semantic evidence review candidate",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 587,
+      "durationMs": 619,
       "provider": "mock",
       "map": {
         "features": 16,
