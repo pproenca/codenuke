@@ -54,7 +54,32 @@ not call a provider. It scores:
 - checked-in semantic-neighbor fixtures with expected links and forbidden links
 - an explicit keep/discard decision for the run
 
-This is not the final semantic mapper. It is the scoreboard for improving one.
+Map quality is necessary but not sufficient evidence of refactoring value. A
+better map only proves that codenuke understood more of the codebase; it does
+not prove that future change became easier.
+
+The complementary production gate is `pnpm eval:semantic-roi`. It treats
+"future change is easier" as a scenario measurement:
+
+- define the future-change class
+- record today's expected cost
+- record the target cost after the refactor
+- seal behavior invariants and evaluator files
+- run control and treatment with semantic evidence disabled/enabled
+- require fix and revalidation for positive ROI fixtures
+- measure touch points, changed files, patch-size lines, and validation commands
+- keep the run only when treatment improves the scenario without hard
+  constraint failures
+
+The semantic ROI gate is production-ready only with multiple positive scenarios,
+a semantic false-positive trap, required cost dimensions, no protected evaluator
+mutation, and no hard constraint failures. Protected evaluator files include
+behavior scripts, tests, package metadata, TypeScript config, and any
+fixture-declared protected paths.
+
+This is not the final semantic mapper. It is the scoreboard for improving one,
+with semantic ROI acting as the stricter evidence that map improvements relax a
+real refactoring constraint.
 Future linguistic, semantic, graph, clone, and co-change algorithms should feed
 map-time evidence that review, fix, and revalidation can consume from durable
 Feature Slice records or adjacent map records. Review-time Ludicrous candidates

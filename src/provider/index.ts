@@ -269,6 +269,79 @@ const mockProvider: Provider = {
     };
   },
   async review(_root: string, prompt: string): Promise<ReviewOutput> {
+    if (prompt.includes("TODO_PRICING_RULE_REFACTOR")) {
+      if (!prompt.includes("Map semantic evidence:\n[")) {
+        return {
+          findings: [],
+          inspected: {
+            files: ["src/checkout-pricing/price.ts"],
+            symbols: [],
+            notes: ["mock pricing semantic evidence missing"],
+          },
+        };
+      }
+      return {
+        findings: [
+          {
+            title: "Shared member discount policy can be extracted",
+            category: "maintainability",
+            severity: "low",
+            confidence: "high",
+            evidence: [
+              {
+                path: "src/checkout-pricing/price.ts",
+                startLine: null,
+                endLine: null,
+                symbol: "calculateCheckoutTotal",
+                quote: "TODO_PRICING_RULE_REFACTOR",
+              },
+            ],
+            reasoning:
+              "Mock provider found duplicated member-discount pricing policy only after map semantic evidence linked the checkout and subscription pricing slices.",
+            reproduction: null,
+            recommendation:
+              "Extract the shared member-discount rule so changing the rate has one implementation home.",
+            whyTestsDoNotAlreadyCoverThis:
+              "The deterministic fixture covers behavior but does not make the duplicated policy local.",
+            suggestedRegressionTest:
+              "Keep checkout and subscription pricing behavior checks green while extracting the shared policy.",
+            minimumFixScope:
+              "Refactor only checkout pricing, subscription pricing, and the shared pricing rule.",
+            candidateTrace: mockCandidateTrace(prompt),
+            mapEvidenceTrace: [
+              {
+                kind: "semantic-neighbor",
+                source: "identifier-tfidf",
+                targetFeatureId: "mock_pricing_semantic_neighbor",
+                targetTitle: "Node source src/subscription-pricing",
+                score: 0.67,
+                signals: ["pricing", "discount", "total"],
+                reason:
+                  "Identifier vocabulary links checkout pricing to subscription pricing around member discount totals.",
+                use: "Review both pricing slices before choosing a policy extraction boundary.",
+              },
+            ],
+            guidance: {
+              applied: [
+                {
+                  resourceId: "catalog.dispensables.duplicate-code",
+                  title: "Duplicate Code",
+                  kind: "signal",
+                  role: "supporting",
+                  reason: "Semantic map evidence points to a sibling pricing policy.",
+                  use: "Extract only the duplicated pricing rule, not unrelated pricing decisions.",
+                },
+              ],
+            },
+          },
+        ],
+        inspected: {
+          files: ["src/checkout-pricing/price.ts", "src/subscription-pricing/price.ts"],
+          symbols: ["calculateCheckoutTotal", "calculateSubscriptionTotal"],
+          notes: ["mock pricing semantic evidence finding"],
+        },
+      };
+    }
     if (prompt.includes("TODO_SEMANTIC_REFACTOR")) {
       if (!prompt.includes("Map semantic evidence:\n[")) {
         return {
@@ -429,6 +502,32 @@ const mockProvider: Provider = {
     };
   },
   async fix(root: string, prompt: string): Promise<FixPlanOutput> {
+    if (prompt.includes("TODO_PRICING_RULE_REFACTOR")) {
+      await writePricingRuleRefactor(root);
+      return {
+        summary: "mock pricing policy refactor",
+        findingIds: [],
+        plannedFiles: [
+          "src/checkout-pricing/price.ts",
+          "src/subscription-pricing/price.ts",
+          "src/pricing-rules/member-discount.ts",
+        ],
+        risk: "low",
+        steps: ["extract shared member discount policy", "reuse it from pricing slices"],
+        guidanceApplication: {
+          appliedResources: [
+            {
+              resourceId: "catalog.dispensables.duplicate-code",
+              action: "applied",
+              reasoning: "Mock provider unified the duplicated member discount pricing rule.",
+            },
+          ],
+          deviations: [],
+          risk: "low",
+        },
+        validationCommands: [],
+      };
+    }
     if (prompt.includes("TODO_SEMANTIC_REFACTOR")) {
       await writeSemanticFormatterRefactor(root);
       return {
@@ -480,6 +579,33 @@ const mockProvider: Provider = {
     };
   },
   async revalidate(root: string, prompt: string): Promise<RevalidateOutput> {
+    if (prompt.includes("TODO_PRICING_RULE_REFACTOR") && prompt.includes("mapEvidenceTrace")) {
+      const [checkout, subscription, shared] = await Promise.all([
+        readFile(join(root, "src/checkout-pricing/price.ts"), "utf8").catch(() => ""),
+        readFile(join(root, "src/subscription-pricing/price.ts"), "utf8").catch(() => ""),
+        readFile(join(root, "src/pricing-rules/member-discount.ts"), "utf8").catch(() => ""),
+      ]);
+      const fixed =
+        !checkout.includes("TODO_PRICING_RULE_REFACTOR") &&
+        checkout.includes("../pricing-rules/member-discount.js") &&
+        subscription.includes("../pricing-rules/member-discount.js") &&
+        shared.includes("memberDiscountCents");
+      return {
+        outcome: fixed ? "fixed" : "open",
+        reasoning: fixed
+          ? "mock pricing refactor moved the member discount rule to a shared policy module"
+          : "mock pricing evidence still shows duplicated or unresolved member discount policy",
+        guidanceAssessment: {
+          followed: fixed ? "yes" : "partially",
+          reasoning: fixed
+            ? "The duplicate-code guidance was followed without broadening beyond the traced pricing slices."
+            : "The semantic sibling pricing risk remains unresolved.",
+          deviations: [],
+          acceptable: true,
+        },
+        commands: ["mock pricing revalidation"],
+      };
+    }
     if (prompt.includes("TODO_SEMANTIC_REFACTOR") && prompt.includes("mapEvidenceTrace")) {
       const [checkout, invoice, shared] = await Promise.all([
         readFile(join(root, "src/checkout-format/format.ts"), "utf8").catch(() => ""),
@@ -611,6 +737,45 @@ async function writeSemanticFormatterRefactor(root: string): Promise<void> {
       "    summary.customerName,",
       "    formatMoney(totalCents),",
       '  ].join(" | ");',
+      "}",
+      "",
+    ].join("\n"),
+  );
+}
+
+async function writePricingRuleRefactor(root: string): Promise<void> {
+  await mkdir(join(root, "src/pricing-rules"), { recursive: true });
+  await writeFile(
+    join(root, "src/pricing-rules/member-discount.ts"),
+    [
+      "export function memberDiscountCents(input): number {",
+      "  const discountCents = input.isMember ? Math.floor(input.subtotalCents * 0.1) : 0;",
+      "  return discountCents;",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    join(root, "src/subscription-pricing/price.ts"),
+    [
+      'import { memberDiscountCents } from "../pricing-rules/member-discount.js";',
+      "",
+      "export function calculateSubscriptionTotal(input): number {",
+      "  const cycleDiscountCents =",
+      '    input.billingCycle === "annual" ? Math.floor(input.subtotalCents * 0.05) : 0;',
+      "  return Math.max(0, input.subtotalCents - memberDiscountCents(input) - cycleDiscountCents);",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    join(root, "src/checkout-pricing/price.ts"),
+    [
+      'import { memberDiscountCents } from "../pricing-rules/member-discount.js";',
+      "",
+      "export function calculateCheckoutTotal(input): number {",
+      '  const couponDiscountCents = input.couponCode === "WELCOME" ? 500 : 0;',
+      "  return Math.max(0, input.subtotalCents - memberDiscountCents(input) - couponDiscountCents);",
       "}",
       "",
     ].join("\n"),

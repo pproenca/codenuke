@@ -83,3 +83,29 @@ Signals, output validity, and patch/revalidation behavior. Keep deterministic
 
 The fixture loop is intentionally local and deterministic. Historical OSS
 benchmarks should build on this result format later rather than replacing it.
+
+Semantic ROI research uses a stricter scenario-based gate:
+
+```bash
+pnpm eval:semantic-roi
+```
+
+This command runs each ROI fixture twice, with semantic evidence disabled and
+enabled. Positive fixtures must declare a concrete future-change scenario,
+current cost, target cost, behavior invariants, expected transformation, fix,
+and revalidation. The gate then measures whether the treatment refactor keeps
+behavior green and makes the same future change cheaper by touch points,
+changed files, patch-size lines, and validation commands.
+
+The semantic ROI gate is production-ready only when it has at least two positive
+future-change fixtures, at least one semantic false-positive trap, all required
+cost dimensions (`change-amplification`, `blast-radius`, `verification-cost`,
+and `reversibility`), no hard constraint failures, and no protected evaluator
+mutations. Protected evaluator files include behavior scripts, tests, package
+metadata, TypeScript config, and any fixture-declared protected paths. Fix and
+future-change probes may change source files, but they must not change the
+sealed evaluator.
+
+Use `eval:map` to decide whether map evidence improved structurally. Use
+`eval:semantic-roi` to decide whether that evidence makes a defined class of
+future change more local while preserving behavior.

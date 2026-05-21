@@ -42,12 +42,12 @@ const fixtureNames = readdirSync(fixturesRoot, { withFileTypes: true })
   .toSorted();
 const fixtureDefinitions = fixtureNames.map((name) => readFixtureDefinition(name));
 const fixtureDefinitionFailures = validateFixtureDefinitions(fixtureDefinitions);
-const protectedBefore = protectedSnapshot(fixtureDefinitions);
+const protectedRepoBefore = protectedSnapshot(fixtureDefinitions);
 
 try {
   const results = fixtureDefinitions.map((fixture) => runRoiFixture(fixture));
-  const protectedAfter = protectedSnapshot(fixtureDefinitions);
-  const mutationFailures = protectedMutationFailures(protectedBefore, protectedAfter);
+  const protectedRepoAfter = protectedSnapshot(fixtureDefinitions);
+  const mutationFailures = protectedMutationFailures(protectedRepoBefore, protectedRepoAfter);
   const aggregate = aggregateResults(results);
   const hardConstraintFailures = [
     ...fixtureDefinitionFailures,
@@ -76,7 +76,8 @@ try {
       provider: "mock",
     },
     sealedEvaluator: {
-      protectedRepoFiles: protectedBefore.size,
+      protectedFiles: protectedRepoBefore.size,
+      protectedRepoFiles: protectedRepoBefore.size,
       mutationFailures,
     },
     productionReadiness: readiness,
@@ -155,6 +156,89 @@ function readFixtureDefinition(name) {
   };
 }
 
+function validateFixtureDefinitions(fixtures) {
+  const failures = [];
+  for (const fixture of fixtures) {
+    if (fixture.futureChangeProbe === null) {
+      continue;
+    }
+    if (fixture.behaviorInvariants.length === 0) {
+      failures.push(`${fixture.slug}: positive ROI fixture must define behaviorInvariants`);
+    }
+    if (fixture.expectedTransformation === null) {
+      failures.push(`${fixture.slug}: positive ROI fixture must define expectedTransformation`);
+    } else {
+      if (!isNonEmptyString(fixture.expectedTransformation.kind)) {
+        failures.push(`${fixture.slug}: expectedTransformation.kind must be a non-empty string`);
+      }
+      if (!Array.isArray(fixture.expectedTransformation.allowedChangedFiles)) {
+        failures.push(
+          `${fixture.slug}: expectedTransformation.allowedChangedFiles must list the allowed patch boundary`,
+        );
+      }
+      if (typeof fixture.expectedTransformation.maxChangedFiles !== "number") {
+        failures.push(`${fixture.slug}: expectedTransformation.maxChangedFiles must be numeric`);
+      }
+    }
+    if (fixture.fix.enabled !== true) {
+      failures.push(`${fixture.slug}: positive ROI fixture must run fix`);
+    }
+    if (fixture.revalidate.enabled !== true) {
+      failures.push(`${fixture.slug}: positive ROI fixture must run revalidate`);
+    }
+    const scenario = fixture.futureChangeProbe.changeScenario;
+    if (!isRecord(scenario)) {
+      failures.push(`${fixture.slug}: futureChangeProbe.changeScenario is required`);
+    } else {
+      for (const field of ["class", "scenario", "whyThisMeasuresEasier"]) {
+        if (!isNonEmptyString(scenario[field])) {
+          failures.push(`${fixture.slug}: changeScenario.${field} must be a non-empty string`);
+        }
+      }
+      if (!Array.isArray(scenario.costDimensions) || scenario.costDimensions.length === 0) {
+        failures.push(`${fixture.slug}: changeScenario.costDimensions must be non-empty`);
+      }
+      failures.push(...costModelValidationFailures(fixture.slug, scenario));
+    }
+    if (probeReplacementEntries(fixture.futureChangeProbe).length === 0) {
+      failures.push(`${fixture.slug}: futureChangeProbe must define replacement or replacements`);
+    }
+    if (
+      !Array.isArray(fixture.futureChangeProbe.validation) ||
+      fixture.futureChangeProbe.validation.length === 0
+    ) {
+      failures.push(`${fixture.slug}: futureChangeProbe.validation must be non-empty`);
+    }
+    if (!isRecord(fixture.expect.control?.futureChangeProbe)) {
+      failures.push(`${fixture.slug}: expect.control.futureChangeProbe is required`);
+    }
+    if (!isRecord(fixture.expect.treatment?.futureChangeProbe)) {
+      failures.push(`${fixture.slug}: expect.treatment.futureChangeProbe is required`);
+    }
+  }
+  return failures;
+}
+
+function costModelValidationFailures(slug, scenario) {
+  const failures = [];
+  const currentCost = scenario.currentCost;
+  const targetCost = scenario.targetCost;
+  for (const [name, value] of [
+    ["currentCost.touchPoints", currentCost?.touchPoints],
+    ["currentCost.patchSizeLines", currentCost?.patchSizeLines],
+    ["currentCost.validationCommands", currentCost?.validationCommands],
+    ["targetCost.touchPointsMax", targetCost?.touchPointsMax],
+    ["targetCost.patchSizeLinesMax", targetCost?.patchSizeLinesMax],
+    ["targetCost.changedFilesMax", targetCost?.changedFilesMax],
+    ["targetCost.validationCommands", targetCost?.validationCommands],
+  ]) {
+    if (typeof value !== "number") {
+      failures.push(`${slug}: changeScenario.${name} must be numeric`);
+    }
+  }
+  return failures;
+}
+
 function runRoiFixture(fixture) {
   const control = runObservation(fixture, "control", false);
   const treatment = runObservation(fixture, "treatment", true);
@@ -193,6 +277,7 @@ function runRoiFixture(fixture) {
 function runObservation(fixture, label, semanticEvidence) {
   const worktree = join(tmp, `${fixture.slug}-${label}`);
   cpSync(fixture.filesRoot, worktree, { recursive: true });
+  const protectedFixtureBefore = protectedFixtureSnapshot(worktree, fixture);
   const provider = fixture.review.provider ?? "mock";
   const limit = String(fixture.review.limit ?? 1);
   if (fixture.fix.enabled === true) {
@@ -216,6 +301,7 @@ function runObservation(fixture, label, semanticEvidence) {
     runCli(worktree, ["report", "--status", "open", "--json"], semanticEvidence),
   );
   const fix = runFixStep(worktree, provider, fixture, report, semanticEvidence);
+  const protectedAfterFix = protectedFixtureSnapshot(worktree, fixture);
   const revalidate = runRevalidateStep(
     worktree,
     provider,
@@ -229,9 +315,26 @@ function runObservation(fixture, label, semanticEvidence) {
       : parseJson(runCli(worktree, ["report", "--json"], semanticEvidence));
   const behaviorInvariants = runBehaviorInvariants(worktree, fixture.behaviorInvariants);
   const futureChangeProbe = runFutureChangeProbe(worktree, fixture.futureChangeProbe);
+  const protectedAfterFutureChange = protectedFixtureSnapshot(worktree, fixture);
+  const afterFixMutations = protectedFixtureMutationFailures(
+    protectedFixtureBefore,
+    protectedAfterFix,
+    "fix",
+  );
+  const afterFutureChangeMutations = protectedFixtureMutationFailures(
+    protectedAfterFix,
+    protectedAfterFutureChange,
+    "future-change",
+  );
   return {
     label,
     semanticEvidence,
+    protectedFiles: {
+      count: protectedFixtureBefore.size,
+      afterFixMutations,
+      afterFutureChangeMutations,
+      mutations: [...afterFixMutations, ...afterFutureChangeMutations],
+    },
     map: {
       features: map.features,
       source: map.source,
@@ -346,6 +449,11 @@ function runRevalidateStep(worktree, provider, fixture, findingId, semanticEvide
 function scoreObservation(observation, expectation, label) {
   const errors = [];
   const hardConstraintFailures = [];
+  hardConstraintFailures.push(
+    ...observation.protectedFiles.mutations.map(
+      (failure) => `${label} mutated protected evaluator file: ${failure}`,
+    ),
+  );
   if (
     typeof expectation.openFindings === "number" &&
     observation.report.findings !== expectation.openFindings
@@ -638,12 +746,80 @@ function aggregateResults(results) {
   };
 }
 
-function semanticRoiDecision({ aggregate, hardConstraintFailures, results }) {
+function productionReadiness({
+  results,
+  fixtureDefinitionFailures: definitionFailures,
+  mutationFailures,
+}) {
+  const positiveScenarioFixtures = results.filter((result) => result.futureChange.enabled);
+  const negativeTrapFixtures = results.filter(
+    (result) =>
+      !result.futureChange.enabled &&
+      result.treatment.map.semanticEvidenceLinks > 0 &&
+      result.treatment.report.findings === 0,
+  );
+  const costDimensions = [
+    ...new Set(
+      positiveScenarioFixtures.flatMap(
+        (result) => result.futureChange.scenario?.costDimensions ?? [],
+      ),
+    ),
+  ].toSorted();
+  const requiredCostDimensions = [
+    "change-amplification",
+    "blast-radius",
+    "verification-cost",
+    "reversibility",
+  ];
   const failures = [
-    ...hardConstraintFailures,
-    ...results.flatMap((result) => [
-      ...result.scores.control.errors.map((error) => `${result.slug}: ${error}`),
-      ...result.scores.treatment.errors.map((error) => `${result.slug}: ${error}`),
+    ...definitionFailures,
+    ...mutationFailures,
+    ...(positiveScenarioFixtures.length < 2
+      ? [
+          `production readiness requires at least 2 positive future-change fixtures, got ${positiveScenarioFixtures.length}`,
+        ]
+      : []),
+    ...(negativeTrapFixtures.length < 1
+      ? ["production readiness requires at least 1 semantic false-positive trap fixture"]
+      : []),
+    ...requiredCostDimensions
+      .filter((dimension) => !costDimensions.includes(dimension))
+      .map((dimension) => `production readiness missing cost dimension: ${dimension}`),
+    ...positiveScenarioFixtures
+      .filter((result) => result.control.behaviorInvariants.length === 0)
+      .map((result) => `${result.slug}: positive scenario has no control behavior invariant`),
+    ...positiveScenarioFixtures
+      .filter((result) => result.treatment.behaviorInvariants.length === 0)
+      .map((result) => `${result.slug}: positive scenario has no treatment behavior invariant`),
+    ...positiveScenarioFixtures
+      .filter((result) => !result.futureChange.ok)
+      .map((result) => `${result.slug}: future-change cost model failed`),
+  ];
+  return {
+    ready: failures.length === 0,
+    minimums: {
+      positiveFutureChangeFixtures: 2,
+      semanticFalsePositiveTrapFixtures: 1,
+      requiredCostDimensions,
+    },
+    metrics: {
+      positiveFutureChangeFixtures: positiveScenarioFixtures.length,
+      semanticFalsePositiveTrapFixtures: negativeTrapFixtures.length,
+      costDimensions,
+    },
+    failures,
+  };
+}
+
+function semanticRoiDecision({ aggregate, hardConstraintFailures, results, readiness }) {
+  const failures = [
+    ...new Set([
+      ...hardConstraintFailures,
+      ...readiness.failures,
+      ...results.flatMap((result) => [
+        ...result.scores.control.errors.map((error) => `${result.slug}: ${error}`),
+        ...result.scores.treatment.errors.map((error) => `${result.slug}: ${error}`),
+      ]),
     ]),
   ];
   if (failures.length > 0) {
@@ -692,6 +868,65 @@ function protectedMutationFailures(before, after) {
   return paths
     .filter((path) => before.get(path) !== after.get(path))
     .map((path) => `protected file changed during semantic ROI eval: ${path}`);
+}
+
+function protectedFixtureSnapshot(root, fixture) {
+  const snapshot = new Map();
+  walkFiles(root, (file) => {
+    const relativePath = file.slice(root.length + 1).replace(/\\/gu, "/");
+    if (
+      relativePath.startsWith(".git/") ||
+      relativePath.startsWith(".codenuke/") ||
+      relativePath.startsWith("node_modules/")
+    ) {
+      return;
+    }
+    if (isProtectedFixturePath(relativePath, fixture)) {
+      snapshot.set(relativePath, hashFile(file));
+    }
+  });
+  return snapshot;
+}
+
+function protectedFixtureMutationFailures(before, after, phase) {
+  const paths = [...new Set([...before.keys(), ...after.keys()])].toSorted();
+  return paths
+    .filter((path) => before.get(path) !== after.get(path))
+    .map((path) => `${phase} changed ${path}`);
+}
+
+function isProtectedFixturePath(path, fixture) {
+  if (
+    (fixture.protectedPaths ?? []).some((protectedPath) =>
+      pathMatchesProtectedPath(path, protectedPath),
+    )
+  ) {
+    return true;
+  }
+  return (
+    path.startsWith("behavior/") ||
+    path.startsWith("test/") ||
+    path.startsWith("tests/") ||
+    path.startsWith("__tests__/") ||
+    isTestPath(path) ||
+    [
+      "package.json",
+      "tsconfig.json",
+      "bunfig.toml",
+      "vitest.config.js",
+      "vitest.config.ts",
+    ].includes(path)
+  );
+}
+
+function pathMatchesProtectedPath(path, protectedPath) {
+  if (typeof protectedPath !== "string" || protectedPath.length === 0) {
+    return false;
+  }
+  if (protectedPath.endsWith("/")) {
+    return path.startsWith(protectedPath);
+  }
+  return path === protectedPath;
 }
 
 function selectFinding(items, fixDefinition) {
@@ -872,7 +1107,7 @@ function runFutureChangeProbe(worktree, probe) {
     return null;
   }
   const before = snapshotFixtureFiles(worktree);
-  const replacement = applyProbeReplacement(worktree, probe.replacement);
+  const replacement = applyProbeReplacements(worktree, probeReplacementEntries(probe));
   const after = snapshotFixtureFiles(worktree);
   const changedFiles = changedFilesBetweenSnapshots(before, after);
   const validation = runBehaviorInvariants(worktree, probe.validation ?? []);
@@ -971,23 +1206,29 @@ function futureChangeCostModelFailures(scenario, controlCost, treatmentCost) {
   return failures;
 }
 
-function applyProbeReplacement(worktree, replacement) {
-  if (replacement === undefined) {
-    return { replacements: 0 };
+function probeReplacementEntries(probe) {
+  if (Array.isArray(probe?.replacements)) {
+    return probe.replacements;
   }
+  return probe?.replacement === undefined ? [] : [probe.replacement];
+}
+
+function applyProbeReplacements(worktree, replacementsToApply) {
   let replacements = 0;
-  for (const relativePath of replacement.paths ?? []) {
-    const fullPath = join(worktree, relativePath);
-    if (!existsSync(fullPath)) {
-      continue;
-    }
-    const info = statSync(fullPath);
-    if (info.isDirectory()) {
-      walkFiles(fullPath, (file) => {
-        replacements += replaceInFile(file, replacement.from, replacement.to);
-      });
-    } else if (info.isFile()) {
-      replacements += replaceInFile(fullPath, replacement.from, replacement.to);
+  for (const replacement of replacementsToApply) {
+    for (const relativePath of replacement.paths ?? []) {
+      const fullPath = join(worktree, relativePath);
+      if (!existsSync(fullPath)) {
+        continue;
+      }
+      const info = statSync(fullPath);
+      if (info.isDirectory()) {
+        walkFiles(fullPath, (file) => {
+          replacements += replaceInFile(file, replacement.from, replacement.to);
+        });
+      } else if (info.isFile()) {
+        replacements += replaceInFile(fullPath, replacement.from, replacement.to);
+      }
     }
   }
   return { replacements };
@@ -1180,6 +1421,9 @@ function semanticRoiMarkdown(output) {
     `decision: ${output.decision.status}`,
     `reason: ${output.decision.reason}`,
     `score delta: ${output.aggregate.scoreDelta.toFixed(1)}`,
+    `production ready: ${output.productionReadiness.ready ? "yes" : "no"}`,
+    `positive future-change fixtures: ${output.productionReadiness.metrics.positiveFutureChangeFixtures}`,
+    `semantic false-positive traps: ${output.productionReadiness.metrics.semanticFalsePositiveTrapFixtures}`,
     "",
     "## Proven Behavior",
     ...output.audit.provenBehavior.map((entry) => `- ${entry}`),
@@ -1219,6 +1463,10 @@ function semanticRoiMarkdown(output) {
       `- treatment constraint identified: ${result.constraint.treatmentIdentified ?? "n/a"}`,
       `- control behavior invariants: ${passedCount(result.control.behaviorInvariants)}/${result.control.behaviorInvariants.length}`,
       `- treatment behavior invariants: ${passedCount(result.treatment.behaviorInvariants)}/${result.treatment.behaviorInvariants.length}`,
+      `- control protected evaluator files: ${result.control.protectedFiles.count}`,
+      `- treatment protected evaluator files: ${result.treatment.protectedFiles.count}`,
+      `- control protected mutations: ${result.control.protectedFiles.mutations.length}`,
+      `- treatment protected mutations: ${result.treatment.protectedFiles.mutations.length}`,
       `- future-change scenario: ${result.futureChange.scenario?.scenario ?? "none"}`,
       `- future-change dimensions: ${(result.futureChange.scenario?.costDimensions ?? []).join(", ") || "none"}`,
       `- control future-change touch points: ${result.control.futureChangeProbe?.touchPoints ?? "none"}`,
@@ -1239,6 +1487,7 @@ function semanticRoiLedgerRecord(output) {
     decision: output.decision.status,
     reason: output.decision.reason,
     aggregate: output.aggregate,
+    productionReadiness: output.productionReadiness,
     fixtures: output.results.map((result) => ({
       slug: result.slug,
       ok: result.ok,
@@ -1257,6 +1506,7 @@ function ledgerObservation(observation) {
     semanticEvidence: observation.semanticEvidence,
     findings: observation.report.findings,
     behaviorInvariantPassed: observation.behaviorInvariants.every((check) => check.ok),
+    protectedMutations: observation.protectedFiles.mutations,
     fix: observation.fix
       ? {
           status: observation.fix.status,
@@ -1297,6 +1547,14 @@ function parseJson(text) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`failed to parse JSON: ${message}\n${text}`, { cause: error });
   }
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function sum(items, value) {

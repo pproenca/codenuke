@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:49:55.144Z",
+  "generatedAt": "2026-05-21T08:17:31.709Z",
   "source": {
     "manifest": "resources/refactoring/manifest.json",
     "coverageConfig": "evals/guidance-coverage.json"
@@ -19,15 +19,26 @@
       "id": "catalog.dispensables.duplicate-code",
       "title": "Duplicate Code",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["duplicate-block", "repeated-lines", "repeated-switch-like-branches"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "duplicate-block",
+        "repeated-lines",
+        "repeated-switch-like-branches"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-conditional", "guidance-duplicate"],
+      "selectedBy": [
+        "guidance-conditional",
+        "guidance-duplicate"
+      ],
       "appliedBy": [
         {
           "fixture": "mock-refactor",
           "action": "applied",
-          "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_537734111c"
+          "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_f1388b5350"
         }
       ],
       "reservedBy": [],
@@ -37,10 +48,21 @@
       "id": "catalog.bloaters.long-method",
       "title": "Long Method",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["large-function-like-block", "many-branches", "nested-conditionals"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "large-function-like-block",
+        "many-branches",
+        "nested-conditionals"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-long-method", "semantic-evidence-review"],
+      "selectedBy": [
+        "guidance-long-method",
+        "semantic-evidence-review"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -49,10 +71,18 @@
       "id": "catalog.bloaters.long-parameter-list",
       "title": "Long Parameter List",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["long-parameter-list"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "long-parameter-list"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-long-parameters"],
+      "selectedBy": [
+        "guidance-long-parameters"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -61,10 +91,19 @@
       "id": "catalog.object-orientation-abusers.switch-statements",
       "title": "Switch Statements",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["repeated-switch-like-branches", "many-branches"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "repeated-switch-like-branches",
+        "many-branches"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-conditional"],
+      "selectedBy": [
+        "guidance-conditional"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -73,10 +112,18 @@
       "id": "catalog.dispensables.comments",
       "title": "Comments",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["commented-complex-block"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "commented-complex-block"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-comments"],
+      "selectedBy": [
+        "guidance-comments"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -85,10 +132,18 @@
       "id": "catalog.dispensables.speculative-generality",
       "title": "Speculative Generality",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["many-small-delegating-functions"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "many-small-delegating-functions"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-middle-man"],
+      "selectedBy": [
+        "guidance-middle-man"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -97,10 +152,19 @@
       "id": "catalog.couplers.middle-man",
       "title": "Middle Man",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["many-small-delegating-functions", "delegation-wrapper"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "many-small-delegating-functions",
+        "delegation-wrapper"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-middle-man"],
+      "selectedBy": [
+        "guidance-middle-man"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -109,10 +173,18 @@
       "id": "catalog.couplers.message-chains",
       "title": "Message Chains",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["message-chain"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "message-chain"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-message-chain"],
+      "selectedBy": [
+        "guidance-message-chain"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -121,7 +193,11 @@
       "id": "catalog.bloaters.data-clumps",
       "title": "Data Clumps",
       "kind": "signal",
-      "stages": ["review", "fix", "revalidate"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
       "selectWhen": [],
       "selectable": false,
       "selectedBy": [],
@@ -137,8 +213,14 @@
       "id": "techniques.composing-methods.extract-method",
       "title": "Extract Method",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["large-function-like-block", "duplicate-block"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "large-function-like-block",
+        "duplicate-block"
+      ],
       "selectable": true,
       "selectedBy": [
         "guidance-comments",
@@ -154,10 +236,18 @@
       "id": "techniques.composing-methods.inline-method",
       "title": "Inline Method",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["delegation-wrapper", "many-small-delegating-functions"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "delegation-wrapper",
+        "many-small-delegating-functions"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-middle-man"],
+      "selectedBy": [
+        "guidance-middle-man"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -166,10 +256,17 @@
       "id": "techniques.composing-methods.extract-variable",
       "title": "Extract Variable",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
       "selectWhen": [],
       "selectable": false,
-      "selectedBy": ["guidance-comments", "guidance-long-method", "semantic-evidence-review"],
+      "selectedBy": [
+        "guidance-comments",
+        "guidance-long-method",
+        "semantic-evidence-review"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -178,10 +275,20 @@
       "id": "techniques.simplifying-conditional-expressions.decompose-conditional",
       "title": "Decompose Conditional",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["nested-conditionals", "many-branches"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "nested-conditionals",
+        "many-branches"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-conditional", "guidance-long-method", "semantic-evidence-review"],
+      "selectedBy": [
+        "guidance-conditional",
+        "guidance-long-method",
+        "semantic-evidence-review"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -190,10 +297,19 @@
       "id": "techniques.simplifying-conditional-expressions.consolidate-duplicate-conditional-fragments",
       "title": "Consolidate Duplicate Conditional Fragments",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["repeated-switch-like-branches", "duplicate-block"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "repeated-switch-like-branches",
+        "duplicate-block"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-conditional", "guidance-duplicate"],
+      "selectedBy": [
+        "guidance-conditional",
+        "guidance-duplicate"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -202,10 +318,17 @@
       "id": "techniques.simplifying-method-calls.introduce-parameter-object",
       "title": "Introduce Parameter Object",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["long-parameter-list"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "long-parameter-list"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-long-parameters"],
+      "selectedBy": [
+        "guidance-long-parameters"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -214,10 +337,19 @@
       "id": "techniques.simplifying-method-calls.preserve-whole-object",
       "title": "Preserve Whole Object",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["long-parameter-list", "message-chain"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "long-parameter-list",
+        "message-chain"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-long-parameters", "guidance-message-chain"],
+      "selectedBy": [
+        "guidance-long-parameters",
+        "guidance-message-chain"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -226,10 +358,15 @@
       "id": "techniques.simplifying-method-calls.remove-parameter",
       "title": "Remove Parameter",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
       "selectWhen": [],
       "selectable": false,
-      "selectedBy": ["guidance-long-parameters"],
+      "selectedBy": [
+        "guidance-long-parameters"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -238,10 +375,18 @@
       "id": "techniques.moving-features-between-objects.remove-middle-man",
       "title": "Remove Middle Man",
       "kind": "technique",
-      "stages": ["fix", "revalidate"],
-      "selectWhen": ["delegation-wrapper", "many-small-delegating-functions"],
+      "stages": [
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "delegation-wrapper",
+        "many-small-delegating-functions"
+      ],
       "selectable": true,
-      "selectedBy": ["guidance-middle-man"],
+      "selectedBy": [
+        "guidance-middle-man"
+      ],
       "appliedBy": [],
       "reservedBy": [],
       "status": "covered"
@@ -250,8 +395,14 @@
       "id": "workflow.trusted-refactor-regression-coverage",
       "title": "Trusted Refactor Regression Coverage",
       "kind": "workflow",
-      "stages": ["review", "fix", "revalidate"],
-      "selectWhen": ["missing-linked-tests"],
+      "stages": [
+        "review",
+        "fix",
+        "revalidate"
+      ],
+      "selectWhen": [
+        "missing-linked-tests"
+      ],
       "selectable": true,
       "selectedBy": [
         "guidance-comments",

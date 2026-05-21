@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:52:56.286Z",
-  "startedAt": "2026-05-21T07:52:53.741Z",
+  "generatedAt": "2026-05-21T08:17:05.670Z",
+  "startedAt": "2026-05-21T08:16:59.686Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -9,51 +9,76 @@
     "provider": "mock"
   },
   "sealedEvaluator": {
-    "protectedFiles": 406,
+    "protectedFiles": 425,
+    "protectedRepoFiles": 425,
     "mutationFailures": []
+  },
+  "productionReadiness": {
+    "ready": true,
+    "minimums": {
+      "positiveFutureChangeFixtures": 2,
+      "semanticFalsePositiveTrapFixtures": 1,
+      "requiredCostDimensions": [
+        "change-amplification",
+        "blast-radius",
+        "verification-cost",
+        "reversibility"
+      ]
+    },
+    "metrics": {
+      "positiveFutureChangeFixtures": 2,
+      "semanticFalsePositiveTrapFixtures": 1,
+      "costDimensions": [
+        "blast-radius",
+        "change-amplification",
+        "reversibility",
+        "verification-cost"
+      ]
+    },
+    "failures": []
   },
   "ledger": {
     "path": "/Users/pedroproenca/Documents/Projects/codenuke/evals/results/semantic-roi-ledger.jsonl",
     "appendOnly": true
   },
   "aggregate": {
-    "fixtures": 2,
-    "passed": 2,
+    "fixtures": 3,
+    "passed": 3,
     "failed": 0,
-    "controlScore": 90,
-    "treatmentScore": 270,
-    "scoreDelta": 180,
+    "controlScore": 170,
+    "treatmentScore": 530,
+    "scoreDelta": 360,
     "semanticEvidenceLinks": {
       "control": 0,
-      "treatment": 4
+      "treatment": 6
     },
     "findings": {
       "control": 0,
-      "treatment": 1
+      "treatment": 2
     },
     "fixRuns": {
       "control": 0,
-      "treatment": 1
+      "treatment": 2
     },
     "revalidationRuns": {
       "control": 0,
-      "treatment": 1
+      "treatment": 2
     },
     "behaviorInvariants": {
-      "fixtures": 1,
-      "controlPassed": 1,
-      "treatmentPassed": 1
+      "fixtures": 2,
+      "controlPassed": 2,
+      "treatmentPassed": 2
     },
     "futureChange": {
-      "fixtures": 1,
-      "controlTouchPoints": 2,
-      "treatmentTouchPoints": 1,
-      "touchPointReduction": 1
+      "fixtures": 2,
+      "controlTouchPoints": 4,
+      "treatmentTouchPoints": 2,
+      "touchPointReduction": 2
     }
   },
   "decision": {
     "status": "keep",
-    "reason": "treatment beat control by 180.0 point(s) with no hard constraint failures",
+    "reason": "treatment beat control by 360.0 point(s) with no hard constraint failures",
     "failures": []
   },
   "audit": {
@@ -63,8 +88,11 @@
       "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
       "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
       "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
+      "Fixture definitions must declare a change scenario, current cost, target cost, and validation command before a positive ROI score can count.",
+      "Fixture evaluator files are hash-checked inside copied worktrees, so fix and future-change steps cannot mutate tests, behavior scripts, or project test config.",
       "Future-change probes measure whether treatment reduces touch points versus control.",
       "Future-change probes define the change scenario, current cost, target cost, and cost dimensions before scoring easier change.",
+      "Production readiness requires multiple positive future-change scenarios plus a semantic false-positive trap.",
       "The run records hard constraint failures separately from quality metrics."
     ],
     "proxyEvidence": [],
@@ -73,10 +101,367 @@
     ],
     "blockers": [],
     "nextInputs": [
-      "Expand the sealed constraint corpus and add optional model-backed repeated samples before claiming live-provider ROI."
+      "Use this deterministic gate for production mapper/refactoring ROI changes; add new sealed scenarios as new refactoring classes become supported."
     ]
   },
   "results": [
+    {
+      "schemaVersion": 1,
+      "slug": "pricing-rule-locality",
+      "name": "Pricing rule locality ROI",
+      "description": "Control/treatment ROI fixture proving semantic evidence promotes a duplicated pricing policy refactor and future member discount changes become local.",
+      "constraint": {
+        "enabled": true,
+        "id": "constraint.member-discount-duplication",
+        "type": "duplicated-domain-rule",
+        "description": "Changing the member discount rule requires edits in checkout and subscription pricing slices.",
+        "evidencePaths": [
+          "src/checkout-pricing/price.ts",
+          "src/subscription-pricing/price.ts"
+        ],
+        "controlIdentified": false,
+        "treatmentIdentified": true
+      },
+      "expectedTransformation": {
+        "kind": "extract-shared-policy",
+        "description": "Extract duplicated member discount calculation into one shared pricing policy module.",
+        "allowedChangedFiles": [
+          "src/checkout-pricing/price.ts",
+          "src/subscription-pricing/price.ts",
+          "src/pricing-rules/member-discount.ts"
+        ],
+        "maxChangedFiles": 3
+      },
+      "control": {
+        "label": "control",
+        "semanticEvidence": false,
+        "protectedFiles": {
+          "count": 5,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 0
+        },
+        "review": {
+          "reviewed": 16,
+          "findings": 0
+        },
+        "report": {
+          "findings": 0,
+          "items": []
+        },
+        "finalReport": {
+          "findings": 0,
+          "items": []
+        },
+        "fix": null,
+        "revalidate": null,
+        "behaviorInvariants": [
+          {
+            "name": "pricing outputs stay equivalent",
+            "command": "node behavior/check-pricing.mjs",
+            "ok": true,
+            "durationMs": 73,
+            "error": null
+          }
+        ],
+        "futureChangeProbe": {
+          "name": "change member discount rate",
+          "description": "A representative future change should update both checkout and subscription member discounts with fewer touch points after the shared policy exists.",
+          "touchPoints": 2,
+          "changedFiles": [
+            "src/checkout-pricing/price.ts",
+            "src/subscription-pricing/price.ts"
+          ],
+          "patchSizeLines": 2,
+          "replacements": 2,
+          "validation": [
+            {
+              "name": "pricing outputs use updated member discount rate",
+              "command": "node behavior/check-pricing.mjs",
+              "ok": true,
+              "durationMs": 69,
+              "error": null
+            }
+          ],
+          "validationPassed": true,
+          "cost": {
+            "touchPoints": 2,
+            "changedFiles": [
+              "src/checkout-pricing/price.ts",
+              "src/subscription-pricing/price.ts"
+            ],
+            "patchSizeLines": 2,
+            "validationCommands": 1,
+            "validationPassed": true
+          }
+        }
+      },
+      "treatment": {
+        "label": "treatment",
+        "semanticEvidence": true,
+        "protectedFiles": {
+          "count": 5,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 2
+        },
+        "review": {
+          "reviewed": 16,
+          "findings": 1
+        },
+        "report": {
+          "findings": 1,
+          "items": [
+            {
+              "id": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
+              "title": "Shared member discount policy can be extracted",
+              "category": "maintainability",
+              "severity": "low",
+              "confidence": "high",
+              "status": "open",
+              "evidence": [
+                {
+                  "path": "src/checkout-pricing/price.ts",
+                  "startLine": null,
+                  "endLine": null,
+                  "symbol": "calculateCheckoutTotal"
+                }
+              ],
+              "mapEvidenceTrace": [
+                {
+                  "kind": "semantic-neighbor",
+                  "source": "identifier-tfidf",
+                  "targetTitle": "Node source src/subscription-pricing",
+                  "signals": [
+                    "pricing",
+                    "discount",
+                    "total"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "finalReport": {
+          "findings": 1,
+          "items": [
+            {
+              "id": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
+              "title": "Shared member discount policy can be extracted",
+              "category": "maintainability",
+              "severity": "low",
+              "confidence": "high",
+              "status": "fixed",
+              "evidence": [
+                {
+                  "path": "src/checkout-pricing/price.ts",
+                  "startLine": null,
+                  "endLine": null,
+                  "symbol": "calculateCheckoutTotal"
+                }
+              ],
+              "mapEvidenceTrace": [
+                {
+                  "kind": "semantic-neighbor",
+                  "source": "identifier-tfidf",
+                  "targetTitle": "Node source src/subscription-pricing",
+                  "signals": [
+                    "pricing",
+                    "discount",
+                    "total"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "fix": {
+          "findingId": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
+          "status": "applied",
+          "patchAttempt": "pat_fnd-sig-feat-library-f3368ca347-_459777323a",
+          "filesChanged": 3,
+          "changedFiles": [
+            "src/checkout-pricing/price.ts",
+            "src/pricing-rules/member-discount.ts",
+            "src/subscription-pricing/price.ts"
+          ],
+          "commands": 0,
+          "validation": "none",
+          "error": null,
+          "files": {
+            "behavior/check-pricing.mjs": "import { existsSync, readFileSync } from \"node:fs\";\n\nconst memberRate = Number(process.env[\"EXPECTED_MEMBER_RATE\"] ?? \"0.1\");\nconst fixtureFiles = [\n  \"src/pricing-rules/member-discount.ts\",\n  \"src/subscription-pricing/price.ts\",\n  \"src/checkout-pricing/price.ts\",\n];\n\nconst code = fixtureFiles\n  .filter((path) => existsSync(path))\n  .map((path) => stripTypeScript(readFileSync(path, \"utf8\")))\n  .join(\"\\n\");\n\nconst module = new Function(`${code}\nreturn { calculateCheckoutTotal, calculateSubscriptionTotal };\n`)();\n\nconst checkout = module.calculateCheckoutTotal({\n  subtotalCents: 10000,\n  isMember: true,\n  couponCode: null,\n});\nconst subscription = module.calculateSubscriptionTotal({\n  subtotalCents: 10000,\n  isMember: true,\n  billingCycle: \"annual\",\n});\n\nconst memberDiscountCents = Math.floor(10000 * memberRate);\nexpectEqual(checkout, 10000 - memberDiscountCents, \"checkout\");\nexpectEqual(subscription, 10000 - memberDiscountCents - 500, \"subscription\");\n\nfunction stripTypeScript(text) {\n  return text\n    .replace(/^import .*;\\n/gmu, \"\")\n    .replace(/export function/gu, \"function\")\n    .replace(/: number/gu, \"\");\n}\n\nfunction expectEqual(actual, expected, label) {\n  if (actual !== expected) {\n    throw new Error(`${label} output mismatch: expected ${expected}, got ${actual}`);\n  }\n}\n",
+            "package.json": "{\n  \"name\": \"eval-pricing-rule-locality\",\n  \"type\": \"module\"\n}\n",
+            "src/checkout-pricing/price.test.ts": "import { calculateCheckoutTotal } from \"./price.js\";\n\nif (\n  calculateCheckoutTotal({\n    subtotalCents: 10000,\n    isMember: true,\n    couponCode: null,\n  }) !== 9000\n) {\n  throw new Error(\"checkout member discount pricing changed\");\n}\n",
+            "src/checkout-pricing/price.ts": "import { memberDiscountCents } from \"../pricing-rules/member-discount.js\";\n\nexport function calculateCheckoutTotal(input): number {\n  const couponDiscountCents = input.couponCode === \"WELCOME\" ? 500 : 0;\n  return Math.max(0, input.subtotalCents - memberDiscountCents(input) - couponDiscountCents);\n}\n",
+            "src/pricing-rules/member-discount.ts": "export function memberDiscountCents(input): number {\n  const discountCents = input.isMember ? Math.floor(input.subtotalCents * 0.1) : 0;\n  return discountCents;\n}\n",
+            "src/subscription-pricing/price.test.ts": "import { calculateSubscriptionTotal } from \"./price.js\";\n\nif (\n  calculateSubscriptionTotal({\n    subtotalCents: 10000,\n    isMember: true,\n    billingCycle: \"annual\",\n  }) !== 8500\n) {\n  throw new Error(\"subscription member discount pricing changed\");\n}\n",
+            "src/subscription-pricing/price.ts": "import { memberDiscountCents } from \"../pricing-rules/member-discount.js\";\n\nexport function calculateSubscriptionTotal(input): number {\n  const cycleDiscountCents =\n    input.billingCycle === \"annual\" ? Math.floor(input.subtotalCents * 0.05) : 0;\n  return Math.max(0, input.subtotalCents - memberDiscountCents(input) - cycleDiscountCents);\n}\n",
+            "src/z-audit-trail/audit.ts": "export function auditTrailName(entity: string, action: string): string {\n  return `${entity}:${action}`;\n}\n",
+            "src/z-customer-ledger/ledger.ts": "export function customerLedgerKey(customerId: string, period: string): string {\n  return `${customerId}:${period}`;\n}\n",
+            "src/z-order-routing/route.ts": "export function orderRouteKey(region: string, warehouse: string): string {\n  return `${region}/${warehouse}`;\n}\n",
+            "src/z-product-feed/feed.ts": "export function productFeedTopic(channel: string): string {\n  return `product-feed:${channel}`;\n}\n",
+            "src/z-receipt-mailer/mail.ts": "export function receiptSubject(orderId: string): string {\n  return `Receipt ${orderId}`;\n}\n",
+            "src/z-refund-policy/policy.ts": "export function canRefund(daysSincePurchase: number): boolean {\n  return daysSincePurchase <= 30;\n}\n",
+            "src/z-stock-report/report.ts": "export function stockReportName(warehouse: string): string {\n  return `stock-${warehouse}`;\n}\n",
+            "src/z-tax-rules/rules.ts": "export function taxRuleKey(country: string, region: string): string {\n  return `${country}:${region}`;\n}\n",
+            "src/z-user-flags/flags.ts": "export function userFlagKey(userId: string, flag: string): string {\n  return `${userId}:${flag}`;\n}\n",
+            "src/z-vat-export/export.ts": "export function vatExportName(month: string): string {\n  return `vat-export-${month}`;\n}\n",
+            "src/z-webhooks/hooks.ts": "export function webhookEventName(topic: string): string {\n  return `webhook.${topic}`;\n}\n",
+            "tsconfig.json": "{}\n"
+          }
+        },
+        "revalidate": {
+          "findingId": "fnd_sig-feat-library-f3368ca347-a08d_f3d5d15682",
+          "outcome": "fixed",
+          "reasoning": "mock pricing refactor moved the member discount rule to a shared policy module",
+          "error": null
+        },
+        "behaviorInvariants": [
+          {
+            "name": "pricing outputs stay equivalent",
+            "command": "node behavior/check-pricing.mjs",
+            "ok": true,
+            "durationMs": 70,
+            "error": null
+          }
+        ],
+        "futureChangeProbe": {
+          "name": "change member discount rate",
+          "description": "A representative future change should update both checkout and subscription member discounts with fewer touch points after the shared policy exists.",
+          "touchPoints": 1,
+          "changedFiles": [
+            "src/pricing-rules/member-discount.ts"
+          ],
+          "patchSizeLines": 1,
+          "replacements": 1,
+          "validation": [
+            {
+              "name": "pricing outputs use updated member discount rate",
+              "command": "node behavior/check-pricing.mjs",
+              "ok": true,
+              "durationMs": 72,
+              "error": null
+            }
+          ],
+          "validationPassed": true,
+          "cost": {
+            "touchPoints": 1,
+            "changedFiles": [
+              "src/pricing-rules/member-discount.ts"
+            ],
+            "patchSizeLines": 1,
+            "validationCommands": 1,
+            "validationPassed": true
+          }
+        }
+      },
+      "futureChange": {
+        "enabled": true,
+        "name": "change member discount rate",
+        "scenario": {
+          "class": "pricing rule variation",
+          "scenario": "Change the member discount rate used by checkout and subscription pricing.",
+          "whyThisMeasuresEasier": "The same conceptual pricing rule change should cross fewer pricing slices after the refactor because the discount decision has one policy module.",
+          "costDimensions": [
+            "change-amplification",
+            "blast-radius",
+            "verification-cost",
+            "reversibility"
+          ],
+          "currentCost": {
+            "touchPoints": 2,
+            "patchSizeLines": 2,
+            "changedFiles": [
+              "src/checkout-pricing/price.ts",
+              "src/subscription-pricing/price.ts"
+            ],
+            "validationCommands": 1
+          },
+          "targetCost": {
+            "touchPointsMax": 1,
+            "patchSizeLinesMax": 1,
+            "changedFilesMax": 1,
+            "validationCommands": 1
+          },
+          "easierWhen": [
+            "treatment touches fewer files for the same conceptual member-discount change",
+            "treatment keeps behavior validation green",
+            "treatment localizes the change to the shared pricing policy"
+          ]
+        },
+        "controlCost": {
+          "touchPoints": 2,
+          "changedFiles": [
+            "src/checkout-pricing/price.ts",
+            "src/subscription-pricing/price.ts"
+          ],
+          "patchSizeLines": 2,
+          "validationCommands": 1,
+          "validationPassed": true
+        },
+        "treatmentCost": {
+          "touchPoints": 1,
+          "changedFiles": [
+            "src/pricing-rules/member-discount.ts"
+          ],
+          "patchSizeLines": 1,
+          "validationCommands": 1,
+          "validationPassed": true
+        },
+        "controlTouchPoints": 2,
+        "treatmentTouchPoints": 1,
+        "touchPointReduction": 1,
+        "ok": true,
+        "hardConstraintFailures": []
+      },
+      "scores": {
+        "control": {
+          "score": 80,
+          "reviewScore": 10,
+          "fixScore": 0,
+          "revalidationScore": 0,
+          "invariantScore": 30,
+          "constraintScore": 0,
+          "futureChangeScore": 40,
+          "recall": 0,
+          "traceCredit": 0,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "treatment": {
+          "score": 260,
+          "reviewScore": 100,
+          "fixScore": 40,
+          "revalidationScore": 20,
+          "invariantScore": 30,
+          "constraintScore": 30,
+          "futureChangeScore": 40,
+          "recall": 1,
+          "traceCredit": 1,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "delta": 180
+      },
+      "hardConstraintFailures": [],
+      "ok": true
+    },
     {
       "schemaVersion": 1,
       "slug": "semantic-evidence-review",
@@ -87,7 +472,10 @@
         "id": "constraint.format-money-duplication",
         "type": "duplicated-domain-rule",
         "description": "Changing formatter money display rules requires edits in checkout and invoice formatter slices.",
-        "evidencePaths": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+        "evidencePaths": [
+          "src/checkout-format/format.ts",
+          "src/invoice-format/format.ts"
+        ],
         "controlIdentified": false,
         "treatmentIdentified": true
       },
@@ -104,6 +492,12 @@
       "control": {
         "label": "control",
         "semanticEvidence": false,
+        "protectedFiles": {
+          "count": 4,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
         "map": {
           "features": 16,
           "source": "heuristic",
@@ -129,7 +523,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 33,
+            "durationMs": 71,
             "error": null
           }
         ],
@@ -137,7 +531,10 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 2,
-          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+          "changedFiles": [
+            "src/checkout-format/format.ts",
+            "src/invoice-format/format.ts"
+          ],
           "patchSizeLines": 2,
           "replacements": 2,
           "validation": [
@@ -145,14 +542,17 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 33,
+              "durationMs": 69,
               "error": null
             }
           ],
           "validationPassed": true,
           "cost": {
             "touchPoints": 2,
-            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+            "changedFiles": [
+              "src/checkout-format/format.ts",
+              "src/invoice-format/format.ts"
+            ],
             "patchSizeLines": 2,
             "validationCommands": 1,
             "validationPassed": true
@@ -162,6 +562,12 @@
       "treatment": {
         "label": "treatment",
         "semanticEvidence": true,
+        "protectedFiles": {
+          "count": 4,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
         "map": {
           "features": 16,
           "source": "heuristic",
@@ -195,7 +601,11 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": ["format", "invoice", "summary"]
+                  "signals": [
+                    "format",
+                    "invoice",
+                    "summary"
+                  ]
                 }
               ]
             }
@@ -224,7 +634,11 @@
                   "kind": "semantic-neighbor",
                   "source": "identifier-tfidf",
                   "targetTitle": "Node source src/invoice-format",
-                  "signals": ["format", "invoice", "summary"]
+                  "signals": [
+                    "format",
+                    "invoice",
+                    "summary"
+                  ]
                 }
               ]
             }
@@ -233,7 +647,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_d9bbf02e72",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_7f5935e726",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-format/format.ts",
@@ -275,7 +689,7 @@
             "name": "formatter outputs stay equivalent",
             "command": "node behavior/check-format.mjs",
             "ok": true,
-            "durationMs": 33,
+            "durationMs": 71,
             "error": null
           }
         ],
@@ -283,7 +697,9 @@
           "name": "change money display prefix",
           "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
           "touchPoints": 1,
-          "changedFiles": ["src/money-format/format.ts"],
+          "changedFiles": [
+            "src/money-format/format.ts"
+          ],
           "patchSizeLines": 1,
           "replacements": 1,
           "validation": [
@@ -291,14 +707,16 @@
               "name": "formatter outputs use USD prefix",
               "command": "node behavior/check-format.mjs",
               "ok": true,
-              "durationMs": 32,
+              "durationMs": 70,
               "error": null
             }
           ],
           "validationPassed": true,
           "cost": {
             "touchPoints": 1,
-            "changedFiles": ["src/money-format/format.ts"],
+            "changedFiles": [
+              "src/money-format/format.ts"
+            ],
             "patchSizeLines": 1,
             "validationCommands": 1,
             "validationPassed": true
@@ -321,7 +739,10 @@
           "currentCost": {
             "touchPoints": 2,
             "patchSizeLines": 2,
-            "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+            "changedFiles": [
+              "src/checkout-format/format.ts",
+              "src/invoice-format/format.ts"
+            ],
             "validationCommands": 1
           },
           "targetCost": {
@@ -338,14 +759,19 @@
         },
         "controlCost": {
           "touchPoints": 2,
-          "changedFiles": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"],
+          "changedFiles": [
+            "src/checkout-format/format.ts",
+            "src/invoice-format/format.ts"
+          ],
           "patchSizeLines": 2,
           "validationCommands": 1,
           "validationPassed": true
         },
         "treatmentCost": {
           "touchPoints": 1,
-          "changedFiles": ["src/money-format/format.ts"],
+          "changedFiles": [
+            "src/money-format/format.ts"
+          ],
           "patchSizeLines": 1,
           "validationCommands": 1,
           "validationPassed": true
@@ -404,6 +830,12 @@
       "control": {
         "label": "control",
         "semanticEvidence": false,
+        "protectedFiles": {
+          "count": 2,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
         "map": {
           "features": 16,
           "source": "heuristic",
@@ -430,6 +862,12 @@
       "treatment": {
         "label": "treatment",
         "semanticEvidence": true,
+        "protectedFiles": {
+          "count": 2,
+          "afterFixMutations": [],
+          "afterFutureChangeMutations": [],
+          "mutations": []
+        },
         "map": {
           "features": 16,
           "source": "heuristic",
