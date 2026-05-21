@@ -74,6 +74,7 @@ try {
         "The deterministic harness runs the same fixture with semantic evidence disabled and enabled.",
         "The control run exposes no semantic-neighbor links and produces no finding.",
         "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
+        "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
         "The run records hard constraint failures separately from quality metrics.",
       ],
       proxyEvidence: [],
@@ -83,7 +84,7 @@ try {
       blockers: decision.status === "keep" ? [] : decision.failures,
       nextInputs:
         decision.status === "keep"
-          ? ["Add fix/revalidation ROI fixtures before claiming full fix-quality coverage."]
+          ? ["Add optional model-backed repeated samples before claiming live-provider ROI."]
           : ["Inspect failed hard constraints or fixture deltas before changing implementation."],
     },
     results,
@@ -117,6 +118,8 @@ function readFixtureDefinition(name) {
     name: definition.name ?? name,
     description: definition.description ?? "",
     review: definition.review ?? {},
+    fix: definition.fix ?? {},
+    revalidate: definition.revalidate ?? {},
     expect: definition.expect ?? {},
   };
 }
@@ -130,6 +133,9 @@ function runRoiFixture(fixture) {
     ...controlScore.hardConstraintFailures,
     ...treatmentScore.hardConstraintFailures,
   ].map((failure) => `${fixture.slug}: ${failure}`);
+  const scoreDelta = treatmentScore.score - controlScore.score;
+  const positiveRoiFixture = (fixture.expect.treatment?.findings ?? []).length > 0;
+  const fixtureScoreOk = positiveRoiFixture ? scoreDelta > 0 : scoreDelta >= 0;
   return {
     schemaVersion: 1,
     slug: fixture.slug,
@@ -140,10 +146,10 @@ function runRoiFixture(fixture) {
     scores: {
       control: controlScore,
       treatment: treatmentScore,
-      delta: treatmentScore.score - controlScore.score,
+      delta: scoreDelta,
     },
     hardConstraintFailures,
-    ok: hardConstraintFailures.length === 0 && treatmentScore.score > controlScore.score,
+    ok: hardConstraintFailures.length === 0 && fixtureScoreOk,
   };
 }
 
@@ -152,6 +158,9 @@ function runObservation(fixture, label, semanticEvidence) {
   cpSync(fixture.filesRoot, worktree, { recursive: true });
   const provider = fixture.review.provider ?? "mock";
   const limit = String(fixture.review.limit ?? 1);
+  if (fixture.fix.enabled === true) {
+    initGitWorktree(worktree);
+  }
   runCli(worktree, ["init", "--force", "--json"], semanticEvidence);
   const map = parseJson(runCli(worktree, ["map", "--json"], semanticEvidence));
   const features = readStateRecords(worktree, "features");
@@ -166,7 +175,21 @@ function runObservation(fixture, label, semanticEvidence) {
       semanticEvidence,
     ),
   );
-  const report = parseJson(runCli(worktree, ["report", "--status", "open", "--json"], true));
+  const report = parseJson(
+    runCli(worktree, ["report", "--status", "open", "--json"], semanticEvidence),
+  );
+  const fix = runFixStep(worktree, provider, fixture, report, semanticEvidence);
+  const revalidate = runRevalidateStep(
+    worktree,
+    provider,
+    fixture,
+    fix?.findingId ?? null,
+    semanticEvidence,
+  );
+  const finalReport =
+    fix === null && revalidate === null
+      ? report
+      : parseJson(runCli(worktree, ["report", "--json"], semanticEvidence));
   return {
     label,
     semanticEvidence,
@@ -184,7 +207,99 @@ function runObservation(fixture, label, semanticEvidence) {
       findings: report.findings,
       items: normalizeItems(report.items ?? []),
     },
+    finalReport: {
+      findings: finalReport.findings,
+      items: normalizeItems(finalReport.items ?? []),
+    },
+    fix,
+    revalidate,
   };
+}
+
+function runFixStep(worktree, provider, fixture, report, semanticEvidence) {
+  if (fixture.fix.enabled !== true) {
+    return null;
+  }
+  const finding = selectFinding(report.items ?? [], fixture.fix);
+  if (finding === null) {
+    return null;
+  }
+  try {
+    const fixOutput = parseJson(
+      runCli(
+        worktree,
+        [
+          "fix",
+          "--provider",
+          provider,
+          "--finding",
+          finding.id,
+          ...modelArgs(fixture.fix),
+          "--json",
+        ],
+        semanticEvidence,
+      ),
+    );
+    return {
+      findingId: finding.id,
+      status: fixOutput.status,
+      patchAttempt: fixOutput.patchAttempt,
+      filesChanged: fixOutput.filesChanged,
+      changedFiles: changedFilesList(fixOutput.changedFiles),
+      commands: fixOutput.commands,
+      validation: fixOutput.validation,
+      error: null,
+      files: snapshotFixtureFiles(worktree),
+    };
+  } catch (error) {
+    return {
+      findingId: finding.id,
+      status: "failed",
+      patchAttempt: null,
+      filesChanged: 0,
+      changedFiles: [],
+      commands: 0,
+      validation: "failed",
+      error: error instanceof Error ? error.message : String(error),
+      files: snapshotFixtureFiles(worktree),
+    };
+  }
+}
+
+function runRevalidateStep(worktree, provider, fixture, findingId, semanticEvidence) {
+  if (fixture.revalidate.enabled !== true || findingId === null) {
+    return null;
+  }
+  try {
+    const revalidateOutput = parseJson(
+      runCli(
+        worktree,
+        [
+          "revalidate",
+          "--provider",
+          provider,
+          "--finding",
+          findingId,
+          ...modelArgs(fixture.revalidate),
+          "--json",
+        ],
+        semanticEvidence,
+      ),
+    );
+    return {
+      findingId,
+      outcome: revalidateOutput.outcome,
+      reasoning: revalidateOutput.reasoning,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      findingId,
+      outcome: "error",
+      reasoning: "",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 function scoreObservation(observation, expectation, label) {
@@ -233,12 +348,29 @@ function scoreObservation(observation, expectation, label) {
         ? 1
         : 0;
   const falsePositivePenalty = Math.min(extraFindings * 25, 50);
-  const score =
+  const reviewScore =
     expectedFindings === 0
       ? Math.max(0, observation.report.findings === 0 ? 10 : 0)
       : Math.max(0, 70 * recall + 30 * traceCredit - falsePositivePenalty);
+  const fixScore = scoreFix(
+    observation,
+    expectation.fix ?? null,
+    label,
+    errors,
+    hardConstraintFailures,
+  );
+  const revalidationScore = scoreRevalidation(
+    observation,
+    expectation.revalidate ?? null,
+    label,
+    errors,
+  );
+  const score = reviewScore + fixScore + revalidationScore;
   return {
     score,
+    reviewScore,
+    fixScore,
+    revalidationScore,
     recall,
     traceCredit,
     extraFindings,
@@ -246,6 +378,75 @@ function scoreObservation(observation, expectation, label) {
     hardConstraintFailures,
     ok: errors.length === 0 && hardConstraintFailures.length === 0,
   };
+}
+
+function scoreFix(observation, expectation, label, errors, hardConstraintFailures) {
+  if (observation.fix !== null) {
+    const changedTests = observation.fix.changedFiles.filter(isTestPath);
+    if (changedTests.length > 0) {
+      hardConstraintFailures.push(
+        `${label} fix changed test file(s) during sealed ROI run: ${changedTests.join(", ")}`,
+      );
+    }
+  }
+  if (expectation === null) {
+    return 0;
+  }
+  if (observation.fix === null) {
+    errors.push(`expected ${label} fix, got none`);
+    return 0;
+  }
+  if (expectation.status !== undefined && observation.fix.status !== expectation.status) {
+    errors.push(
+      `expected ${label} fix status ${expectation.status}, got ${observation.fix.status}`,
+    );
+  }
+  if (Array.isArray(expectation.changedFiles)) {
+    const expected = expectation.changedFiles.toSorted();
+    const actual = observation.fix.changedFiles.toSorted();
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      errors.push(
+        `expected ${label} changed files ${expected.join(", ")}, got ${actual.join(", ")}`,
+      );
+    }
+  }
+  if (
+    typeof expectation.maxChangedFiles === "number" &&
+    observation.fix.changedFiles.length > expectation.maxChangedFiles
+  ) {
+    errors.push(
+      `expected ${label} at most ${expectation.maxChangedFiles} changed file(s), got ${observation.fix.changedFiles.length}`,
+    );
+  }
+  for (const check of expectation.requiredText ?? []) {
+    const content = observation.fix.files[check.path] ?? "";
+    if (!content.includes(check.text)) {
+      errors.push(`expected ${label} ${check.path} to contain ${JSON.stringify(check.text)}`);
+    }
+  }
+  for (const check of expectation.forbiddenText ?? []) {
+    const content = observation.fix.files[check.path] ?? "";
+    if (content.includes(check.text)) {
+      errors.push(`expected ${label} ${check.path} not to contain ${JSON.stringify(check.text)}`);
+    }
+  }
+  return errors.length === 0 ? 40 : 0;
+}
+
+function scoreRevalidation(observation, expectation, label, errors) {
+  if (expectation === null) {
+    return 0;
+  }
+  if (observation.revalidate === null) {
+    errors.push(`expected ${label} revalidation, got none`);
+    return 0;
+  }
+  if (expectation.outcome !== undefined && observation.revalidate.outcome !== expectation.outcome) {
+    errors.push(
+      `expected ${label} revalidation outcome ${expectation.outcome}, got ${observation.revalidate.outcome}`,
+    );
+  }
+  return errors.length === 0 ? 20 : 0;
 }
 
 function aggregateResults(results) {
@@ -265,6 +466,14 @@ function aggregateResults(results) {
     findings: {
       control: sum(results, (result) => result.control.report.findings),
       treatment: sum(results, (result) => result.treatment.report.findings),
+    },
+    fixRuns: {
+      control: results.filter((result) => result.control.fix !== null).length,
+      treatment: results.filter((result) => result.treatment.fix !== null).length,
+    },
+    revalidationRuns: {
+      control: results.filter((result) => result.control.revalidate !== null).length,
+      treatment: results.filter((result) => result.treatment.revalidate !== null).length,
     },
   };
 }
@@ -323,6 +532,82 @@ function protectedMutationFailures(before, after) {
   return paths
     .filter((path) => before.get(path) !== after.get(path))
     .map((path) => `protected file changed during semantic ROI eval: ${path}`);
+}
+
+function selectFinding(items, fixDefinition) {
+  if (fixDefinition.findingTitle !== undefined) {
+    return items.find((item) => item.title === fixDefinition.findingTitle) ?? null;
+  }
+  if (fixDefinition.findingId !== undefined) {
+    return items.find((item) => item.id === fixDefinition.findingId) ?? null;
+  }
+  return items[0] ?? null;
+}
+
+function initGitWorktree(root) {
+  execFileSync("git", ["init"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  execFileSync("git", ["add", "."], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=codenuke eval",
+      "-c",
+      "user.email=eval@example.invalid",
+      "commit",
+      "-m",
+      "fixture baseline",
+    ],
+    {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+}
+
+function modelArgs(config) {
+  return [
+    ...(typeof config?.model === "string" ? ["--model", config.model] : []),
+    ...(typeof config?.reasoningEffort === "string"
+      ? ["--reasoning-effort", config.reasoningEffort]
+      : []),
+  ];
+}
+
+function changedFilesList(value) {
+  if (typeof value !== "string" || value === "none") {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .toSorted();
+}
+
+function snapshotFixtureFiles(root) {
+  const files = {};
+  walkFiles(root, (file) => {
+    const relativePath = file.slice(root.length + 1).replace(/\\/gu, "/");
+    if (relativePath.startsWith(".git/") || relativePath.startsWith(".codenuke/")) {
+      return;
+    }
+    files[relativePath] = readFileSync(file, "utf8");
+  });
+  return files;
+}
+
+function isTestPath(path) {
+  return /(^|\/)(test|tests|__tests__)(\/|$)|(?:^|[._-])(?:test|spec)\.[^/]+$/iu.test(path);
 }
 
 function addRelativeFiles(paths, root) {
@@ -513,6 +798,10 @@ function semanticRoiMarkdown(output) {
       `- treatment findings: ${result.treatment.report.findings}`,
       `- control semantic links: ${result.control.map.semanticEvidenceLinks}`,
       `- treatment semantic links: ${result.treatment.map.semanticEvidenceLinks}`,
+      `- control fix: ${result.control.fix?.status ?? "none"}`,
+      `- treatment fix: ${result.treatment.fix?.status ?? "none"}`,
+      `- control revalidation: ${result.control.revalidate?.outcome ?? "none"}`,
+      `- treatment revalidation: ${result.treatment.revalidate?.outcome ?? "none"}`,
       `- score delta: ${result.scores.delta.toFixed(1)}`,
     );
   }

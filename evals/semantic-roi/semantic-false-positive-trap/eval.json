@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "semantic-false-positive-trap",
+  "name": "Semantic evidence false-positive trap",
+  "description": "Control/treatment ROI fixture proving semantic-neighbor links do not create a finding without local refactoring evidence.",
+  "review": {
+    "provider": "mock",
+    "limit": 5
+  },
+  "expect": {
+    "control": {
+      "openFindings": 0,
+      "semanticEvidenceLinks": 0
+    },
+    "treatment": {
+      "openFindings": 0,
+      "semanticEvidenceLinksMin": 1,
+      "findings": []
+    }
+  }
+}

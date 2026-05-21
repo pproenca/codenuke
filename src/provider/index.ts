@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCommandArgs } from "../platform/exec.js";
@@ -428,7 +428,33 @@ const mockProvider: Provider = {
       inspected: { files: ["src/index.ts"], symbols: [], notes: ["mock finding"] },
     };
   },
-  async fix(_root: string, prompt: string): Promise<FixPlanOutput> {
+  async fix(root: string, prompt: string): Promise<FixPlanOutput> {
+    if (prompt.includes("TODO_SEMANTIC_REFACTOR")) {
+      await writeSemanticFormatterRefactor(root);
+      return {
+        summary: "mock semantic formatter refactor",
+        findingIds: [],
+        plannedFiles: [
+          "src/checkout-format/format.ts",
+          "src/invoice-format/format.ts",
+          "src/money-format/format.ts",
+        ],
+        risk: "low",
+        steps: ["extract shared money formatter", "reuse it from checkout and invoice formatters"],
+        guidanceApplication: {
+          appliedResources: [
+            {
+              resourceId: "catalog.dispensables.duplicate-code",
+              action: "applied",
+              reasoning: "Mock provider unified the duplicated money formatter helper.",
+            },
+          ],
+          deviations: [],
+          risk: "low",
+        },
+        validationCommands: [],
+      };
+    }
     const appliedResources = [
       "catalog.dispensables.duplicate-code",
       "catalog.dispensables.speculative-generality",
@@ -453,7 +479,34 @@ const mockProvider: Provider = {
       validationCommands: ["touch SHOULD_NOT_RUN_PROVIDER_COMMANDS"],
     };
   },
-  async revalidate(_root: string, prompt: string): Promise<RevalidateOutput> {
+  async revalidate(root: string, prompt: string): Promise<RevalidateOutput> {
+    if (prompt.includes("TODO_SEMANTIC_REFACTOR") && prompt.includes("mapEvidenceTrace")) {
+      const [checkout, invoice, shared] = await Promise.all([
+        readFile(join(root, "src/checkout-format/format.ts"), "utf8").catch(() => ""),
+        readFile(join(root, "src/invoice-format/format.ts"), "utf8").catch(() => ""),
+        readFile(join(root, "src/money-format/format.ts"), "utf8").catch(() => ""),
+      ]);
+      const fixed =
+        !checkout.includes("TODO_SEMANTIC_REFACTOR") &&
+        checkout.includes("../money-format/format.js") &&
+        invoice.includes("../money-format/format.js") &&
+        shared.includes("formatMoney");
+      return {
+        outcome: fixed ? "fixed" : "open",
+        reasoning: fixed
+          ? "mock semantic refactor moved both formatter slices to the shared money formatter"
+          : "mock semantic refactor evidence still shows duplicated or unresolved formatter code",
+        guidanceAssessment: {
+          followed: fixed ? "yes" : "partially",
+          reasoning: fixed
+            ? "The duplicate-code guidance was followed without broadening beyond the traced formatter slices."
+            : "The semantic sibling formatter risk remains unresolved.",
+          deviations: [],
+          acceptable: true,
+        },
+        commands: ["mock semantic revalidation"],
+      };
+    }
     if (prompt.includes("REVALIDATE_FIXED")) {
       return {
         outcome: "fixed",
@@ -506,6 +559,63 @@ const mockProvider: Provider = {
     };
   },
 };
+
+async function writeSemanticFormatterRefactor(root: string): Promise<void> {
+  await mkdir(join(root, "src/money-format"), { recursive: true });
+  await writeFile(
+    join(root, "src/money-format/format.ts"),
+    [
+      "export function formatMoney(cents: number): string {",
+      "  return `$${(cents / 100).toFixed(2)}`;",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    join(root, "src/invoice-format/format.ts"),
+    [
+      'import { formatMoney } from "../money-format/format.js";',
+      "",
+      "export type InvoiceSummaryRow = {",
+      "  invoiceId: string;",
+      "  accountName: string;",
+      "  subtotalCents: number;",
+      "  taxCents: number;",
+      "};",
+      "",
+      "export function formatInvoiceSummaryRow(row: InvoiceSummaryRow): string {",
+      "  const totalCents = row.subtotalCents + row.taxCents;",
+      '  return [row.invoiceId, row.accountName, formatMoney(totalCents)].join(" | ");',
+      "}",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    join(root, "src/checkout-format/format.ts"),
+    [
+      'import { formatMoney } from "../money-format/format.js";',
+      "",
+      "export type CheckoutInvoiceSummary = {",
+      "  invoiceId: string;",
+      "  checkoutId: string;",
+      "  customerName: string;",
+      "  subtotalCents: number;",
+      "  taxCents: number;",
+      "};",
+      "",
+      "export function formatCheckoutInvoiceSummary(summary: CheckoutInvoiceSummary): string {",
+      "  const totalCents = summary.subtotalCents + summary.taxCents;",
+      "  return [",
+      "    summary.invoiceId,",
+      "    summary.checkoutId,",
+      "    summary.customerName,",
+      "    formatMoney(totalCents),",
+      '  ].join(" | ");',
+      "}",
+      "",
+    ].join("\n"),
+  );
+}
 
 function mockCandidateTrace(prompt: string): ReviewOutput["findings"][number]["candidateTrace"] {
   const candidate = prompt.match(

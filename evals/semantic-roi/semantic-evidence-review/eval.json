@@ -8,6 +8,13 @@
     "provider": "mock",
     "limit": 5
   },
+  "fix": {
+    "enabled": true,
+    "findingTitle": "Sibling duplicate helper can be unified"
+  },
+  "revalidate": {
+    "enabled": true
+  },
   "expect": {
     "control": {
       "openFindings": 0,
@@ -28,7 +35,39 @@
           "mapEvidenceTraceTargetTitle": "Node source src/invoice-format",
           "mapEvidenceTraceSignal": "format"
         }
-      ]
+      ],
+      "fix": {
+        "status": "applied",
+        "changedFiles": [
+          "src/checkout-format/format.ts",
+          "src/invoice-format/format.ts",
+          "src/money-format/format.ts"
+        ],
+        "maxChangedFiles": 3,
+        "requiredText": [
+          {
+            "path": "src/checkout-format/format.ts",
+            "text": "../money-format/format.js"
+          },
+          {
+            "path": "src/invoice-format/format.ts",
+            "text": "../money-format/format.js"
+          },
+          {
+            "path": "src/money-format/format.ts",
+            "text": "formatMoney"
+          }
+        ],
+        "forbiddenText": [
+          {
+            "path": "src/checkout-format/format.ts",
+            "text": "TODO_SEMANTIC_REFACTOR"
+          }
+        ]
+      },
+      "revalidate": {
+        "outcome": "fixed"
+      }
     }
   }
 }

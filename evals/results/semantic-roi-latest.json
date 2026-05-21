@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:21:57.050Z",
-  "startedAt": "2026-05-21T07:21:56.159Z",
+  "generatedAt": "2026-05-21T07:33:02.512Z",
+  "startedAt": "2026-05-21T07:32:59.726Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -9,28 +9,36 @@
     "provider": "mock"
   },
   "sealedEvaluator": {
-    "protectedFiles": 388,
+    "protectedFiles": 405,
     "mutationFailures": []
   },
   "aggregate": {
-    "fixtures": 1,
-    "passed": 1,
+    "fixtures": 2,
+    "passed": 2,
     "failed": 0,
-    "controlScore": 10,
-    "treatmentScore": 100,
-    "scoreDelta": 90,
+    "controlScore": 20,
+    "treatmentScore": 170,
+    "scoreDelta": 150,
     "semanticEvidenceLinks": {
       "control": 0,
-      "treatment": 2
+      "treatment": 4
     },
     "findings": {
+      "control": 0,
+      "treatment": 1
+    },
+    "fixRuns": {
+      "control": 0,
+      "treatment": 1
+    },
+    "revalidationRuns": {
       "control": 0,
       "treatment": 1
     }
   },
   "decision": {
     "status": "keep",
-    "reason": "treatment beat control by 90.0 point(s) with no hard constraint failures",
+    "reason": "treatment beat control by 150.0 point(s) with no hard constraint failures",
     "failures": []
   },
   "audit": {
@@ -38,6 +46,7 @@
       "The deterministic harness runs the same fixture with semantic evidence disabled and enabled.",
       "The control run exposes no semantic-neighbor links and produces no finding.",
       "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
+      "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
       "The run records hard constraint failures separately from quality metrics."
     ],
     "proxyEvidence": [],
@@ -46,7 +55,7 @@
     ],
     "blockers": [],
     "nextInputs": [
-      "Add fix/revalidation ROI fixtures before claiming full fix-quality coverage."
+      "Add optional model-backed repeated samples before claiming live-provider ROI."
     ]
   },
   "results": [
@@ -71,7 +80,13 @@
         "report": {
           "findings": 0,
           "items": []
-        }
+        },
+        "finalReport": {
+          "findings": 0,
+          "items": []
+        },
+        "fix": null,
+        "revalidate": null
       },
       "treatment": {
         "label": "treatment",
@@ -118,11 +133,86 @@
               ]
             }
           ]
+        },
+        "finalReport": {
+          "findings": 1,
+          "items": [
+            {
+              "id": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+              "title": "Sibling duplicate helper can be unified",
+              "category": "maintainability",
+              "severity": "low",
+              "confidence": "high",
+              "status": "fixed",
+              "evidence": [
+                {
+                  "path": "src/checkout-format/format.ts",
+                  "startLine": null,
+                  "endLine": null,
+                  "symbol": "formatCheckoutInvoiceSummary"
+                }
+              ],
+              "mapEvidenceTrace": [
+                {
+                  "kind": "semantic-neighbor",
+                  "source": "identifier-tfidf",
+                  "targetTitle": "Node source src/invoice-format",
+                  "signals": [
+                    "format",
+                    "invoice",
+                    "summary"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "fix": {
+          "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+          "status": "applied",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_d759554e30",
+          "filesChanged": 3,
+          "changedFiles": [
+            "src/checkout-format/format.ts",
+            "src/invoice-format/format.ts",
+            "src/money-format/format.ts"
+          ],
+          "commands": 0,
+          "validation": "none",
+          "error": null,
+          "files": {
+            "package.json": "{\n  \"name\": \"eval-semantic-evidence-review\",\n  \"type\": \"module\"\n}\n",
+            "src/checkout-format/format.test.ts": "import { formatCheckoutInvoiceSummary } from \"./format.js\";\n\nif (\n  formatCheckoutInvoiceSummary({\n    invoiceId: \"inv_123\",\n    checkoutId: \"chk_123\",\n    customerName: \"Ava\",\n    subtotalCents: 1200,\n    taxCents: 300,\n  }) !== \"TODO_SEMANTIC_REFACTOR | inv_123 | chk_123 | Ava | $15.00\"\n) {\n  throw new Error(\"checkout invoice summary formatting changed\");\n}\n",
+            "src/checkout-format/format.ts": "import { formatMoney } from \"../money-format/format.js\";\n\nexport type CheckoutInvoiceSummary = {\n  invoiceId: string;\n  checkoutId: string;\n  customerName: string;\n  subtotalCents: number;\n  taxCents: number;\n};\n\nexport function formatCheckoutInvoiceSummary(summary: CheckoutInvoiceSummary): string {\n  const totalCents = summary.subtotalCents + summary.taxCents;\n  return [\n    summary.invoiceId,\n    summary.checkoutId,\n    summary.customerName,\n    formatMoney(totalCents),\n  ].join(\" | \");\n}\n",
+            "src/invoice-format/format.ts": "import { formatMoney } from \"../money-format/format.js\";\n\nexport type InvoiceSummaryRow = {\n  invoiceId: string;\n  accountName: string;\n  subtotalCents: number;\n  taxCents: number;\n};\n\nexport function formatInvoiceSummaryRow(row: InvoiceSummaryRow): string {\n  const totalCents = row.subtotalCents + row.taxCents;\n  return [row.invoiceId, row.accountName, formatMoney(totalCents)].join(\" | \");\n}\n",
+            "src/money-format/format.ts": "export function formatMoney(cents: number): string {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n",
+            "src/z-catalog-pricing/price.ts": "export function catalogPriceCents(baseCents: number, markdownCents: number): number {\n  return Math.max(0, baseCents - markdownCents);\n}\n",
+            "src/z-customer-ledger/ledger.ts": "export function customerLedgerKey(customerId: string, period: string): string {\n  return `${customerId}:${period}`;\n}\n",
+            "src/z-order-routing/route.ts": "export function orderRouteKey(region: string, warehouse: string): string {\n  return `${region}/${warehouse}`;\n}\n",
+            "src/z-product-feed/feed.ts": "export function productFeedTopic(channel: string): string {\n  return `product-feed:${channel}`;\n}\n",
+            "src/z-receipt-mailer/mail.ts": "export function receiptSubject(orderId: string): string {\n  return `Receipt ${orderId}`;\n}\n",
+            "src/z-refund-policy/policy.ts": "export function canRefund(daysSincePurchase: number): boolean {\n  return daysSincePurchase <= 30;\n}\n",
+            "src/z-stock-report/report.ts": "export function stockReportName(warehouse: string): string {\n  return `stock-${warehouse}`;\n}\n",
+            "src/z-tax-rules/rules.ts": "export function taxRuleKey(country: string, region: string): string {\n  return `${country}:${region}`;\n}\n",
+            "src/z-user-flags/flags.ts": "export function userFlagKey(userId: string, flag: string): string {\n  return `${userId}:${flag}`;\n}\n",
+            "src/z-vat-export/export.ts": "export function vatExportName(month: string): string {\n  return `vat-export-${month}`;\n}\n",
+            "src/z-webhooks/hooks.ts": "export function webhookEventName(topic: string): string {\n  return `webhook.${topic}`;\n}\n",
+            "tsconfig.json": "{}\n"
+          }
+        },
+        "revalidate": {
+          "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
+          "outcome": "fixed",
+          "reasoning": "mock semantic refactor moved both formatter slices to the shared money formatter",
+          "error": null
         }
       },
       "scores": {
         "control": {
           "score": 10,
+          "reviewScore": 10,
+          "fixScore": 0,
+          "revalidationScore": 0,
           "recall": 0,
           "traceCredit": 0,
           "extraFindings": 0,
@@ -131,7 +221,10 @@
           "ok": true
         },
         "treatment": {
-          "score": 100,
+          "score": 160,
+          "reviewScore": 100,
+          "fixScore": 40,
+          "revalidationScore": 20,
           "recall": 1,
           "traceCredit": 1,
           "extraFindings": 0,
@@ -139,7 +232,90 @@
           "hardConstraintFailures": [],
           "ok": true
         },
-        "delta": 90
+        "delta": 150
+      },
+      "hardConstraintFailures": [],
+      "ok": true
+    },
+    {
+      "schemaVersion": 1,
+      "slug": "semantic-false-positive-trap",
+      "name": "Semantic evidence false-positive trap",
+      "description": "Control/treatment ROI fixture proving semantic-neighbor links do not create a finding without local refactoring evidence.",
+      "control": {
+        "label": "control",
+        "semanticEvidence": false,
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 0
+        },
+        "review": {
+          "reviewed": 5,
+          "findings": 0
+        },
+        "report": {
+          "findings": 0,
+          "items": []
+        },
+        "finalReport": {
+          "findings": 0,
+          "items": []
+        },
+        "fix": null,
+        "revalidate": null
+      },
+      "treatment": {
+        "label": "treatment",
+        "semanticEvidence": true,
+        "map": {
+          "features": 16,
+          "source": "heuristic",
+          "usedAgent": false,
+          "semanticEvidenceLinks": 2
+        },
+        "review": {
+          "reviewed": 5,
+          "findings": 0
+        },
+        "report": {
+          "findings": 0,
+          "items": []
+        },
+        "finalReport": {
+          "findings": 0,
+          "items": []
+        },
+        "fix": null,
+        "revalidate": null
+      },
+      "scores": {
+        "control": {
+          "score": 10,
+          "reviewScore": 10,
+          "fixScore": 0,
+          "revalidationScore": 0,
+          "recall": 0,
+          "traceCredit": 0,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "treatment": {
+          "score": 10,
+          "reviewScore": 10,
+          "fixScore": 0,
+          "revalidationScore": 0,
+          "recall": 0,
+          "traceCredit": 0,
+          "extraFindings": 0,
+          "errors": [],
+          "hardConstraintFailures": [],
+          "ok": true
+        },
+        "delta": 0
       },
       "hardConstraintFailures": [],
       "ok": true

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:22:20.148Z",
-  "startedAt": "2026-05-21T07:22:14.144Z",
+  "generatedAt": "2026-05-21T07:31:54.249Z",
+  "startedAt": "2026-05-21T07:31:48.523Z",
   "cli": "node dist/cli.js",
   "mode": {
     "expectations": "strict",
@@ -20,7 +20,7 @@
   },
   "guidanceCoverageMatrix": {
     "schemaVersion": 1,
-    "generatedAt": "2026-05-21T07:22:20.148Z",
+    "generatedAt": "2026-05-21T07:31:54.248Z",
     "source": {
       "manifest": "resources/refactoring/manifest.json",
       "coverageConfig": "evals/guidance-coverage.json"
@@ -58,7 +58,7 @@
           {
             "fixture": "mock-refactor",
             "action": "applied",
-            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070"
+            "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_4689b58f0b"
           }
         ],
         "reservedBy": [],
@@ -450,7 +450,7 @@
       "name": "Guidance clean linked-tests fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 425,
+      "durationMs": 388,
       "provider": "mock",
       "map": {
         "features": 6,
@@ -532,7 +532,7 @@
       "name": "Guidance comments fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 437,
+      "durationMs": 393,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -632,7 +632,7 @@
       "name": "Guidance conditional-complexity fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 424,
+      "durationMs": 393,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -735,7 +735,7 @@
       "name": "Guidance duplicate-code fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 425,
+      "durationMs": 391,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -836,7 +836,7 @@
       "name": "Guidance long-method fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 413,
+      "durationMs": 415,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -939,7 +939,7 @@
       "name": "Guidance long-parameter-list fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 414,
+      "durationMs": 398,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1042,7 +1042,7 @@
       "name": "Guidance message-chain fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 405,
+      "durationMs": 388,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1139,7 +1139,7 @@
       "name": "Guidance middle-man fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 407,
+      "durationMs": 391,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1242,7 +1242,7 @@
       "name": "Guidance missing-tests-only fixture",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 399,
+      "durationMs": 382,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1332,7 +1332,7 @@
       "name": "Mock clean package",
       "ok": true,
       "summary": "0 open finding(s), 0 patch attempt(s)",
-      "durationMs": 403,
+      "durationMs": 413,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1422,7 +1422,7 @@
       "name": "Mock refactoring marker",
       "ok": true,
       "summary": "1 open finding(s), 1 patch attempt(s)",
-      "durationMs": 933,
+      "durationMs": 892,
       "provider": "mock",
       "map": {
         "features": 5,
@@ -1480,7 +1480,7 @@
       "fix": {
         "findingId": "fnd_sig-feat-cli-command-16c639be0f-_e5ae6ae134",
         "status": "applied",
-        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070",
+        "patchAttempt": "pat_fnd-sig-feat-cli-command-16c639b_4689b58f0b",
         "filesChanged": 0,
         "changedFiles": "none",
         "commands": 0,
@@ -1526,7 +1526,7 @@
           "notUsedResources": 0,
           "resourceActions": [
             {
-              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_d0a2361070",
+              "patchAttemptId": "pat_fnd-sig-feat-cli-command-16c639b_4689b58f0b",
               "findingId": null,
               "resourceId": "catalog.dispensables.duplicate-code",
               "action": "applied"
@@ -1567,7 +1567,7 @@
       "name": "Mock simplification marker",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 407,
+      "durationMs": 393,
       "provider": "mock",
       "map": {
         "features": 7,
@@ -1695,7 +1695,7 @@
       "name": "Semantic evidence review candidate",
       "ok": true,
       "summary": "1 open finding(s), 0 patch attempt(s)",
-      "durationMs": 469,
+      "durationMs": 443,
       "provider": "mock",
       "map": {
         "features": 16,
@@ -1782,7 +1782,7 @@
         },
         "guidanceSelection": {
           "audits": 5,
-          "detectedShapes": 6,
+          "detectedShapes": 5,
           "selectedResources": [
             "catalog.bloaters.long-method",
             "techniques.composing-methods.extract-method",
@@ -1797,8 +1797,7 @@
           "supportingResources": [
             "techniques.composing-methods.extract-method",
             "techniques.composing-methods.extract-variable",
-            "techniques.simplifying-conditional-expressions.decompose-conditional",
-            "workflow.trusted-refactor-regression-coverage"
+            "techniques.simplifying-conditional-expressions.decompose-conditional"
           ],
           "detectedShapeNames": [
             "missing-linked-tests",
