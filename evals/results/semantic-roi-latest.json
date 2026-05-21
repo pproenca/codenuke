@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-21T07:33:02.512Z",
-  "startedAt": "2026-05-21T07:32:59.726Z",
+  "generatedAt": "2026-05-21T07:49:25.404Z",
+  "startedAt": "2026-05-21T07:49:22.671Z",
   "cli": "node dist/cli.js",
   "mode": {
     "deterministic": true,
@@ -9,16 +9,20 @@
     "provider": "mock"
   },
   "sealedEvaluator": {
-    "protectedFiles": 405,
+    "protectedFiles": 406,
     "mutationFailures": []
+  },
+  "ledger": {
+    "path": "/Users/pedroproenca/Documents/Projects/codenuke/evals/results/semantic-roi-ledger.jsonl",
+    "appendOnly": true
   },
   "aggregate": {
     "fixtures": 2,
     "passed": 2,
     "failed": 0,
-    "controlScore": 20,
-    "treatmentScore": 170,
-    "scoreDelta": 150,
+    "controlScore": 90,
+    "treatmentScore": 270,
+    "scoreDelta": 180,
     "semanticEvidenceLinks": {
       "control": 0,
       "treatment": 4
@@ -34,11 +38,22 @@
     "revalidationRuns": {
       "control": 0,
       "treatment": 1
+    },
+    "behaviorInvariants": {
+      "fixtures": 1,
+      "controlPassed": 1,
+      "treatmentPassed": 1
+    },
+    "futureChange": {
+      "fixtures": 1,
+      "controlTouchPoints": 2,
+      "treatmentTouchPoints": 1,
+      "touchPointReduction": 1
     }
   },
   "decision": {
     "status": "keep",
-    "reason": "treatment beat control by 150.0 point(s) with no hard constraint failures",
+    "reason": "treatment beat control by 180.0 point(s) with no hard constraint failures",
     "failures": []
   },
   "audit": {
@@ -47,6 +62,8 @@
       "The control run exposes no semantic-neighbor links and produces no finding.",
       "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
       "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
+      "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
+      "Future-change probes measure whether treatment reduces touch points versus control.",
       "The run records hard constraint failures separately from quality metrics."
     ],
     "proxyEvidence": [],
@@ -55,7 +72,7 @@
     ],
     "blockers": [],
     "nextInputs": [
-      "Add optional model-backed repeated samples before claiming live-provider ROI."
+      "Expand the sealed constraint corpus and add optional model-backed repeated samples before claiming live-provider ROI."
     ]
   },
   "results": [
@@ -64,6 +81,28 @@
       "slug": "semantic-evidence-review",
       "name": "Semantic evidence review ROI",
       "description": "Control/treatment ROI fixture proving semantic evidence promotes a sibling formatter refactoring candidate without producing the finding when semantic evidence is disabled.",
+      "constraint": {
+        "enabled": true,
+        "id": "constraint.format-money-duplication",
+        "type": "duplicated-domain-rule",
+        "description": "Changing formatter money display rules requires edits in checkout and invoice formatter slices.",
+        "evidencePaths": [
+          "src/checkout-format/format.ts",
+          "src/invoice-format/format.ts"
+        ],
+        "controlIdentified": false,
+        "treatmentIdentified": true
+      },
+      "expectedTransformation": {
+        "kind": "extract-shared-helper",
+        "description": "Extract duplicated money formatting into one shared formatter helper.",
+        "allowedChangedFiles": [
+          "src/checkout-format/format.ts",
+          "src/invoice-format/format.ts",
+          "src/money-format/format.ts"
+        ],
+        "maxChangedFiles": 3
+      },
       "control": {
         "label": "control",
         "semanticEvidence": false,
@@ -86,7 +125,37 @@
           "items": []
         },
         "fix": null,
-        "revalidate": null
+        "revalidate": null,
+        "behaviorInvariants": [
+          {
+            "name": "formatter outputs stay equivalent",
+            "command": "node behavior/check-format.mjs",
+            "ok": true,
+            "durationMs": 36,
+            "error": null
+          }
+        ],
+        "futureChangeProbe": {
+          "name": "change money display prefix",
+          "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
+          "touchPoints": 2,
+          "changedFiles": [
+            "src/checkout-format/format.ts",
+            "src/invoice-format/format.ts"
+          ],
+          "patchSizeLines": 2,
+          "replacements": 2,
+          "validation": [
+            {
+              "name": "formatter outputs use USD prefix",
+              "command": "node behavior/check-format.mjs",
+              "ok": true,
+              "durationMs": 34,
+              "error": null
+            }
+          ],
+          "validationPassed": true
+        }
       },
       "treatment": {
         "label": "treatment",
@@ -170,7 +239,7 @@
         "fix": {
           "findingId": "fnd_sig-feat-library-4c248019ae-341d_09f37a1c3d",
           "status": "applied",
-          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_d759554e30",
+          "patchAttempt": "pat_fnd-sig-feat-library-4c248019ae-_5321c4fe8a",
           "filesChanged": 3,
           "changedFiles": [
             "src/checkout-format/format.ts",
@@ -181,8 +250,9 @@
           "validation": "none",
           "error": null,
           "files": {
+            "behavior/check-format.mjs": "import { existsSync, readFileSync } from \"node:fs\";\n\nconst expectedPrefix = process.env[\"EXPECTED_MONEY_PREFIX\"] ?? \"$\";\nconst fixtureFiles = [\n  \"src/money-format/format.ts\",\n  \"src/invoice-format/format.ts\",\n  \"src/checkout-format/format.ts\",\n];\n\nconst code = fixtureFiles\n  .filter((path) => existsSync(path))\n  .map((path) => stripTypeScript(readFileSync(path, \"utf8\")))\n  .join(\"\\n\");\n\nconst module = new Function(`${code}\nreturn { formatCheckoutInvoiceSummary, formatInvoiceSummaryRow };\n`)();\n\nconst checkout = module.formatCheckoutInvoiceSummary({\n  invoiceId: \"inv_123\",\n  checkoutId: \"chk_123\",\n  customerName: \"Ava\",\n  subtotalCents: 1200,\n  taxCents: 300,\n});\nconst invoice = module.formatInvoiceSummaryRow({\n  invoiceId: \"inv_123\",\n  accountName: \"Ava\",\n  subtotalCents: 1200,\n  taxCents: 300,\n});\n\nexpectEqual(checkout, `inv_123 | chk_123 | Ava | ${expectedPrefix}15.00`, \"checkout\");\nexpectEqual(invoice, `inv_123 | Ava | ${expectedPrefix}15.00`, \"invoice\");\n\nfunction stripTypeScript(text) {\n  return text\n    .replace(/^import .*;\\n/gmu, \"\")\n    .replace(/export type [\\s\\S]*?\\};\\n\\n/gu, \"\")\n    .replace(/export function/gu, \"function\")\n    .replace(/: (?:CheckoutInvoiceSummary|InvoiceSummaryRow|number|string)/gu, \"\");\n}\n\nfunction expectEqual(actual, expected, label) {\n  if (actual !== expected) {\n    throw new Error(`${label} output mismatch: expected ${expected}, got ${actual}`);\n  }\n}\n",
             "package.json": "{\n  \"name\": \"eval-semantic-evidence-review\",\n  \"type\": \"module\"\n}\n",
-            "src/checkout-format/format.test.ts": "import { formatCheckoutInvoiceSummary } from \"./format.js\";\n\nif (\n  formatCheckoutInvoiceSummary({\n    invoiceId: \"inv_123\",\n    checkoutId: \"chk_123\",\n    customerName: \"Ava\",\n    subtotalCents: 1200,\n    taxCents: 300,\n  }) !== \"TODO_SEMANTIC_REFACTOR | inv_123 | chk_123 | Ava | $15.00\"\n) {\n  throw new Error(\"checkout invoice summary formatting changed\");\n}\n",
+            "src/checkout-format/format.test.ts": "import { formatCheckoutInvoiceSummary } from \"./format.js\";\n\nif (\n  formatCheckoutInvoiceSummary({\n    invoiceId: \"inv_123\",\n    checkoutId: \"chk_123\",\n    customerName: \"Ava\",\n    subtotalCents: 1200,\n    taxCents: 300,\n  }) !== \"inv_123 | chk_123 | Ava | $15.00\"\n) {\n  throw new Error(\"checkout invoice summary formatting changed\");\n}\n",
             "src/checkout-format/format.ts": "import { formatMoney } from \"../money-format/format.js\";\n\nexport type CheckoutInvoiceSummary = {\n  invoiceId: string;\n  checkoutId: string;\n  customerName: string;\n  subtotalCents: number;\n  taxCents: number;\n};\n\nexport function formatCheckoutInvoiceSummary(summary: CheckoutInvoiceSummary): string {\n  const totalCents = summary.subtotalCents + summary.taxCents;\n  return [\n    summary.invoiceId,\n    summary.checkoutId,\n    summary.customerName,\n    formatMoney(totalCents),\n  ].join(\" | \");\n}\n",
             "src/invoice-format/format.ts": "import { formatMoney } from \"../money-format/format.js\";\n\nexport type InvoiceSummaryRow = {\n  invoiceId: string;\n  accountName: string;\n  subtotalCents: number;\n  taxCents: number;\n};\n\nexport function formatInvoiceSummaryRow(row: InvoiceSummaryRow): string {\n  const totalCents = row.subtotalCents + row.taxCents;\n  return [row.invoiceId, row.accountName, formatMoney(totalCents)].join(\" | \");\n}\n",
             "src/money-format/format.ts": "export function formatMoney(cents: number): string {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n",
@@ -205,14 +275,55 @@
           "outcome": "fixed",
           "reasoning": "mock semantic refactor moved both formatter slices to the shared money formatter",
           "error": null
+        },
+        "behaviorInvariants": [
+          {
+            "name": "formatter outputs stay equivalent",
+            "command": "node behavior/check-format.mjs",
+            "ok": true,
+            "durationMs": 50,
+            "error": null
+          }
+        ],
+        "futureChangeProbe": {
+          "name": "change money display prefix",
+          "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
+          "touchPoints": 1,
+          "changedFiles": [
+            "src/money-format/format.ts"
+          ],
+          "patchSizeLines": 1,
+          "replacements": 1,
+          "validation": [
+            {
+              "name": "formatter outputs use USD prefix",
+              "command": "node behavior/check-format.mjs",
+              "ok": true,
+              "durationMs": 34,
+              "error": null
+            }
+          ],
+          "validationPassed": true
         }
+      },
+      "futureChange": {
+        "enabled": true,
+        "name": "change money display prefix",
+        "controlTouchPoints": 2,
+        "treatmentTouchPoints": 1,
+        "touchPointReduction": 1,
+        "ok": true,
+        "hardConstraintFailures": []
       },
       "scores": {
         "control": {
-          "score": 10,
+          "score": 80,
           "reviewScore": 10,
           "fixScore": 0,
           "revalidationScore": 0,
+          "invariantScore": 30,
+          "constraintScore": 0,
+          "futureChangeScore": 40,
           "recall": 0,
           "traceCredit": 0,
           "extraFindings": 0,
@@ -221,10 +332,13 @@
           "ok": true
         },
         "treatment": {
-          "score": 160,
+          "score": 260,
           "reviewScore": 100,
           "fixScore": 40,
           "revalidationScore": 20,
+          "invariantScore": 30,
+          "constraintScore": 30,
+          "futureChangeScore": 40,
           "recall": 1,
           "traceCredit": 1,
           "extraFindings": 0,
@@ -232,7 +346,7 @@
           "hardConstraintFailures": [],
           "ok": true
         },
-        "delta": 150
+        "delta": 180
       },
       "hardConstraintFailures": [],
       "ok": true
@@ -242,6 +356,10 @@
       "slug": "semantic-false-positive-trap",
       "name": "Semantic evidence false-positive trap",
       "description": "Control/treatment ROI fixture proving semantic-neighbor links do not create a finding without local refactoring evidence.",
+      "constraint": {
+        "enabled": false
+      },
+      "expectedTransformation": null,
       "control": {
         "label": "control",
         "semanticEvidence": false,
@@ -264,7 +382,9 @@
           "items": []
         },
         "fix": null,
-        "revalidate": null
+        "revalidate": null,
+        "behaviorInvariants": [],
+        "futureChangeProbe": null
       },
       "treatment": {
         "label": "treatment",
@@ -288,7 +408,14 @@
           "items": []
         },
         "fix": null,
-        "revalidate": null
+        "revalidate": null,
+        "behaviorInvariants": [],
+        "futureChangeProbe": null
+      },
+      "futureChange": {
+        "enabled": false,
+        "ok": true,
+        "hardConstraintFailures": []
       },
       "scores": {
         "control": {
@@ -296,6 +423,9 @@
           "reviewScore": 10,
           "fixScore": 0,
           "revalidationScore": 0,
+          "invariantScore": 0,
+          "constraintScore": 0,
+          "futureChangeScore": 0,
           "recall": 0,
           "traceCredit": 0,
           "extraFindings": 0,
@@ -308,6 +438,9 @@
           "reviewScore": 10,
           "fixScore": 0,
           "revalidationScore": 0,
+          "invariantScore": 0,
+          "constraintScore": 0,
+          "futureChangeScore": 0,
           "recall": 0,
           "traceCredit": 0,
           "extraFindings": 0,

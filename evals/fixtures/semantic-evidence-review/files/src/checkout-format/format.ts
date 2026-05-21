@@ -7,9 +7,9 @@ export type CheckoutInvoiceSummary = {
 };
 
 export function formatCheckoutInvoiceSummary(summary: CheckoutInvoiceSummary): string {
+  // TODO_SEMANTIC_REFACTOR: duplicated money formatting also exists in invoice-format.
   const totalCents = summary.subtotalCents + summary.taxCents;
   return [
-    "TODO_SEMANTIC_REFACTOR",
     summary.invoiceId,
     summary.checkoutId,
     summary.customerName,

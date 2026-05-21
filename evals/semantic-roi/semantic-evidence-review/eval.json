@@ -4,6 +4,56 @@
   "name": "Semantic evidence review ROI",
   "description": "Control/treatment ROI fixture proving semantic evidence promotes a sibling formatter refactoring candidate without producing the finding when semantic evidence is disabled.",
   "files": "../../fixtures/semantic-evidence-review/files",
+  "constraint": {
+    "id": "constraint.format-money-duplication",
+    "type": "duplicated-domain-rule",
+    "description": "Changing formatter money display rules requires edits in checkout and invoice formatter slices.",
+    "evidencePaths": ["src/checkout-format/format.ts", "src/invoice-format/format.ts"]
+  },
+  "behaviorInvariants": [
+    {
+      "name": "formatter outputs stay equivalent",
+      "command": "node behavior/check-format.mjs",
+      "env": {
+        "EXPECTED_MONEY_PREFIX": "$"
+      }
+    }
+  ],
+  "expectedTransformation": {
+    "kind": "extract-shared-helper",
+    "description": "Extract duplicated money formatting into one shared formatter helper.",
+    "allowedChangedFiles": [
+      "src/checkout-format/format.ts",
+      "src/invoice-format/format.ts",
+      "src/money-format/format.ts"
+    ],
+    "maxChangedFiles": 3
+  },
+  "futureChangeProbe": {
+    "name": "change money display prefix",
+    "description": "A representative future change should update both checkout and invoice money output with fewer touch points after the shared formatter exists.",
+    "replacement": {
+      "paths": [
+        "src/checkout-format/format.ts",
+        "src/invoice-format/format.ts",
+        "src/money-format/format.ts"
+      ],
+      "from": "return `$${(cents / 100).toFixed(2)}`;",
+      "to": "return `USD ${(cents / 100).toFixed(2)}`;"
+    },
+    "validation": [
+      {
+        "name": "formatter outputs use USD prefix",
+        "command": "node behavior/check-format.mjs",
+        "env": {
+          "EXPECTED_MONEY_PREFIX": "USD "
+        }
+      }
+    ],
+    "expect": {
+      "touchPointReductionMin": 1
+    }
+  },
   "review": {
     "provider": "mock",
     "limit": 5
@@ -18,7 +68,14 @@
   "expect": {
     "control": {
       "openFindings": 0,
-      "semanticEvidenceLinks": 0
+      "semanticEvidenceLinks": 0,
+      "constraint": {
+        "identified": false
+      },
+      "futureChangeProbe": {
+        "touchPoints": 2,
+        "validationPassed": true
+      }
     },
     "treatment": {
       "openFindings": 1,
@@ -36,6 +93,9 @@
           "mapEvidenceTraceSignal": "format"
         }
       ],
+      "constraint": {
+        "identified": true
+      },
       "fix": {
         "status": "applied",
         "changedFiles": [
@@ -67,6 +127,10 @@
       },
       "revalidate": {
         "outcome": "fixed"
+      },
+      "futureChangeProbe": {
+        "touchPointsMax": 1,
+        "validationPassed": true
       }
     }
   }

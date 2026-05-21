@@ -2,6 +2,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -24,6 +25,9 @@ const resultsPath = resolve(
 );
 const auditPath = resolve(
   process.env["CODENUKE_SEMANTIC_ROI_AUDIT"] ?? join(resultsRoot, "semantic-roi-latest.md"),
+);
+const ledgerPath = resolve(
+  process.env["CODENUKE_SEMANTIC_ROI_LEDGER"] ?? join(resultsRoot, "semantic-roi-ledger.jsonl"),
 );
 
 if (!existsSync(cli)) {
@@ -67,6 +71,10 @@ try {
       protectedFiles: protectedBefore.size,
       mutationFailures,
     },
+    ledger: {
+      path: ledgerPath,
+      appendOnly: true,
+    },
     aggregate,
     decision,
     audit: {
@@ -75,6 +83,8 @@ try {
         "The control run exposes no semantic-neighbor links and produces no finding.",
         "The treatment run exposes semantic-neighbor links and produces a traced Refactoring Finding.",
         "Treatment fixtures can run fix and revalidate through the normal CLI while rejecting test mutation.",
+        "Constraint fixtures run sealed behavior invariants before measuring future-change cost.",
+        "Future-change probes measure whether treatment reduces touch points versus control.",
         "The run records hard constraint failures separately from quality metrics.",
       ],
       proxyEvidence: [],
@@ -84,7 +94,9 @@ try {
       blockers: decision.status === "keep" ? [] : decision.failures,
       nextInputs:
         decision.status === "keep"
-          ? ["Add optional model-backed repeated samples before claiming live-provider ROI."]
+          ? [
+              "Expand the sealed constraint corpus and add optional model-backed repeated samples before claiming live-provider ROI.",
+            ]
           : ["Inspect failed hard constraints or fixture deltas before changing implementation."],
     },
     results,
@@ -93,6 +105,7 @@ try {
   mkdirSync(dirname(resultsPath), { recursive: true });
   writeFileSync(resultsPath, `${JSON.stringify(output, null, 2)}\n`);
   writeFileSync(auditPath, semanticRoiMarkdown(output));
+  appendFileSync(ledgerPath, `${JSON.stringify(semanticRoiLedgerRecord(output))}\n`);
   console.log(
     `semantic-roi decision=${decision.status} scoreDelta=${aggregate.scoreDelta.toFixed(
       1,
@@ -117,6 +130,10 @@ function readFixtureDefinition(name) {
     slug: definition.slug ?? name,
     name: definition.name ?? name,
     description: definition.description ?? "",
+    constraint: definition.constraint ?? null,
+    behaviorInvariants: definition.behaviorInvariants ?? [],
+    expectedTransformation: definition.expectedTransformation ?? null,
+    futureChangeProbe: definition.futureChangeProbe ?? null,
     review: definition.review ?? {},
     fix: definition.fix ?? {},
     revalidate: definition.revalidate ?? {},
@@ -129,9 +146,12 @@ function runRoiFixture(fixture) {
   const treatment = runObservation(fixture, "treatment", true);
   const controlScore = scoreObservation(control, fixture.expect.control ?? {}, "control");
   const treatmentScore = scoreObservation(treatment, fixture.expect.treatment ?? {}, "treatment");
+  const constraint = constraintResult(fixture, control, treatment);
+  const futureChange = futureChangeComparison(fixture, control, treatment);
   const hardConstraintFailures = [
     ...controlScore.hardConstraintFailures,
     ...treatmentScore.hardConstraintFailures,
+    ...futureChange.hardConstraintFailures,
   ].map((failure) => `${fixture.slug}: ${failure}`);
   const scoreDelta = treatmentScore.score - controlScore.score;
   const positiveRoiFixture = (fixture.expect.treatment?.findings ?? []).length > 0;
@@ -141,15 +161,18 @@ function runRoiFixture(fixture) {
     slug: fixture.slug,
     name: fixture.name,
     description: fixture.description,
+    constraint,
+    expectedTransformation: fixture.expectedTransformation,
     control,
     treatment,
+    futureChange,
     scores: {
       control: controlScore,
       treatment: treatmentScore,
       delta: scoreDelta,
     },
     hardConstraintFailures,
-    ok: hardConstraintFailures.length === 0 && fixtureScoreOk,
+    ok: hardConstraintFailures.length === 0 && futureChange.ok && fixtureScoreOk,
   };
 }
 
@@ -190,6 +213,8 @@ function runObservation(fixture, label, semanticEvidence) {
     fix === null && revalidate === null
       ? report
       : parseJson(runCli(worktree, ["report", "--json"], semanticEvidence));
+  const behaviorInvariants = runBehaviorInvariants(worktree, fixture.behaviorInvariants);
+  const futureChangeProbe = runFutureChangeProbe(worktree, fixture.futureChangeProbe);
   return {
     label,
     semanticEvidence,
@@ -213,6 +238,8 @@ function runObservation(fixture, label, semanticEvidence) {
     },
     fix,
     revalidate,
+    behaviorInvariants,
+    futureChangeProbe,
   };
 }
 
@@ -365,12 +392,35 @@ function scoreObservation(observation, expectation, label) {
     label,
     errors,
   );
-  const score = reviewScore + fixScore + revalidationScore;
+  const invariantScore = scoreBehaviorInvariants(observation, label, hardConstraintFailures);
+  const constraintScore = scoreConstraintIdentification(
+    expectation.constraint ?? null,
+    matchedFindings,
+    label,
+    errors,
+  );
+  const futureChangeScore = scoreFutureChangeProbe(
+    observation,
+    expectation.futureChangeProbe ?? null,
+    label,
+    errors,
+    hardConstraintFailures,
+  );
+  const score =
+    reviewScore +
+    fixScore +
+    revalidationScore +
+    invariantScore +
+    constraintScore +
+    futureChangeScore;
   return {
     score,
     reviewScore,
     fixScore,
     revalidationScore,
+    invariantScore,
+    constraintScore,
+    futureChangeScore,
     recall,
     traceCredit,
     extraFindings,
@@ -378,6 +428,32 @@ function scoreObservation(observation, expectation, label) {
     hardConstraintFailures,
     ok: errors.length === 0 && hardConstraintFailures.length === 0,
   };
+}
+
+function scoreBehaviorInvariants(observation, label, hardConstraintFailures) {
+  if (observation.behaviorInvariants.length === 0) {
+    return 0;
+  }
+  const failures = observation.behaviorInvariants.filter((invariant) => !invariant.ok);
+  for (const failure of failures) {
+    hardConstraintFailures.push(
+      `${label} behavior invariant failed: ${failure.name}: ${failure.error}`,
+    );
+  }
+  return failures.length === 0 ? 30 : 0;
+}
+
+function scoreConstraintIdentification(expectation, matchedFindings, label, errors) {
+  if (expectation === null) {
+    return 0;
+  }
+  const identified = matchedFindings > 0;
+  if (typeof expectation.identified === "boolean" && identified !== expectation.identified) {
+    errors.push(
+      `expected ${label} constraint identified=${expectation.identified}, got ${identified}`,
+    );
+  }
+  return identified ? 30 : 0;
 }
 
 function scoreFix(observation, expectation, label, errors, hardConstraintFailures) {
@@ -449,6 +525,51 @@ function scoreRevalidation(observation, expectation, label, errors) {
   return errors.length === 0 ? 20 : 0;
 }
 
+function scoreFutureChangeProbe(observation, expectation, label, errors, hardConstraintFailures) {
+  if (observation.futureChangeProbe !== null) {
+    const changedTests = observation.futureChangeProbe.changedFiles.filter(isTestPath);
+    if (changedTests.length > 0) {
+      hardConstraintFailures.push(
+        `${label} future-change probe changed test file(s): ${changedTests.join(", ")}`,
+      );
+    }
+    for (const validation of observation.futureChangeProbe.validation) {
+      if (!validation.ok) {
+        hardConstraintFailures.push(
+          `${label} future-change validation failed: ${validation.name}: ${validation.error}`,
+        );
+      }
+    }
+  }
+  if (expectation === null) {
+    return 0;
+  }
+  if (observation.futureChangeProbe === null) {
+    errors.push(`expected ${label} future-change probe, got none`);
+    return 0;
+  }
+  const touchPoints = observation.futureChangeProbe.touchPoints;
+  if (typeof expectation.touchPoints === "number" && touchPoints !== expectation.touchPoints) {
+    errors.push(
+      `expected ${label} future-change touch points ${expectation.touchPoints}, got ${touchPoints}`,
+    );
+  }
+  if (typeof expectation.touchPointsMax === "number" && touchPoints > expectation.touchPointsMax) {
+    errors.push(
+      `expected ${label} future-change touch points <= ${expectation.touchPointsMax}, got ${touchPoints}`,
+    );
+  }
+  if (
+    typeof expectation.validationPassed === "boolean" &&
+    observation.futureChangeProbe.validationPassed !== expectation.validationPassed
+  ) {
+    errors.push(
+      `expected ${label} future-change validationPassed=${expectation.validationPassed}, got ${observation.futureChangeProbe.validationPassed}`,
+    );
+  }
+  return errors.length === 0 ? 40 : 0;
+}
+
 function aggregateResults(results) {
   const controlScore = sum(results, (result) => result.scores.control.score);
   const treatmentScore = sum(results, (result) => result.scores.treatment.score);
@@ -474,6 +595,31 @@ function aggregateResults(results) {
     revalidationRuns: {
       control: results.filter((result) => result.control.revalidate !== null).length,
       treatment: results.filter((result) => result.treatment.revalidate !== null).length,
+    },
+    behaviorInvariants: {
+      fixtures: results.filter((result) => result.control.behaviorInvariants.length > 0).length,
+      controlPassed: results.filter(
+        (result) =>
+          result.control.behaviorInvariants.length > 0 &&
+          result.control.behaviorInvariants.every((invariant) => invariant.ok),
+      ).length,
+      treatmentPassed: results.filter(
+        (result) =>
+          result.treatment.behaviorInvariants.length > 0 &&
+          result.treatment.behaviorInvariants.every((invariant) => invariant.ok),
+      ).length,
+    },
+    futureChange: {
+      fixtures: results.filter((result) => result.futureChange.enabled).length,
+      controlTouchPoints: sum(
+        results,
+        (result) => result.control.futureChangeProbe?.touchPoints ?? 0,
+      ),
+      treatmentTouchPoints: sum(
+        results,
+        (result) => result.treatment.futureChangeProbe?.touchPoints ?? 0,
+      ),
+      touchPointReduction: sum(results, (result) => result.futureChange.touchPointReduction ?? 0),
     },
   };
 }
@@ -608,6 +754,171 @@ function snapshotFixtureFiles(root) {
 
 function isTestPath(path) {
   return /(^|\/)(test|tests|__tests__)(\/|$)|(?:^|[._-])(?:test|spec)\.[^/]+$/iu.test(path);
+}
+
+function constraintResult(fixture, control, treatment) {
+  if (fixture.constraint === null) {
+    return { enabled: false };
+  }
+  return {
+    enabled: true,
+    id: fixture.constraint.id ?? null,
+    type: fixture.constraint.type ?? null,
+    description: fixture.constraint.description ?? "",
+    evidencePaths: fixture.constraint.evidencePaths ?? [],
+    controlIdentified: observationIdentifiesConstraint(control, fixture),
+    treatmentIdentified: observationIdentifiesConstraint(treatment, fixture),
+  };
+}
+
+function observationIdentifiesConstraint(observation, fixture) {
+  const expectedFindings = fixture.expect.treatment?.findings ?? [];
+  if (expectedFindings.length > 0) {
+    return expectedFindings.some((expected) =>
+      observation.report.items.some((item) => matchesFinding(item, expected)),
+    );
+  }
+  return observation.report.items.length > 0;
+}
+
+function futureChangeComparison(fixture, control, treatment) {
+  if (fixture.futureChangeProbe === null) {
+    return { enabled: false, ok: true, hardConstraintFailures: [] };
+  }
+  const failures = [];
+  const controlTouchPoints = control.futureChangeProbe?.touchPoints ?? null;
+  const treatmentTouchPoints = treatment.futureChangeProbe?.touchPoints ?? null;
+  const touchPointReduction =
+    controlTouchPoints === null || treatmentTouchPoints === null
+      ? null
+      : controlTouchPoints - treatmentTouchPoints;
+  const expectedReduction = fixture.futureChangeProbe.expect?.touchPointReductionMin ?? 0;
+  if (touchPointReduction === null) {
+    failures.push("future-change probe did not run for both control and treatment");
+  } else if (touchPointReduction < expectedReduction) {
+    failures.push(
+      `expected future-change touch point reduction >= ${expectedReduction}, got ${touchPointReduction}`,
+    );
+  }
+  return {
+    enabled: true,
+    name: fixture.futureChangeProbe.name ?? "future change",
+    controlTouchPoints,
+    treatmentTouchPoints,
+    touchPointReduction,
+    ok: failures.length === 0,
+    hardConstraintFailures: failures,
+  };
+}
+
+function runBehaviorInvariants(worktree, invariants) {
+  return invariants.map((invariant) => runCommandCheck(worktree, invariant));
+}
+
+function runCommandCheck(worktree, check) {
+  const started = Date.now();
+  try {
+    execFileSync("sh", ["-lc", check.command], {
+      cwd: worktree,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...check.env,
+        NO_COLOR: "1",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      name: check.name ?? check.command,
+      command: check.command,
+      ok: true,
+      durationMs: Date.now() - started,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      name: check.name ?? check.command,
+      command: check.command,
+      ok: false,
+      durationMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function runFutureChangeProbe(worktree, probe) {
+  if (probe === null) {
+    return null;
+  }
+  const before = snapshotFixtureFiles(worktree);
+  const replacement = applyProbeReplacement(worktree, probe.replacement);
+  const after = snapshotFixtureFiles(worktree);
+  const changedFiles = changedFilesBetweenSnapshots(before, after);
+  const validation = runBehaviorInvariants(worktree, probe.validation ?? []);
+  return {
+    name: probe.name ?? "future change",
+    description: probe.description ?? "",
+    touchPoints: changedFiles.length,
+    changedFiles,
+    patchSizeLines: changedFiles.reduce(
+      (total, file) => total + changedLineCount(before[file] ?? "", after[file] ?? ""),
+      0,
+    ),
+    replacements: replacement.replacements,
+    validation,
+    validationPassed: validation.every((check) => check.ok),
+  };
+}
+
+function applyProbeReplacement(worktree, replacement) {
+  if (replacement === undefined) {
+    return { replacements: 0 };
+  }
+  let replacements = 0;
+  for (const relativePath of replacement.paths ?? []) {
+    const fullPath = join(worktree, relativePath);
+    if (!existsSync(fullPath)) {
+      continue;
+    }
+    const info = statSync(fullPath);
+    if (info.isDirectory()) {
+      walkFiles(fullPath, (file) => {
+        replacements += replaceInFile(file, replacement.from, replacement.to);
+      });
+    } else if (info.isFile()) {
+      replacements += replaceInFile(fullPath, replacement.from, replacement.to);
+    }
+  }
+  return { replacements };
+}
+
+function replaceInFile(path, from, to) {
+  const before = readFileSync(path, "utf8");
+  const count = before.split(from).length - 1;
+  if (count === 0) {
+    return 0;
+  }
+  writeFileSync(path, before.split(from).join(to));
+  return count;
+}
+
+function changedFilesBetweenSnapshots(before, after) {
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter((path) => before[path] !== after[path])
+    .toSorted();
+}
+
+function changedLineCount(before, after) {
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
+  const length = Math.max(beforeLines.length, afterLines.length);
+  let changed = 0;
+  for (let index = 0; index < length; index += 1) {
+    if (beforeLines[index] !== afterLines[index]) {
+      changed += 1;
+    }
+  }
+  return changed;
 }
 
 function addRelativeFiles(paths, root) {
@@ -802,10 +1113,72 @@ function semanticRoiMarkdown(output) {
       `- treatment fix: ${result.treatment.fix?.status ?? "none"}`,
       `- control revalidation: ${result.control.revalidate?.outcome ?? "none"}`,
       `- treatment revalidation: ${result.treatment.revalidate?.outcome ?? "none"}`,
+      `- constraint: ${result.constraint.enabled ? `${result.constraint.id} (${result.constraint.type})` : "none"}`,
+      `- control constraint identified: ${result.constraint.controlIdentified ?? "n/a"}`,
+      `- treatment constraint identified: ${result.constraint.treatmentIdentified ?? "n/a"}`,
+      `- control behavior invariants: ${passedCount(result.control.behaviorInvariants)}/${result.control.behaviorInvariants.length}`,
+      `- treatment behavior invariants: ${passedCount(result.treatment.behaviorInvariants)}/${result.treatment.behaviorInvariants.length}`,
+      `- control future-change touch points: ${result.control.futureChangeProbe?.touchPoints ?? "none"}`,
+      `- treatment future-change touch points: ${result.treatment.futureChangeProbe?.touchPoints ?? "none"}`,
+      `- future-change touch point reduction: ${result.futureChange.touchPointReduction ?? "none"}`,
       `- score delta: ${result.scores.delta.toFixed(1)}`,
     );
   }
   return `${lines.join("\n")}\n`;
+}
+
+function semanticRoiLedgerRecord(output) {
+  return {
+    schemaVersion: 1,
+    generatedAt: output.generatedAt,
+    decision: output.decision.status,
+    reason: output.decision.reason,
+    aggregate: output.aggregate,
+    fixtures: output.results.map((result) => ({
+      slug: result.slug,
+      ok: result.ok,
+      scoreDelta: result.scores.delta,
+      constraint: result.constraint,
+      control: ledgerObservation(result.control),
+      treatment: ledgerObservation(result.treatment),
+      futureChange: result.futureChange,
+      hardConstraintFailures: result.hardConstraintFailures,
+    })),
+  };
+}
+
+function ledgerObservation(observation) {
+  return {
+    semanticEvidence: observation.semanticEvidence,
+    findings: observation.report.findings,
+    behaviorInvariantPassed: observation.behaviorInvariants.every((check) => check.ok),
+    fix: observation.fix
+      ? {
+          status: observation.fix.status,
+          changedFiles: observation.fix.changedFiles,
+          filesChanged: observation.fix.filesChanged,
+          validation: observation.fix.validation,
+        }
+      : null,
+    revalidation: observation.revalidate
+      ? {
+          outcome: observation.revalidate.outcome,
+          error: observation.revalidate.error,
+        }
+      : null,
+    futureChangeProbe: observation.futureChangeProbe
+      ? {
+          touchPoints: observation.futureChangeProbe.touchPoints,
+          changedFiles: observation.futureChangeProbe.changedFiles,
+          patchSizeLines: observation.futureChangeProbe.patchSizeLines,
+          validationPassed: observation.futureChangeProbe.validationPassed,
+        }
+      : null,
+  };
+}
+
+function passedCount(checks) {
+  return checks.filter((check) => check.ok).length;
 }
 
 function readJson(path) {
