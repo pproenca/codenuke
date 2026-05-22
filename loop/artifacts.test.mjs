@@ -202,4 +202,31 @@ describe("artifact validation", () => {
       reason: "invalid",
     });
   });
+
+  it("rejects a value-proxy validation artifact with impossible rho", () => {
+    const root = fixtureRoot("codenuke-artifacts-proxy-impossible-rho-");
+    initRepo(root);
+    write(
+      root,
+      ".codenuke/value-proxy-validation.json",
+      JSON.stringify({
+        passed: true,
+        reason: null,
+        candidates: 3,
+        minimumCandidates: 3,
+        minimumRho: 0.6,
+        rho: 1.5,
+        rows: [
+          { id: "baseline", proxy: 1, Vhat: 30 },
+          { id: "candidate", proxy: 2, Vhat: 20 },
+          { id: "target", proxy: 3, Vhat: 10 },
+        ],
+      }),
+    );
+
+    expect(valueProxyValidationStatus(config(root))).toMatchObject({
+      usable: false,
+      reason: "invalid",
+    });
+  });
 });

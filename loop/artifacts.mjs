@@ -175,10 +175,15 @@ export function valueProxyValidationStatus(config) {
     artifact.passed !== true ||
     artifact.reason !== null ||
     !nonNegativeInteger(artifact.candidates) ||
-    !nonNegativeInteger(artifact.minimumCandidates) ||
+    !Number.isInteger(artifact.minimumCandidates) ||
+    artifact.minimumCandidates < 2 ||
     artifact.candidates < artifact.minimumCandidates ||
     !finiteNumber(artifact.minimumRho) ||
+    artifact.minimumRho < -1 ||
+    artifact.minimumRho > 1 ||
     !finiteNumber(artifact.rho) ||
+    artifact.rho < -1 ||
+    artifact.rho > 1 ||
     artifact.rho < artifact.minimumRho ||
     !Array.isArray(artifact.rows) ||
     artifact.rows.length !== artifact.candidates ||
