@@ -523,8 +523,9 @@ worktree at `baseline`.
 
 ## Test command selection
 
-Detected, in order: a local `vitest` → `jest` → `mocha` → `ava` binary → `bun test` (if `bun`
-is present) → `<pm> test` (package manager from the lockfile). Override with `CN_TEST`. A
+Detected, in order: a local `vitest` → `jest` → `mocha` → `ava` binary → `bun test` only when
+the repo declares Bun (`bun.lock`, `bun.lockb`, or `packageManager: "bun@..."`) and `bun` is
+present → `<pm> test` (package manager from the lockfile). Override with `CN_TEST`. A
 single-run (non-watch) invocation is preferred; a command that does not terminate is caught by
 the wall-clock timeout and surfaced by `doctor` as "not ready". The typecheck command is
 `tsc -p tsconfig.json --noEmit` if a `tsconfig.json` and a local `tsc` exist, else the type

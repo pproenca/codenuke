@@ -206,11 +206,25 @@ describe("zero-config test command detection", () => {
     expect(config.testCommand).toBe("node_modules/.bin/mocha");
   });
 
-  it("detects bun test before package-manager fallback when bun is on PATH", async () => {
+  it("uses the package-manager test script instead of global bun for non-bun repos", async () => {
     const root = await fixtureRoot("codenuke-bun-test-");
     const bin = await fixtureRoot("codenuke-bun-bin-");
     await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(root, "package.json", JSON.stringify({ scripts: { test: "node test.js" } }));
     await write(root, "pnpm-lock.yaml", "lockfileVersion: '9.0'\n");
+    await write(bin, "bun", "#!/bin/sh\nexit 0\n");
+    chmodSync(join(bin, "bun"), 0o755);
+
+    const config = loadConfig({ PATH: `${bin}:${process.env.PATH ?? ""}` }, root);
+
+    expect(config.testCommand).toBe("pnpm test");
+  });
+
+  it("detects bun test when bun is on PATH and the repo has a bun lockfile", async () => {
+    const root = await fixtureRoot("codenuke-bun-lock-test-");
+    const bin = await fixtureRoot("codenuke-bun-lock-bin-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(root, "bun.lock", "");
     await write(bin, "bun", "#!/bin/sh\nexit 0\n");
     chmodSync(join(bin, "bun"), 0o755);
 

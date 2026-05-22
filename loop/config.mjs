@@ -45,7 +45,12 @@ function detectTestCommand(repo, env = process.env) {
   if (existsSync(`${repo}/node_modules/.bin/jest`)) return "node_modules/.bin/jest";
   if (existsSync(`${repo}/node_modules/.bin/mocha`)) return "node_modules/.bin/mocha";
   if (existsSync(`${repo}/node_modules/.bin/ava`)) return "node_modules/.bin/ava";
-  if (commandAvailable("bun", repo, env)) return "bun test";
+  const pkg = readJson(`${repo}/package.json`);
+  const usesBun =
+    existsSync(`${repo}/bun.lock`) ||
+    existsSync(`${repo}/bun.lockb`) ||
+    String(pkg?.packageManager ?? "").startsWith("bun@");
+  if (usesBun && commandAvailable("bun", repo, env)) return "bun test";
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
