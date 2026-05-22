@@ -79,14 +79,26 @@ function createFixture() {
       2,
     ),
   );
+  write("src/index.ts", sourceWithMutationSites(35));
   write(
-    "src/index.ts",
-    ["export function isPositive(value: number): boolean {", "  return value > 0;", "}", ""].join(
-      "\n",
-    ),
+    "proposer.mjs",
+    [
+      'import { writeFileSync } from "node:fs";',
+      'writeFileSync("src/index.ts", "export const isAbove0 = (value: number): boolean => value > 0;\\n");',
+      "",
+    ].join("\n"),
   );
   run("git", ["add", "."], { cwd: fixtureRoot });
   run("git", ["commit", "-m", "initial"], { cwd: fixtureRoot });
+}
+
+function sourceWithMutationSites(count) {
+  return (
+    Array.from(
+      { length: count },
+      (_, index) => `export const isAbove${index} = (value: number): boolean => value > ${index};`,
+    ).join("\n") + "\n"
+  );
 }
 
 function packAndInstallCli() {
@@ -142,8 +154,12 @@ function assertPackagedCliBasics(bin) {
 
 function assertPackagedLoop(bin) {
   const env = {
-    CN_TEST: 'node -e "process.exit(0)"',
-    CN_PROPOSER: "true",
+    CN_TEST:
+      "node -e \"const fs=require('fs');process.exit(fs.readFileSync('src/index.ts','utf8').includes(' < ')?1:0)\"",
+    CN_PROPOSER: "node proposer.mjs",
+    CN_TAG: `pack-${Date.now()}`,
+    CN_WORKTREE: join(tmp, "worktree"),
+    CN_STATE: join(tmp, "state.json"),
   };
   const initialDoctor = runResult(bin, ["doctor"], { cwd: fixtureRoot, env });
   if (initialDoctor.status !== 2) {
@@ -155,10 +171,15 @@ function assertPackagedLoop(bin) {
     throw new Error("expected doctor to report missing fence artifact");
   }
 
-  run(bin, ["fence", "1", "1337"], { cwd: fixtureRoot, env });
+  const sourceBeforeRun = readFileSync(join(fixtureRoot, "src/index.ts"), "utf8");
+  run(bin, ["fence", "35", "1337"], { cwd: fixtureRoot, env });
   const fence = JSON.parse(readFileSync(join(fixtureRoot, ".codenuke", "fence-fidelity.json")));
-  if (!fence.regions?.src || fence.regions.src.total !== 1) {
-    throw new Error("expected packaged fence to write a src region artifact");
+  if (
+    !fence.regions?.src ||
+    fence.regions.src.total !== 35 ||
+    fence.regions.src.admissible !== true
+  ) {
+    throw new Error("expected packaged fence to write an admissible src region artifact");
   }
 
   run(bin, ["calibrate"], { cwd: fixtureRoot, env });
@@ -174,6 +195,38 @@ function assertPackagedLoop(bin) {
   const readyDoctor = runResult(bin, ["doctor"], { cwd: fixtureRoot, env });
   if (readyDoctor.status !== 0) {
     throw new Error(`expected doctor to report ready, got ${readyDoctor.status}`);
+  }
+
+  run(bin, ["run", "1"], { cwd: fixtureRoot, env });
+  const results = readFileSync(join(fixtureRoot, ".codenuke", "results.tsv"), "utf8");
+  if (!results.includes("\tkeep\t")) {
+    throw new Error("expected packaged run to keep a reduction");
+  }
+  if (results.includes("\traise-skip\t")) {
+    throw new Error("expected packaged run not to hit raise-skip");
+  }
+  if (readFileSync(join(fixtureRoot, "src/index.ts"), "utf8") !== sourceBeforeRun) {
+    throw new Error("expected packaged run to leave user source untouched");
+  }
+  write(
+    ".codenuke/value-proxy.json",
+    JSON.stringify({
+      candidates: [
+        { id: "small", proxy: 1, Vhat: 30 },
+        { id: "medium", proxy: 2, Vhat: 20 },
+        { id: "large", proxy: 3, Vhat: 10 },
+      ],
+    }),
+  );
+  const proxy = runResult(bin, ["validate-proxy"], { cwd: fixtureRoot, env });
+  if (proxy.status !== 0) {
+    throw new Error(`expected packaged validate-proxy to pass, got ${proxy.status}`);
+  }
+  const proxyReport = JSON.parse(
+    readFileSync(join(fixtureRoot, ".codenuke", "value-proxy-validation.json"), "utf8"),
+  );
+  if (proxyReport.passed !== true || proxyReport.rho !== 1) {
+    throw new Error("expected packaged validate-proxy to write a passing Spearman report");
   }
   return { ready: true };
 }

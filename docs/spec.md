@@ -146,6 +146,21 @@ codenuke changecost [ref=baseline]
   (`edit + β·verify`). Use to validate that the inner-loop value proxy tracks real
   change-cost; compare `𝒱̂` before/after a refactor.
 
+### `validate-proxy`
+
+```
+codenuke validate-proxy [path=.codenuke/value-proxy.json]
+```
+
+- Validates the calibrated inner-loop proxy against measured `changecost` results before long
+  unattended runs. Input rows are `{id, proxy, Vhat}` candidates, where higher `proxy` should
+  rank with lower measured `Vhat`.
+- Computes Spearman rho over `proxy` and `-Vhat`, writes
+  `.codenuke/value-proxy-validation.json`, and exits `0` only when the corpus is large enough
+  and rho clears `CN_MIN_RHO` (default `0.6`).
+- This is the empirical bridge from "calibrated proxy" to "trust it on this repo"; it fails
+  closed for too-small corpora, malformed rows, undefined correlation, or low rho.
+
 ### `calibrate`
 
 ```
@@ -210,7 +225,8 @@ loop unrolled.
 
 - **Environment variables**: `CN_REPO`, `CN_SRC`, `CN_TARGET`, `CN_BASE`, `CN_TAG`,
   `CN_REGIONS`, `CN_TEST`, `CN_TYPECHECK`, `CN_FENCE`, `CN_FENCE_LB`, `CN_RESULTS`,
-  `CN_BENCH`, `CN_BETA`, `CN_BUDGET`, `CN_PROPOSER`, `CN_WORKTREE`, `CN_STATE`.
+  `CN_BENCH`, `CN_BETA`, `CN_MIN_RHO`, `CN_MIN_CANDIDATES`, `CN_BUDGET`, `CN_PROPOSER`,
+  `CN_WORKTREE`, `CN_STATE`.
 - **Secrets**: none read by the engine. The proposer (`claude` CLI) uses its own auth; the
   engine never handles credentials.
 
@@ -237,6 +253,7 @@ your-repo/
     calibration.json          #   per-repo value scales (codenuke calibrate)
     results.tsv               #   the loop trajectory log
     changecost.json           #   last change-cost run
+    value-proxy-validation.json # proxy-vs-changecost Spearman report
   codenuke.benchmark/         # committed (the held-out change-cost val-set)
     <id>/meta.json
     <id>/accept.test.ts
@@ -310,6 +327,17 @@ type Calibration = {
   generatedAt: string;
   commitsSampled: number;
   scales: { sL: number; sCx: number; sDup: number }; // per-repo σ of |Δ| per commit
+};
+
+// .codenuke/value-proxy-validation.json  (codenuke validate-proxy)
+type ValueProxyValidation = {
+  passed: boolean;
+  reason: string | null;
+  candidates: number;
+  minimumCandidates: number;
+  minimumRho: number;
+  rho: number | null; // Spearman(proxy, -Vhat)
+  rows: { id: string; proxy: number; Vhat: number }[];
 };
 ```
 
@@ -452,9 +480,10 @@ from the proposer**, so the loop cannot overfit it.
 **Step contract.**
 
 - **Pre:** baseline green; benchmark non-empty.
-- **per δ:** drop the accept test → implement → **gate** (the δ's accept test **and** the full
-  suite green) → measure `edit + β·verify` → revert. **Post:** the worktree is clean after each
-  δ (each δ is measured independently from the same `C`).
+- **per δ:** prompt with the change request, withholding the accept-test body → implement →
+  install the hidden accept test → **gate** (the δ's accept test **and** the full suite green) →
+  measure `edit + β·verify` → revert. **Post:** the worktree is clean after each δ (each δ is
+  measured independently from the same `C`).
 - **Invariant:** correctness is decided only by the hidden accept test; `edit ≥ 0`,
   `verify ∈ [0, 1]`; the same Δ is used across candidates so `𝒱̂` is comparable.
 

@@ -23,6 +23,44 @@ function git(root, args) {
 }
 
 describe("codenuke fence", () => {
+  it("mutates real AST operator tokens but ignores operators in strings and comments", async () => {
+    const root = await fixtureRoot("codenuke-fence-ast-aware-");
+    await write(root, "package.json", JSON.stringify({ name: "fence-ast-aware" }));
+    await write(
+      root,
+      "src/index.ts",
+      [
+        "// comment operators should not count: < > === &&",
+        'export const marker = "string operators should not count: < > === &&";',
+        "export const isLower = (left: number, right: number) => left < right;",
+        "",
+      ].join("\n"),
+    );
+    git(root, ["init"]);
+    git(root, ["config", "user.email", "test@example.com"]);
+    git(root, ["config", "user.name", "Test User"]);
+    git(root, ["config", "commit.gpgsign", "false"]);
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "initial"]);
+
+    const result = spawnSync("node", [cli, "fence", "10", "123"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TAG: `ast-aware-${Date.now()}`,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
+    expect(artifact.regions.src.total).toBe(1);
+    expect(artifact.regions.src.survivorSpecs).toEqual([
+      expect.objectContaining({ rel: "src/index.ts", repl: ">", op: "<→>" }),
+    ]);
+  });
+
   it("keys a flat src artifact to the src region and scans src files", async () => {
     const root = await fixtureRoot("codenuke-fence-flat-");
     await write(root, "package.json", JSON.stringify({ name: "fence-flat" }));
@@ -52,6 +90,53 @@ describe("codenuke fence", () => {
     const artifact = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
     expect(Object.keys(artifact.regions)).toEqual(["src"]);
     expect(artifact.regions.src.total).toBeGreaterThan(0);
+  });
+
+  it("samples the same mutation plan for the same seed", async () => {
+    const root = await fixtureRoot("codenuke-fence-seeded-");
+    await write(root, "package.json", JSON.stringify({ name: "fence-seeded" }));
+    await write(
+      root,
+      "src/index.ts",
+      [
+        "export const isLower = (left: number, right: number) => left < right;",
+        "export const isGreater = (left: number, right: number) => left > right;",
+        "export const isEqual = (left: number, right: number) => left === right;",
+        "",
+      ].join("\n"),
+    );
+    git(root, ["init"]);
+    git(root, ["config", "user.email", "test@example.com"]);
+    git(root, ["config", "user.name", "Test User"]);
+    git(root, ["config", "commit.gpgsign", "false"]);
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "initial"]);
+
+    const env = {
+      ...process.env,
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TAG: `seeded-${Date.now()}`,
+    };
+    const first = spawnSync("node", [cli, "fence", "2", "777"], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    });
+    const firstArtifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"),
+    );
+    const second = spawnSync("node", [cli, "fence", "2", "777"], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    });
+    const secondArtifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"),
+    );
+
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    expect(secondArtifact.regions.src).toEqual(firstArtifact.regions.src);
   });
 
   it("rejects replay when source changed instead of tests only", async () => {

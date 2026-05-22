@@ -81,6 +81,15 @@ export function verifyCost(touchedRegions, fenceArtifact) {
   return touchedRegions.reduce((s, r) => s + (1 - fid(r)), 0) / touchedRegions.length;
 }
 
+export function buildImplementerPrompt(delta, srcDir) {
+  return `Implement this change-request (cwd is the repo root).
+
+## Request
+${delta.prompt}
+
+The hidden acceptance test will be installed at ${delta.acceptPath} after implementation and run with the full suite. Edit ONLY non-test source under ${srcDir}/. Implement for real (no test-specific hacks). When done, stop.`;
+}
+
 // ---------- CLI: run the benchmark ----------
 if (import.meta.url === `file://${process.argv[1]}`) {
   const C = loadConfig();
@@ -89,6 +98,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const REF = process.argv[2] || C.baseline;
   const BETA = Number(process.env.CN_BETA ?? 60);
   const IMPLEMENTER = process.env.CN_IMPLEMENTER;
+  const quote = (value) => JSON.stringify(value);
   const sh = (c, opts = {}) => {
     const r = execSync(c, {
       maxBuffer: 1 << 30,
@@ -110,6 +120,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     shTry(`git -C ${WT} reset --hard HEAD`);
     shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
   };
+  const cleanDirtyPaths = (paths) => {
+    shTry(`git -C ${WT} reset --hard HEAD`);
+    for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
+    shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+  };
+  const dirtyPaths = () =>
+    shTry(`git -C ${WT} status --porcelain`)
+      .out.split("\n")
+      .map((line) => line.slice(3).trim())
+      .filter(Boolean)
+      .map((path) => path.replace(/^.* -> /u, ""))
+      .filter((path) => path !== "node_modules" && !path.startsWith("node_modules/"));
+  const underSrcDir = (path) =>
+    C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
+  const allowedImplementerPath = (path) => underSrcDir(path) && isSourceFile(path);
   const snapshot = () => {
     const m = {};
     for (const f of sh(`git -C ${WT} ls-files ${C.srcDir}`)
@@ -165,9 +190,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const delta of Δ) {
     console.log(`\n--- δ ${delta.id}: ${delta.title} ---`);
     const acceptAbs = `${WT}/${delta.acceptPath}`;
-    mkdirSync(acceptAbs.split("/").slice(0, -1).join("/"), { recursive: true });
-    writeFileSync(acceptAbs, readFileSync(`${delta.dir}/accept.test.ts`, "utf8"));
-    const prompt = `Implement this change-request (cwd is the repo root).\n\n## Request\n${delta.prompt}\n\n## Acceptance test (at ${delta.acceptPath} — DO NOT edit it)\nMake it pass while keeping the existing suite green:\n\n${readFileSync(`${delta.dir}/accept.test.ts`, "utf8")}\n\nEdit ONLY non-test source under ${C.srcDir}/. Implement for real (no test-specific hacks). When done, stop.`;
+    const acceptTest = readFileSync(`${delta.dir}/accept.test.ts`, "utf8");
+    const prompt = buildImplementerPrompt(delta, C.srcDir);
     let impl;
     if (IMPLEMENTER)
       impl = shTry(IMPLEMENTER, {
@@ -188,6 +212,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       cleanWT();
       continue;
     }
+    const disallowed = dirtyPaths().filter((path) => !allowedImplementerPath(path));
+    if (disallowed.length) {
+      console.log(`  implementer touched outside source surface: ${disallowed.join(",")}`);
+      results.push({ id: delta.id, status: "impl-bad-surface", disallowed });
+      cleanDirtyPaths(disallowed);
+      continue;
+    }
+    mkdirSync(acceptAbs.split("/").slice(0, -1).join("/"), { recursive: true });
+    writeFileSync(acceptAbs, acceptTest);
     if (!green()) {
       console.log("  acceptance/suite RED — not done");
       results.push({ id: delta.id, status: "not-done" });

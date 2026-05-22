@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +38,37 @@ function gitOutput(root, args) {
 }
 
 describe("codenuke run", () => {
+  it("aborts before initializing when the fence artifact is missing", () => {
+    const root = fixtureRoot("codenuke-run-no-fence-");
+    const tag = `no-fence-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-no-fence-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-no-fence-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-no-fence" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: "true",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("run `codenuke fence` first");
+    expect(result.stdout).toContain("codenuke doctor");
+    expect(existsSync(worktree)).toBe(false);
+    expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
+  });
+
   it("iterates detected fence regions instead of the default target slug", () => {
     const root = fixtureRoot("codenuke-run-regions-");
     const tag = `regions-${Date.now()}`;
@@ -110,6 +141,7 @@ writeFileSync("src/a/index.ts", "export const value = (input) => input + 3;\\n")
     });
 
     expect(result.status).toBe(0);
+    expect(result.stdout).toContain("→ KEEP");
     const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
     expect(results).toContain("\tkeep\t");
     expect(results).not.toContain("\traise-skip\t");
@@ -190,6 +222,91 @@ writeFileSync("src/b/index.ts", "export const value = (input) => input + 2;\\n")
     expect(result.stdout).toContain("[reduce] b");
     const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
     expect(results).toContain("\tkeep\t");
+  });
+
+  it("rejects and cleans a reduce proposer edit outside the source surface", () => {
+    const root = fixtureRoot("codenuke-run-outside-");
+    const tag = `outside-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-outside-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-outside-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-outside" }));
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const first = input + 1;
+  const second = first + 1;
+  return second;
+}
+`,
+    );
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { mkdirSync, writeFileSync } from "node:fs";
+writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
+mkdirSync("codenuke.benchmark/leak", { recursive: true });
+writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+    expect(results).toContain("proposer touched outside reduce source surface");
+    expect(results).not.toContain("\tkeep\t");
+    expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
   });
 
   it("keeps reductions in the isolated worktree and preserves a dirty user tree", () => {

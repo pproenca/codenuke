@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { loadConfig } from "./config.mjs";
+
 function ranks(values) {
   const sorted = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
   const ranked = Array.from({ length: values.length });
@@ -63,4 +66,56 @@ export function validateValueProxy(candidates, options = {}) {
     rho,
     rows: candidates,
   };
+}
+
+function readCandidates(path) {
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  const rows = Array.isArray(parsed) ? parsed : parsed.candidates;
+  if (!Array.isArray(rows)) throw new Error("expected an array or { candidates: [...] }");
+  return rows.map((row, index) => {
+    const id = row.id ?? `candidate-${index + 1}`;
+    const proxy = Number(row.proxy);
+    const Vhat = Number(row.Vhat);
+    if (!Number.isFinite(proxy) || !Number.isFinite(Vhat)) {
+      throw new Error(`candidate ${id} must include finite proxy and Vhat numbers`);
+    }
+    return { ...row, id, proxy, Vhat };
+  });
+}
+
+function ensureParent(path) {
+  mkdirSync(path.split("/").slice(0, -1).join("/"), { recursive: true });
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const C = loadConfig();
+  const input = process.argv[2] || `${C.repo}/.codenuke/value-proxy.json`;
+  const output = `${C.repo}/.codenuke/value-proxy-validation.json`;
+  if (!existsSync(input)) {
+    console.log(
+      `value proxy candidates missing at ${input}; write candidate rows with {id, proxy, Vhat} from score/changecost runs first.`,
+    );
+    process.exit(1);
+  }
+
+  let report;
+  try {
+    report = validateValueProxy(readCandidates(input), {
+      minimumRho: Number(process.env.CN_MIN_RHO ?? 0.6),
+      minimumCandidates: Number(process.env.CN_MIN_CANDIDATES ?? 3),
+    });
+  } catch (error) {
+    console.log(`value proxy validation input invalid: ${error.message}`);
+    process.exit(1);
+  }
+
+  ensureParent(output);
+  writeFileSync(output, JSON.stringify({ ...report, input }, null, 2));
+  const rho = report.rho == null ? "n/a" : report.rho.toFixed(3);
+  console.log(
+    `value proxy validation: ${report.passed ? "PASS" : "FAIL"} rho=${rho} min=${report.minimumRho} candidates=${report.candidates}/${report.minimumCandidates}`,
+  );
+  if (!report.passed && report.reason) console.log(`reason: ${report.reason}`);
+  console.log(`-> ${output}`);
+  process.exit(report.passed ? 0 : 1);
 }

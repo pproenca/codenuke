@@ -50,13 +50,18 @@ function scoreJson(root, env) {
 }
 
 describe("codenuke scorer operations", () => {
-  it("fails fast with guidance when scoring before init", () => {
+  it.each([
+    ["score", ["score", "--json"]],
+    ["accept", ["accept"]],
+    ["revert", ["revert"]],
+    ["status", ["status"]],
+  ])("fails fast with guidance when %s runs before init", (_name, args) => {
     const root = fixtureRoot("codenuke-score-preflight-");
     initRepo(root);
     write(root, "src/index.ts", "export const value = 1;\n");
     commit(root, "initial");
 
-    const result = runCodenuke(root, ["score", "--json"], {
+    const result = runCodenuke(root, args, {
       CN_TEST: 'node -e "process.exit(0)"',
       CN_STATE: join(root, ".codenuke/missing-state.json"),
       CN_WORKTREE: join(tmpdir(), `codenuke-score-preflight-${Date.now()}`),

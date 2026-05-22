@@ -1,5 +1,22 @@
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { spearmanRho, validateValueProxy } from "./value-proxy.mjs";
+
+const cli = fileURLToPath(new URL("../bin/codenuke.mjs", import.meta.url));
+
+function fixtureRoot(name) {
+  return mkdtempSync(join(tmpdir(), name));
+}
+
+function write(root, path, contents) {
+  const absolute = join(root, path);
+  mkdirSync(absolute.split("/").slice(0, -1).join("/"), { recursive: true });
+  writeFileSync(absolute, contents);
+}
 
 describe("Spearman rho", () => {
   it("detects positive and negative rank correlation", () => {
@@ -35,6 +52,63 @@ describe("value proxy validation", () => {
     ]);
 
     expect(report).toMatchObject({
+      passed: false,
+      reason: "too-small-corpus",
+      candidates: 2,
+    });
+  });
+});
+
+describe("codenuke validate-proxy", () => {
+  it("writes a passing Spearman validation artifact for score/changecost candidates", () => {
+    const root = fixtureRoot("codenuke-validate-proxy-pass-");
+    write(
+      root,
+      ".codenuke/value-proxy.json",
+      JSON.stringify({
+        candidates: [
+          { id: "small", proxy: 1, Vhat: 30 },
+          { id: "medium", proxy: 2, Vhat: 20 },
+          { id: "large", proxy: 3, Vhat: 10 },
+        ],
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "validate-proxy"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("value proxy validation: PASS");
+    expect(artifact).toMatchObject({ passed: true, rho: 1, candidates: 3 });
+  });
+
+  it("fails closed and records why when the candidate corpus is too small", () => {
+    const root = fixtureRoot("codenuke-validate-proxy-small-");
+    write(
+      root,
+      ".codenuke/value-proxy.json",
+      JSON.stringify([
+        { id: "one", proxy: 1, Vhat: 1 },
+        { id: "two", proxy: 2, Vhat: 2 },
+      ]),
+    );
+
+    const result = spawnSync("node", [cli, "validate-proxy"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("value proxy validation: FAIL");
+    expect(artifact).toMatchObject({
       passed: false,
       reason: "too-small-corpus",
       candidates: 2,

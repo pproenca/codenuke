@@ -14,7 +14,7 @@
 
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
-import { loadConfig } from "./config.mjs";
+import { isSourceFile, loadConfig } from "./config.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
@@ -48,6 +48,12 @@ const cleanWT = () => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
 };
+const quote = (value) => JSON.stringify(value);
+const cleanDirtyPaths = (paths) => {
+  shTry(`git -C ${WT} reset --hard HEAD`);
+  for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
+  shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+};
 const perr = (p) => (p.out || "").replace(/\s+/g, " ").slice(-200);
 const loadFence = () => {
   try {
@@ -56,7 +62,18 @@ const loadFence = () => {
     return null;
   }
 };
-const wtDirty = () => shTry(`git -C ${WT} status --porcelain ${C.srcDir}`).out.trim().length > 0;
+const wtDirty = () => shTry(`git -C ${WT} status --porcelain`).out.trim().length > 0;
+const dirtyPaths = () =>
+  shTry(`git -C ${WT} status --porcelain`)
+    .out.split("\n")
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean)
+    .map((path) => path.replace(/^.* -> /u, ""))
+    .filter((path) => path !== "node_modules" && !path.startsWith("node_modules/"));
+const underSrcDir = (path) =>
+  C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
+const allowedReducePath = (path) => underSrcDir(path) && isSourceFile(path);
+const allowedRaisePath = (path) => underSrcDir(path) && /\.(test|spec)\.[jt]sx?$/u.test(path);
 const regionTarget = (regionKey) => {
   if (C.srcDir === ".") return ".";
   if (regionKey === C.srcDir) return `${C.srcDir}/`;
@@ -88,9 +105,26 @@ function chooseRegion(fence) {
     C.region
   );
 }
+function requireRunFence() {
+  const fence = loadFence();
+  if (!fence?.regions || typeof fence.regions !== "object") {
+    console.log(
+      `fence artifact missing or invalid at ${C.fenceArtifact}; run \`codenuke fence\` first, then \`codenuke doctor\`.`,
+    );
+    process.exit(1);
+  }
+  const candidates = inScopeRegions(fence);
+  if (candidates.length === 0) {
+    console.log(
+      `fence artifact has no measured in-scope regions for target ${C.target}; run \`codenuke fence\` for the detected regions, then \`codenuke doctor\`.`,
+    );
+    process.exit(1);
+  }
+  return fence;
+}
 function logRow(...cols) {
   appendFileSync(C.results, cols.join("\t") + "\n");
-  console.log(`  → ${cols[6]?.toUpperCase?.() ?? cols[6]}  ${cols[7] ?? ""}`);
+  console.log(`  → ${cols[7]?.toUpperCase?.() ?? cols[7]}  ${cols[8] ?? ""}`);
 }
 
 function proposer(prompt, regionKey) {
@@ -116,7 +150,8 @@ function raisePrompt(regionKey, specs) {
   return `You are the fence-raising proposer. The region ${regionTarget(regionKey)} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests (colocated test files under ${regionTarget(regionKey)}) that pin the CURRENT behavior so these mutations would be caught. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
 }
 
-// ---- ensure worktree + branch + results ----
+// ---- ensure measured fence, worktree + branch + results ----
+requireRunFence();
 try {
   mkdirSync(C.results.split("/").slice(0, -1).join("/"), { recursive: true });
 } catch {}
@@ -184,12 +219,8 @@ for (let i = 1; i <= N; i++) {
       cleanWT();
       continue;
     }
-    const nonTest = shTry(`git -C ${WT} status --porcelain -- ${C.srcDir}`)
-      .out.split("\n")
-      .map((l) => l.slice(3).trim())
-      .filter(Boolean)
-      .filter((f) => !/\.(test|spec)\.[jt]sx?$/.test(f));
-    if (nonTest.length) {
+    const disallowed = dirtyPaths().filter((path) => !allowedRaisePath(path));
+    if (disallowed.length) {
       logRow(
         i,
         "-",
@@ -199,9 +230,9 @@ for (let i = 1; i <= N; i++) {
         region.p.toFixed(2),
         "-",
         "raise-badtest",
-        `touched non-test source: ${nonTest.join(",")}`,
+        `touched outside raise test surface: ${disallowed.join(",")}`,
       );
-      cleanWT();
+      cleanDirtyPaths(disallowed);
       continue;
     }
     if (!shTry(C.testCommand, { cwd: WT }).ok) {
@@ -269,6 +300,22 @@ for (let i = 1; i <= N; i++) {
       `proposer ${p.killed ? "timeout" : "error"}: ${perr(p)}`,
     );
     cleanWT();
+    continue;
+  }
+  const disallowed = dirtyPaths().filter((path) => !allowedReducePath(path));
+  if (disallowed.length) {
+    logRow(
+      i,
+      "-",
+      0,
+      0,
+      "-",
+      region.p.toFixed(2),
+      "+Inf",
+      "revert",
+      `proposer touched outside reduce source surface: ${disallowed.join(",")}`,
+    );
+    cleanDirtyPaths(disallowed);
     continue;
   }
   const s = shTry(`node ${SCORER} score --json`, { cwd: C.repo });

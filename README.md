@@ -53,15 +53,25 @@ via `CN_PROPOSER`).
 npm install -g codenuke          # or: npx codenuke …
 cd your-repo                     # run from your repo root
 
-# 1. Measure each source region's behavior-fence fidelity (periodic; minutes–hours).
+# 1. Check what codenuke detected and what is still missing.
+codenuke doctor
+
+# 2. Measure each source region's behavior-fence fidelity (periodic; minutes–hours).
 codenuke fence
 
-# 2. Run the loop: propose → score → keep/revert, unattended.
+# 3. Calibrate the value scales for this repo.
+codenuke calibrate
+
+# 4. Run the loop: propose → score → keep/revert, unattended.
 codenuke run 20
 ```
 
-`fence` writes `.codenuke/fence-fidelity.json`; `run` works on a fresh `autoresearch/<tag>`
-branch and logs every iteration to `.codenuke/results.tsv`. Nothing touches your tree.
+The metric path is deliberately staged: hard gates first (`tests`, measured fence, optional
+types, AST-size reduction), then calibrated proxy value/loss, then periodic
+`changecost`/Spearman validation before long unattended runs. `fence` writes
+`.codenuke/fence-fidelity.json`; `calibrate` writes `.codenuke/calibration.json`; `run`
+works on a fresh `autoresearch/<tag>` branch and logs every iteration to
+`.codenuke/results.tsv`. Nothing touches your tree.
 
 ## Configuration
 
@@ -81,7 +91,9 @@ Zero-config by default — codenuke auto-detects everything below. Override via 
 | `tag`              | `CN_TAG`       | `run` (→ branch `autoresearch/run`)                  |
 
 The proposer is also pluggable: `CN_PROPOSER="<shell cmd run in the worktree>"` replaces the
-default `claude -p`.
+default `claude -p`. The default proposer interface has no shell/git tools, and `run`
+rejects proposer edits outside the allowed surface (`srcDir` source for reductions, tests
+for fence-raising).
 
 ## Commands
 
@@ -90,6 +102,9 @@ codenuke fence [cap=60] [seed=1337]   measure per-region behavior-fence fidelity
 codenuke run [iterations=5]           run the loop (propose → score → keep/revert)
 codenuke score [--json]               score the current worktree change
 codenuke changecost [ref]             evaluate change-cost on your benchmark (periodic; advanced)
+codenuke validate-proxy [json]        validate proxy-vs-changecost rank correlation
+codenuke calibrate                    derive per-repo value scales
+codenuke doctor                       report readiness or precise gaps
 codenuke init | accept | revert | status | cleanup
 ```
 
@@ -98,6 +113,23 @@ the real objective — future-change cost. `changecost` _measures_ it: it implem
 held-out benchmark of change-requests (`codenuke.benchmark/<id>/{meta.json,accept.test.ts}`)
 and reports the realized edit + verification cost. Use it to validate that the cheap proxy
 tracks real change cost before trusting long unattended runs. See [`docs/spec.md`](docs/spec.md).
+
+**`validate-proxy` (advanced).** Compare candidate proxy values against their measured
+`changecost` results before long unattended runs:
+
+```json
+{
+  "candidates": [
+    { "id": "candidate-a", "proxy": 1.2, "Vhat": 43.7 },
+    { "id": "candidate-b", "proxy": 2.0, "Vhat": 31.4 },
+    { "id": "candidate-c", "proxy": 2.6, "Vhat": 25.1 }
+  ]
+}
+```
+
+Run `codenuke validate-proxy .codenuke/value-proxy.json`; it writes
+`.codenuke/value-proxy-validation.json` and fails unless Spearman rho clears the configured
+bar (`CN_MIN_RHO`, default `0.6`).
 
 ## How honest is it?
 

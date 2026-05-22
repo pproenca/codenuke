@@ -216,6 +216,7 @@ if (cmd === "init") {
   writeState(st);
   console.log(`accepted (iteration ${st.iter}).`);
 } else if (cmd === "revert") {
+  requireState();
   sh(`git reset --hard HEAD`);
   try {
     sh(`git clean -fdq ${C.srcDir}`);

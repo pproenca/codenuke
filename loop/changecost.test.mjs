@@ -1,10 +1,16 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { tokenize, lcsEditSize, editCost, verifyCost } from "./changecost.mjs";
+import {
+  tokenize,
+  lcsEditSize,
+  editCost,
+  verifyCost,
+  buildImplementerPrompt,
+} from "./changecost.mjs";
 
 const cli = fileURLToPath(new URL("../bin/codenuke.mjs", import.meta.url));
 
@@ -110,7 +116,77 @@ describe("verifyCost — safer = cheaper to verify", () => {
   });
 });
 
+describe("change-cost implementer prompt", () => {
+  it("passes the change request without leaking the hidden acceptance test body", () => {
+    const prompt = buildImplementerPrompt(
+      {
+        prompt: "Add support for .mts files.",
+        acceptPath: "src/ext.accept.test.ts",
+      },
+      "src",
+    );
+
+    expect(prompt).toContain("Add support for .mts files.");
+    expect(prompt).toContain("src/ext.accept.test.ts");
+    expect(prompt).toContain("hidden acceptance test");
+    expect(prompt).not.toContain("expect(");
+    expect(prompt).not.toContain("accepted = true");
+  });
+});
+
 describe("codenuke changecost", () => {
+  it("rejects and cleans implementer edits outside non-test source", () => {
+    const root = fixtureRoot("codenuke-changecost-surface-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-surface" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        region: "src",
+        acceptPath: "src/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-surface-wt-${Date.now()}`);
+    const implementer = join(root, "implementer.mjs");
+    write(
+      root,
+      "implementer.mjs",
+      `
+import { mkdirSync, writeFileSync } from "node:fs";
+writeFileSync("src/index.ts", "export const value = 2;\\n");
+mkdirSync("codenuke.benchmark/leak", { recursive: true });
+writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        CN_WORKTREE: worktree,
+        CN_TAG: `surface-${Date.now()}`,
+      },
+    });
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("implementer touched outside source surface");
+    expect(artifact.results[0].status).toBe("impl-bad-surface");
+    expect(artifact.results[0].disallowed.join("\n")).toContain("codenuke.benchmark/leak");
+    expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
+  });
+
   it("is deterministic with a scripted implementer and favors the deduplicated variant", () => {
     const root = fixtureRoot("codenuke-changecost-");
     initRepo(root);

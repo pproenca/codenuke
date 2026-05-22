@@ -33,6 +33,9 @@ switch (cmd) {
   case "changecost":
     run("changecost.mjs", rest);
     break; // evaluate change-cost on the benchmark (periodic)
+  case "validate-proxy":
+    run("value-proxy.mjs", rest);
+    break; // validate calibrated proxy values against changecost
   case "calibrate":
     run("calibrate.mjs", rest);
     break; // derive per-repo value scales
@@ -59,6 +62,7 @@ usage (run from your repo root):
   codenuke run [iterations=5]           run the loop (propose → score → keep/revert)
   codenuke score [--json]               score the current worktree change
   codenuke changecost [ref]             evaluate change-cost on your benchmark (periodic)
+  codenuke validate-proxy [json]         validate proxy-vs-changecost rank correlation
   codenuke calibrate                    derive per-repo value scales
   codenuke doctor                       report readiness or precise gaps
   codenuke init | accept | revert | status | cleanup
