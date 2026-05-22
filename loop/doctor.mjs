@@ -6,8 +6,9 @@ import { loadConfig, slug } from "./config.mjs";
 
 const C = loadConfig();
 const WT = `${C.worktree}-doctor-${slug(Date.now())}`;
+const COMMAND_TIMEOUT = 300000;
 
-function runOk(command, cwd = C.repo, timeout = 30000) {
+function runOk(command, cwd = C.repo, timeout = COMMAND_TIMEOUT) {
   try {
     execSync(command, {
       cwd,
