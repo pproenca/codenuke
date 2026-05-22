@@ -21,7 +21,7 @@ import {
   rmSync,
   mkdirSync,
 } from "node:fs";
-import { fenceArtifactStatus } from "./artifacts.mjs";
+import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 
@@ -105,11 +105,8 @@ const changedSource = () =>
     .filter(isSourceFile);
 const loadFenceStatus = () => fenceArtifactStatus(C);
 const loadCalibration = () => {
-  try {
-    return JSON.parse(readFileSync(`${C.repo}/.codenuke/calibration.json`, "utf8")).scales;
-  } catch {
-    return null;
-  }
+  const status = calibrationArtifactStatus(C);
+  return status.usable ? status.artifact.scales : null;
 };
 
 function requireState() {
@@ -193,9 +190,11 @@ if (cmd === "init") {
     ? `clear (mfence=${(mfence * 100).toFixed(0)}%)`
     : fenceStatus.stale
       ? "STALE AUDIT (fail-closed)"
-      : fence == null
-        ? "NO AUDIT (fail-closed)"
-        : `blocked: ${blocked.map((r) => `${r}[lo=${((fenceOf(r)?.lo ?? 0) * 100).toFixed(0)}%]`).join(", ")}`;
+      : fenceStatus.artifact
+        ? "INVALID AUDIT (fail-closed)"
+        : fence == null
+          ? "NO AUDIT (fail-closed)"
+          : `blocked: ${blocked.map((r) => `${r}[lo=${((fenceOf(r)?.lo ?? 0) * 100).toFixed(0)}%]`).join(", ")}`;
   console.log(`\n  candidate: ${changed.map((p) => p.replace(C.srcDir + "/", "")).join(", ")}`);
   console.log(
     `  gates: G1 ${Y(G1)}  G1′ ${Y(G1prime)} (${fenceTxt})  G3 ${Y(G3)} (types ${tscNow}/${st.baselineTsc})  G4↓ ${Y(G4)}`,

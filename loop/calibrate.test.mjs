@@ -58,7 +58,11 @@ describe("codenuke calibrate", () => {
 
     expect(first.result.status).toBe(0);
     expect(first.artifact.baseline).toBe("HEAD");
+    expect(first.artifact.baselineSha).toMatch(/^[0-9a-f]{40}$/);
     expect(first.artifact.commitsSampled).toBeGreaterThanOrEqual(1);
+    if (first.artifact.commitsSampled < 3) {
+      expect(first.artifact.scales).toEqual({ sL: 150, sCx: 15, sDup: 5 });
+    }
     expect(first.artifact.scales.sL).toBeGreaterThan(0);
     expect(first.artifact.scales.sCx).toBeGreaterThan(0);
     expect(first.artifact.scales.sDup).toBeGreaterThan(0);

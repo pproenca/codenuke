@@ -139,9 +139,79 @@ describe("codenuke validate-proxy", () => {
     expect(result.stdout).toContain("value proxy validation: FAIL");
     expect(artifact).toMatchObject({
       passed: false,
+      reason: "low-rho",
       rho: -1,
       candidates: 3,
       minimumRho: 0.6,
     });
+  });
+
+  it("fails closed and writes an artifact for malformed candidate rows", () => {
+    const root = fixtureRoot("codenuke-validate-proxy-malformed-");
+    write(
+      root,
+      ".codenuke/value-proxy.json",
+      JSON.stringify({
+        candidates: [{ id: "bad", proxy: null, Vhat: 10 }],
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "validate-proxy"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("value proxy validation input invalid");
+    expect(artifact).toMatchObject({
+      passed: false,
+      reason: "malformed-input",
+      candidates: 0,
+      minimumCandidates: 3,
+      minimumRho: 0.6,
+      rho: null,
+      rows: [],
+    });
+    expect(artifact.error).toContain("candidate bad");
+  });
+
+  it("fails closed and writes an artifact for invalid validation thresholds", () => {
+    const root = fixtureRoot("codenuke-validate-proxy-bad-threshold-");
+    write(
+      root,
+      ".codenuke/value-proxy.json",
+      JSON.stringify({
+        candidates: [
+          { id: "small", proxy: 1, Vhat: 30 },
+          { id: "medium", proxy: 2, Vhat: 20 },
+          { id: "large", proxy: 3, Vhat: 10 },
+        ],
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "validate-proxy"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, CN_MIN_RHO: "not-a-number" },
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("value proxy validation config invalid");
+    expect(artifact).toMatchObject({
+      passed: false,
+      reason: "invalid-config",
+      candidates: 0,
+      minimumCandidates: 3,
+      minimumRho: 0.6,
+      rho: null,
+      rows: [],
+    });
+    expect(artifact.error).toContain("CN_MIN_RHO");
   });
 });

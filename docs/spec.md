@@ -119,8 +119,8 @@ codenuke run [iterations=5]
   iteration budget is spent, the user interrupts, or no in-scope region can be raised or further
   reduced. It is **not** tied to a single region — the loop and the fence share the detected
   region set (see Source & region detection).
-- Requires a fence artifact (run `fence` first) and a green baseline; aborts with a pointer to
-  `doctor` otherwise.
+- Requires a fence artifact (run `fence` first), calibration (run `calibrate`), and a green
+  baseline; aborts with a pointer to `doctor` otherwise.
 - No human in the loop. Kept changes are commits on `autoresearch/<tag>`; every iteration
   appends a row to `.codenuke/results.tsv`.
 - Output: per-iteration `[mode] region fence …` then `[KEEP|REVERT|RAISE|…] description`.
@@ -159,7 +159,8 @@ codenuke validate-proxy [path=.codenuke/value-proxy.json]
   `.codenuke/value-proxy-validation.json`, and exits `0` only when the corpus is large enough
   and rho clears `CN_MIN_RHO` (default `0.6`).
 - This is the empirical bridge from "calibrated proxy" to "trust it on this repo"; it fails
-  closed for too-small corpora, malformed rows, undefined correlation, or low rho.
+  closed for invalid validation config, too-small corpora, malformed rows, undefined
+  correlation, or low rho.
 
 ### `calibrate`
 
@@ -325,6 +326,7 @@ type BenchmarkDelta = {
 // .codenuke/calibration.json  (codenuke calibrate)
 type Calibration = {
   baseline: string;
+  baselineSha?: string; // pinned commit used to detect stale calibration artifacts
   generatedAt: string;
   commitsSampled: number;
   scales: { sL: number; sCx: number; sDup: number }; // per-repo σ of |Δ| per commit

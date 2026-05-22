@@ -57,9 +57,10 @@ export function validateValueProxy(candidates, options = {}) {
     candidates.map((candidate) => candidate.proxy),
     candidates.map((candidate) => -candidate.Vhat),
   );
+  const passed = Number.isFinite(rho) && rho >= minimumRho;
   return {
-    passed: Number.isFinite(rho) && rho >= minimumRho,
-    reason: Number.isFinite(rho) ? null : "undefined-rank-correlation",
+    passed,
+    reason: passed ? null : Number.isFinite(rho) ? "low-rho" : "undefined-rank-correlation",
     candidates: candidates.length,
     minimumCandidates,
     minimumRho,
@@ -68,23 +69,40 @@ export function validateValueProxy(candidates, options = {}) {
   };
 }
 
+function finiteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 function readCandidates(path) {
   const parsed = JSON.parse(readFileSync(path, "utf8"));
   const rows = Array.isArray(parsed) ? parsed : parsed.candidates;
   if (!Array.isArray(rows)) throw new Error("expected an array or { candidates: [...] }");
   return rows.map((row, index) => {
     const id = row.id ?? `candidate-${index + 1}`;
-    const proxy = Number(row.proxy);
-    const Vhat = Number(row.Vhat);
-    if (!Number.isFinite(proxy) || !Number.isFinite(Vhat)) {
+    if (!finiteNumber(row.proxy) || !finiteNumber(row.Vhat)) {
       throw new Error(`candidate ${id} must include finite proxy and Vhat numbers`);
     }
-    return { ...row, id, proxy, Vhat };
+    return { ...row, id };
   });
 }
 
 function ensureParent(path) {
   mkdirSync(path.split("/").slice(0, -1).join("/"), { recursive: true });
+}
+
+function writeReport(path, report) {
+  ensureParent(path);
+  writeFileSync(path, JSON.stringify(report, null, 2));
+}
+
+function validationOptionsFromEnv(env) {
+  const minimumRho = env.CN_MIN_RHO == null ? 0.6 : Number(env.CN_MIN_RHO);
+  const minimumCandidates = env.CN_MIN_CANDIDATES == null ? 3 : Number(env.CN_MIN_CANDIDATES);
+  if (!Number.isFinite(minimumRho) || minimumRho < -1 || minimumRho > 1)
+    throw new Error("CN_MIN_RHO must be a finite number between -1 and 1");
+  if (!Number.isInteger(minimumCandidates) || minimumCandidates < 2)
+    throw new Error("CN_MIN_CANDIDATES must be an integer >= 2");
+  return { minimumRho, minimumCandidates };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -99,18 +117,47 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
 
   let report;
+  let options;
   try {
-    report = validateValueProxy(readCandidates(input), {
-      minimumRho: Number(process.env.CN_MIN_RHO ?? 0.6),
-      minimumCandidates: Number(process.env.CN_MIN_CANDIDATES ?? 3),
-    });
+    options = validationOptionsFromEnv(process.env);
   } catch (error) {
+    report = {
+      passed: false,
+      reason: "invalid-config",
+      candidates: 0,
+      minimumCandidates: 3,
+      minimumRho: 0.6,
+      rho: null,
+      rows: [],
+      input,
+      error: error.message,
+    };
+    writeReport(output, report);
+    console.log(`value proxy validation config invalid: ${error.message}`);
+    console.log(`-> ${output}`);
+    process.exit(1);
+  }
+  try {
+    report = validateValueProxy(readCandidates(input), options);
+  } catch (error) {
+    report = {
+      passed: false,
+      reason: "malformed-input",
+      candidates: 0,
+      minimumCandidates: options.minimumCandidates,
+      minimumRho: options.minimumRho,
+      rho: null,
+      rows: [],
+      input,
+      error: error.message,
+    };
+    writeReport(output, report);
     console.log(`value proxy validation input invalid: ${error.message}`);
+    console.log(`-> ${output}`);
     process.exit(1);
   }
 
-  ensureParent(output);
-  writeFileSync(output, JSON.stringify({ ...report, input }, null, 2));
+  writeReport(output, { ...report, input });
   const rho = report.rho == null ? "n/a" : report.rho.toFixed(3);
   console.log(
     `value proxy validation: ${report.passed ? "PASS" : "FAIL"} rho=${rho} min=${report.minimumRho} candidates=${report.candidates}/${report.minimumCandidates}`,

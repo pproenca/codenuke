@@ -72,7 +72,17 @@ describe("codenuke doctor", () => {
         threshold: 0.9,
         capPerRegion: 60,
         seed: 1337,
-        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
       }),
     );
     write(
@@ -81,7 +91,7 @@ describe("codenuke doctor", () => {
       JSON.stringify({
         baseline: "HEAD",
         generatedAt: "2026-05-22T00:00:00.000Z",
-        commitsSampled: 1,
+        commitsSampled: 3,
         scales: { sL: 1, sCx: 1, sDup: 1 },
       }),
     );
@@ -116,7 +126,17 @@ describe("codenuke doctor", () => {
         threshold: 0.9,
         capPerRegion: 60,
         seed: 1337,
-        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
       }),
     );
     write(
@@ -125,7 +145,7 @@ describe("codenuke doctor", () => {
       JSON.stringify({
         baseline: "HEAD",
         generatedAt: "2026-05-22T00:00:00.000Z",
-        commitsSampled: 1,
+        commitsSampled: 3,
         scales: { sL: 1, sCx: 1, sDup: 1 },
       }),
     );
@@ -145,6 +165,207 @@ describe("codenuke doctor", () => {
     expect(result.stdout).toContain("- fence artifact stale");
   });
 
+  it("reports an internally inconsistent fence artifact as a readiness gap", () => {
+    const root = fixtureRoot("codenuke-doctor-invalid-fence-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: { caught: 0, total: 35, p: 0, lo: 0, hi: 1, admissible: true, survivorSpecs: [] },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TEST: 'node -e "process.exit(0)"',
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toContain("fence: invalid");
+    expect(result.stdout).toContain("- fence artifact invalid");
+  });
+
+  it("reports invalid calibration scales as a readiness gap", () => {
+    const root = fixtureRoot("codenuke-doctor-invalid-calibration-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 1,
+        scales: { sL: 0, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TEST: 'node -e "process.exit(0)"',
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toContain("calibration: invalid");
+    expect(result.stdout).toContain("- calibration invalid");
+  });
+
+  it("reports stale calibration as a readiness gap", () => {
+    const root = fixtureRoot("codenuke-doctor-stale-calibration-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TEST: 'node -e "process.exit(0)"',
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toContain("calibration: stale");
+    expect(result.stdout).toContain("- calibration stale");
+  });
+
+  it("reports non-default insufficient-history calibration as a readiness gap", () => {
+    const root = fixtureRoot("codenuke-doctor-invalid-calibration-provenance-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 0,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TEST: 'node -e "process.exit(0)"',
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toContain("calibration: invalid");
+    expect(result.stdout).toContain("- calibration invalid");
+  });
+
   it("runs readiness commands in an isolated worktree without dirtying the user repo", () => {
     const root = fixtureRoot("codenuke-doctor-isolation-");
     initGreenRepo(root);
@@ -158,7 +379,17 @@ describe("codenuke doctor", () => {
         threshold: 0.9,
         capPerRegion: 60,
         seed: 1337,
-        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
       }),
     );
     write(
@@ -167,7 +398,7 @@ describe("codenuke doctor", () => {
       JSON.stringify({
         baseline: "HEAD",
         generatedAt: "2026-05-22T00:00:00.000Z",
-        commitsSampled: 1,
+        commitsSampled: 3,
         scales: { sL: 1, sCx: 1, sDup: 1 },
       }),
     );

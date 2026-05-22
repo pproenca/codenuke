@@ -82,7 +82,7 @@ Zero-config by default — codenuke auto-detects everything below. Override via 
 | ------------------ | -------------- | ---------------------------------------------------- |
 | `repo`             | `CN_REPO`      | current directory                                    |
 | `srcDir`           | `CN_SRC`       | `src`                                                |
-| `target`           | `CN_TARGET`    | `<srcDir>/` (the region the loop reduces)            |
+| `target`           | `CN_TARGET`    | all detected regions (`<srcDir>/` means no filter)   |
 | `baseline`         | `CN_BASE`      | `HEAD`                                               |
 | `testCommand`      | `CN_TEST`      | vitest / jest / mocha / ava / bun / package test     |
 | `typeCheckCommand` | `CN_TYPECHECK` | `tsc --noEmit` if a `tsconfig.json` exists, else off |

@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { DEFAULT_CALIBRATION_SCALES, MIN_CALIBRATION_COMMITS } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
-
-const DEFAULT_SCALES = { sL: 150, sCx: 15, sDup: 5 };
-const MIN_COMMITS = 3;
 
 const C = loadConfig();
 
@@ -96,26 +94,27 @@ for (const { parent, commit } of commitPairs()) {
   if (delta.dL > 0 || delta.dCx > 0 || delta.dDup > 0) deltas.push(delta);
 }
 
-const enoughHistory = deltas.length >= MIN_COMMITS;
+const enoughHistory = deltas.length >= MIN_CALIBRATION_COMMITS;
 const scales = enoughHistory
   ? {
       sL: positiveScale(
         deltas.map((delta) => delta.dL),
-        DEFAULT_SCALES.sL,
+        DEFAULT_CALIBRATION_SCALES.sL,
       ),
       sCx: positiveScale(
         deltas.map((delta) => delta.dCx),
-        DEFAULT_SCALES.sCx,
+        DEFAULT_CALIBRATION_SCALES.sCx,
       ),
       sDup: positiveScale(
         deltas.map((delta) => delta.dDup),
-        DEFAULT_SCALES.sDup,
+        DEFAULT_CALIBRATION_SCALES.sDup,
       ),
     }
-  : DEFAULT_SCALES;
+  : DEFAULT_CALIBRATION_SCALES;
 
 const artifact = {
   baseline: C.baseline,
+  baselineSha: sh(`git rev-parse --verify ${quote(C.baseline)}`).trim(),
   generatedAt: new Date().toISOString(),
   commitsSampled: deltas.length,
   scales,

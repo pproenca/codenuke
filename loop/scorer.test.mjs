@@ -177,6 +177,147 @@ export const value = (input) => input * 2;
     expect(smallScale.gain).toBeGreaterThan(largeScale.gain);
   });
 
+  it("does not let invalid calibration scales create infinite gain", () => {
+    const root = fixtureRoot("codenuke-score-invalid-calibration-");
+    const worktree = join(tmpdir(), `codenuke-score-invalid-calibration-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-invalid-calibration-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 0, sCx: 0, sDup: 0 },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input * 2;
+`,
+    );
+
+    const score = scoreJson(root, env);
+
+    expect(Number.isFinite(score.gain)).toBe(true);
+    expect(score.gain).toBeLessThan(1);
+  });
+
+  it("does not use calibration scales from a different baseline", () => {
+    const root = fixtureRoot("codenuke-score-stale-calibration-");
+    const worktree = join(tmpdir(), `codenuke-score-stale-calibration-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-stale-calibration-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input * 2;
+`,
+    );
+
+    const score = scoreJson(root, env);
+
+    expect(score.gates).toMatchObject({ G1: true, G1prime: true, G3: true, G4: true });
+    expect(score.gain).toBeLessThan(1);
+  });
+
   it("increases proxy gain when the AST reduction is larger", () => {
     const root = fixtureRoot("codenuke-score-monotonic-");
     const worktree = join(tmpdir(), `codenuke-score-monotonic-wt-${Date.now()}`);
@@ -444,6 +585,137 @@ export const value = (input) => input * 2;
     const score = JSON.parse(line.slice("@@JSON@@".length));
 
     expect(result.stdout).toContain("STALE AUDIT");
+    expect(score.admissible).toBe(false);
+    expect(score.keep).toBe(false);
+    expect(score.loss).toBeNull();
+    expect(score.gates).toMatchObject({ G1: true, G1prime: false, G3: true, G4: true });
+  });
+
+  it("fails closed when the fence admissibility flag contradicts its Wilson lower bound", () => {
+    const root = fixtureRoot("codenuke-score-invalid-fence-");
+    const worktree = join(tmpdir(), `codenuke-score-invalid-fence-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-invalid-fence-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 35,
+            p: 0,
+            lo: 0,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input * 2;
+`,
+    );
+
+    const result = runCodenuke(root, ["score", "--json"], env);
+    const line = result.stdout.split("\n").find((candidate) => candidate.startsWith("@@JSON@@"));
+    const score = JSON.parse(line.slice("@@JSON@@".length));
+
+    expect(result.stdout).toContain("INVALID AUDIT");
+    expect(score.admissible).toBe(false);
+    expect(score.keep).toBe(false);
+    expect(score.loss).toBeNull();
+    expect(score.gates).toMatchObject({ G1: true, G1prime: false, G3: true, G4: true });
+  });
+
+  it("fails closed when the fence artifact was admitted under a weaker threshold", () => {
+    const root = fixtureRoot("codenuke-score-weak-fence-threshold-");
+    const worktree = join(tmpdir(), `codenuke-score-weak-fence-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-weak-fence-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+      CN_FENCE_LB: "0.9",
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.5,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 21,
+            total: 35,
+            p: 0.6,
+            lo: 0.6,
+            hi: 0.8,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input * 2;
+`,
+    );
+
+    const result = runCodenuke(root, ["score", "--json"], env);
+    const line = result.stdout.split("\n").find((candidate) => candidate.startsWith("@@JSON@@"));
+    const score = JSON.parse(line.slice("@@JSON@@".length));
+
+    expect(result.stdout).toContain("INVALID AUDIT");
     expect(score.admissible).toBe(false);
     expect(score.keep).toBe(false);
     expect(score.loss).toBeNull();

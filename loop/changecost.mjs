@@ -20,6 +20,7 @@ import {
   mkdirSync,
 } from "node:fs";
 import ts from "typescript";
+import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 
 // ---------- library: formatting-invariant edit size + verify cost ----------
@@ -165,13 +166,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
     return m;
   };
-  const fence = (() => {
-    try {
-      return JSON.parse(readFileSync(C.fenceArtifact, "utf8"));
-    } catch {
-      return null;
-    }
-  })();
+  const fenceStatus = fenceArtifactStatus(C);
+  const fence = fenceStatus.usable ? fenceStatus.artifact : null;
   const Δ = existsSync(C.benchmarkDir)
     ? readdirSync(C.benchmarkDir, { withFileTypes: true })
         .filter((d) => d.isDirectory())

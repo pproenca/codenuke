@@ -280,6 +280,76 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(existsSync(worktree)).toBe(false);
   });
 
+  it("fails closed to full verification cost when the fence artifact is stale", () => {
+    const root = fixtureRoot("codenuke-changecost-stale-fence-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-stale-fence" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        region: "src",
+        acceptPath: "src/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-stale-wt-${Date.now()}`);
+    const implementer = join(root, "implementer.mjs");
+    write(
+      root,
+      "implementer.mjs",
+      'import { writeFileSync } from "node:fs";\nwriteFileSync("src/index.ts", "export const value = 2;\\n");\n',
+    );
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        CN_WORKTREE: worktree,
+        CN_TAG: `stale-${Date.now()}`,
+        CN_BETA: "10",
+      },
+    });
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+
+    expect(result.status).toBe(0);
+    expect(artifact.results[0]).toMatchObject({ status: "done", verifyFrac: 1 });
+    expect(artifact.results[0].cost).toBe(artifact.results[0].editTokens + 10);
+  });
+
   it("is deterministic with a scripted implementer and favors the deduplicated variant", () => {
     const root = fixtureRoot("codenuke-changecost-");
     initRepo(root);
@@ -327,7 +397,17 @@ export const c = 3 * RATE;
         threshold: 0.9,
         capPerRegion: 60,
         seed: 1337,
-        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
       }),
     );
     const implementer = join(root, "implementer.mjs");

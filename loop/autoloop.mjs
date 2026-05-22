@@ -14,7 +14,7 @@
 
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
-import { fenceArtifactStatus } from "./artifacts.mjs";
+import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
 
 const C = loadConfig();
@@ -120,8 +120,9 @@ function requireRunFence() {
     process.exit(1);
   }
   if (!status.usable) {
+    const label = status.stale ? "stale" : "invalid";
     console.log(
-      `fence artifact is stale for baseline ${C.baseline}; run \`codenuke fence\` first, then \`codenuke doctor\`.`,
+      `fence artifact is ${label} for baseline ${C.baseline}; run \`codenuke fence\` first, then \`codenuke doctor\`.`,
     );
     process.exit(1);
   }
@@ -133,6 +134,22 @@ function requireRunFence() {
     process.exit(1);
   }
   return fence;
+}
+function requireRunCalibration() {
+  const status = calibrationArtifactStatus(C);
+  if (!status.artifact) {
+    console.log(
+      `calibration artifact missing at ${C.repo}/.codenuke/calibration.json; run \`codenuke calibrate\` first, then \`codenuke doctor\`.`,
+    );
+    process.exit(1);
+  }
+  if (!status.usable) {
+    const label = status.stale ? "stale" : "invalid";
+    console.log(
+      `calibration artifact is ${label} for baseline ${C.baseline}; run \`codenuke calibrate\` first, then \`codenuke doctor\`.`,
+    );
+    process.exit(1);
+  }
 }
 function logRow(...cols) {
   appendFileSync(C.results, cols.join("\t") + "\n");
@@ -164,6 +181,7 @@ function raisePrompt(regionKey, specs) {
 
 // ---- ensure measured fence, worktree + branch + results ----
 requireRunFence();
+requireRunCalibration();
 try {
   mkdirSync(C.results.split("/").slice(0, -1).join("/"), { recursive: true });
 } catch {}

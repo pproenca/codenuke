@@ -170,7 +170,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
   return {
     repo,
     srcDir,
-    target, // the region the proposer reduces, e.g. "src/" or "src/mappers/"
+    target, // optional region filter; "<srcDir>/" means all detected regions
     region, // slug of target, used to look up its fence in the artifact
     regions, // all source regions, for the fence audit
     baseline, // git ref to start the run from (HEAD by default)

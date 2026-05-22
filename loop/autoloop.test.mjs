@@ -69,6 +69,60 @@ describe("codenuke run", () => {
     expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
   });
 
+  it("aborts before initializing when calibration is missing", () => {
+    const root = fixtureRoot("codenuke-run-no-calibration-");
+    const tag = `no-calibration-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-no-calibration-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-no-calibration-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-no-calibration" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: "true",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("run `codenuke calibrate` first");
+    expect(result.stdout).toContain("codenuke doctor");
+    expect(existsSync(worktree)).toBe(false);
+    expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
+  });
+
   it("halts when a blocked region has no survivor specs to raise", () => {
     const root = fixtureRoot("codenuke-run-raise-skip-terminal-");
     const tag = `raise-skip-${Date.now()}`;
@@ -99,6 +153,16 @@ describe("codenuke run", () => {
             survivorSpecs: [],
           },
         },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
       }),
     );
 
@@ -413,6 +477,16 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
             survivorSpecs: [{ rel: "src/index.ts", start, end: start + 1, repl: ">", op: "<→>" }],
           },
         },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
       }),
     );
     const proposer = join(root, "proposer.mjs");
