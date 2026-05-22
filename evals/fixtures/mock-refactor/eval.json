@@ -22,14 +22,13 @@
         "category": "maintainability",
         "severity": "low",
         "confidence": "high",
-        "evidencePath": "src/index.ts"
+        "evidencePath": "src/index.ts",
+        "changeScenario": true,
+        "changeScenarioFutureChange": "Change the exported module behavior near the placeholder."
       }
     ],
     "baseline": {
-      "guidanceSelectionAudits": 1,
-      "selectedResources": [],
       "patchAttempts": 1,
-      "guidanceApplications": 1,
       "patchBoundaryUnexpectedFiles": 0,
       "findingsByStatus": {
         "uncertain": 1

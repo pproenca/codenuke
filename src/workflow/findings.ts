@@ -1,11 +1,6 @@
 import { CodenukeError } from "../platform/errors.js";
 import { stableId } from "../platform/id.js";
-import {
-  deriveFindingTriage,
-  FindingRecord,
-  GuidanceTraceEntry,
-  ReviewOutput,
-} from "../platform/types.js";
+import { deriveFindingTriage, FindingRecord, ReviewOutput } from "../platform/types.js";
 import { nowIso } from "../platform/fs.js";
 
 export function mergeFinding(
@@ -50,7 +45,6 @@ export function findingFromOutput(
   finding: ReviewOutput["findings"][number],
   featureId: string,
   currentRunId: string,
-  selectedGuidance: GuidanceTraceEntry[] = [],
 ): FindingRecord {
   const signature = stableId("sig", [
     featureId,
@@ -72,15 +66,7 @@ export function findingFromOutput(
     reasoning: finding.reasoning,
     reproduction: finding.reproduction,
     recommendation: finding.recommendation,
-    whyTestsDoNotAlreadyCoverThis: finding.whyTestsDoNotAlreadyCoverThis,
-    suggestedRegressionTest: finding.suggestedRegressionTest,
-    minimumFixScope: finding.minimumFixScope,
-    candidateTrace: finding.candidateTrace,
-    mapEvidenceTrace: finding.mapEvidenceTrace,
-    guidance: {
-      selected: selectedGuidance,
-      applied: applySelectedGuidanceRoles(finding.guidance.applied, selectedGuidance),
-    },
+    changeScenario: finding.changeScenario,
     status: "open",
     history: [],
     signature,
@@ -89,15 +75,4 @@ export function findingFromOutput(
     createdAt: now,
     updatedAt: now,
   };
-}
-
-function applySelectedGuidanceRoles(
-  applied: GuidanceTraceEntry[],
-  selected: GuidanceTraceEntry[],
-): GuidanceTraceEntry[] {
-  const selectedRoles = new Map(selected.map((entry) => [entry.resourceId, entry.role]));
-  return applied.map((entry) => ({
-    ...entry,
-    role: selectedRoles.get(entry.resourceId) ?? entry.role,
-  }));
 }

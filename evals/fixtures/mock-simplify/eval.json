@@ -15,14 +15,13 @@
         "category": "maintainability",
         "severity": "low",
         "confidence": "high",
-        "evidencePath": "src/index.ts"
+        "evidencePath": "src/index.ts",
+        "changeScenario": true,
+        "changeScenarioFutureChange": "Change the exported module behavior near the marked dead code."
       }
     ],
     "baseline": {
-      "guidanceSelectionAudits": 1,
-      "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
       "patchAttempts": 0,
-      "guidanceApplications": 0,
       "patchBoundaryUnexpectedFiles": 0,
       "findingsByStatus": {
         "open": 1

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
-import { runCliEntrypoint } from "./bootstrap.js";
 import {
   cleanLocksCommand,
   doctorCommand,
@@ -178,24 +177,28 @@ type CommandSpec = {
   globalHelpFlags?: readonly FlagName[];
 };
 
+const providerOptionFlags = [
+  "provider",
+  "model",
+  "reasoningEffort",
+] as const satisfies readonly CommandFlag[];
+const defaultCommandGlobalHelpFlags = ["json"] as const satisfies readonly FlagName[];
+
 const commandRegistry = {
   init: {
     handler: initCommand,
     flags: ["force"],
     usage: ["codenuke init [flags]"],
-    globalHelpFlags: ["json"],
   },
   map: {
     handler: mapCommand,
-    flags: ["source", "provider", "model", "reasoningEffort", "dryRun"],
+    flags: ["source", ...providerOptionFlags, "dryRun"],
     usage: ["codenuke map [flags]"],
-    globalHelpFlags: ["json"],
   },
   status: {
     handler: statusCommand,
     flags: [],
     usage: ["codenuke status [flags]"],
-    globalHelpFlags: ["json"],
   },
   review: {
     handler: reviewCommand,
@@ -205,9 +208,7 @@ const commandRegistry = {
       "limit",
       "since",
       "jobs",
-      "provider",
-      "model",
-      "reasoningEffort",
+      ...providerOptionFlags,
       "ludicrousMode",
       "dryRun",
     ],
@@ -218,20 +219,17 @@ const commandRegistry = {
     handler: reportCommand,
     flags: ["status", "severity", "feature", "project", "category", "triage", "output"],
     usage: ["codenuke report [flags]"],
-    globalHelpFlags: ["json"],
   },
   show: {
     handler: showCommand,
     flags: ["finding"],
     usage: ["codenuke show --finding <id> [flags]"],
     required: ["finding"],
-    globalHelpFlags: ["json"],
   },
   next: {
     handler: nextCommand,
     flags: [{ name: "status", help: "--status <status>  default: open" }, "project"],
     usage: ["codenuke next [flags]"],
-    globalHelpFlags: ["json"],
   },
   triage: {
     handler: triageCommand,
@@ -242,14 +240,12 @@ const commandRegistry = {
     ],
     usage: ["codenuke triage --finding <id> --status <status> [flags]"],
     required: ["finding", "status"],
-    globalHelpFlags: ["json"],
   },
   fix: {
     handler: fixCommand,
-    flags: ["finding", "provider", "model", "reasoningEffort", "dryRun"],
+    flags: ["finding", ...providerOptionFlags, "dryRun"],
     usage: ["codenuke fix --finding <id> [flags]"],
     required: ["finding"],
-    globalHelpFlags: ["json"],
   },
   revalidate: {
     handler: revalidateCommand,
@@ -263,9 +259,7 @@ const commandRegistry = {
       "triage",
       "limit",
       "since",
-      "provider",
-      "model",
-      "reasoningEffort",
+      ...providerOptionFlags,
     ],
     usage: [
       "codenuke revalidate --finding <id> [flags]",
@@ -274,19 +268,16 @@ const commandRegistry = {
     ],
     oneOf: ["finding", "all", "since"],
     oneOfError: "missing --finding, --all, or --since",
-    globalHelpFlags: ["json"],
   },
   doctor: {
     handler: doctorCommand,
-    flags: ["provider", "model", "reasoningEffort"],
+    flags: [...providerOptionFlags],
     usage: ["codenuke doctor [flags]"],
-    globalHelpFlags: ["json"],
   },
   "clean-locks": {
     handler: cleanLocksCommand,
     flags: [],
     usage: ["codenuke clean-locks [flags]"],
-    globalHelpFlags: ["json"],
   },
 } satisfies Record<string, CommandSpec>;
 
@@ -455,10 +446,9 @@ function writeResult(result: unknown, options: GlobalOptions): void {
 function printHelp(command = ""): void {
   if (isKnownCommand(command)) {
     const spec = commandRegistry[command];
-    const flags = [
-      ...spec.flags.map(flagHelp),
-      ...(spec.globalHelpFlags ?? []).map(renderFlagHelp),
-    ];
+    const globalHelpFlags =
+      "globalHelpFlags" in spec ? spec.globalHelpFlags : defaultCommandGlobalHelpFlags;
+    const flags = [...spec.flags.map(flagHelp), ...globalHelpFlags.map(renderFlagHelp)];
     process.stdout.write(`codenuke ${command}
 
 Usage:
@@ -479,7 +469,7 @@ ${flags.map((line) => `  ${line}`).join("\n")}
   ]
     .map((line) => `  ${line}`)
     .join("\n");
-  process.stdout.write(`codenuke: automated code review for reliable, trusted refactoring
+  process.stdout.write(`codenuke: automated code review for concrete issues
 
 Usage:
   codenuke [global flags] <command> [flags]
@@ -491,5 +481,3 @@ Global flags:
 ${globalFlagHelp}
 `);
 }
-
-void runCliEntrypoint(import.meta.url, process.argv, main);

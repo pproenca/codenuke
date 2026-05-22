@@ -1,8 +1,0 @@
-{
-  "name": "guidance-middle-man-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-middle-man": "src/index.ts"
-  },
-  "type": "module"
-}

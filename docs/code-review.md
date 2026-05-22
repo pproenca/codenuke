@@ -56,21 +56,31 @@ count as `lockFiles`.
 
 There is no multi-provider panel yet.
 
-Codenuke's review mission is reliable, trusted refactoring. Providers should
-look for behavior-preserving simplification and complexity-reduction
-opportunities with clear evidence and a small repair path.
+Codenuke's review mission is code reduction through behavior-preserving
+refactoring. Providers should not hunt for bugs. They should look for
+evidence-backed opportunities to delete, merge, or localize code while preserving
+behavior.
 
-Categories requested from the provider:
+The provider should emit `maintainability` findings for code-reduction
+opportunities. Cosmetic cleanup, style preferences, renames, formatting, and
+abstraction churn are not enough.
 
-- `performance`
-- `test-gap`
-- `build-release`
-- `maintainability`
+For each finding, codenuke asks the provider to define a measurable change
+scenario:
 
-Within those categories, codenuke prioritizes `performance` findings for
-algorithmic/render-path complexity and `maintainability` findings for specific,
-behavior-preserving simplifications. `test-gap` and `build-release` are used
-when missing coverage or validation blockers prevent a trusted refactor.
+- future change: the class of change that should become easier
+- current cost: what that change requires today
+- target cost: what it should require after the refactor
+- behavior invariant: what must remain unchanged
+- evidence: included code proving both the current cost and target
+
+This keeps "future change is easier" grounded in cost, risk, delay, locality, or
+blast radius instead of subjective cleanliness.
+
+For larger refactors, use this loop: name systemic friction, map the current
+shape, choose a smaller target shape, protect behavior at boundaries, migrate in
+slices, delete the old shape, rebalance, and repeat only if another measured
+code-reduction scenario remains.
 
 Review does not edit files. Use `codenuke fix --finding <id>` for the explicit
 patch loop.

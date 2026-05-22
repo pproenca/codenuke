@@ -23,14 +23,16 @@ import { mapWithSource } from "../mapping/agent.js";
 import { mapFeatures } from "../mapping/heuristic.js";
 import { emitProgress } from "../platform/progress.js";
 import { providerByName } from "../provider/index.js";
-import { reviewGuidanceDryRun } from "./guidance.js";
-import { guidanceApplicationFailure } from "./guidance-application.js";
 import {
   candidatesForFeature,
   refactoringOpportunityCandidates,
   RefactoringOpportunityCandidate,
 } from "./ludicrous.js";
-import { buildFixPrompt, buildReviewPromptWithGuidance, buildRevalidatePrompt } from "./prompt.js";
+import {
+  buildFixPrompt,
+  buildReviewPromptWithCandidates,
+  buildRevalidatePrompt,
+} from "./prompt.js";
 import { patchBoundaryForFix } from "./patch-boundary.js";
 import {
   evidenceLabel,
@@ -73,7 +75,6 @@ import {
   FeatureRecord,
   FixPlanOutput,
   FindingRecord,
-  GuidanceSelectionAudit,
   LudicrousCandidateAudit,
   PatchAttempt,
   RunRecord,
@@ -262,7 +263,6 @@ export async function reviewCommand(
       featureIds: features.map((feature) => feature.featureId),
       ludicrousMode,
       opportunityCandidates: ludicrousCandidates,
-      guidance: await reviewGuidanceDryRun(loaded.root, features),
     };
   }
   const currentRunId = runId();
@@ -272,7 +272,6 @@ export async function reviewCommand(
   run.ludicrousCandidateAudits = ludicrousCandidateAudits(ludicrousCandidates, features);
   await writeRun(loaded.paths, run);
   const findingIds: string[] = [];
-  const guidanceSelectionAudits: GuidanceSelectionAudit[] = [];
   const errors: Array<{ message: string; code: string | null; error: unknown }> = [];
   const jobs = Math.min(reviewJobs(flags), Math.max(features.length, 1));
   let cursor = 0;
@@ -305,12 +304,7 @@ export async function reviewCommand(
             ludicrousCandidates: candidatesForFeature(feature, ludicrousCandidates),
           });
           findingIds.push(...reviewed.findingIds);
-          guidanceSelectionAudits.push(reviewed.guidanceSelectionAudit);
         } catch (error: unknown) {
-          const audit = guidanceSelectionAuditFromError(error);
-          if (audit !== null) {
-            guidanceSelectionAudits.push(audit);
-          }
           errors.push({
             message: error instanceof Error ? error.message : String(error),
             code: error instanceof CodenukeError ? error.code : null,
@@ -326,7 +320,6 @@ export async function reviewCommand(
       status: "failed",
       finishedAt: nowIso(),
       findingIds,
-      guidanceSelectionAudits,
       ludicrousCandidateAudits: run.ludicrousCandidateAudits,
       errors: errors.map(({ message, code }) => ({ message, code })),
     });
@@ -338,7 +331,6 @@ export async function reviewCommand(
     status: "completed",
     finishedAt: nowIso(),
     findingIds,
-    guidanceSelectionAudits,
     ludicrousCandidateAudits: run.ludicrousCandidateAudits,
   };
   await writeRun(loaded.paths, finished);
@@ -532,9 +524,7 @@ type ReviewFeatureOptions = {
   ludicrousCandidates: RefactoringOpportunityCandidate[];
 };
 
-async function reviewFeature(
-  options: ReviewFeatureOptions,
-): Promise<{ findingIds: string[]; guidanceSelectionAudit: GuidanceSelectionAudit }> {
+async function reviewFeature(options: ReviewFeatureOptions): Promise<{ findingIds: string[] }> {
   const {
     context,
     loaded,
@@ -549,7 +539,6 @@ async function reviewFeature(
   } = options;
   const started = Date.now();
   let locked: FeatureRecord | null = null;
-  let guidanceSelectionAudit: GuidanceSelectionAudit | null = null;
   emitProgress(context, "review", "feature-start", {
     index: index + 1,
     total,
@@ -566,20 +555,17 @@ async function reviewFeature(
       },
     );
     locked = lockedFeature;
-    const { prompt, guidance } = await buildReviewPromptWithGuidance(
+    const { prompt } = await buildReviewPromptWithCandidates(
       loaded.root,
       loaded.project,
       lockedFeature,
       config,
       { ludicrousCandidates },
     );
-    guidanceSelectionAudit = guidance.audit;
     const output = await provider.review(loaded.root, prompt, providerOptions(config));
     const records = output.findings
       .slice(0, config.review.maxFindingsPerFeature)
-      .map((finding) =>
-        findingFromOutput(finding, lockedFeature.featureId, currentRunId, guidance.selected),
-      );
+      .map((finding) => findingFromOutput(finding, lockedFeature.featureId, currentRunId));
     const findingIds: string[] = [];
     for (const finding of records) {
       const existingFinding = await readFinding(loaded.paths, finding.findingId);
@@ -621,7 +607,7 @@ async function reviewFeature(
       findings: findingIds.length,
       elapsed: `${Math.round((Date.now() - started) / 1000)}s`,
     });
-    return { findingIds, guidanceSelectionAudit: guidance.audit };
+    return { findingIds };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if (locked !== null) {
@@ -655,39 +641,8 @@ async function reviewFeature(
       elapsed: `${Math.round((Date.now() - started) / 1000)}s`,
       error: message,
     });
-    throw errorWithGuidanceSelectionAudit(error, guidanceSelectionAudit);
+    throw error;
   }
-}
-
-function errorWithGuidanceSelectionAudit(
-  error: unknown,
-  audit: GuidanceSelectionAudit | null,
-): unknown {
-  if (audit === null || !(error instanceof Error)) {
-    return error;
-  }
-  return Object.assign(error, { guidanceSelectionAudit: audit });
-}
-
-function guidanceSelectionAuditFromError(error: unknown): GuidanceSelectionAudit | null {
-  if (
-    error instanceof Error &&
-    "guidanceSelectionAudit" in error &&
-    isGuidanceSelectionAudit(error.guidanceSelectionAudit)
-  ) {
-    return error.guidanceSelectionAudit;
-  }
-  return null;
-}
-
-function isGuidanceSelectionAudit(value: unknown): value is GuidanceSelectionAudit {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "featureId" in value &&
-    "selected" in value &&
-    "promptHash" in value
-  );
 }
 
 export async function revalidateCommand(
@@ -721,10 +676,7 @@ export async function revalidateCommand(
       });
       const prompt = await buildRevalidatePrompt(loaded.root, JSON.stringify(finding, null, 2));
       const output = await provider.revalidate(loaded.root, prompt, providerOptions(config));
-      const outcome =
-        output.outcome === "fixed" && !output.guidanceAssessment.acceptable
-          ? "uncertain"
-          : output.outcome;
+      const outcome = output.outcome;
       const updated = appendFindingHistory(
         {
           ...finding,
@@ -736,7 +688,7 @@ export async function revalidateCommand(
           kind: "revalidate",
           status: outcome,
           note: null,
-          reasoning: `${output.reasoning}\n\nGuidance assessment: ${output.guidanceAssessment.followed}; acceptable: ${output.guidanceAssessment.acceptable}. ${output.guidanceAssessment.reasoning}`,
+          reasoning: output.reasoning,
           commands: output.commands,
           createdAt: nowIso(),
         },
@@ -838,7 +790,6 @@ export async function fixCommand(
     plan: `Fix ${finding.title}`,
     filesChanged: [],
     failure: null,
-    guidanceApplication: null,
     commandsRun: [],
     testResults: [],
     provider: null,
@@ -860,7 +811,6 @@ export async function fixCommand(
       patchAttempt: patchAttemptId,
       plan: initialPatch.plan,
       validation: validationCommands.length === 0 ? "none" : validationCommands.join("; "),
-      guidance: finding.guidance,
     };
   }
   await writePatchAttempt(loaded.paths, initialPatch);
@@ -876,7 +826,6 @@ export async function fixCommand(
       ...initialPatch,
       status: "failed",
       plan: `${initialPatch.plan}\n\nProvider failed: ${message}`,
-      guidanceApplication: null,
       provider: {
         name: provider.name,
         model: config.provider.model,
@@ -920,7 +869,6 @@ export async function fixCommand(
       commandsRun: [],
       testResults: [],
       failure,
-      guidanceApplication: plan.guidanceApplication,
       provider: {
         name: provider.name,
         model: config.provider.model,
@@ -942,39 +890,6 @@ export async function fixCommand(
     });
     throw new CodenukeError(failure.message, 6, failure.code);
   }
-  const guidanceFailure = guidanceApplicationFailure(finding, plan.guidanceApplication);
-  if (guidanceFailure !== null) {
-    const patch: PatchAttempt = {
-      ...initialPatch,
-      status: "failed",
-      plan: `${plan.summary}\n\n${guidanceFailure.message}`,
-      filesChanged: providerFilesChanged,
-      commandsRun: [],
-      testResults: [],
-      failure: guidanceFailure,
-      guidanceApplication: plan.guidanceApplication,
-      provider: {
-        name: provider.name,
-        model: config.provider.model,
-        reasoningEffort: config.provider.reasoningEffort,
-        requestId: null,
-        startedAt,
-        finishedAt: nowIso(),
-      },
-      updatedAt: nowIso(),
-    };
-    await writePatchAttempt(loaded.paths, patch);
-    await writeFinding(loaded.paths, {
-      ...finding,
-      linkedPatchAttemptIds: Array.from(
-        new Set([...finding.linkedPatchAttemptIds, patchAttemptId]),
-      ),
-      status: "open",
-      updatedAt: nowIso(),
-    });
-    throw new CodenukeError(guidanceFailure.message, 6, guidanceFailure.code);
-  }
-
   const validationCommands = validationCommandsForFeature(feature, config.commands);
   const commandsRun: CommandResult[] = [];
   for (const command of validationCommands) {
@@ -1012,7 +927,6 @@ export async function fixCommand(
     plan: failure === null ? plan.summary : `${plan.summary}\n\n${failure.message}`,
     filesChanged,
     failure,
-    guidanceApplication: plan.guidanceApplication,
     commandsRun,
     testResults: commandsRun,
     provider: {
@@ -1320,7 +1234,6 @@ function newRun(
     claimedFeatureIds: [],
     findingIds: [],
     patchAttemptIds: [],
-    guidanceSelectionAudits: [],
     ludicrousCandidateAudits: [],
     errors: [],
   };

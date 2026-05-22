@@ -1,13 +1,13 @@
 import { FeatureRecord, FindingRecord } from "../platform/types.js";
 
-const trustedRefactorCategories = new Set<FindingRecord["category"]>([
+const categoriesRequiringTestChanges = new Set<FindingRecord["category"]>([
   "maintainability",
   "performance",
   "test-gap",
 ]);
 
 export function requiresChangedTestForFix(finding: FindingRecord, feature: FeatureRecord): boolean {
-  return trustedRefactorCategories.has(finding.category) && feature.tests.length === 0;
+  return categoriesRequiringTestChanges.has(finding.category) && feature.tests.length === 0;
 }
 
 export function missingChangedTestMessage(
@@ -21,7 +21,7 @@ export function missingChangedTestMessage(
   if (changedFiles.some(isTestPath)) {
     return null;
   }
-  return "Provider did not add or update a test file for an uncovered trusted-refactor finding.";
+  return "Provider did not add or update a test file for an uncovered finding.";
 }
 
 export function isTestPath(path: string): boolean {

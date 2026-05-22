@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "reservedResources": [
-    {
-      "resourceId": "catalog.bloaters.data-clumps",
-      "reason": "Reserved until the selector has deterministic data-clump shape evidence; guidance-long-parameters asserts this resource is not selected for a plain long parameter list."
-    }
-  ]
-}

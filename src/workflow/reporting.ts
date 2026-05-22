@@ -17,12 +17,7 @@ export type FindingSummary = {
   }>;
   recommendation: string;
   reproduction: string | null;
-  whyTestsDoNotAlreadyCoverThis: string;
-  suggestedRegressionTest: string | null;
-  minimumFixScope: string;
-  guidance: FindingRecord["guidance"];
-  candidateTrace: FindingRecord["candidateTrace"];
-  mapEvidenceTrace: NonNullable<FindingRecord["mapEvidenceTrace"]>;
+  changeScenario: FindingRecord["changeScenario"];
   next: string;
 };
 
@@ -79,8 +74,6 @@ export function renderFindingDetail(
     recommendation: "always",
     includeReproduction: false,
   });
-  appendCandidateTrace(lines, finding);
-  appendGuidanceTrace(lines, finding);
   if (feature !== null) {
     lines.push("");
     lines.push("owned files:");
@@ -150,15 +143,7 @@ function appendOptionalFindingSections(
   if (options.recommendation === "always" || finding.recommendation.length > 0) {
     appendSection(lines, "recommendation:", finding.recommendation);
   }
-  if (finding.whyTestsDoNotAlreadyCoverThis.length > 0) {
-    appendSection(lines, "test analysis:", finding.whyTestsDoNotAlreadyCoverThis);
-  }
-  if (finding.suggestedRegressionTest !== null && finding.suggestedRegressionTest.length > 0) {
-    appendSection(lines, "suggested regression test:", finding.suggestedRegressionTest);
-  }
-  if (finding.minimumFixScope.length > 0) {
-    appendSection(lines, "minimum fix scope:", finding.minimumFixScope);
-  }
+  appendChangeScenario(lines, finding);
   if (
     options.includeReproduction &&
     finding.reproduction !== null &&
@@ -208,51 +193,26 @@ export function findingSummary(
     })),
     recommendation: finding.recommendation,
     reproduction: finding.reproduction,
-    whyTestsDoNotAlreadyCoverThis: finding.whyTestsDoNotAlreadyCoverThis,
-    suggestedRegressionTest: finding.suggestedRegressionTest,
-    minimumFixScope: finding.minimumFixScope,
-    guidance: finding.guidance,
-    candidateTrace: finding.candidateTrace,
-    mapEvidenceTrace: finding.mapEvidenceTrace ?? [],
+    changeScenario: finding.changeScenario,
     next: `codenuke show --finding ${finding.findingId}`,
   };
 }
 
-function appendCandidateTrace(lines: string[], finding: FindingRecord): void {
-  if (finding.candidateTrace.length === 0) {
+function appendChangeScenario(lines: string[], finding: FindingRecord): void {
+  const scenario = finding.changeScenario;
+  if (scenario === null) {
     return;
   }
   lines.push("");
-  lines.push("candidate trace:");
-  for (const entry of finding.candidateTrace) {
-    lines.push(`- ${entry.candidateId}: ${entry.title} (${entry.source})`);
-    lines.push(`  why: ${entry.reason}`);
-    lines.push(`  use: ${entry.use}`);
-  }
-}
-
-function appendGuidanceTrace(lines: string[], finding: FindingRecord): void {
-  lines.push("");
-  lines.push("guidance:");
-  if (finding.guidance.selected.length === 0 && finding.guidance.applied.length === 0) {
-    lines.push("- none");
-    return;
-  }
-  if (finding.guidance.selected.length > 0) {
-    lines.push("selected:");
-    for (const entry of finding.guidance.selected) {
-      lines.push(`- ${entry.title} (${entry.kind})`);
-      lines.push(`  why: ${entry.reason}`);
-      lines.push(`  use: ${entry.use}`);
-    }
-  }
-  if (finding.guidance.applied.length > 0) {
-    lines.push("applied:");
-    for (const entry of finding.guidance.applied) {
-      lines.push(`- ${entry.title} (${entry.kind})`);
-      lines.push(`  why: ${entry.reason}`);
-      lines.push(`  use: ${entry.use}`);
-    }
+  lines.push("change scenario:");
+  lines.push(`future change: ${scenario.futureChange}`);
+  lines.push(`current cost: ${scenario.currentCost}`);
+  lines.push(`target cost: ${scenario.targetCost}`);
+  lines.push(`behavior invariant: ${scenario.behaviorInvariant}`);
+  lines.push(`cost dimensions: ${scenario.costDimensions.join(", ")}`);
+  lines.push("evidence:");
+  for (const entry of scenario.evidence) {
+    lines.push(`- ${entry}`);
   }
 }
 

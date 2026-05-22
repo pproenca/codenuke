@@ -31,7 +31,7 @@ stderr so pipes stay parseable.
 ## What codenuke does
 
 - **Semantic feature mapping.** Detects npm bins, Next.js routes, React Router routes, Python packages and Flask/FastAPI routes, Ruby/Rails slices, Laravel/PHP slices, Java/Kotlin Gradle modules, Go packages, Rust crates, C/C++ build targets, SwiftPM targets, and common config files as reviewable units.
-- **Trusted refactoring review.** Reviews features with AI providers (Codex CLI today), persists behavior-preserving simplification and complexity-reduction findings with severity, category, and line locations.
+- **Concrete code review.** Reviews features with AI providers (Codex CLI today), persists evidence-backed findings with severity, category, and line locations.
 - **Explicit fix workflow.** `codenuke fix` runs validated patches for one finding at a time, never commits or pushes automatically.
 - **Stable state model.** All features, findings, patches live in `.codenuke/` as JSON, resumable across runs.
 - **Safety first.** Review is read-only, fix refuses dirty worktrees, never auto-commits, validates before accepting patches.

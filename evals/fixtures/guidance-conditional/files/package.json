@@ -1,8 +1,0 @@
-{
-  "name": "guidance-conditional-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-conditional": "src/index.ts"
-  },
-  "type": "module"
-}

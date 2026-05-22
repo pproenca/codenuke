@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -64,7 +56,6 @@ try {
   const bin = packAndInstallCli();
   assertPackagedCliBasics(bin);
   const mapped = assertPackagedMapping(bin);
-  assertPackagedResources();
   console.log(`packaged CLI smoke mapped ${mapped.features} features`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
@@ -195,20 +186,6 @@ function readMappedFeatures(projectRoot) {
   return readdirSync(featureDir).map((file) =>
     JSON.parse(readFileSync(join(featureDir, file), "utf8")),
   );
-}
-
-function assertPackagedResources() {
-  const resourceManifest = join(
-    installRoot,
-    "node_modules",
-    "codenuke",
-    "resources",
-    "refactoring",
-    "manifest.json",
-  );
-  if (!existsSync(resourceManifest)) {
-    throw new Error("expected packaged CLI to include refactoring resources");
-  }
 }
 
 function packFilename(output) {

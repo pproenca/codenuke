@@ -301,37 +301,19 @@ const mockProvider: Provider = {
             reproduction: null,
             recommendation:
               "Extract the shared member-discount rule so changing the rate has one implementation home.",
-            whyTestsDoNotAlreadyCoverThis:
-              "The deterministic fixture covers behavior but does not make the duplicated policy local.",
-            suggestedRegressionTest:
-              "Keep checkout and subscription pricing behavior checks green while extracting the shared policy.",
-            minimumFixScope:
-              "Refactor only checkout pricing, subscription pricing, and the shared pricing rule.",
-            candidateTrace: mockCandidateTrace(prompt),
-            mapEvidenceTrace: [
-              {
-                kind: "semantic-neighbor",
-                source: "identifier-tfidf",
-                targetFeatureId: "mock_pricing_semantic_neighbor",
-                targetTitle: "Node source src/subscription-pricing",
-                score: 0.67,
-                signals: ["pricing", "discount", "total"],
-                reason:
-                  "Identifier vocabulary links checkout pricing to subscription pricing around member discount totals.",
-                use: "Review both pricing slices before choosing a policy extraction boundary.",
-              },
-            ],
-            guidance: {
-              applied: [
-                {
-                  resourceId: "catalog.dispensables.duplicate-code",
-                  title: "Duplicate Code",
-                  kind: "signal",
-                  role: "supporting",
-                  reason: "Semantic map evidence points to a sibling pricing policy.",
-                  use: "Extract only the duplicated pricing rule, not unrelated pricing decisions.",
-                },
+            changeScenario: {
+              futureChange: "Change or add a member-discount pricing rule.",
+              currentCost:
+                "The same pricing rule must be changed in checkout and subscription pricing code.",
+              targetCost:
+                "The pricing rule changes in one shared policy module plus focused policy tests.",
+              behaviorInvariant:
+                "Existing checkout and subscription totals remain unchanged for current inputs.",
+              evidence: [
+                "src/checkout-pricing/price.ts contains TODO_PRICING_RULE_REFACTOR",
+                "semantic map evidence links the checkout and subscription pricing slices",
               ],
+              costDimensions: ["change-amplification", "blast-radius", "verification-cost"],
             },
           },
         ],
@@ -374,37 +356,19 @@ const mockProvider: Provider = {
             reproduction: null,
             recommendation:
               "Inspect the sibling invoice formatter and unify the shared summary formatting behavior.",
-            whyTestsDoNotAlreadyCoverThis:
-              "The deterministic fixture checks candidate discovery, not runtime formatting behavior.",
-            suggestedRegressionTest:
-              "Add a shared formatter test that covers checkout and invoice summary rows.",
-            minimumFixScope:
-              "Refactor only the checkout and invoice formatter helpers plus their focused tests.",
-            candidateTrace: mockCandidateTrace(prompt),
-            mapEvidenceTrace: [
-              {
-                kind: "semantic-neighbor",
-                source: "identifier-tfidf",
-                targetFeatureId: "mock_semantic_neighbor",
-                targetTitle: "Node source src/invoice-format",
-                score: 0.64,
-                signals: ["format", "invoice", "summary"],
-                reason:
-                  "Identifier vocabulary links checkout summary formatting to the invoice formatter slice.",
-                use: "Review both formatter slices before choosing a refactoring boundary.",
-              },
-            ],
-            guidance: {
-              applied: [
-                {
-                  resourceId: "catalog.dispensables.duplicate-code",
-                  title: "Duplicate Code",
-                  kind: "signal",
-                  role: "supporting",
-                  reason: "Semantic map evidence points to a sibling implementation to compare.",
-                  use: "Unify duplicated formatter behavior only after checking both slices.",
-                },
+            changeScenario: {
+              futureChange: "Change invoice summary formatting.",
+              currentCost:
+                "The formatting rule must be found and changed in both checkout and invoice formatter slices.",
+              targetCost:
+                "The formatting rule changes in one shared formatter helper plus focused formatter tests.",
+              behaviorInvariant:
+                "Existing checkout and invoice summary output remains unchanged for current inputs.",
+              evidence: [
+                "src/checkout-format/format.ts contains TODO_SEMANTIC_REFACTOR",
+                "semantic map evidence links the checkout and invoice formatter slices",
               ],
+              costDimensions: ["change-amplification", "coupling", "verification-cost"],
             },
           },
         ],
@@ -435,22 +399,16 @@ const mockProvider: Provider = {
             reasoning: "Mock provider found an explicit simplification marker.",
             reproduction: null,
             recommendation: "Remove the marked dead code while preserving exported behavior.",
-            whyTestsDoNotAlreadyCoverThis:
-              "Mock fixtures do not encode this marker as required runtime behavior.",
-            suggestedRegressionTest: "Run the focused tests after removing the marked code.",
-            minimumFixScope: "Remove only the marked simplification target.",
-            candidateTrace: mockCandidateTrace(prompt),
-            guidance: {
-              applied: [
-                {
-                  resourceId: "catalog.dispensables.speculative-generality",
-                  title: "Speculative Generality",
-                  kind: "signal",
-                  role: "supporting",
-                  reason: "The mock simplification marker represents unnecessary code.",
-                  use: "Remove only code proven unnecessary by the fixture marker.",
-                },
-              ],
+            changeScenario: {
+              futureChange: "Change the exported module behavior near the marked dead code.",
+              currentCost:
+                "A maintainer must inspect the marker and surrounding code before deciding whether it is active behavior.",
+              targetCost:
+                "The same change can be made against only live exported behavior and focused tests.",
+              behaviorInvariant:
+                "The module's current exports remain unchanged after removing the marker.",
+              evidence: ["src/index.ts contains TODO_SIMPLIFY"],
+              costDimensions: ["cognitive-load", "verification-cost", "rework-risk"],
             },
           },
         ],
@@ -479,22 +437,16 @@ const mockProvider: Provider = {
           reasoning: "Mock provider found an explicit refactoring marker.",
           reproduction: null,
           recommendation: "Remove the placeholder while preserving exported behavior.",
-          whyTestsDoNotAlreadyCoverThis:
-            "Mock fixtures do not encode this marker as required runtime behavior.",
-          suggestedRegressionTest: "Run the focused tests after removing the marked code.",
-          minimumFixScope: "Remove only the marked refactoring target.",
-          candidateTrace: mockCandidateTrace(prompt),
-          guidance: {
-            applied: [
-              {
-                resourceId: "catalog.dispensables.duplicate-code",
-                title: "Duplicate Code",
-                kind: "signal",
-                role: "supporting",
-                reason: "Mock refactoring findings include a placeholder guidance trace.",
-                use: "Use the trace only as schema-compatible mock output.",
-              },
-            ],
+          changeScenario: {
+            futureChange: "Change the exported module behavior near the placeholder.",
+            currentCost:
+              "A maintainer must inspect the placeholder before separating real behavior from scaffolding.",
+            targetCost:
+              "The same change can be made against only live exported behavior and focused tests.",
+            behaviorInvariant:
+              "The module's current exports remain unchanged after removing the placeholder.",
+            evidence: ["src/index.ts contains TODO_REFACTOR"],
+            costDimensions: ["cognitive-load", "verification-cost", "reversibility"],
           },
         },
       ],
@@ -514,17 +466,6 @@ const mockProvider: Provider = {
         ],
         risk: "low",
         steps: ["extract shared member discount policy", "reuse it from pricing slices"],
-        guidanceApplication: {
-          appliedResources: [
-            {
-              resourceId: "catalog.dispensables.duplicate-code",
-              action: "applied",
-              reasoning: "Mock provider unified the duplicated member discount pricing rule.",
-            },
-          ],
-          deviations: [],
-          risk: "low",
-        },
         validationCommands: [],
       };
     }
@@ -540,46 +481,20 @@ const mockProvider: Provider = {
         ],
         risk: "low",
         steps: ["extract shared money formatter", "reuse it from checkout and invoice formatters"],
-        guidanceApplication: {
-          appliedResources: [
-            {
-              resourceId: "catalog.dispensables.duplicate-code",
-              action: "applied",
-              reasoning: "Mock provider unified the duplicated money formatter helper.",
-            },
-          ],
-          deviations: [],
-          risk: "low",
-        },
         validationCommands: [],
       };
     }
-    const appliedResources = [
-      "catalog.dispensables.duplicate-code",
-      "catalog.dispensables.speculative-generality",
-    ]
-      .filter((resourceId) => prompt.includes(resourceId))
-      .map((resourceId) => ({
-        resourceId,
-        action: "applied" as const,
-        reasoning: "Mock provider accounted for the prompted guidance resource.",
-      }));
     return {
       summary: "mock fix plan",
       findingIds: [],
       plannedFiles: [],
       risk: "low",
       steps: ["mock"],
-      guidanceApplication: {
-        appliedResources,
-        deviations: [],
-        risk: "low",
-      },
       validationCommands: ["touch SHOULD_NOT_RUN_PROVIDER_COMMANDS"],
     };
   },
   async revalidate(root: string, prompt: string): Promise<RevalidateOutput> {
-    if (prompt.includes("TODO_PRICING_RULE_REFACTOR") && prompt.includes("mapEvidenceTrace")) {
+    if (prompt.includes("TODO_PRICING_RULE_REFACTOR")) {
       const [checkout, subscription, shared] = await Promise.all([
         readFile(join(root, "src/checkout-pricing/price.ts"), "utf8").catch(() => ""),
         readFile(join(root, "src/subscription-pricing/price.ts"), "utf8").catch(() => ""),
@@ -595,18 +510,10 @@ const mockProvider: Provider = {
         reasoning: fixed
           ? "mock pricing refactor moved the member discount rule to a shared policy module"
           : "mock pricing evidence still shows duplicated or unresolved member discount policy",
-        guidanceAssessment: {
-          followed: fixed ? "yes" : "partially",
-          reasoning: fixed
-            ? "The duplicate-code guidance was followed without broadening beyond the traced pricing slices."
-            : "The semantic sibling pricing risk remains unresolved.",
-          deviations: [],
-          acceptable: true,
-        },
         commands: ["mock pricing revalidation"],
       };
     }
-    if (prompt.includes("TODO_SEMANTIC_REFACTOR") && prompt.includes("mapEvidenceTrace")) {
+    if (prompt.includes("TODO_SEMANTIC_REFACTOR")) {
       const [checkout, invoice, shared] = await Promise.all([
         readFile(join(root, "src/checkout-format/format.ts"), "utf8").catch(() => ""),
         readFile(join(root, "src/invoice-format/format.ts"), "utf8").catch(() => ""),
@@ -622,14 +529,6 @@ const mockProvider: Provider = {
         reasoning: fixed
           ? "mock semantic refactor moved both formatter slices to the shared money formatter"
           : "mock semantic refactor evidence still shows duplicated or unresolved formatter code",
-        guidanceAssessment: {
-          followed: fixed ? "yes" : "partially",
-          reasoning: fixed
-            ? "The duplicate-code guidance was followed without broadening beyond the traced formatter slices."
-            : "The semantic sibling formatter risk remains unresolved.",
-          deviations: [],
-          acceptable: true,
-        },
         commands: ["mock semantic revalidation"],
       };
     }
@@ -637,12 +536,6 @@ const mockProvider: Provider = {
       return {
         outcome: "fixed",
         reasoning: "mock fixed outcome",
-        guidanceAssessment: {
-          followed: "yes",
-          reasoning: "mock guidance acceptable",
-          deviations: [],
-          acceptable: true,
-        },
         commands: ["mock fixed"],
       };
     }
@@ -650,12 +543,6 @@ const mockProvider: Provider = {
       return {
         outcome: "open",
         reasoning: "mock open outcome",
-        guidanceAssessment: {
-          followed: "partially",
-          reasoning: "mock guidance still unresolved",
-          deviations: [],
-          acceptable: true,
-        },
         commands: ["mock open"],
       };
     }
@@ -663,24 +550,12 @@ const mockProvider: Provider = {
       return {
         outcome: "false-positive",
         reasoning: "mock false-positive outcome",
-        guidanceAssessment: {
-          followed: "not-applicable",
-          reasoning: "mock false positive",
-          deviations: [],
-          acceptable: true,
-        },
         commands: ["mock false-positive"],
       };
     }
     return {
       outcome: "uncertain",
       reasoning: "mock provider cannot inspect fixes",
-      guidanceAssessment: {
-        followed: "not-applicable",
-        reasoning: "mock provider did not assess guidance",
-        deviations: [],
-        acceptable: true,
-      },
       commands: [],
     };
   },
@@ -780,31 +655,6 @@ async function writePricingRuleRefactor(root: string): Promise<void> {
       "",
     ].join("\n"),
   );
-}
-
-function mockCandidateTrace(prompt: string): ReviewOutput["findings"][number]["candidateTrace"] {
-  const candidate = prompt.match(
-    /"candidateId":\s*"([^"]+)"[\s\S]{0,300}?"title":\s*"([^"]+)"[\s\S]{0,300}?"source":\s*"([^"]+)"/u,
-  );
-  const candidateId = candidate?.[1];
-  const title = candidate?.[2];
-  const source = candidate?.[3];
-  if (
-    candidateId === undefined ||
-    title === undefined ||
-    (source !== "lexical-phrase" && source !== "tfidf-file-similarity")
-  ) {
-    return [];
-  }
-  return [
-    {
-      candidateId,
-      source,
-      title,
-      reason: "Mock provider linked the first supplied ludicrous candidate to this finding.",
-      use: "Use this candidate trace only as schema-compatible mock attribution.",
-    },
-  ];
 }
 
 const mockFailProvider: Provider = {
@@ -916,11 +766,11 @@ function stripPromptJsonSchema(prompt: string): string {
     `${outputLine}\n\nFiles:`,
   );
   const withRevalidateShape = withReviewShape.replace(
-    /(?:^|\n)Return strict JSON only:\n\{[\s\S]*?\n\nApplied guidance:/u,
-    `${outputLine}\n\nApplied guidance:`,
+    /(?:^|\n)Return strict JSON only:\n\{[\s\S]*?\}\n\nFinding:/u,
+    `${outputLine}\n\nFinding:`,
   );
   const withFixShape = withRevalidateShape.replace(
-    /(?:^|\n)After editing, return strict JSON only:\n[\s\S]*?\n\n(?=(?:TDD requirement:|Applied guidance:))/u,
+    /(?:^|\n)After editing, return strict JSON only:\n\{[\s\S]*?\}\n\n(?=\n?(?:TDD requirement:|Finding:))/u,
     `${outputLine}\n\n`,
   );
   return withFixShape.replace(/\nJSON shape:\n[\s\S]*$/u, outputLine);

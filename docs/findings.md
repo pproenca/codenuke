@@ -19,9 +19,7 @@ Each finding records:
 - reasoning
 - reproduction notes
 - recommendation
-- why included tests do not already cover or define the behavior
-- suggested regression test
-- minimum fix scope
+- change scenario for maintainability findings
 - status
 - linked patch attempts
 - triage/revalidation history
@@ -56,9 +54,13 @@ codenuke revalidate --finding <findingId>
 codenuke revalidate --all --status open --limit 10
 ```
 
-`next` prioritizes open high/medium-confidence `performance` and
-`maintainability` findings first, then `test-gap` and `build-release` findings
-that block a trusted refactor, then the remaining queue.
+`next` prioritizes open high/medium-confidence findings first, then lower
+confidence and low severity findings.
 
 `triage` keeps existing finding IDs stable and appends a history entry instead
 of replacing previous reasoning.
+
+For maintainability findings, `changeScenario` records the future-change claim:
+the scenario, current cost, target cost, behavior invariant, evidence, and cost
+dimensions such as change amplification, coupling, verification cost, blast
+radius, coordination, reversibility, cycle time, or rework risk.

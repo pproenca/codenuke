@@ -19,7 +19,6 @@ Current behavior:
 - asks the provider for a fix plan
 - lets the provider edit the worktree during the explicit fix command
 - checks that changed files stay inside the finding's patch boundary
-- records and checks the provider's Guidance Application against the finding's applied guidance
 - runs configured validation commands in this order:
   - format check
   - typecheck
@@ -33,7 +32,6 @@ Status updates:
 - validation success marks the finding `uncertain`
 - validation failure keeps the finding `open`
 - out-of-boundary changes fail the patch attempt and keep the finding `open`
-- missing Guidance Application coverage fails the patch attempt and keeps the finding `open`
 
 The CLI does not currently mark a finding `fixed` from the patch pass alone.
 Use `codenuke revalidate --finding <id>` for a second pass.

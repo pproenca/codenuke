@@ -5,9 +5,9 @@ description: "Product goals, design, implementation details, and architecture"
 
 # codenuke spec
 
-Automated code review for reliable, trusted refactoring.
+Automated code review that finds and fixes concrete issues.
 
-`codenuke` maps a repo into reviewable feature slices, reviews each slice for trusted behavior-preserving refactoring opportunities, revalidates findings, and turns confirmed issues into repair patches or PRs when explicitly asked.
+`codenuke` maps a repo into reviewable feature slices, reviews each slice for evidence-backed code-reduction refactors, revalidates findings, and turns confirmed findings into behavior-preserving patches or PRs when explicitly asked.
 
 ## Goals
 
@@ -17,7 +17,7 @@ Automated code review for reliable, trusted refactoring.
 - Produce strict machine-readable records and terse human output.
 - Default to report-only; apply code changes only on explicit `fix`.
 - Never overwrite user changes.
-- Make small behavior-preserving simplification patches, usually one finding cluster at a time.
+- Make small behavior-preserving refactor patches, usually one finding cluster at a time.
 - Revalidate before marking findings fixed.
 
 ## Non-goals for v0
@@ -206,14 +206,13 @@ Review feature slices and persist findings.
 Usage:
 
 ```bash
-codenuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--ludicrous-mode] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
+codenuke review [--feature <id>] [--kind <kind>] [--limit <n>] [--dry-run] [--provider <name>] [--model <name>] [--reasoning-effort <level>] [--resume <runId>]
 ```
 
 Behavior:
 
 - Claims pending or selected features.
 - Assembles bounded prompt context.
-- With `--ludicrous-mode`, adds high-recall Refactoring Opportunity Candidates to review prompts without treating them as findings.
 - Calls provider.
 - Parses strict JSON.
 - Writes append-only analysis entry.
@@ -559,12 +558,8 @@ type FeatureRecord = {
 };
 ```
 
-`semanticEvidence` is deterministic map-time evidence that review, fix, and
-revalidation may use as supporting context. The first source is
-`semantic-neighbor` evidence from `identifier-tfidf`, which links Feature Slices
-that share normalized domain identifier vocabulary without changing the stable
-`featureId`. Path and Feature metadata tokens carry more weight than code-body
-tokens so domain vocabulary is preferred over generic implementation words.
+`semanticEvidence` is optional map-time diagnostic data. It is not part of the
+default review/fix contract.
 
 Kinds:
 
@@ -622,7 +617,7 @@ type FindingRecord = {
   reasoning: string;
   reproduction: string | null;
   recommendation: string;
-  mapEvidenceTrace?: FindingMapEvidenceTraceEntry[];
+  changeScenario: ChangeScenario | null;
   status: "open" | "false-positive" | "fixed" | "wont-fix" | "uncertain";
   signature: string;
   linkedPatchAttemptIds: string[];
@@ -632,10 +627,40 @@ type FindingRecord = {
 };
 ```
 
+`changeScenario` is required for code-reduction refactor claims. Historical
+records may use null for non-refactor findings. It defines:
+
+```ts
+type ChangeScenario = {
+  futureChange: string;
+  currentCost: string;
+  targetCost: string;
+  behaviorInvariant: string;
+  evidence: string[];
+  costDimensions: Array<
+    | "change-amplification"
+    | "cognitive-load"
+    | "coupling"
+    | "verification-cost"
+    | "blast-radius"
+    | "coordination"
+    | "reversibility"
+    | "cycle-time"
+    | "rework-risk"
+  >;
+};
+```
+
 Categories:
 
+- `bug`
+- `security`
 - `performance`
+- `concurrency`
+- `api-contract`
+- `data-loss`
 - `test-gap`
+- `docs-gap`
 - `build-release`
 - `maintainability`
 
@@ -663,19 +688,11 @@ type PatchAttempt = {
   plan: string;
   filesChanged: string[];
   failure: {
-    code:
-      | "validation-failed"
-      | "missing-test-coverage"
-      | "out-of-scope-changes"
-      | "guidance-not-accounted";
+    code: "validation-failed" | "missing-test-coverage" | "out-of-scope-changes";
     message: string;
     allowedFiles?: string[];
-    expectedResources?: string[];
-    missingResources?: string[];
-    rejectedPrimaryResources?: string[];
     unexpectedFiles?: string[];
   } | null;
-  guidanceApplication: GuidanceApplication | null;
   commandsRun: CommandResult[];
   testResults: CommandResult[];
   provider: ProviderMetadata | null;
@@ -773,23 +790,26 @@ Stages:
 
 Review mission:
 
-- Prioritize reliable, trusted refactoring.
-- Prefer behavior-preserving simplification and algorithmic/render-path
-  complexity reduction.
-- Ignore unrelated concerns unless they directly block validating a specific
-  behavior-preserving refactor.
+- Find behavior-preserving refactoring opportunities that reduce the amount of
+  code.
+- Do not hunt for bugs. Report only code-reduction findings where included code
+  proves structural friction and a smaller target shape.
+- Ignore cosmetic cleanup, style-only preferences, renames, formatting, and
+  abstraction churn.
+- Treat "future change is easier" as a measurable claim against a named change
+  scenario: lower cost, lower risk, lower delay, smaller blast radius, or better
+  locality for the same class of change.
 
-Review categories:
+Large-refactor loop:
 
-- algorithmic or render-path complexity
-- behavior-preserving simplification
-- trusted-refactor test gaps
-- build/release hazards that block validation
-
-Codenuke prioritizes algorithmic/render-path complexity as `performance` and
-specific behavior-preserving reductions as `maintainability`. Provider review
-outputs use only `performance`, `maintainability`, `test-gap`, and
-`build-release` categories.
+- Name systemic friction.
+- Map the current shape.
+- Choose a smaller target shape.
+- Protect behavior at boundaries.
+- Migrate in slices.
+- Delete the old shape.
+- Rebalance.
+- Repeat only if another measured code-reduction scenario remains.
 
 Review output schema:
 
@@ -797,13 +817,14 @@ Review output schema:
 type ReviewOutput = {
   findings: Array<{
     title: string;
-    category: "performance" | "maintainability" | "test-gap" | "build-release";
+    category: FindingCategory;
     severity: "critical" | "high" | "medium" | "low";
     confidence: "high" | "medium" | "low";
     evidence: EvidenceRef[];
     reasoning: string;
     reproduction: string | null;
     recommendation: string;
+    changeScenario: ChangeScenario | null;
   }>;
   inspected: {
     files: string[];
@@ -872,12 +893,11 @@ Stages:
 Patch principles:
 
 - Smallest correct change.
-- Prefer tests that prove behavior preservation for simplification and
-  complexity repairs.
+- Prefer tests or executable checks that protect the behavior boundary.
 - Match repo style.
 - Do not add dependencies without explicit approval.
 - Do not silence errors without fixing root cause.
-- Do not broaden scope to nearby refactors.
+- Do not broaden scope to nearby unrelated refactors.
 
 Fix output schema:
 

@@ -1,8 +1,0 @@
-{
-  "name": "guidance-long-method-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-long-method": "src/index.ts"
-  },
-  "type": "module"
-}

@@ -3,7 +3,7 @@ import { fixtureRoot, writeFixture } from "../testing/test-helpers.js";
 import { CodenukeConfig, FeatureRecord, ProjectRecord } from "../platform/types.js";
 import { refactoringOpportunityCandidates } from "./ludicrous.js";
 import { initCommand, reviewCommand } from "./app.js";
-import { buildReviewPromptWithGuidance } from "./prompt.js";
+import { buildReviewPromptWithCandidates } from "./prompt.js";
 import { readFindings, readRuns, statePaths, writeFeature } from "./state.js";
 
 const now = "2026-01-01T00:00:00.000Z";
@@ -152,7 +152,7 @@ describe("ludicrous review mode", () => {
     const project = projectRecord(root);
     const alpha = feature("feat_alpha", "Alpha", "src/alpha.ts");
 
-    const { prompt } = await buildReviewPromptWithGuidance(root, project, alpha, config(), {
+    const { prompt } = await buildReviewPromptWithCandidates(root, project, alpha, config(), {
       ludicrousCandidates: [
         {
           candidateId: "cand_normalized_feature_1234567890",
@@ -177,7 +177,7 @@ describe("ludicrous review mode", () => {
     expect(prompt).toContain("Ludicrous Review Mode");
     expect(prompt).toContain("high-recall Refactoring Opportunity Candidates, not findings");
     expect(prompt).toContain('"candidateId": "cand_normalized_feature_1234567890"');
-    expect(prompt).toContain("include its candidateId in that finding's candidateTrace");
+    expect(prompt).toContain("Use them only as leads while inspecting related files");
     expect(prompt).toContain('"source": "lexical-phrase"');
     expect(prompt).toContain('"algorithm": "test"');
     expect(prompt.match(/^--- src\/beta\.ts$/gmu) ?? []).toHaveLength(1);
@@ -281,7 +281,7 @@ describe("ludicrous review mode", () => {
         }),
       ]),
     );
-    expect(finding?.candidateTrace[0]?.candidateId).toMatch(/^cand_/u);
+    expect(finding?.title).toBe("Placeholder marker can be removed");
   });
 });
 

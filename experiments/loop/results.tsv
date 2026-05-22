@@ -1,0 +1,3 @@
+iter	commit	dAST	dCx	behavior	mfence_region	loss	status	description
+1	-	0	0	-	0.60	-	crash	proposer error:
+2	-	0	0	-	0.60	-	crash	proposer error:

@@ -3,47 +3,6 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
-const defaultExtensions = new Set([
-  ".c",
-  ".cc",
-  ".cpp",
-  ".cs",
-  ".css",
-  ".go",
-  ".h",
-  ".hpp",
-  ".html",
-  ".java",
-  ".js",
-  ".jsx",
-  ".kt",
-  ".md",
-  ".mjs",
-  ".php",
-  ".py",
-  ".rb",
-  ".rs",
-  ".scss",
-  ".swift",
-  ".ts",
-  ".tsx",
-  ".vue",
-]);
-
-const ignoredPathParts = new Set([
-  ".agents",
-  ".codenuke",
-  ".codex",
-  ".git",
-  ".next",
-  ".scratch",
-  ".turbo",
-  "coverage",
-  "dist",
-  "node_modules",
-  "target",
-]);
-
 const codeExtensions = new Set([
   ".c",
   ".cc",
@@ -65,6 +24,23 @@ const codeExtensions = new Set([
   ".ts",
   ".tsx",
   ".vue",
+]);
+
+const textOnlyExtensions = new Set([".css", ".html", ".md", ".scss"]);
+const defaultExtensions = new Set([...codeExtensions, ...textOnlyExtensions]);
+
+const ignoredPathParts = new Set([
+  ".agents",
+  ".codenuke",
+  ".codex",
+  ".git",
+  ".next",
+  ".scratch",
+  ".turbo",
+  "coverage",
+  "dist",
+  "node_modules",
+  "target",
 ]);
 
 const stopWords = new Set([
@@ -689,7 +665,7 @@ function inferOpportunityType(files, signals) {
     return "cross-mapper-pattern";
   }
   if (/\bprovider|schema|json|command|prompt|output\b/u.test(joined)) return "provider-contract";
-  if (/\bworkflow|patch|finding|state|validation|guidance\b/u.test(joined)) return "workflow-state";
+  if (/\bworkflow|patch|finding|state|validation\b/u.test(joined)) return "workflow-state";
   if (/\bflag|flags|help|arg|cli\b/u.test(joined)) return "cli-model";
   if (/\bchar|cursor|brace|quote|escaped|expression|props\b/u.test(joined))
     return "repeated-parser";
@@ -866,10 +842,10 @@ function opportunityBrief(opportunity) {
   if (opportunity.type === "workflow-state") {
     return {
       title: "Workflow orchestration boundary cleanup",
-      currentShape: `Workflow code repeats loaded-path, flag, progress, guidance, and patch-attempt vocabulary. Signals: ${signals}.`,
+      currentShape: `Workflow code repeats loaded-path, flag, progress, and patch-attempt vocabulary. Signals: ${signals}.`,
       shyRefactor: "Move one small block out of app.ts or rename a local helper.",
       ludicrousCampaign:
-        "Separate workflow policy from CLI flag plumbing, progress emission, durable state loading, and guidance application records.",
+        "Separate workflow policy from CLI flag plumbing, progress emission, and durable state loading.",
       firstPatch:
         "Extract a small workflow input/result model around the repeated loaded-path and flag handling, then migrate one command path.",
       measurement:

@@ -1,8 +1,0 @@
-{
-  "name": "guidance-message-chain-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-message-chain": "src/index.ts"
-  },
-  "type": "module"
-}

@@ -13,12 +13,7 @@ export const findingCategories = [
   "maintainability",
 ] as const;
 
-export const reviewFindingCategories = [
-  "performance",
-  "maintainability",
-  "test-gap",
-  "build-release",
-] as const;
+export const reviewFindingCategories = findingCategories;
 
 export const findingTriages = [
   "confirmed-bug",
@@ -247,107 +242,28 @@ export const findingHistoryEntrySchema = z.object({
 
 export type FindingHistoryEntry = z.infer<typeof findingHistoryEntrySchema>;
 
-export const guidanceResourceKinds = ["signal", "technique", "workflow"] as const;
+export const changeCostDimensions = [
+  "change-amplification",
+  "cognitive-load",
+  "coupling",
+  "verification-cost",
+  "blast-radius",
+  "coordination",
+  "reversibility",
+  "cycle-time",
+  "rework-risk",
+] as const;
 
-export const guidanceTraceEntrySchema = z.object({
-  resourceId: z.string(),
-  title: z.string(),
-  kind: z.enum(guidanceResourceKinds),
-  role: z.enum(["primary", "supporting"]).optional().default("supporting"),
-  reason: z.string(),
-  use: z.string(),
+export const changeScenarioSchema = z.object({
+  futureChange: z.string(),
+  currentCost: z.string(),
+  targetCost: z.string(),
+  behaviorInvariant: z.string(),
+  evidence: z.array(z.string()),
+  costDimensions: z.array(z.enum(changeCostDimensions)),
 });
 
-export const guidanceTraceSchema = z.object({
-  selected: z.array(guidanceTraceEntrySchema),
-  applied: z.array(guidanceTraceEntrySchema),
-});
-
-export type GuidanceTraceEntry = z.infer<typeof guidanceTraceEntrySchema>;
-export type GuidanceTrace = z.infer<typeof guidanceTraceSchema>;
-
-export const emptyGuidanceTrace = (): GuidanceTrace => ({ selected: [], applied: [] });
-
-export const findingCandidateTraceEntrySchema = z.object({
-  candidateId: z.string(),
-  source: z.enum(["lexical-phrase", "tfidf-file-similarity"]),
-  title: z.string(),
-  reason: z.string(),
-  use: z.string(),
-});
-
-export type FindingCandidateTraceEntry = z.infer<typeof findingCandidateTraceEntrySchema>;
-
-export const findingMapEvidenceTraceEntrySchema = z.object({
-  kind: z.enum(["semantic-neighbor"]),
-  source: z.enum(["identifier-tfidf"]),
-  targetFeatureId: z.string(),
-  targetTitle: z.string(),
-  score: z.number(),
-  signals: z.array(z.string()),
-  reason: z.string(),
-  use: z.string(),
-});
-
-export type FindingMapEvidenceTraceEntry = z.infer<typeof findingMapEvidenceTraceEntrySchema>;
-
-export const guidanceShapeEvidenceSchema = z.object({
-  shape: z.string(),
-  path: z.string(),
-  startLine: z.number().int().positive().nullable(),
-  endLine: z.number().int().positive().nullable(),
-  quote: z.string().nullable(),
-  metric: z.string().nullable(),
-});
-
-export const guidanceRejectedResourceSchema = z.object({
-  resourceId: z.string(),
-  title: z.string(),
-  kind: z.enum(guidanceResourceKinds),
-  reason: z.string(),
-});
-
-export const guidancePromptedResourceSchema = z.object({
-  resourceId: z.string(),
-  title: z.string(),
-  kind: z.enum(guidanceResourceKinds),
-  role: z.enum(["primary", "supporting"]).optional().default("supporting"),
-  contentHash: z.string(),
-  fullText: z.boolean(),
-});
-
-export const guidanceSelectionAuditSchema = z.object({
-  featureId: z.string(),
-  title: z.string(),
-  detectedShapes: z.array(guidanceShapeEvidenceSchema),
-  selected: z.array(guidanceTraceEntrySchema),
-  rejected: z.array(guidanceRejectedResourceSchema),
-  promptedResources: z.array(guidancePromptedResourceSchema),
-  promptHash: z.string(),
-});
-
-export type GuidanceSelectionAudit = z.infer<typeof guidanceSelectionAuditSchema>;
-
-export const guidanceApplicationSchema = z.object({
-  appliedResources: z.array(
-    z.object({
-      resourceId: z.string(),
-      action: z.enum(["applied", "adapted", "not-used"]),
-      reasoning: z.string(),
-    }),
-  ),
-  deviations: z.array(z.string()),
-  risk: z.enum(["low", "medium", "high"]),
-});
-
-export type GuidanceApplication = z.infer<typeof guidanceApplicationSchema>;
-
-export const guidanceAssessmentSchema = z.object({
-  followed: z.enum(["yes", "partially", "no", "not-applicable"]),
-  reasoning: z.string(),
-  deviations: z.array(z.string()),
-  acceptable: z.boolean(),
-});
+export type ChangeScenario = z.infer<typeof changeScenarioSchema>;
 
 export const findingRecordSchema = z
   .object({
@@ -363,12 +279,7 @@ export const findingRecordSchema = z
     reasoning: z.string(),
     reproduction: z.string().nullable(),
     recommendation: z.string(),
-    whyTestsDoNotAlreadyCoverThis: z.string().optional(),
-    suggestedRegressionTest: z.string().nullable().optional(),
-    minimumFixScope: z.string().optional(),
-    guidance: guidanceTraceSchema.optional(),
-    candidateTrace: z.array(findingCandidateTraceEntrySchema).optional(),
-    mapEvidenceTrace: z.array(findingMapEvidenceTraceEntrySchema).optional(),
+    changeScenario: changeScenarioSchema.nullable().optional().default(null),
     status: z.enum(["open", "false-positive", "fixed", "wont-fix", "uncertain"]),
     history: z.array(findingHistoryEntrySchema).optional(),
     signature: z.string(),
@@ -380,11 +291,6 @@ export const findingRecordSchema = z
   .transform((finding) => ({
     ...finding,
     triage: finding.triage ?? deriveFindingTriage(finding.category, finding.confidence),
-    whyTestsDoNotAlreadyCoverThis: finding.whyTestsDoNotAlreadyCoverThis ?? "",
-    suggestedRegressionTest: finding.suggestedRegressionTest ?? null,
-    minimumFixScope: finding.minimumFixScope ?? "",
-    guidance: finding.guidance ?? emptyGuidanceTrace(),
-    candidateTrace: finding.candidateTrace ?? [],
     history: finding.history ?? [],
   }));
 
@@ -402,17 +308,9 @@ export const commandResultSchema = z.object({
 export type CommandResult = z.infer<typeof commandResultSchema>;
 
 export const patchFailureSchema = z.object({
-  code: z.enum([
-    "validation-failed",
-    "missing-test-coverage",
-    "out-of-scope-changes",
-    "guidance-not-accounted",
-  ]),
+  code: z.enum(["validation-failed", "missing-test-coverage", "out-of-scope-changes"]),
   message: z.string(),
   allowedFiles: z.array(z.string()).optional(),
-  expectedResources: z.array(z.string()).optional(),
-  missingResources: z.array(z.string()).optional(),
-  rejectedPrimaryResources: z.array(z.string()).optional(),
   unexpectedFiles: z.array(z.string()).optional(),
 });
 
@@ -427,7 +325,6 @@ export const patchAttemptSchema = z.object({
   plan: z.string(),
   filesChanged: z.array(z.string()),
   failure: patchFailureSchema.nullable().optional().default(null),
-  guidanceApplication: guidanceApplicationSchema.nullable().optional().default(null),
   commandsRun: z.array(commandResultSchema),
   testResults: z.array(commandResultSchema),
   provider: z
@@ -488,7 +385,6 @@ export const runRecordSchema = z.object({
   claimedFeatureIds: z.array(z.string()),
   findingIds: z.array(z.string()),
   patchAttemptIds: z.array(z.string()),
-  guidanceSelectionAudits: z.array(guidanceSelectionAuditSchema).optional().default([]),
   ludicrousCandidateAudits: z.array(ludicrousCandidateAuditSchema).optional().default([]),
   errors: z.array(
     z.object({
@@ -521,27 +417,31 @@ export const agentMapOutputSchema = z.object({
 
 export type AgentMapOutput = z.infer<typeof agentMapOutputSchema>;
 
+const reviewFindingOutputSchema = z
+  .object({
+    title: z.string(),
+    category: z.enum(reviewFindingCategories),
+    severity: z.enum(["critical", "high", "medium", "low"]),
+    confidence: z.enum(["high", "medium", "low"]),
+    evidence: z.array(evidenceRefSchema),
+    reasoning: z.string(),
+    reproduction: z.string().nullable(),
+    recommendation: z.string(),
+    changeScenario: changeScenarioSchema.nullable().optional().default(null),
+  })
+  .superRefine((finding, context) => {
+    if (finding.category !== "maintainability" || finding.changeScenario !== null) {
+      return;
+    }
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["changeScenario"],
+      message: "maintainability findings require a concrete changeScenario",
+    });
+  });
+
 export const reviewOutputSchema = z.object({
-  findings: z.array(
-    z.object({
-      title: z.string(),
-      category: z.enum(reviewFindingCategories),
-      severity: z.enum(["critical", "high", "medium", "low"]),
-      confidence: z.enum(["high", "medium", "low"]),
-      evidence: z.array(evidenceRefSchema),
-      reasoning: z.string(),
-      reproduction: z.string().nullable(),
-      recommendation: z.string(),
-      whyTestsDoNotAlreadyCoverThis: z.string(),
-      suggestedRegressionTest: z.string().nullable(),
-      minimumFixScope: z.string(),
-      candidateTrace: z.array(findingCandidateTraceEntrySchema).optional().default([]),
-      mapEvidenceTrace: z.array(findingMapEvidenceTraceEntrySchema).optional(),
-      guidance: z.object({
-        applied: z.array(guidanceTraceEntrySchema),
-      }),
-    }),
-  ),
+  findings: z.array(reviewFindingOutputSchema),
   inspected: z.object({
     files: z.array(z.string()),
     symbols: z.array(z.string()),
@@ -554,7 +454,6 @@ export type ReviewOutput = z.infer<typeof reviewOutputSchema>;
 export const revalidateOutputSchema = z.object({
   outcome: z.enum(["fixed", "open", "false-positive", "uncertain"]),
   reasoning: z.string(),
-  guidanceAssessment: guidanceAssessmentSchema,
   commands: z.array(z.string()),
 });
 
@@ -566,7 +465,6 @@ export const fixPlanOutputSchema = z.object({
   plannedFiles: z.array(z.string()),
   risk: z.enum(["low", "medium", "high"]),
   steps: z.array(z.string()),
-  guidanceApplication: guidanceApplicationSchema,
   validationCommands: z.array(z.string()),
 });
 

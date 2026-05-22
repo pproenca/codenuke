@@ -1,11 +1,15 @@
 # codenuke
 
-Automated code review for reliable, trusted refactoring.
+Automated code reduction through behavior-preserving refactoring.
 
 `codenuke` maps a repo into semantic feature slices, reviews each slice with a
-provider for behavior-preserving simplification and complexity-reduction
-opportunities, persists findings, and can run an explicit fix loop for one
-finding at a time.
+provider for evidence-backed opportunities to reduce code, persists findings,
+and can run an explicit refactor loop for one finding at a time.
+
+Findings must name the future-change scenario they improve and record current
+cost, target cost, behavior invariant, and evidence. "Cleaner" is not a finding
+unless the same class of future change becomes more local, safer, faster, or
+cheaper with less code.
 
 Current status: early CLI. Review/report/state are implemented; patching exists
 behind `codenuke fix --finding <id>` and still requires manual review of the
@@ -137,7 +141,7 @@ Supported provider names today:
 - `codenuke init`: create `.codenuke/`, detect project basics, write config
 - `codenuke map`: write feature records
 - `codenuke status`: show project, dirty state, feature/finding counts
-- `codenuke review`: review pending or selected features for refactoring opportunities
+- `codenuke review`: review pending or selected features for concrete findings
 - `codenuke report`: print or write a Markdown findings report
 - `codenuke next`: print the next actionable finding
 - `codenuke show --finding <id>`: inspect one finding with evidence and suggested validation
@@ -166,7 +170,6 @@ Useful flags:
 - `--provider <name>`
 - `--model <name>`
 - `--reasoning-effort <none|minimal|low|medium|high|xhigh>`
-- `--ludicrous-mode` for high-recall review candidates during `codenuke review`
 - `--output <path>` / `-o <path>`
 - `--dry-run`
 - `--force`

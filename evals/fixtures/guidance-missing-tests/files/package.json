@@ -1,8 +1,0 @@
-{
-  "name": "guidance-missing-tests-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-missing-tests": "src/index.ts"
-  },
-  "type": "module"
-}

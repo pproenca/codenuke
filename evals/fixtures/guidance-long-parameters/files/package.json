@@ -1,8 +1,0 @@
-{
-  "name": "guidance-long-parameters-fixture",
-  "version": "1.0.0",
-  "bin": {
-    "guidance-long-parameters": "src/index.ts"
-  },
-  "type": "module"
-}

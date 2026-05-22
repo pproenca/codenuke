@@ -17,11 +17,6 @@ function finding(overrides: Partial<FindingRecord> = {}): FindingRecord {
     reasoning: "Reasoning.",
     reproduction: null,
     recommendation: "",
-    whyTestsDoNotAlreadyCoverThis: "",
-    suggestedRegressionTest: null,
-    minimumFixScope: "",
-    guidance: { selected: [], applied: [] },
-    candidateTrace: [],
     status: "open",
     history: [],
     signature: "sig_test",
@@ -30,6 +25,7 @@ function finding(overrides: Partial<FindingRecord> = {}): FindingRecord {
     createdAt: now,
     updatedAt: now,
     ...overrides,
+    changeScenario: overrides.changeScenario ?? null,
   };
 }
 
@@ -61,7 +57,7 @@ function feature(overrides: Partial<FeatureRecord> = {}): FeatureRecord {
 }
 
 describe("markdown finding sections", () => {
-  it("renders populated finding metadata sections in report and detail views", () => {
+  it("renders populated finding sections in report and detail views", () => {
     const record = finding({
       evidence: [
         {
@@ -73,10 +69,16 @@ describe("markdown finding sections", () => {
         },
       ],
       recommendation: "Extract shared section rendering.",
-      whyTestsDoNotAlreadyCoverThis: "Existing tests only cover workflow output.",
-      suggestedRegressionTest: "Assert section labels in both views.",
-      minimumFixScope: "src/reporting.ts and reporting tests.",
       reproduction: "Run codenuke report.",
+      changeScenario: {
+        futureChange: "Add another finding detail section.",
+        currentCost: "Each section must be wired separately across report and detail rendering.",
+        targetCost: "One section helper handles report and detail rendering consistently.",
+        behaviorInvariant:
+          "Existing evidence, recommendation, and reproduction output remains unchanged.",
+        evidence: ["renderReport and renderFindingDetail both render finding sections"],
+        costDimensions: ["change-amplification", "verification-cost"],
+      },
     });
 
     const report = renderReport([record], [feature()]);
@@ -85,11 +87,10 @@ describe("markdown finding sections", () => {
     for (const output of [report, detail]) {
       expect(output).toContain("\nevidence:\n- src/reporting.ts:45-78 (renderReport)\n");
       expect(output).toContain("\nrecommendation:\nExtract shared section rendering.\n");
-      expect(output).toContain("\ntest analysis:\nExisting tests only cover workflow output.\n");
       expect(output).toContain(
-        "\nsuggested regression test:\nAssert section labels in both views.\n",
+        "\nchange scenario:\nfuture change: Add another finding detail section.\n",
       );
-      expect(output).toContain("\nminimum fix scope:\nsrc/reporting.ts and reporting tests.\n");
+      expect(output).toContain("cost dimensions: change-amplification, verification-cost\n");
     }
     expect(report).toContain("\nrepro:\nRun codenuke report.\n");
     expect(detail).not.toContain("\nrepro:\n");
@@ -112,79 +113,19 @@ describe("markdown finding sections", () => {
     }
   });
 
-  it("renders guidance trace in finding detail without expanding the default report", () => {
-    const record = finding({
-      guidance: {
-        selected: [
-          {
-            resourceId: "catalog.bloaters.long-method",
-            title: "Long Method",
-            kind: "signal",
-            role: "primary",
-            reason: "owned files show large-function-like-block",
-            use: "verify behavior before reporting",
-          },
-        ],
-        applied: [
-          {
-            resourceId: "techniques.composing-methods.extract-method",
-            title: "Extract Method",
-            kind: "technique",
-            role: "supporting",
-            reason: "repair can isolate repeated behavior",
-            use: "extract only with stable inputs and outputs",
-          },
-        ],
-      },
-    });
+  it("keeps JSON summaries limited to active finding fields", () => {
+    const record = finding();
 
     const detail = renderFindingDetail(record, feature(), [], []);
     const report = renderReport([record], [feature()]);
+    const summary = findingSummary(record, feature());
 
-    expect(detail).toContain("guidance:");
-    expect(detail).toContain("Long Method");
-    expect(detail).toContain("extract only with stable inputs and outputs");
-    expect(report).not.toContain("guidance:");
-  });
-
-  it("renders candidate trace in finding detail and JSON summaries", () => {
-    const record = finding({
-      candidateTrace: [
-        {
-          candidateId: "cand_semantic",
-          source: "tfidf-file-similarity",
-          title: "Semantic task graph candidate",
-          reason: "The candidate led review toward shared task graph parsing.",
-          use: "Check both files when fixing or revalidating.",
-        },
-      ],
-    });
-
-    const detail = renderFindingDetail(record, feature(), [], []);
-    const report = renderReport([record], [feature()]);
-
-    expect(detail).toContain("candidate trace:");
-    expect(detail).toContain("cand_semantic: Semantic task graph candidate");
-    expect(detail).toContain("Check both files when fixing or revalidating.");
+    expect(detail).not.toContain("candidate trace:");
+    expect(detail).not.toContain("guidance:");
     expect(report).not.toContain("candidate trace:");
-  });
-
-  it("includes map evidence trace in JSON summaries", () => {
-    const record = finding({
-      mapEvidenceTrace: [
-        {
-          kind: "semantic-neighbor",
-          source: "identifier-tfidf",
-          targetFeatureId: "feat_invoice",
-          targetTitle: "Invoice formatter",
-          score: 0.64,
-          signals: ["format", "invoice"],
-          reason: "Map evidence linked duplicated formatter vocabulary.",
-          use: "Inspect the sibling formatter before fixing.",
-        },
-      ],
-    });
-
-    expect(findingSummary(record, feature()).mapEvidenceTrace).toEqual(record.mapEvidenceTrace);
+    expect(summary).not.toHaveProperty("mapEvidenceTrace");
+    expect(summary).not.toHaveProperty("candidateTrace");
+    expect(summary).not.toHaveProperty("guidance");
+    expect(summary).toHaveProperty("changeScenario", null);
   });
 });

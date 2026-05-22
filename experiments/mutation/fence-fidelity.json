@@ -1,0 +1,601 @@
+{
+  "baseline": "2d81f6c",
+  "generatedAt": "2026-05-22T11:49:45.023Z",
+  "z": 1.96,
+  "threshold": 0.9,
+  "capPerRegion": 60,
+  "seed": 1337,
+  "regions": {
+    "mappers": {
+      "caught": 56,
+      "total": 90,
+      "p": 0.6222222222222222,
+      "lo": 0.5189957287533067,
+      "hi": 0.7154418767436157,
+      "admissible": false,
+      "files": {
+        "src/mappers/gradle.ts": {
+          "caught": 11,
+          "total": 17,
+          "survivors": [
+            "&&→||",
+            ".startsWith(→.endsWith(",
+            ".startsWith(→.endsWith(",
+            "&&→||",
+            "||→&&",
+            "===→!=="
+          ]
+        },
+        "src/mappers/swift.ts": {
+          "caught": 4,
+          "total": 4,
+          "survivors": []
+        },
+        "src/mappers/ruby.ts": {
+          "caught": 2,
+          "total": 6,
+          "survivors": [
+            "||→&&",
+            ".endsWith(→.startsWith(",
+            ".startsWith(→.endsWith(",
+            "&&→||"
+          ]
+        },
+        "src/mappers/react.ts": {
+          "caught": 9,
+          "total": 13,
+          "survivors": [
+            "===→!==",
+            "||→&&",
+            "===→!==",
+            "||→&&"
+          ]
+        },
+        "src/mappers/shared.ts": {
+          "caught": 6,
+          "total": 13,
+          "survivors": [
+            ">→<",
+            ".startsWith(→.endsWith(",
+            "===→!==",
+            ".endsWith(→.startsWith(",
+            "!==→===",
+            "===→!==",
+            "||→&&"
+          ]
+        },
+        "src/mappers/node.ts": {
+          "caught": 2,
+          "total": 3,
+          "survivors": [
+            "===→!=="
+          ]
+        },
+        "src/mappers/laravel.ts": {
+          "caught": 7,
+          "total": 8,
+          "survivors": [
+            "===→!=="
+          ]
+        },
+        "src/mappers/c-cpp.ts": {
+          "caught": 4,
+          "total": 8,
+          "survivors": [
+            ".endsWith(→.startsWith(",
+            "===→!==",
+            "===→!==",
+            "===→!=="
+          ]
+        },
+        "src/mappers/next.ts": {
+          "caught": 2,
+          "total": 2,
+          "survivors": []
+        },
+        "src/mappers/rust.ts": {
+          "caught": 2,
+          "total": 2,
+          "survivors": []
+        },
+        "src/mappers/python.ts": {
+          "caught": 2,
+          "total": 7,
+          "survivors": [
+            "===→!==",
+            "&&→||",
+            "===→!==",
+            "===→!==",
+            ".startsWith(→.endsWith("
+          ]
+        },
+        "src/mappers/apple.ts": {
+          "caught": 2,
+          "total": 3,
+          "survivors": [
+            ".endsWith(→.startsWith("
+          ]
+        },
+        "src/mappers/workspaces.ts": {
+          "caught": 0,
+          "total": 1,
+          "survivors": [
+            ".endsWith(→.startsWith("
+          ]
+        },
+        "src/mappers/go.ts": {
+          "caught": 2,
+          "total": 2,
+          "survivors": []
+        },
+        "src/mappers/projects.ts": {
+          "caught": 1,
+          "total": 1,
+          "survivors": []
+        }
+      }
+    },
+    "workflow": {
+      "caught": 32,
+      "total": 60,
+      "p": 0.5333333333333333,
+      "lo": 0.40893208671135106,
+      "hi": 0.65372298459012,
+      "admissible": false,
+      "files": {
+        "src/workflow/findings.ts": {
+          "caught": 1,
+          "total": 3,
+          "survivors": [
+            "===→!==",
+            "===→!=="
+          ]
+        },
+        "src/workflow/app.ts": {
+          "caught": 10,
+          "total": 17,
+          "survivors": [
+            "===→!==",
+            "===→!==",
+            "===→!==",
+            "===→!==",
+            ">→<",
+            "===→!==",
+            ">→<"
+          ]
+        },
+        "src/workflow/reporting.ts": {
+          "caught": 6,
+          "total": 6,
+          "survivors": []
+        },
+        "src/workflow/validation.ts": {
+          "caught": 1,
+          "total": 1,
+          "survivors": []
+        },
+        "src/workflow/selection.ts": {
+          "caught": 6,
+          "total": 15,
+          "survivors": [
+            "===→!==",
+            "===→!==",
+            ".startsWith(→.endsWith(",
+            "&&→||",
+            "===→!==",
+            "||→&&",
+            "===→!==",
+            "===→!==",
+            "===→!=="
+          ]
+        },
+        "src/workflow/ludicrous.ts": {
+          "caught": 4,
+          "total": 8,
+          "survivors": [
+            "||→&&",
+            ">=→<=",
+            "!==→===",
+            "||→&&"
+          ]
+        },
+        "src/workflow/prompt.ts": {
+          "caught": 2,
+          "total": 3,
+          "survivors": [
+            ">→<"
+          ]
+        },
+        "src/workflow/patch-boundary.ts": {
+          "caught": 0,
+          "total": 4,
+          "survivors": [
+            "===→!==",
+            ".startsWith(→.endsWith(",
+            ".startsWith(→.endsWith(",
+            ">→<"
+          ]
+        },
+        "src/workflow/state.ts": {
+          "caught": 2,
+          "total": 3,
+          "survivors": [
+            "&&→||"
+          ]
+        }
+      }
+    },
+    "platform": {
+      "caught": 39,
+      "total": 60,
+      "p": 0.65,
+      "lo": 0.5236238380947751,
+      "hi": 0.7583239827618451,
+      "admissible": false,
+      "files": {
+        "src/platform/detect.ts": {
+          "caught": 30,
+          "total": 41,
+          "survivors": [
+            "||→&&",
+            "return true;→return false;",
+            ".startsWith(→.endsWith(",
+            "===→!==",
+            "return true;→return false;",
+            "===→!==",
+            "||→&&",
+            "return true;→return false;",
+            "return false;→return true;",
+            ".startsWith(→.endsWith(",
+            "&&→||"
+          ]
+        },
+        "src/platform/ruby.ts": {
+          "caught": 4,
+          "total": 6,
+          "survivors": [
+            "===→!==",
+            "return false;→return true;"
+          ]
+        },
+        "src/platform/exec.ts": {
+          "caught": 2,
+          "total": 6,
+          "survivors": [
+            "&&→||",
+            "===→!==",
+            "||→&&",
+            "!==→==="
+          ]
+        },
+        "src/platform/git.ts": {
+          "caught": 2,
+          "total": 4,
+          "survivors": [
+            "&&→||",
+            ">→<"
+          ]
+        },
+        "src/platform/types.ts": {
+          "caught": 0,
+          "total": 1,
+          "survivors": [
+            "===→!=="
+          ]
+        },
+        "src/platform/config.ts": {
+          "caught": 1,
+          "total": 1,
+          "survivors": []
+        },
+        "src/platform/errors.ts": {
+          "caught": 0,
+          "total": 1,
+          "survivors": [
+            "||→&&"
+          ]
+        }
+      }
+    },
+    "mapping": {
+      "caught": 32,
+      "total": 60,
+      "p": 0.5333333333333333,
+      "lo": 0.40893208671135106,
+      "hi": 0.65372298459012,
+      "admissible": false,
+      "files": {
+        "src/mapping/heuristic.ts": {
+          "caught": 12,
+          "total": 16,
+          "survivors": [
+            ".startsWith(→.endsWith(",
+            "!==→===",
+            "===→!==",
+            "===→!=="
+          ]
+        },
+        "src/mapping/agent.ts": {
+          "caught": 8,
+          "total": 19,
+          "survivors": [
+            "||→&&",
+            "&&→||",
+            "||→&&",
+            ">→<",
+            "!==→===",
+            "===→!==",
+            "===→!==",
+            ">=→<=",
+            ">=→<=",
+            "&&→||",
+            "&&→||"
+          ]
+        },
+        "src/mapping/semantic-evidence.ts": {
+          "caught": 12,
+          "total": 25,
+          "survivors": [
+            ">→<",
+            "||→&&",
+            ".endsWith(→.startsWith(",
+            ".endsWith(→.startsWith(",
+            "||→&&",
+            "||→&&",
+            "return false;→return true;",
+            "||→&&",
+            "!==→===",
+            "return false;→return true;",
+            "===→!==",
+            "||→&&",
+            "||→&&"
+          ]
+        }
+      }
+    },
+    "provider": {
+      "caught": 33,
+      "total": 60,
+      "p": 0.55,
+      "lo": 0.42491714548981496,
+      "hi": 0.6690654614623918,
+      "admissible": false,
+      "files": {
+        "src/provider/index.ts": {
+          "caught": 25,
+          "total": 50,
+          "survivors": [
+            "===→!==",
+            "!==→===",
+            "===→!==",
+            "!==→===",
+            "!==→===",
+            "&&→||",
+            "!==→===",
+            "||→&&",
+            "||→&&",
+            "===→!==",
+            "!==→===",
+            "&&→||",
+            "===→!==",
+            "&&→||",
+            "===→!==",
+            "&&→||",
+            "!==→===",
+            "||→&&",
+            "===→!==",
+            "===→!==",
+            "!==→===",
+            "||→&&",
+            "!==→===",
+            "===→!==",
+            "===→!=="
+          ]
+        },
+        "src/provider/json.ts": {
+          "caught": 5,
+          "total": 5,
+          "survivors": []
+        },
+        "src/provider/schema.ts": {
+          "caught": 3,
+          "total": 5,
+          "survivors": [
+            "!==→===",
+            "===→!=="
+          ]
+        }
+      }
+    },
+    "cli": {
+      "caught": 36,
+      "total": 60,
+      "p": 0.6,
+      "lo": 0.47365824394206846,
+      "hi": 0.714306969962345,
+      "admissible": false,
+      "fileTotals": {
+        "src/cli/main.ts": 57,
+        "src/cli/bootstrap.ts": 3
+      },
+      "survivorSpecs": [
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12671,
+          "end": 12673,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13132,
+          "end": 13134,
+          "repl": "&&",
+          "op": "||→&&"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13119,
+          "end": 13122,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 8877,
+          "end": 8879,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12161,
+          "end": 12163,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 8897,
+          "end": 8899,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/bootstrap.ts",
+          "start": 943,
+          "end": 948,
+          "repl": "true",
+          "op": "false→true"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13095,
+          "end": 13097,
+          "repl": "&&",
+          "op": "||→&&"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12992,
+          "end": 12994,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12765,
+          "end": 12767,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12978,
+          "end": 12981,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12685,
+          "end": 12688,
+          "repl": "===",
+          "op": "!==→==="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12658,
+          "end": 12661,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13008,
+          "end": 13011,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12895,
+          "end": 12898,
+          "repl": "===",
+          "op": "!==→==="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12885,
+          "end": 12887,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12722,
+          "end": 12724,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 8921,
+          "end": 8923,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13156,
+          "end": 13159,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12694,
+          "end": 12696,
+          "repl": "||",
+          "op": "&&→||"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13082,
+          "end": 13085,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12872,
+          "end": 12875,
+          "repl": "!==",
+          "op": "===→!=="
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 13170,
+          "end": 13172,
+          "repl": "&&",
+          "op": "||→&&"
+        },
+        {
+          "rel": "src/cli/main.ts",
+          "start": 12752,
+          "end": 12755,
+          "repl": "!==",
+          "op": "===→!=="
+        }
+      ]
+    }
+  },
+  "global": {
+    "caught": 228,
+    "total": 390,
+    "p": 0.5846153846153846,
+    "lo": 0.5351136772847973,
+    "hi": 0.632466385359677
+  },
+  "method": "ast-aware (merged)"
+}

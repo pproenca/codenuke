@@ -1,15 +1,8 @@
 import { readFile, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { requiresChangedTestForFix } from "./test-coverage.js";
-import { selectReviewGuidance, guidanceTextForTrace, GuidanceSelection } from "./guidance.js";
 import { RefactoringOpportunityCandidate } from "./ludicrous.js";
-import {
-  CodenukeConfig,
-  FeatureRecord,
-  FindingRecord,
-  GuidanceTraceEntry,
-  ProjectRecord,
-} from "../platform/types.js";
+import { CodenukeConfig, FeatureRecord, FindingRecord, ProjectRecord } from "../platform/types.js";
 
 export function buildAgentMapPrompt(project: ProjectRecord, inventory: unknown): string {
   return `You are mapping a repository into semantic codenuke review slices.
@@ -67,17 +60,16 @@ export async function buildReviewPrompt(
   feature: FeatureRecord,
   config: CodenukeConfig,
 ): Promise<string> {
-  return (await buildReviewPromptWithGuidance(root, project, feature, config)).prompt;
+  return (await buildReviewPromptWithCandidates(root, project, feature, config)).prompt;
 }
 
-export async function buildReviewPromptWithGuidance(
+export async function buildReviewPromptWithCandidates(
   root: string,
   project: ProjectRecord,
   feature: FeatureRecord,
   config: CodenukeConfig,
   options: { ludicrousCandidates?: RefactoringOpportunityCandidate[] } = {},
-): Promise<{ prompt: string; guidance: GuidanceSelection }> {
-  const guidance = await selectReviewGuidance(root, feature);
+): Promise<{ prompt: string }> {
   const ludicrousCandidates = options.ludicrousCandidates ?? [];
   const ludicrousPaths = ludicrousCandidates.flatMap((candidate) =>
     candidate.files.map((file) => file.path),
@@ -99,11 +91,13 @@ export async function buildReviewPromptWithGuidance(
 Return strict JSON only. No markdown fences.
 
 Mission:
-- Identify bounded, evidence-backed refactoring findings for simplification and complexity
-  reduction.
-- Prefer findings that can be fixed with a small behavior-preserving patch and validated with
-  existing or focused tests.
-- Ignore unrelated concerns unless they directly block validating the refactor.
+- Find behavior-preserving refactoring opportunities that reduce the amount of code.
+- Do not hunt for bugs. Report only code-reduction findings where the included code proves
+  structural friction and a smaller target shape.
+- Refactoring means improving code structure while preserving behavior so future change becomes
+  cheaper, safer, and clearer.
+- Prefer findings that can be migrated in slices, validated at boundaries, and finished by deleting
+  the old shape.
 
 Project:
 ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}
@@ -111,97 +105,65 @@ ${JSON.stringify({ name: project.name, detected: project.detected }, null, 2)}
 Feature:
 ${JSON.stringify(feature, null, 2)}
 
-Map semantic evidence:
-${feature.semanticEvidence?.length ? JSON.stringify(feature.semanticEvidence, null, 2) : "- none"}
+Code-reduction targets:
+- duplicated behavior, repeated conditionals, and copy-pasted policy
+- dead scaffolding, obsolete compatibility paths, or unused indirection
+- pass-through layers, middle-men, wrappers, or adapters that no longer isolate real variation
+- split concepts where one conceptual change forces edits across unrelated files
+- test/setup friction that makes behavior preservation harder than the code change itself
 
-Review categories:
-- algorithmic or render-path complexity
-- behavior-preserving simplification
-- trusted-refactor test gaps
-- build/release hazards that block validation
+Finding bar:
+- A valid finding must point to code that can be deleted, merged, or made more local while preserving
+  behavior.
+- Do not report cosmetic cleanup, style-only preferences, renames, formatting, or abstraction churn.
+- Defect discovery is out of scope; use any defect-like evidence only to justify a
+  behavior-preserving code-reduction refactor.
+- Future-change claims must name the change scenario. "Cleaner" is not enough.
+- Define current cost and target cost in terms of locality, touched graph, verification cost, blast
+  radius, coordination, reversibility, cycle time, or rework risk.
+- Treat scanner-style complexity patterns as leads, not proof.
+- Evidence must show why less code is possible and what behavior boundary protects the refactor.
 
-Codenuke focus:
-- Report algorithmic or render-path complexity under "performance". Strong examples include nested
-  lookup loops, repeated membership checks inside loops, sorting inside loops, pairwise comparisons
-  that can use sorting/sweep-line/indexing, N+1 database/API/file calls, and repeated expensive
-  derived work during render.
-- Report behavior-preserving reductions under "maintainability" only when the reduction is
-  specific and low-risk: dead code, duplicate code/state, derived state stored unnecessarily,
-  unnecessary effect flows, over-abstraction, redundant prop surfaces, unused dependencies, or
-  redundant types.
-- Treat scanner-style complexity patterns as leads, not proof. Do not report a finding unless the
-  path is plausibly hot or large-input, the behavior contract is visible, and the suggested change
-  preserves ordering, duplicates, key equality, mutation/identity, cache invalidation, permissions,
-  pagination, and error behavior where relevant.
-- Treat selected Refactoring Resources as tools for judgment, not automatic findings. If a selected
-  signal does not apply after inspecting the code, do not report it.
-- For each finding, return guidance.applied entries that explain which selected resources actually
-  shaped the finding and how to use them during fix/revalidation. Do not return bare citations.
-
-${guidance.prompt}
+Large-refactor loop:
+- Name systemic friction.
+- Map the current shape.
+- Choose a smaller target shape.
+- Protect behavior at boundaries.
+- Migrate in slices.
+- Delete the old shape.
+- Rebalance.
+- Repeat only if another measured code-reduction scenario remains.
 
 ${ludicrousCandidatePrompt(ludicrousCandidates)}
 
-Use map semantic evidence as supporting leads for sibling features, duplicated concepts, and
-refactoring scope. Do not report from map evidence alone; prove findings in included files. If map
-evidence materially shapes a finding, include the relevant entries in mapEvidenceTrace and describe
-how fix and revalidation should use them.
-
 Inspect owned files, context files, and linked tests. Treat included tests as first-class
-evidence of intended behavior. If tests contradict a possible refactor, either skip it or
-downgrade confidence and explain the uncertainty. Deduplicate sibling/root-cause refactoring
-signals: when the same pattern appears in multiple owned files, emit one finding with multiple
-evidence refs instead of separate one-off findings.
+evidence of intended behavior. If tests contradict a possible refactor, skip it or downgrade
+confidence and explain the uncertainty. Deduplicate sibling/root-cause signals: when the same
+structural friction appears in multiple owned files, emit one finding with multiple evidence refs
+instead of separate one-off findings.
 
-Avoid speculative low-evidence findings. Evidence must point at included files.
+Avoid speculative low-evidence findings. Evidence must point at included files. Use category
+"maintainability" for code-reduction findings and include a concrete changeScenario.
 
 JSON shape:
 {
   "findings": [
     {
       "title": "string",
-      "category": "performance|maintainability|test-gap|build-release",
+      "category": "maintainability",
       "severity": "critical|high|medium|low",
       "confidence": "high|medium|low",
       "evidence": [{"path":"string","startLine":1,"endLine":1,"symbol":null,"quote":null}],
       "reasoning": "string",
       "reproduction": null,
       "recommendation": "string",
-      "whyTestsDoNotAlreadyCoverThis": "string",
-      "suggestedRegressionTest": "string or null",
-      "minimumFixScope": "string",
-      "candidateTrace": [
-        {
-          "candidateId": "string",
-          "source": "lexical-phrase|tfidf-file-similarity",
-          "title": "string",
-          "reason": "how this candidate shaped the finding, or why it was only supporting evidence",
-          "use": "how fix and revalidation should account for this candidate"
-        }
-      ],
-      "mapEvidenceTrace": [
-        {
-          "kind": "semantic-neighbor",
-          "source": "identifier-tfidf",
-          "targetFeatureId": "string",
-          "targetTitle": "string",
-          "score": 0.1,
-          "signals": ["string"],
-          "reason": "why this map evidence shaped the finding",
-          "use": "how fix and revalidation should account for this map evidence"
-        }
-      ],
-      "guidance": {
-        "applied": [
-          {
-            "resourceId": "string",
-            "title": "string",
-            "kind": "signal|technique|workflow",
-            "role": "primary|supporting",
-            "reason": "why this resource applies to this finding",
-            "use": "how fix and revalidation should use this resource"
-          }
-        ]
+      "changeScenario": {
+        "futureChange": "defined class of future change",
+        "currentCost": "what that change requires today",
+        "targetCost": "what that change should require after the refactor",
+        "behaviorInvariant": "what must remain unchanged",
+        "evidence": ["how included code proves the current cost and target"],
+        "costDimensions": ["change-amplification|cognitive-load|coupling|verification-cost|blast-radius|coordination|reversibility|cycle-time|rework-risk"]
       }
     }
   ],
@@ -210,7 +172,7 @@ JSON shape:
 
 Files:
 ${fileBlocks.join("\n\n")}`;
-  return { prompt, guidance };
+  return { prompt };
 }
 
 function ludicrousCandidatePrompt(candidates: RefactoringOpportunityCandidate[]): string {
@@ -219,10 +181,9 @@ function ludicrousCandidatePrompt(candidates: RefactoringOpportunityCandidate[])
   }
   return `Ludicrous Review Mode:
 - The following are high-recall Refactoring Opportunity Candidates, not findings.
-- Use them to inspect related files and look for larger behavior-preserving refactors.
-- Do not report a finding unless included code proves a bounded, evidence-backed repair path.
+- Use them only as leads while inspecting related files.
+- Do not report a finding unless included code proves a bounded, evidence-backed refactor path.
 - Prefer one root-cause finding over many small sibling findings when the candidate is real.
-- If a candidate shaped a finding, include its candidateId in that finding's candidateTrace.
 
 ${JSON.stringify(
   candidates.map((candidate) => ({
@@ -241,29 +202,16 @@ ${JSON.stringify(
 }
 
 export async function buildRevalidatePrompt(root: string, findingJson: string): Promise<string> {
-  const finding = JSON.parse(findingJson) as { guidance?: { applied?: GuidanceTraceEntry[] } };
-  const guidance = await guidanceTextForTrace(finding.guidance?.applied ?? [], "revalidate");
-  return `Revalidate this codenuke finding against the current repository at ${root}.
+  return `Revalidate this codenuke refactoring finding against the current repository at ${root}.
 
 Check whether the original evidence paths/lines still exist. If evidence moved or changed,
-decide whether the issue is fixed, stale/false-positive, still open elsewhere, or uncertain.
-Use tests and current code as evidence; do not assume a missing line means fixed. For complexity
-or simplification findings, confirm both that the original simplification opportunity is gone and
-that the replacement preserves the behavior contract visible in tests and context files.
-Also assess whether the applied guidance trace was followed appropriately. Primary guidance is
-mandatory unless the current code makes it not applicable; supporting guidance is optional context.
-A finding may be marked fixed only when the original issue is resolved, visible behavior is
-preserved, and the guidance fit is acceptable. If the code removed the symptom but violated the
-primary guidance intent, return uncertain.
-If the finding includes mapEvidenceTrace, use it as supporting context for sibling scope and
-semantic-neighbor risks. Do not require sibling changes unless the current evidence proves the
-original finding still spans those files.
+decide whether the code-reduction opportunity is fixed, stale/false-positive, still open elsewhere,
+or uncertain. Use tests and current code as evidence; do not assume a missing line means fixed. A
+finding may be marked fixed only when the old shape is gone, behavior is still protected, and
+validation supports the result.
 
 Return strict JSON only:
-{"outcome":"fixed|open|false-positive|uncertain","reasoning":"string","guidanceAssessment":{"followed":"yes|partially|no|not-applicable","reasoning":"string","deviations":["string"],"acceptable":true},"commands":["string"]}
-
-Applied guidance:
-${guidance}
+{"outcome":"fixed|open|false-positive|uncertain","reasoning":"string","commands":["string"]}
 
 Finding:
 ${findingJson}`;
@@ -276,25 +224,16 @@ export async function buildFixPrompt(
   config: CodenukeConfig,
 ): Promise<string> {
   const fileBlocks = await fileBlocksForPaths(root, fixPromptPaths(finding, feature, config));
-  const guidance = await guidanceTextForTrace(finding.guidance.applied, "fix");
   const testRequirement = requiresChangedTestForFix(finding, feature)
-    ? `\nTDD requirement:\n- This is a trusted-refactor finding with no linked feature tests.\n- Add or update a focused behavior test before changing production code.\n- The fix will be rejected unless the patch changes at least one test file.\n`
+    ? `\nTDD requirement:\n- This finding has no linked feature tests.\n- Add or update a focused behavior test before changing production code.\n- The fix will be rejected unless the patch changes at least one test file.\n`
     : "";
-  return `You are codenuke applying one small simplification or complexity repair in the current repository.
+  return `You are codenuke applying one behavior-preserving refactor in the current repository.
 
-Fix only the finding below. Keep the patch minimal and behavior-preserving. Prefer removing code,
-collapsing duplication, simplifying data flow, or improving algorithmic complexity over broad
-rewrites. Add or update focused tests when feasible.
-Apply the finding's guidance trace. Primary guidance is mandatory unless the current code makes it
-not applicable; supporting guidance is optional context for the smallest safe move. If a listed
-technique is too broad for the current code, choose the smallest safer behavior-preserving move and
-explain why in guidanceApplication. Do not switch to a larger technique unless the finding's
-evidence requires it.
-Use mapEvidenceTrace and Feature.semanticEvidence as supporting context for sibling scope and
-semantic-neighbor risks, but keep the patch inside the finding evidence and Patch Boundary unless
-the finding explicitly justifies broader files.
-Use a red-green-refactor loop for behavior-preserving refactors: prove the intended behavior with
-the smallest focused test, make the minimal production change, then run validation.
+Apply only the finding below. The goal is less code with the same behavior, not a bug hunt. Keep the
+patch as small as the refactor allows.
+For larger refactors: name systemic friction, map the current shape, choose a smaller target shape,
+protect behavior at boundaries, migrate in slices, delete the old shape, rebalance, and stop.
+Use tests or existing executable checks to protect behavior before and after the structural change.
 Do not commit, push, switch branches, or run destructive git commands.
 After editing, return strict JSON only:
 {
@@ -303,24 +242,10 @@ After editing, return strict JSON only:
   "plannedFiles": ["string"],
   "risk": "low|medium|high",
   "steps": ["string"],
-  "guidanceApplication": {
-    "appliedResources": [
-      {
-        "resourceId": "string",
-        "action": "applied|adapted|not-used",
-        "reasoning": "string"
-      }
-    ],
-    "deviations": ["string"],
-    "risk": "low|medium|high"
-  },
   "validationCommands": ["string"]
 }
 
 ${testRequirement}
-Applied guidance:
-${guidance}
-
 Finding:
 ${JSON.stringify(finding, null, 2)}
 

@@ -184,13 +184,13 @@ describe("Codex provider args", () => {
     expect(prepared).not.toContain('"findings"');
   });
 
-  it("keeps non-Codex schema prose paths available for providers without output schema files", () => {
-    const prompt = 'Return strict JSON only:\n{"outcome":"fixed"}\n\nApplied guidance:\n- none';
+  it("removes revalidation schema prose when Codex receives an output schema", () => {
+    const prompt = 'Return strict JSON only:\n{"outcome":"fixed"}\n\nFinding:\n{}';
 
     const prepared = codexPrompt(prompt);
 
     expect(prepared).toContain("provider schema supplied out-of-band");
-    expect(prepared).toContain("Applied guidance:");
+    expect(prepared).toContain("Finding:");
     expect(prepared).not.toContain('"outcome"');
   });
 
@@ -204,14 +204,14 @@ describe("Codex provider args", () => {
       '  "summary": "string"',
       "}",
       "",
-      "Applied guidance:",
-      "- none",
+      "Finding:",
+      "{}",
     ].join("\n");
 
     expect(codexPrompt(mapPrompt)).not.toContain('"features"');
     expect(codexPrompt(mapPrompt)).toContain("provider schema supplied out-of-band");
     expect(codexPrompt(fixPrompt)).not.toContain('"summary"');
-    expect(codexPrompt(fixPrompt)).toContain("Applied guidance:");
+    expect(codexPrompt(fixPrompt)).toContain("Finding:");
   });
 });
 
@@ -244,15 +244,39 @@ describe("providerJsonSchema", () => {
     }
   });
 
-  it("keeps provider review categories focused on refactoring", () => {
+  it("allows concrete review categories beyond refactoring cleanup", () => {
     const schemaText = JSON.stringify(reviewJsonSchema);
 
     expect(schemaText).toContain("maintainability");
     expect(schemaText).toContain("performance");
-    expect(schemaText).not.toContain('"bug"');
-    expect(schemaText).not.toContain("security");
-    expect(schemaText).not.toContain("data-loss");
-    expect(schemaText).not.toContain("concurrency");
+    expect(schemaText).toContain('"bug"');
+    expect(schemaText).toContain("security");
+    expect(schemaText).toContain("data-loss");
+    expect(schemaText).toContain("concurrency");
+  });
+
+  it("requires maintainability findings to define a measured change scenario", () => {
+    const result = reviewOutputSchema.safeParse({
+      findings: [
+        {
+          title: "Cleaner shape",
+          category: "maintainability",
+          severity: "low",
+          confidence: "medium",
+          evidence: [],
+          reasoning: "The code could be reorganized.",
+          reproduction: null,
+          recommendation: "Extract a helper.",
+          changeScenario: null,
+        },
+      ],
+      inspected: { files: [], symbols: [], notes: [] },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      "maintainability findings require a concrete changeScenario",
+    );
   });
 });
 
@@ -301,11 +325,6 @@ describe("withProviderOperations", () => {
           plannedFiles: ["src/provider.ts"],
           risk: "low",
           steps: ["edit"],
-          guidanceApplication: {
-            appliedResources: [],
-            deviations: [],
-            risk: "low",
-          },
           validationCommands: ["pnpm test src/provider.test.ts"],
         },
       ],
@@ -314,12 +333,6 @@ describe("withProviderOperations", () => {
         {
           outcome: "fixed",
           reasoning: "ok",
-          guidanceAssessment: {
-            followed: "yes",
-            reasoning: "ok",
-            deviations: [],
-            acceptable: true,
-          },
           commands: [],
         },
       ],

@@ -1,14 +1,13 @@
 {
   "name": "codenuke",
   "version": "0.3.0",
-  "description": "Automated code review for reliable, trusted refactoring.",
+  "description": "Automated code review for concrete issues.",
   "license": "MIT",
   "bin": {
     "codenuke": "dist/cli.js"
   },
   "files": [
     "dist",
-    "resources",
     "README.md",
     "LICENSE"
   ],
@@ -21,7 +20,7 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "vitest run",
-    "eval": "pnpm -s build && node evals/scripts/run-all.mjs && node evals/scripts/run-semantic-roi.mjs",
+    "eval": "pnpm -s build && node evals/scripts/run-all.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },
   "dependencies": {

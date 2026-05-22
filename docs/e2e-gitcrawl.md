@@ -9,20 +9,20 @@ Date: 2026-05-15
 
 Target:
 
-- repo: `/Users/steipete/Projects/gitcrawl`
+- repo: `/path/to/gitcrawl`
 - branch: `main`
 - base sha: `469d89bc1a7af89a09e0d485a3aaec468695cc28`
-- state dir: `/tmp/codenuke-gitcrawl-state.LS8z6l`
+- state dir: `/tmp/codenuke-gitcrawl-state.<tmp>`
 - provider: `codex`
 
 Commands:
 
 ```bash
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l init
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l map
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l review --feature feat_library_4e7327377d --provider codex
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l fix --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
-node dist/cli.js --root /Users/steipete/Projects/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.LS8z6l revalidate --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
+node dist/cli.js --root /path/to/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.<tmp> init
+node dist/cli.js --root /path/to/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.<tmp> map
+node dist/cli.js --root /path/to/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.<tmp> review --feature feat_library_4e7327377d --provider codex
+node dist/cli.js --root /path/to/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.<tmp> fix --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
+node dist/cli.js --root /path/to/gitcrawl --state-dir /tmp/codenuke-gitcrawl-state.<tmp> revalidate --finding fnd_sig-feat-library-4e7327377d-d508_36498c6bfc --provider codex
 GOCACHE=/tmp/gitcrawl-go-cache GOWORK=off go test ./internal/vector
 ```
 

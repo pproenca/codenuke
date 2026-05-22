@@ -11,10 +11,7 @@
     "openFindings": 0,
     "findings": [],
     "baseline": {
-      "guidanceSelectionAudits": 1,
-      "selectedResources": ["workflow.trusted-refactor-regression-coverage"],
       "patchAttempts": 0,
-      "guidanceApplications": 0,
       "patchBoundaryUnexpectedFiles": 0,
       "findingsByStatus": {},
       "patchAttemptsByStatus": {}

@@ -14,8 +14,9 @@
       "computedHash": "082a4f429cf1ec430ea83474e6de4689c627a347646eea5a515d38362da0361b"
     },
     "codenuke": {
-      "source": "/Users/pedroproenca/Documents/Projects/codenuke",
-      "sourceType": "local",
+      "source": "pproenca/codenuke",
+      "sourceType": "github",
+      "skillPath": "skills/codenuke/SKILL.md",
       "computedHash": "cfe179e31ef3fd2f58e58024b74bab044e5b61618434affb8faa396148316150"
     },
     "complexity-optimizer": {

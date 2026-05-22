@@ -32,7 +32,6 @@ import { runCommand } from "../platform/exec.js";
 import { changedFilesSince } from "../platform/git.js";
 import { mapWithSource } from "../mapping/agent.js";
 import { mapFeatures } from "../mapping/heuristic.js";
-import { guidanceApplicationFailure } from "./guidance-application.js";
 import {
   claimFeature,
   releaseFeatureLock,
@@ -316,7 +315,6 @@ describe("workflow", () => {
     });
 
     expect(parsed.triage).toBe("test-gap");
-    expect(parsed.guidance).toEqual({ selected: [], applied: [] });
   });
 
   it("rejects nonexistent explicit roots before init", async () => {
@@ -367,7 +365,6 @@ describe("workflow", () => {
     expect(status).toMatchObject({ openFindings: 1 });
     expect(report).toMatchObject({ findings: 1 });
     expect(report).toMatchObject({ markdown: expect.stringContaining("src/index.ts:1") });
-    expect(report).toMatchObject({ markdown: expect.stringContaining("test analysis:") });
     expect(jsonReport).toMatchObject({
       findings: 1,
       items: [
@@ -376,9 +373,6 @@ describe("workflow", () => {
           severity: "low",
           status: "open",
           evidence: [{ path: "src/index.ts", startLine: 1 }],
-          whyTestsDoNotAlreadyCoverThis: expect.any(String),
-          suggestedRegressionTest: expect.any(String),
-          minimumFixScope: expect.any(String),
         },
       ],
     });
@@ -736,101 +730,6 @@ describe("workflow", () => {
       status: "false-positive",
       note: "tests cover intended contract",
     });
-    delete process.env["CODENUKE_PROVIDER"];
-  });
-
-  it("persists guidance traces and exposes review dry-run diagnostics", async () => {
-    const root = await fixtureRoot("codenuke-guidance-trace-");
-    await writeFixture(
-      root,
-      "package.json",
-      JSON.stringify({ name: "guided", bin: { guided: "src/index.ts" } }),
-    );
-    await writeFixture(
-      root,
-      "src/index.ts",
-      [
-        "export function guided(a: string, b: string, c: string, d: string, e: string) {",
-        "  if (a) {",
-        "    const marker = 'TODO_REFACTOR';",
-        "    console.log('TODO_REFACTOR');",
-        "    return marker;",
-        "    console.log('TODO_REFACTOR');",
-        "  } else if (b) {",
-        "    const marker = 'TODO_REFACTOR';",
-        "    console.log('TODO_REFACTOR');",
-        "    return marker;",
-        "    console.log('TODO_REFACTOR');",
-        "  }",
-        "  return a + b + c + d + e;",
-        "}",
-        "",
-      ].join("\n"),
-    );
-    process.env["CODENUKE_PROVIDER"] = "mock";
-    const context = await makeContext(testOptions(root));
-
-    await initCommand(context, {});
-    await mapCommand(context);
-    const dryRun = (await reviewCommand(context, { dryRun: true, limit: "1" })) as {
-      guidance: Array<{
-        detectedShapes: string[];
-        selected: Array<{ resourceId: string }>;
-        audit: {
-          detectedShapes: Array<{ shape: string; path: string; startLine: number | null }>;
-          rejected: Array<{ resourceId: string; reason: string }>;
-          promptedResources: Array<{ resourceId: string; contentHash: string }>;
-          promptHash: string;
-        };
-      }>;
-    };
-    expect(dryRun.guidance[0]?.detectedShapes).toEqual(
-      expect.arrayContaining(["long-parameter-list", "repeated-lines"]),
-    );
-    expect(dryRun.guidance[0]?.selected.map((entry) => entry.resourceId)).toContain(
-      "catalog.dispensables.duplicate-code",
-    );
-    expect(dryRun.guidance[0]?.audit.detectedShapes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ shape: "long-parameter-list", path: "src/index.ts" }),
-      ]),
-    );
-    expect(dryRun.guidance[0]?.audit.promptedResources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          resourceId: "catalog.dispensables.duplicate-code",
-          contentHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
-        }),
-      ]),
-    );
-    expect(dryRun.guidance[0]?.audit.rejected.map((entry) => entry.resourceId)).toContain(
-      "catalog.couplers.message-chains",
-    );
-
-    const reviewed = (await reviewCommand(context, { limit: "1" })) as { next: string };
-    const findingId = reviewed.next.split(" ").at(-1) ?? "";
-    const paths = statePaths(join(root, ".codenuke"));
-    const finding = await readFinding(paths, findingId);
-    const runs = await readRuns(paths);
-    const reviewRun = runs.find((run) => run.command === "review" && run.status === "completed");
-    expect(reviewRun?.guidanceSelectionAudits[0]).toMatchObject({
-      featureId: expect.stringMatching(/^feat_/u),
-      selected: expect.arrayContaining([
-        expect.objectContaining({ resourceId: "catalog.dispensables.duplicate-code" }),
-      ]),
-      rejected: expect.arrayContaining([
-        expect.objectContaining({ resourceId: "catalog.couplers.message-chains" }),
-      ]),
-      promptHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
-    });
-    expect(finding?.guidance.selected.map((entry) => entry.resourceId)).toContain(
-      "catalog.dispensables.duplicate-code",
-    );
-    expect(finding?.guidance.applied[0]?.use).toContain("schema-compatible mock output");
-
-    const shown = (await showCommand(context, { finding: findingId })) as { markdown: string };
-    expect(shown.markdown).toContain("guidance:");
-    expect(shown.markdown).toContain("Duplicate Code");
     delete process.env["CODENUKE_PROVIDER"];
   });
 
@@ -1625,16 +1524,7 @@ describe("workflow", () => {
 
     expect(features[0]?.status).toBe("error");
     expect(features[0]?.lock).toBeNull();
-    expect(failedRun?.guidanceSelectionAudits[0]).toMatchObject({
-      featureId: features[0]?.featureId,
-      promptedResources: [
-        expect.objectContaining({
-          resourceId: "workflow.trusted-refactor-regression-coverage",
-          role: "primary",
-        }),
-      ],
-      promptHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
-    });
+    expect(failedRun?.errors).toHaveLength(1);
     expect(await readdir(join(root, ".codenuke/locks"))).toEqual([]);
     await rm(join(root, ".codenuke"), { recursive: true, force: true });
   });
@@ -1788,79 +1678,8 @@ describe("workflow", () => {
 
     expect(fixed).toMatchObject({ status: "applied", filesChanged: 0 });
     expect(patches[0]?.filesChanged).toEqual([]);
-    expect(patches[0]?.guidanceApplication).toMatchObject({
-      appliedResources: [
-        {
-          resourceId: "catalog.dispensables.duplicate-code",
-          action: "applied",
-        },
-      ],
-      risk: "low",
-    });
     await expect(access(join(root, "SHOULD_NOT_RUN_PROVIDER_COMMANDS"))).rejects.toThrow();
     delete process.env["CODENUKE_PROVIDER"];
-  });
-
-  it("flags fix plans that do not account for applied guidance resources", async () => {
-    const finding = findingRecordSchema.parse({
-      schemaVersion: 1,
-      findingId: "fnd_guidance",
-      featureId: "feat_guidance",
-      title: "Guided finding",
-      category: "maintainability",
-      severity: "low",
-      confidence: "high",
-      evidence: [],
-      reasoning: "Guidance-sensitive finding.",
-      reproduction: null,
-      recommendation: "Apply the selected guidance.",
-      guidance: {
-        selected: [],
-        applied: [
-          {
-            resourceId: "catalog.dispensables.duplicate-code",
-            title: "Duplicate Code",
-            kind: "signal",
-            role: "primary",
-            reason: "The finding depends on this signal.",
-            use: "Use the trace to constrain the repair.",
-          },
-        ],
-      },
-      status: "open",
-      linkedPatchAttemptIds: [],
-      signature: "sig_guidance",
-      createdByRunId: "run_guidance",
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:00.000Z",
-    });
-
-    expect(
-      guidanceApplicationFailure(finding, {
-        appliedResources: [],
-        deviations: [],
-        risk: "low",
-      }),
-    ).toMatchObject({
-      code: "guidance-not-accounted",
-      missingResources: ["catalog.dispensables.duplicate-code"],
-    });
-    expect(
-      guidanceApplicationFailure(finding, {
-        appliedResources: [
-          {
-            resourceId: "catalog.dispensables.duplicate-code",
-            action: "not-used",
-            reasoning: "Provider chose not to apply the primary guidance.",
-          },
-        ],
-        deviations: [],
-        risk: "low",
-      }),
-    ).toMatchObject({
-      code: "guidance-not-accounted",
-      rejectedPrimaryResources: ["catalog.dispensables.duplicate-code"],
-    });
   });
 
   it("includes feature-specific validation in fix dry-run output", async () => {
@@ -1893,7 +1712,7 @@ describe("workflow", () => {
     delete process.env["CODENUKE_PROVIDER"];
   });
 
-  it("fails trusted-refactor fixes without linked tests or changed test files", async () => {
+  it("fails uncovered fixes without linked tests or changed test files", async () => {
     const root = await fixtureRoot("codenuke-refactor-test-coverage-");
     await runCommand(
       "git init -q && git config user.email test@example.com && git config user.name Test",
@@ -1976,18 +1795,6 @@ describe("workflow", () => {
         { path: ".env", startLine: 1, endLine: 1, symbol: null, quote: "SECRET" },
         ...finding.evidence,
       ],
-      mapEvidenceTrace: [
-        {
-          kind: "semantic-neighbor" as const,
-          source: "identifier-tfidf" as const,
-          targetFeatureId: "feat_neighbor",
-          targetTitle: "Neighbor feature",
-          score: 0.42,
-          signals: ["refactor", "helper"],
-          reason: "Map evidence shaped the sibling-risk check.",
-          use: "Check whether the same simplification spans the neighbor feature.",
-        },
-      ],
     };
     const promptConfig = await loadConfig(root, testOptions(root));
     const prompt = await buildFixPrompt(root, findingWithUnownedEvidence, featureWithContext, {
@@ -2001,8 +1808,7 @@ describe("workflow", () => {
     expect(prompt).toContain("--- src/index.ts");
     expect(prompt).toContain("--- src/helper.ts");
     expect(prompt).toContain("--- src/index.test.ts");
-    expect(prompt).toContain("mapEvidenceTrace");
-    expect(prompt).toContain("Neighbor feature");
+    expect(prompt).not.toContain("mapEvidenceTrace");
     expect(prompt.match(/^--- .+$/gmu)).toEqual([
       "--- src/index.ts",
       "--- src/helper.ts",
@@ -2012,25 +1818,12 @@ describe("workflow", () => {
     delete process.env["CODENUKE_PROVIDER"];
   });
 
-  it("includes map evidence trace in revalidation prompts", async () => {
+  it("revalidates against the finding JSON without extra map-evidence instructions", async () => {
     const root = await fixtureRoot("codenuke-revalidate-map-evidence-");
     const findingJson = JSON.stringify(
       {
         findingId: "fnd_map",
         title: "Simplify duplicated normalization",
-        guidance: { applied: [] },
-        mapEvidenceTrace: [
-          {
-            kind: "semantic-neighbor",
-            source: "identifier-tfidf",
-            targetFeatureId: "feat_parser",
-            targetTitle: "Parser normalization",
-            score: 0.51,
-            signals: ["normalize", "token"],
-            reason: "Map evidence linked the same normalization vocabulary.",
-            use: "Check sibling scope before marking fixed.",
-          },
-        ],
       },
       null,
       2,
@@ -2038,9 +1831,9 @@ describe("workflow", () => {
 
     const prompt = await buildRevalidatePrompt(root, findingJson);
 
-    expect(prompt).toContain("mapEvidenceTrace");
-    expect(prompt).toContain("Parser normalization");
-    expect(prompt).toContain("semantic-neighbor risks");
+    expect(prompt).toContain('"findingId": "fnd_map"');
+    expect(prompt).not.toContain("semantic-neighbor risks");
+    expect(prompt).not.toContain("guidance");
   });
 
   it("includes linked tests in review prompts once", async () => {
@@ -2107,9 +1900,17 @@ describe("workflow", () => {
       review: { ...promptConfig.review, maxContextFiles: 10 },
     });
 
-    expect(prompt).toContain("Map semantic evidence:");
-    expect(prompt).toContain("Neighbor helper");
-    expect(prompt).toContain('"mapEvidenceTrace"');
+    expect(prompt).not.toContain("Map semantic evidence:");
+    expect(prompt).not.toContain('"mapEvidenceTrace"');
+    expect(prompt).toContain("Find behavior-preserving refactoring opportunities");
+    expect(prompt).toContain("Do not hunt for bugs");
+    expect(prompt).toContain("Large-refactor loop:");
+    expect(prompt).toContain("Delete the old shape");
+    expect(prompt).toContain("Future-change claims must name the change scenario");
+    expect(prompt).toContain('"changeScenario"');
+    expect(prompt).toContain('"category": "maintainability"');
+    expect(prompt).toContain("change-amplification|cognitive-load|coupling");
+    expect(prompt).not.toContain("correctness bugs");
     expect(prompt).toContain("expect(value).toBe(true);");
     expect(prompt.match(/^--- .+$/gmu)).toEqual([
       "--- src/index.ts",

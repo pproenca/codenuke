@@ -17,9 +17,6 @@ const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const fixturesRoot = join(repoRoot, "evals", "fixtures");
 const resultsRoot = join(repoRoot, "evals", "results");
 const cli = join(repoRoot, "dist", "cli.js");
-const guidanceManifest = readJson(join(repoRoot, "resources", "refactoring", "manifest.json"));
-const guidanceCoverageConfig =
-  readOptionalJson(join(repoRoot, "evals", "guidance-coverage.json")) ?? {};
 
 if (!existsSync(cli)) {
   throw new Error("dist/cli.js is missing. Run pnpm build before pnpm eval.");
@@ -45,17 +42,6 @@ for (const fixtureName of fixtureNames) {
   console.log(`${status} ${result.slug}: ${result.summary}`);
 }
 
-const guidanceCoverageMatrix = guidanceCoverageMatrixFromResults(results);
-if (guidanceCoverageMatrix.totals.unownedResources > 0) {
-  const unowned = guidanceCoverageMatrix.resources
-    .filter((resource) => resource.status === "unowned")
-    .map((resource) => resource.id)
-    .join(", ");
-  const message = `unowned guidance resource(s): ${unowned}`;
-  suiteFailures.push({ check: "guidance-coverage-matrix", message });
-  console.log(`FAIL guidance-coverage-matrix: ${message}`);
-}
-
 const output = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
@@ -75,16 +61,11 @@ const output = {
     ok: suiteFailures.length === 0,
     failures: suiteFailures,
   },
-  guidanceCoverageMatrix,
   results,
 };
 
 mkdirSync(resultsRoot, { recursive: true });
 writeFileSync(join(resultsRoot, "latest.json"), `${JSON.stringify(output, null, 2)}\n`);
-writeFileSync(
-  join(resultsRoot, "guidance-coverage-matrix.json"),
-  `${JSON.stringify(guidanceCoverageMatrix, null, 2)}\n`,
-);
 
 if (fixtureFailures > 0 || suiteFailures.length > 0) {
   process.exitCode = 1;
@@ -289,57 +270,11 @@ function scoreBaseline(expectation, baseline) {
     return { ok: true, errors };
   }
   if (
-    expectation.guidanceSelectionAudits !== undefined &&
-    baseline.guidanceSelection.audits !== expectation.guidanceSelectionAudits
-  ) {
-    errors.push(
-      `expected ${expectation.guidanceSelectionAudits} guidance selection audit(s), got ${baseline.guidanceSelection.audits}`,
-    );
-  }
-  for (const resourceId of expectation.selectedResources ?? []) {
-    if (!baseline.guidanceSelection.selectedResources.includes(resourceId)) {
-      errors.push(`missing selected guidance resource ${resourceId}`);
-    }
-  }
-  for (const resourceId of expectation.absentSelectedResources ?? []) {
-    if (baseline.guidanceSelection.selectedResources.includes(resourceId)) {
-      errors.push(`unexpected selected guidance resource ${resourceId}`);
-    }
-  }
-  for (const resourceId of expectation.primaryResources ?? []) {
-    if (!baseline.guidanceSelection.primaryResources.includes(resourceId)) {
-      errors.push(`missing primary guidance resource ${resourceId}`);
-    }
-  }
-  for (const resourceId of expectation.supportingResources ?? []) {
-    if (!baseline.guidanceSelection.supportingResources.includes(resourceId)) {
-      errors.push(`missing supporting guidance resource ${resourceId}`);
-    }
-  }
-  for (const resourceId of expectation.absentPrimaryResources ?? []) {
-    if (baseline.guidanceSelection.primaryResources.includes(resourceId)) {
-      errors.push(`unexpected primary guidance resource ${resourceId}`);
-    }
-  }
-  for (const shape of expectation.detectedShapes ?? []) {
-    if (!baseline.guidanceSelection.detectedShapeNames.includes(shape)) {
-      errors.push(`missing detected guidance shape ${shape}`);
-    }
-  }
-  if (
     expectation.patchAttempts !== undefined &&
     baseline.workflow.patchAttempts !== expectation.patchAttempts
   ) {
     errors.push(
       `expected ${expectation.patchAttempts} patch attempt(s), got ${baseline.workflow.patchAttempts}`,
-    );
-  }
-  if (
-    expectation.guidanceApplications !== undefined &&
-    baseline.guidanceApplication.withGuidanceApplication !== expectation.guidanceApplications
-  ) {
-    errors.push(
-      `expected ${expectation.guidanceApplications} guidance application(s), got ${baseline.guidanceApplication.withGuidanceApplication}`,
     );
   }
   if (
@@ -367,8 +302,6 @@ function scoreBaseline(expectation, baseline) {
 
 function baselineFromState(worktree, initialReport, finalReport) {
   const state = readState(worktree);
-  const guidanceSelectionAudits = state.runs.flatMap((run) => run.guidanceSelectionAudits ?? []);
-  const patchesWithGuidance = state.patches.filter((patch) => patch.guidanceApplication !== null);
   const patchFailures = state.patches
     .map((patch) => patch.failure)
     .filter((failure) => failure !== null && failure !== undefined);
@@ -377,61 +310,6 @@ function baselineFromState(worktree, initialReport, finalReport) {
     deterministicEval: {
       initialOpenFindings: initialReport.findings,
       finalFindings: finalReport.findings,
-    },
-    guidanceSelection: {
-      audits: guidanceSelectionAudits.length,
-      detectedShapes: sum(guidanceSelectionAudits, (audit) => audit.detectedShapes?.length ?? 0),
-      selectedResources: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.selected ?? []).map((resource) => resource.resourceId),
-        ),
-      ),
-      primaryResources: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.selected ?? [])
-            .filter((resource) => resource.role === "primary")
-            .map((resource) => resource.resourceId),
-        ),
-      ),
-      supportingResources: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.selected ?? [])
-            .filter((resource) => resource.role === "supporting")
-            .map((resource) => resource.resourceId),
-        ),
-      ),
-      detectedShapeNames: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.detectedShapes ?? []).map((shape) => shape.shape),
-        ),
-      ),
-      promptedResources: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.promptedResources ?? []).map((resource) => resource.resourceId),
-        ),
-      ),
-      rejectedResources: uniqueSorted(
-        guidanceSelectionAudits.flatMap((audit) =>
-          (audit.rejected ?? []).map((resource) => resource.resourceId),
-        ),
-      ),
-      promptProofs: guidanceSelectionAudits.filter((audit) => typeof audit.promptHash === "string")
-        .length,
-    },
-    guidanceApplication: {
-      patchAttempts: state.patches.length,
-      withGuidanceApplication: patchesWithGuidance.length,
-      appliedResources: countGuidanceActions(patchesWithGuidance, "applied"),
-      adaptedResources: countGuidanceActions(patchesWithGuidance, "adapted"),
-      notUsedResources: countGuidanceActions(patchesWithGuidance, "not-used"),
-      resourceActions: guidanceResourceActions(patchesWithGuidance),
-      deviations: sum(
-        patchesWithGuidance,
-        (patch) => patch.guidanceApplication?.deviations?.length ?? 0,
-      ),
-      risks: countBy(
-        patchesWithGuidance.map((patch) => patch.guidanceApplication?.risk).filter(Boolean),
-      ),
     },
     patchBoundary: {
       patchAttempts: state.patches.length,
@@ -475,26 +353,6 @@ function readJsonRecords(dir) {
     .map((entry) => readJson(join(dir, entry.name)));
 }
 
-function countGuidanceActions(patches, action) {
-  return sum(
-    patches,
-    (patch) =>
-      patch.guidanceApplication?.appliedResources?.filter((resource) => resource.action === action)
-        .length ?? 0,
-  );
-}
-
-function guidanceResourceActions(patches) {
-  return patches.flatMap((patch) =>
-    (patch.guidanceApplication?.appliedResources ?? []).map((resource) => ({
-      patchAttemptId: patch.patchAttemptId,
-      findingId: patch.findingId ?? null,
-      resourceId: resource.resourceId,
-      action: resource.action,
-    })),
-  );
-}
-
 function countBy(values) {
   const counts = {};
   for (const value of values) {
@@ -508,10 +366,6 @@ function countBy(values) {
 
 function sum(items, value) {
   return items.reduce((total, item) => total + value(item), 0);
-}
-
-function uniqueSorted(values) {
-  return [...new Set(values)].toSorted();
 }
 
 function matchesFinding(item, expected) {
@@ -533,27 +387,12 @@ function matchesFinding(item, expected) {
       return false;
     }
   }
-  const mapEvidenceTrace = Array.isArray(item.mapEvidenceTrace) ? item.mapEvidenceTrace : [];
-  if (expected.mapEvidenceTrace === true && mapEvidenceTrace.length === 0) {
+  if (expected.changeScenario === true && item.changeScenario === null) {
     return false;
   }
   if (
-    expected.mapEvidenceTraceKind !== undefined &&
-    !mapEvidenceTrace.some((entry) => entry.kind === expected.mapEvidenceTraceKind)
-  ) {
-    return false;
-  }
-  if (
-    expected.mapEvidenceTraceTargetTitle !== undefined &&
-    !mapEvidenceTrace.some((entry) => entry.targetTitle === expected.mapEvidenceTraceTargetTitle)
-  ) {
-    return false;
-  }
-  if (
-    expected.mapEvidenceTraceSignal !== undefined &&
-    !mapEvidenceTrace.some((entry) =>
-      (entry.signals ?? []).includes(expected.mapEvidenceTraceSignal),
-    )
+    expected.changeScenarioFutureChange !== undefined &&
+    item.changeScenario?.futureChange !== expected.changeScenarioFutureChange
   ) {
     return false;
   }
@@ -576,122 +415,12 @@ function normalizeItems(items) {
           symbol: entry.symbol ?? null,
         }))
       : [],
-    mapEvidenceTrace: Array.isArray(item.mapEvidenceTrace)
-      ? item.mapEvidenceTrace.map((entry) => ({
-          kind: entry.kind,
-          source: entry.source,
-          targetTitle: entry.targetTitle,
-          signals: entry.signals ?? [],
-        }))
-      : [],
+    changeScenario: item.changeScenario ?? null,
   }));
-}
-
-function guidanceCoverageMatrixFromResults(evalResults) {
-  const coverage = new Map();
-  for (const resource of guidanceManifest.resources ?? []) {
-    coverage.set(resource.id, {
-      id: resource.id,
-      title: resource.title,
-      kind: resource.kind,
-      stages: resource.stages ?? [],
-      selectWhen: resource.selectWhen ?? [],
-      selectable: (resource.selectWhen ?? []).length > 0,
-      selectedBy: [],
-      appliedBy: [],
-      reservedBy: [],
-      status: "unowned",
-    });
-  }
-
-  for (const result of evalResults) {
-    const selection = result.baseline?.guidanceSelection;
-    for (const resourceId of selection?.selectedResources ?? []) {
-      const row = coverage.get(resourceId);
-      if (row !== undefined) {
-        row.selectedBy.push(result.slug);
-      }
-    }
-    const patches = result.baseline?.guidanceApplication;
-    if (patches === undefined) {
-      continue;
-    }
-    for (const resource of patches.resourceActions ?? []) {
-      const row = coverage.get(resource.resourceId);
-      if (row !== undefined) {
-        row.appliedBy.push({
-          fixture: result.slug,
-          action: resource.action,
-          patchAttemptId: resource.patchAttemptId,
-        });
-      }
-    }
-  }
-
-  const reservations = guidanceCoverageConfig.reservedResources ?? [];
-  for (const reservation of reservations) {
-    const row = coverage.get(reservation.resourceId);
-    if (row !== undefined) {
-      row.reservedBy.push({
-        reason: reservation.reason,
-      });
-    }
-  }
-
-  const resources = [...coverage.values()].map((row) => {
-    const selectedBy = uniqueSorted(row.selectedBy);
-    const appliedBy = row.appliedBy.toSorted(
-      (left, right) =>
-        left.fixture.localeCompare(right.fixture) || left.action.localeCompare(right.action),
-    );
-    const reservedBy = row.reservedBy;
-    const status =
-      selectedBy.length > 0
-        ? "covered"
-        : appliedBy.length > 0
-          ? "applied"
-          : reservedBy.length > 0
-            ? "reserved"
-            : "unowned";
-    return {
-      ...row,
-      selectedBy,
-      appliedBy,
-      reservedBy,
-      status,
-    };
-  });
-
-  const unownedResources = resources.filter((resource) => resource.status === "unowned").length;
-  const unownedSelectableResources = resources.filter(
-    (resource) => resource.status === "unowned" && resource.selectable,
-  ).length;
-  return {
-    schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
-    source: {
-      manifest: "resources/refactoring/manifest.json",
-      coverageConfig: "evals/guidance-coverage.json",
-    },
-    totals: {
-      resources: resources.length,
-      selectableResources: resources.filter((resource) => resource.selectable).length,
-      coveredResources: resources.filter((resource) => resource.status === "covered").length,
-      appliedResources: resources.filter((resource) => resource.status === "applied").length,
-      reservedResources: resources.filter((resource) => resource.status === "reserved").length,
-      unownedResources,
-      unownedSelectableResources,
-    },
-    resources,
-  };
 }
 
 function readJson(path) {
   return parseJson(readFileSync(path, "utf8"));
-}
-
-function readOptionalJson(path) {
-  return existsSync(path) ? readJson(path) : null;
 }
 
 function parseJson(text) {
