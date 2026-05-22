@@ -11,7 +11,7 @@ the engine — you point it at your repo and let it run. Everything happens in a
 git worktree, so **your working tree is never touched** and a reject is just a `git reset`.
 
 > Why this is hard (and how the metric is built to be trustworthy) is written up in
-> [`research/THEORY.md`](research/THEORY.md). Short version: "less code" is _not_ the
+> [`docs/spec.md`](docs/spec.md). Short version: "less code" is _not_ the
 > objective — the objective is **lower future-change cost**, and the two diverge. codenuke
 > measures the right thing instead of assuming it.
 
@@ -38,7 +38,7 @@ Two things make it trustworthy enough to run unattended:
   shell/git), so it cannot rewrite the judge — improving the score _requires_ genuinely
   improving the code. This is the property that makes `val_bpb` honest, reproduced here.
 - **The behavior fence is measured, not assumed.** Tests are an _approximate_ behavior
-  oracle. `codenuke-loop fence` mutation-tests each region to measure how many behavior
+  oracle. `codenuke fence` mutation-tests each region to measure how many behavior
   changes its tests actually catch (with a 95% CI). The loop only refactors a region whose
   fence clears the bar — and where it doesn't, it **earns** the right by first writing
   characterization tests until the fence clears (the _fence-raising_ move), then refactors.
@@ -50,14 +50,14 @@ the [`claude`](https://docs.claude.com/en/docs/claude-code) CLI by default (or a
 via `CN_PROPOSER`).
 
 ```bash
-npm install -g codenuke          # or: npx codenuke-loop …
+npm install -g codenuke          # or: npx codenuke …
 cd your-repo                     # run from your repo root
 
 # 1. Measure each source region's behavior-fence fidelity (periodic; minutes–hours).
-codenuke-loop fence
+codenuke fence
 
 # 2. Run the loop: propose → score → keep/revert, unattended.
-codenuke-loop run 20
+codenuke run 20
 ```
 
 `fence` writes `.codenuke/fence-fidelity.json`; `run` works on a fresh `autoresearch/<tag>`
@@ -86,24 +86,22 @@ default `claude -p`.
 ## Commands
 
 ```
-codenuke-loop fence [cap=60] [seed=1337]   measure per-region behavior-fence fidelity (periodic)
-codenuke-loop run [iterations=5]           run the loop (propose → score → keep/revert)
-codenuke-loop score [--json]               score the current worktree change
-codenuke-loop changecost [ref]             evaluate change-cost on your benchmark (periodic; advanced)
-codenuke-loop init | accept | revert | status | cleanup
+codenuke fence [cap=60] [seed=1337]   measure per-region behavior-fence fidelity (periodic)
+codenuke run [iterations=5]           run the loop (propose → score → keep/revert)
+codenuke score [--json]               score the current worktree change
+codenuke changecost [ref]             evaluate change-cost on your benchmark (periodic; advanced)
+codenuke init | accept | revert | status | cleanup
 ```
 
 **`changecost` (advanced).** The cheap inner-loop value (AST/complexity) is a _proxy_ for
 the real objective — future-change cost. `changecost` _measures_ it: it implements a
 held-out benchmark of change-requests (`codenuke.benchmark/<id>/{meta.json,accept.test.ts}`)
 and reports the realized edit + verification cost. Use it to validate that the cheap proxy
-tracks real change cost before trusting long unattended runs. See
-[`research/THEORY.md`](research/THEORY.md) and
-[`research/experiments/changecost/`](research/experiments) for the construction and proofs.
+tracks real change cost before trusting long unattended runs. See [`docs/spec.md`](docs/spec.md).
 
 ## How honest is it?
 
-codenuke is deliberate about the line between proved and measured (see `research/`):
+codenuke is deliberate about the line between proved and measured (see [`docs/spec.md`](docs/spec.md)):
 
 - **Safety is validated and measured.** The behavior-fence fidelity is mutation-tested with
   a CI; the type and size gates are exact. The fence-raising move is demonstrated to take a
@@ -113,11 +111,11 @@ codenuke is deliberate about the line between proved and measured (see `research
   ground-truth measurement; treat large unattended runs as experiments until the proxy is
   validated to track it on your repo. We are honest that this is the open frontier.
 
-## The original review/fix CLI
+## The worked example
 
-codenuke began as a static analyzer that maps a repo into feature slices and reviews each
-for reduction findings (`codenuke review | report | fix`). That CLI still ships; its docs
-moved to [`docs/review-cli.md`](docs/review-cli.md). The loop above is the direction.
+This repo's own `src/` is the example target — the codebase the loop runs on — the way
+[`autoresearch`](https://github.com/karpathy/autoresearch) ships `train.py` as the thing
+being optimized. Point codenuke at any TypeScript repo the same way.
 
 ## License
 

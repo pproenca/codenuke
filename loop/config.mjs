@@ -111,7 +111,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
     results: pick("CN_RESULTS", "results", `${repo}/.codenuke/results.tsv`),
     program: pick("CN_PROGRAM", "program", new URL("./program.md", import.meta.url).pathname),
     benchmarkDir: pick("CN_BENCH", "benchmarkDir", `${repo}/codenuke.benchmark`), // committable (val-set)
-    // thresholds + value weights (calibrated in research/experiments; see research/METRIC.md)
+    // thresholds + value weights (calibrated; see docs/spec.md)
     thresholds: { fenceLB: Number(env.CN_FENCE_LB ?? fileCfg.fenceLB ?? 0.9) },
     weights: { dL: 1.0, dCx: 1.8, dDup: 0.35, scaleL: 150, scaleCx: 15, scaleDup: 5, r3: 1.0 },
     proposerBudgetUsd: pick("CN_BUDGET", "proposerBudgetUsd", "1.50"),

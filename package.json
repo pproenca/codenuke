@@ -4,13 +4,12 @@
   "description": "Autonomous behavior-preserving code reduction: an immutable metric drives a propose → score → keep/revert loop (Karpathy's autoresearch, applied to refactoring).",
   "license": "MIT",
   "bin": {
-    "codenuke": "dist/cli.js",
-    "codenuke-loop": "bin/codenuke-loop.mjs"
+    "codenuke": "bin/codenuke.mjs"
   },
   "files": [
-    "dist",
     "loop",
     "bin",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -23,8 +22,8 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "vitest run",
-    "loop:fence": "node bin/codenuke-loop.mjs fence",
-    "loop:run": "node bin/codenuke-loop.mjs run",
+    "loop:fence": "node bin/codenuke.mjs fence",
+    "loop:run": "node bin/codenuke.mjs run",
     "eval": "pnpm -s build && node evals/scripts/run-all.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },

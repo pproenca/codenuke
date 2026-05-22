@@ -41,11 +41,11 @@ switch (cmd) {
   preserved, else revert. Runs in an isolated git worktree; your tree is untouched.
 
 usage (run from your repo root):
-  codenuke-loop fence [cap=60] [seed=1337]   measure each region's behavior-fence fidelity
-  codenuke-loop run [iterations=5]           run the loop (propose → score → keep/revert)
-  codenuke-loop score [--json]               score the current worktree change
-  codenuke-loop changecost [ref]             evaluate change-cost on your benchmark (periodic)
-  codenuke-loop init | accept | revert | status | cleanup
+  codenuke fence [cap=60] [seed=1337]   measure each region's behavior-fence fidelity
+  codenuke run [iterations=5]           run the loop (propose → score → keep/revert)
+  codenuke score [--json]               score the current worktree change
+  codenuke changecost [ref]             evaluate change-cost on your benchmark (periodic)
+  codenuke init | accept | revert | status | cleanup
 
 config: codenuke.loop.json at the repo root, or CN_* env. Auto-detects src dir,
 test runner, typecheck, and source regions. See README. First run 'fence' so the

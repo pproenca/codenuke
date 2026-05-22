@@ -1,7 +1,0 @@
-{
-  "id": "supported-ext",
-  "title": "Add isSupportedExtension helper to shared mapper",
-  "prompt": "Add an exported function `isSupportedExtension(ext: string): boolean` to src/mappers/shared.ts that returns true if ext is \".ts\" or \".tsx\", and false otherwise.",
-  "region": "mappers",
-  "acceptPath": "src/mappers/supported-ext.accept.test.ts"
-}

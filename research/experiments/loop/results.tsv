@@ -1,8 +1,0 @@
-iter	commit	dAST	dCx	behavior	mfence_region	loss	status	description
-1	-	0	0	-	0.60	-	crash	proposer error:
-2	-	0	0	-	0.60	-	crash	proposer error:
-3	32e2cf6	0	0	true	0.93	-	raise	cli fence 47%→93% lo=84%
-1	-	0	0	-	0.93	-	crash	proposer error: 
-2	b970969	0	0	true	0.98	-	raise	cli fence 84%→98% lo=91% ADMISSIBLE✓
-3	-	32	0	true	0.98	+Inf	revert	ΔAST=32 cli/main.ts | G3
-1	-	37	0	true	0.98	+Inf	revert	ΔAST=37 cli/main.ts | G3

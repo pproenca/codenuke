@@ -2,7 +2,7 @@
 // Measures 𝒱̂(C) = mean over a held-out change-benchmark Δ of the realized cost of
 // implementing each change δ on C: cost = edit (formatting-invariant token-diff of the
 // non-test source) + β·verify (1 − fence fidelity of the regions touched). Lower = the
-// codebase absorbs its own future more cheaply. See research/THEORY.md. This is the
+// codebase absorbs its own future more cheaply. See docs/spec.md. This is the
 // expensive PERIODIC audit; the inner loop uses the cheap proxy in scorer.mjs.
 //
 //   import { editCost, verifyCost } from "./changecost.mjs"   (library)

@@ -21,7 +21,7 @@ describe("lcsEditSize", () => {
   });
 });
 
-// Positive control (research/THEORY.md T1): a concept duplicated k times costs ~k× to
+// Positive control (docs/spec.md T1): a concept duplicated k times costs ~k× to
 // change. This is what makes "less code helps" true here, and editCost must capture it.
 describe("edit cost scales with amplification", () => {
   const clean = `const RATE = 1.0;\nexport const a = 1 * RATE;\nexport const b = 2 * RATE;\nexport const c = 3 * RATE;`;
