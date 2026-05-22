@@ -365,9 +365,13 @@ Hold for **every** command. A violation is a conformance failure regardless of a
   source.
 - **INV-4 — green precondition.** Nothing is scored unless the baseline suite was green; a
   command that would otherwise score on a red baseline aborts (exit `1`).
-- **INV-5 — determinism.** Given the same inputs and seed, `fence`, `score`, `calibrate`, and
-  `changecost` produce identical numeric output; the inner loop adds no nondeterminism beyond
-  unquarantined test flakiness.
+- **INV-5 — determinism.** Given the same inputs and seed, `fence`, `score`, and `calibrate`
+  produce identical numeric output; the inner loop adds no nondeterminism beyond unquarantined
+  test flakiness. `changecost`'s `edit` term depends on the implementer: it is **deterministic
+  with a fixed/scripted implementer** (`CN_IMPLEMENTER`), and with the LLM implementer is reduced
+  to bounded variance by paired, same-seed before/after comparison. Conformance tests for the
+  loop and change-cost therefore run a **scripted proposer/implementer**; the LLM adapter gets a
+  single integration smoke per slice.
 - **INV-6 — fail-closed.** An unmeasured region, a missing fence artifact, or any missing
   prerequisite never yields "admissible" — it yields BLOCKED or abort-with-guidance.
 
