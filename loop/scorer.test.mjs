@@ -318,6 +318,78 @@ export const value = (input) => input * 2;
     expect(score.gain).toBeLessThan(1);
   });
 
+  it("produces identical score verdicts for the same candidate", () => {
+    const root = fixtureRoot("codenuke-score-deterministic-");
+    const worktree = join(tmpdir(), `codenuke-score-deterministic-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-deterministic-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const first = input + 1;
+  const second = first + 1;
+  return second;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input + 2;
+`,
+    );
+
+    const first = scoreJson(root, env);
+    const second = scoreJson(root, env);
+
+    expect(second).toEqual(first);
+    expect(first.gates).toMatchObject({ G1: true, G1prime: true, G3: true, G4: true });
+  });
+
   it("increases proxy gain when the AST reduction is larger", () => {
     const root = fixtureRoot("codenuke-score-monotonic-");
     const worktree = join(tmpdir(), `codenuke-score-monotonic-wt-${Date.now()}`);
