@@ -1,5 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -704,6 +711,95 @@ if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
     expect(existsSync(join(worktree, "codenuke.benchmark/value/accept.test.ts"))).toBe(true);
   });
 
+  it("runs the default proposer adapter without shell or git tools", () => {
+    const root = fixtureRoot("codenuke-run-default-proposer-");
+    const tag = `default-proposer-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-default-proposer-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-default-proposer-state-${Date.now()}.json`);
+    const fakeBin = join(root, "fake-bin");
+    const capture = join(root, "claude-args.json");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-default-proposer" }));
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const first = input + 1;
+  const second = first + 1;
+  return second;
+}
+`,
+    );
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      root,
+      "fake-bin/claude",
+      `#!/usr/bin/env node
+import { writeFileSync } from "node:fs";
+writeFileSync(process.env.CN_FAKE_CLAUDE_ARGS, JSON.stringify(process.argv.slice(2)));
+writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
+`,
+    );
+    chmodSync(join(fakeBin, "claude"), 0o755);
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        CN_FAKE_CLAUDE_ARGS: capture,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const args = JSON.parse(readFileSync(capture, "utf8"));
+    const allowedTools = args[args.indexOf("--allowedTools") + 1];
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("proposer=claude -p");
+    expect(result.stdout).toContain("→ KEEP");
+    expect(allowedTools).toBe("Edit Write Read Grep Glob");
+    expect(allowedTools).not.toMatch(/\b(?:Bash|Shell|Git)\b/u);
+  });
+
   it("does not expose the held-out benchmark to the raise proposer worktree", () => {
     const root = fixtureRoot("codenuke-run-hidden-benchmark-raise-");
     const tag = `hidden-benchmark-raise-${Date.now()}`;
@@ -733,7 +829,7 @@ if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
             total: 1,
             p: 0,
             lo: 0,
-            hi: 0.7934506856227626,
+            hi: 0.7934567085261071,
             admissible: false,
             survivorSpecs: [
               {
