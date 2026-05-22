@@ -61,6 +61,7 @@ const shTry = (cmd, opts = {}) => {
     };
   }
 };
+const cleanRoots = () => [...new Set([C.srcDir, ...C.testLayout.roots])];
 const shGroupTry = (cmd, opts = {}) =>
   new Promise((resolve) => {
     const child = spawn(cmd, {
@@ -103,11 +104,11 @@ const shGroupTry = (cmd, opts = {}) =>
   });
 const cleanWT = () => {
   shTry(`git -C ${WT} reset --hard HEAD`);
-  shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
 };
 const discardTipCommit = () => {
   shTry(`git -C ${WT} reset --hard HEAD~1`);
-  shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
 };
 const quote = (value) => JSON.stringify(value);
 const isHiddenBenchmarkDeletion = (line) => {
@@ -149,7 +150,7 @@ const restoreAfterProposer = () => {
 const cleanDirtyPaths = (paths) => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
-  shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
 };
 const perr = (p) => (p.out || "").replace(/\s+/g, " ").slice(-200);
 const proposerFailure = (p) => {
@@ -189,7 +190,10 @@ const wtDirty = () => dirtyPathsAfterProposer().length > 0;
 const underSrcDir = (path) =>
   C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
 const allowedReducePath = (path) => underSrcDir(path) && isSourceFile(path);
-const allowedRaisePath = (path) => underSrcDir(path) && /\.(test|spec)\.[jt]sx?$/u.test(path);
+const underTestRoot = (path, root) => root === "." || path === root || path.startsWith(`${root}/`);
+const allowedRaisePath = (path) =>
+  /\.(test|spec)\.[jt]sx?$/u.test(path) &&
+  C.testLayout.roots.some((root) => underTestRoot(path, root));
 const regionTarget = (regionKey) => {
   if (C.srcDir === ".") return regionKey === "." ? "." : `${regionKey}/`;
   if (regionKey === C.srcDir) return `${C.srcDir}/`;
@@ -303,7 +307,7 @@ function raisePrompt(regionKey, specs) {
       return `  - ${s.rel} line ${ln}: operator \`${s.op}\` is undetected by any test`;
     })
     .join("\n");
-  return `You are the fence-raising proposer. The region ${regionTarget(regionKey)} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests (colocated test files under ${regionTarget(regionKey)}) that pin the CURRENT behavior so these mutations would be caught. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
+  return `You are the fence-raising proposer. The region ${regionTarget(regionKey)} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests where this repo's test command will discover them: ${C.testLayout.description}. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
 }
 
 // ---- ensure measured fence, worktree + branch + results ----
@@ -382,12 +386,13 @@ for (let i = 1; i <= N; i++) {
         region.p.toFixed(2),
         "-",
         "raise-badtest",
-        `touched outside raise test surface: ${disallowed.join(",")}`,
+        `touched outside raise test surface; outside discovered test surface (${C.testLayout.description}): ${disallowed.join(",")}`,
       );
       restoreAfterProposer();
       cleanDirtyPaths(disallowed);
       continue;
     }
+    const raisePaths = dirtyPathsAfterProposer();
     restoreAfterProposer();
     if (!shTry(C.testCommand, { cwd: WT }).ok) {
       logRow(
@@ -404,7 +409,7 @@ for (let i = 1; i <= N; i++) {
       cleanWT();
       continue;
     }
-    sh(`git -C ${WT} add -A -- ${C.srcDir}`);
+    sh(`git -C ${WT} add -A -- ${raisePaths.map(quote).join(" ")}`);
     shTry(
       `git -C ${WT} -c user.email=loop@codenuke -c user.name=codenuke -c commit.gpgsign=false commit -m "raise(iter ${i}): characterization tests for ${activeRegion}"`,
     );

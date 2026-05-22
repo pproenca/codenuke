@@ -68,6 +68,7 @@ function detectTypeCheck(repo) {
 
 const isSourcePath = (p) =>
   /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
+const isTestPath = (p) => /\.(test|spec)\.[jt]sx?$/.test(p) && !/\.d\.ts$/.test(p);
 
 function hasSourceFile(dir) {
   return sourceFileCount(dir) > 0;
@@ -87,6 +88,41 @@ function sourceFileCount(dir) {
   } catch {
     return 0;
   }
+}
+
+function hasTestFile(dir) {
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    return entries.some((entry) => {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (IGNORED_SOURCE_DIRS.has(entry.name)) return false;
+        return hasTestFile(path);
+      }
+      return entry.isFile() && isTestPath(entry.name);
+    });
+  } catch {
+    return false;
+  }
+}
+
+function detectTestLayout(repo, srcDir) {
+  for (const root of ["test", "tests"]) {
+    if (hasTestFile(`${repo}/${root}`)) {
+      return {
+        roots: [root],
+        description: `${root}/**/*.(test|spec).[jt]s(x)`,
+      };
+    }
+  }
+  const root = srcDir === "." ? "." : srcDir;
+  return {
+    roots: [root],
+    description:
+      root === "."
+        ? "co-located **/*.(test|spec).[jt]s(x) files"
+        : `${root}/**/*.(test|spec).[jt]s(x)`,
+  };
 }
 
 function readJson(path) {
@@ -184,6 +220,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
 
   const repo = pick("CN_REPO", "repo", cwd);
   const srcDir = pick("CN_SRC", "srcDir", detectSrcDir(repo));
+  const testLayout = detectTestLayout(repo, srcDir);
   const target = pick("CN_TARGET", "target", `${srcDir}/`);
   const baseline = pick("CN_BASE", "baseline", "HEAD");
   const tag = pick("CN_TAG", "tag", "run");
@@ -202,6 +239,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
     target, // optional region filter; "<srcDir>/" means all detected regions
     region, // slug of target, used to look up its fence in the artifact
     regions, // all source regions, for the fence audit
+    testLayout,
     baseline, // git ref to start the run from (HEAD by default)
     tag,
     branch: `autoresearch/${tag}`,

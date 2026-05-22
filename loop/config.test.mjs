@@ -248,6 +248,30 @@ describe("zero-config test command detection", () => {
   });
 });
 
+describe("zero-config test layout detection", () => {
+  it("detects separate test-directory layouts", async () => {
+    const root = await fixtureRoot("codenuke-test-layout-separate-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(root, "test/index.test.ts", "import '../src/index.ts';\n");
+
+    const config = loadConfig({}, root);
+
+    expect(config.testLayout.roots).toEqual(["test"]);
+    expect(config.testLayout.description).toContain("test/");
+  });
+
+  it("defaults to colocated tests under the source root", async () => {
+    const root = await fixtureRoot("codenuke-test-layout-colocated-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(root, "src/index.test.ts", "import './index.ts';\n");
+
+    const config = loadConfig({}, root);
+
+    expect(config.testLayout.roots).toEqual(["src"]);
+    expect(config.testLayout.description).toContain("src/");
+  });
+});
+
 describe("proposer resource limits", () => {
   it("uses larger real-repo defaults for proposer budget and timeout", async () => {
     const root = await fixtureRoot("codenuke-proposer-limits-default-");

@@ -1429,6 +1429,166 @@ writeFileSync("src/index.test.js", "export const placeholder = true;\\n");
     expect(existsSync(join(worktree, "src/index.test.js"))).toBe(false);
   });
 
+  it("rejects raise tests written outside the discovered test directory", () => {
+    const root = fixtureRoot("codenuke-run-raise-wrong-test-dir-");
+    const tag = `raise-wrong-test-dir-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-raise-wrong-test-dir-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-raise-wrong-test-dir-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-raise-wrong-test-dir" }));
+    const source = "export const isLower = (left, right) => left < right;\n";
+    write(root, "src/index.ts", source);
+    write(root, "test/existing.test.ts", "export const existing = true;\n");
+    commit(root, "initial");
+    const start = source.indexOf("<");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 1,
+            p: 0,
+            lo: 0,
+            hi: 0.7934567085261071,
+            admissible: false,
+            survivorSpecs: [{ rel: "src/index.ts", start, end: start + 1, repl: ">", op: "<→>" }],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync("src/index.test.ts", "export const misplaced = true;\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\traise-badtest\t");
+    expect(results).toContain("outside discovered test surface");
+    expect(results).toContain("test/");
+    expect(existsSync(join(worktree, "src/index.test.ts"))).toBe(false);
+  });
+
+  it("tells the raise proposer the discovered test directory and commits tests there", () => {
+    const root = fixtureRoot("codenuke-run-raise-test-dir-");
+    const tag = `raise-test-dir-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-raise-test-dir-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-raise-test-dir-state-${Date.now()}.json`);
+    const fakeBin = join(root, "fake-bin");
+    const promptCapture = join(root, "raise-prompt.txt");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-raise-test-dir" }));
+    const source = "export const isLower = (left, right) => left < right;\n";
+    write(root, "src/index.ts", source);
+    write(root, "test/existing.test.ts", "export const existing = true;\n");
+    commit(root, "initial");
+    const start = source.indexOf("<");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 1,
+            p: 0,
+            lo: 0,
+            hi: 0.7934567085261071,
+            admissible: false,
+            survivorSpecs: [{ rel: "src/index.ts", start, end: start + 1, repl: ">", op: "<→>" }],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      root,
+      "fake-bin/claude",
+      `#!/usr/bin/env node
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(promptCapture)}, readFileSync(0, "utf8"));
+mkdirSync("test", { recursive: true });
+writeFileSync("test/pinned.test.ts", "export const pinned = true;\\n");
+`,
+    );
+    chmodSync(join(fakeBin, "claude"), 0o755);
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        CN_TEST:
+          "node -e \"const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');const pinned=fs.existsSync('test/pinned.test.ts');process.exit(pinned&&src.includes('left > right')?1:0)\"",
+        CN_TYPECHECK: "",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(readFileSync(promptCapture, "utf8")).toContain("test/**/*");
+    expect(results).toContain("\traise\t");
+    expect(gitOutput(root, ["show", `autoresearch/${tag}:test/pinned.test.ts`])).toBe(
+      "export const pinned = true;",
+    );
+  });
+
   it("keeps reductions in the isolated worktree and preserves a dirty user tree", () => {
     const root = fixtureRoot("codenuke-run-isolation-");
     const tag = `isolation-${Date.now()}`;

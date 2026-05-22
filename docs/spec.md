@@ -516,7 +516,8 @@ two moves, "never ask"). The proposer is invoked per iteration with the relevant
 - **Failure handling**: proposer calls run in their own process group. A proposer error is logged
   as `crash`, timeout as `crash-timeout` (with the whole process group reaped), and budget
   exhaustion as `crash-budget`, then reverted; a raise that touches non-test source, or whose
-  tests fail on current code, is rejected
+  tests are outside the repo's discovered test layout, or whose tests fail on current code, is
+  rejected
   (`raise-badtest`). Failures are non-fatal — the loop continues.
 
 ## Git safety

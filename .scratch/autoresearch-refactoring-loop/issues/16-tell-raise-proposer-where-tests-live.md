@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Tell the raise proposer where the repo's tests live
 
@@ -20,3 +20,11 @@ Detect the repo's test directory / glob in `loop/config.mjs` (from existing test
 ## Blocked by
 
 None - can start immediately.
+
+## Resolution
+
+The config now derives a test layout from existing `test/` or `tests/` directories, falling back
+to colocated tests under the source root. The raise prompt tells the proposer that discovered
+layout, and the raise surface check rejects tests outside it with a clear `raise-badtest`.
+Accepted raise commits now stage the actual test files written in that surface, so separate
+`test/` directory tests are not lost after replay.
