@@ -51,7 +51,7 @@ function validFenceArtifact(overrides = {}) {
         caught: 35,
         total: 35,
         p: 1,
-        lo: 0.901,
+        lo: 0.9010957324106112,
         hi: 1,
         admissible: true,
         survivorSpecs: [],
@@ -112,6 +112,33 @@ describe("artifact validation", () => {
             lo: 0.1,
             hi: 0.9,
             admissible: false,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+
+    expect(fenceArtifactStatus(config(root))).toMatchObject({
+      usable: false,
+      stale: false,
+      reason: "invalid-regions",
+    });
+  });
+
+  it("rejects a fence artifact with forged Wilson bounds", () => {
+    const root = fixtureRoot("codenuke-artifacts-forged-wilson-");
+    initRepo(root);
+    writeFence(
+      root,
+      validFenceArtifact({
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.99,
+            hi: 1,
+            admissible: true,
             survivorSpecs: [],
           },
         },

@@ -1,8 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { wilson } from "./stats.mjs";
 
 export const DEFAULT_CALIBRATION_SCALES = { sL: 150, sCx: 15, sDup: 5 };
 export const MIN_CALIBRATION_COMMITS = 3;
+const FENCE_NUMBER_TOLERANCE = 1e-9;
 
 function readJson(path) {
   try {
@@ -86,6 +88,10 @@ function validSurvivorSpec(spec) {
   );
 }
 
+function nearlyEqual(left, right) {
+  return Math.abs(left - right) <= FENCE_NUMBER_TOLERANCE;
+}
+
 function validFenceRegions(regions, threshold) {
   if (!finiteNumber(threshold)) return false;
   if (Object.keys(regions).length === 0) return false;
@@ -105,7 +111,14 @@ function validFenceRegions(regions, threshold) {
     if (region.lo < 0 || region.p < region.lo || region.hi < region.p || region.hi > 1) {
       return false;
     }
-    if (region.p !== (region.total === 0 ? 0 : region.caught / region.total)) return false;
+    const expected = wilson(region.caught, region.total);
+    if (
+      !nearlyEqual(region.p, expected.p) ||
+      !nearlyEqual(region.lo, expected.lo) ||
+      !nearlyEqual(region.hi, expected.hi)
+    ) {
+      return false;
+    }
     if (region.survivorSpecs.length !== region.total - region.caught) return false;
     if (!region.survivorSpecs.every(validSurvivorSpec)) return false;
     return region.admissible === region.lo >= threshold;
