@@ -243,6 +243,58 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
   });
 
+  it("does not expose the held-out benchmark to the implementer worktree", () => {
+    const root = fixtureRoot("codenuke-changecost-hidden-benchmark-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-hidden-benchmark" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        region: "src",
+        acceptPath: "tests/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-hidden-benchmark-wt-${Date.now()}`);
+    const implementer = join(root, "implementer.mjs");
+    write(
+      root,
+      "implementer.mjs",
+      `
+import { existsSync, writeFileSync } from "node:fs";
+if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
+  writeFileSync("src/index.ts", "export const value = 2;\\n");
+}
+`,
+    );
+    const testCommand =
+      "node -e \"const fs=require('fs');const accept=fs.existsSync('tests/value.accept.test.ts');const src=fs.readFileSync('src/index.ts','utf8');process.exit(!accept || src.includes('value = 2') ? 0 : 1)\"";
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: testCommand,
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        CN_WORKTREE: worktree,
+        CN_TAG: `hidden-benchmark-${Date.now()}`,
+      },
+    });
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+
+    expect(result.status).toBe(0);
+    expect(artifact.results[0]).toMatchObject({ status: "not-done" });
+    expect(existsSync(worktree)).toBe(false);
+  });
+
   it("removes the benchmark worktree when the baseline is red", () => {
     const root = fixtureRoot("codenuke-changecost-red-baseline-");
     initRepo(root);

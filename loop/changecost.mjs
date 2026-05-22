@@ -19,6 +19,7 @@ import {
   rmSync,
   mkdirSync,
 } from "node:fs";
+import { relative } from "node:path";
 import ts from "typescript";
 import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
@@ -101,6 +102,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const BETA = Number(process.env.CN_BETA ?? 60);
   const IMPLEMENTER = process.env.CN_IMPLEMENTER;
   const quote = (value) => JSON.stringify(value);
+  const benchmarkRel = relative(C.repo, C.benchmarkDir);
+  const benchmarkInsideRepo =
+    benchmarkRel && !benchmarkRel.startsWith("..") && !benchmarkRel.startsWith("/");
   const sh = (c, opts = {}) => {
     const r = execSync(c, {
       maxBuffer: 1 << 30,
@@ -135,6 +139,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
     shTry(`git -C ${WT} clean -fdq`);
   };
+  const hideBenchmarkFromWorktree = () => {
+    if (benchmarkInsideRepo) rmSync(`${WT}/${benchmarkRel}`, { recursive: true, force: true });
+  };
   const cleanupWorktree = () => {
     try {
       rmSync(`${WT}/node_modules`, { force: true });
@@ -147,6 +154,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const dirtyPaths = () =>
     shTry(`git -C ${WT} status --porcelain`)
       .out.split("\n")
+      .filter((line) => {
+        const status = line.slice(0, 2);
+        const path = line
+          .slice(3)
+          .trim()
+          .replace(/^.* -> /u, "");
+        return !(
+          benchmarkInsideRepo &&
+          path.startsWith(`${benchmarkRel}/`) &&
+          status.includes("D") &&
+          !status.includes("?")
+        );
+      })
       .map((line) => line.slice(3).trim())
       .filter(Boolean)
       .map((path) => path.replace(/^.* -> /u, ""))
@@ -208,6 +228,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const acceptAbs = `${WT}/${delta.acceptPath}`;
     const acceptTest = readFileSync(`${delta.dir}/accept.test.ts`, "utf8");
     const prompt = buildImplementerPrompt(delta, C.srcDir);
+    hideBenchmarkFromWorktree();
     let impl;
     if (IMPLEMENTER)
       impl = shTry(IMPLEMENTER, {
