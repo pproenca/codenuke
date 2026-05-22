@@ -1,4 +1,0 @@
-interface:
-  display_name: "Profile codenuke on macOS"
-  short_description: "Profile codenuke with macOS tools"
-  default_prompt: "Use $profile-codenuke-macos to capture macOS profiling data for a codenuke run and identify system-level bottlenecks."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "codenuke"
-  short_description: "Run codenuke reviews with progress"
-  default_prompt: "Use $codenuke to run a visible codenuke review, using ludicrous mode when I ask for broader refactoring candidates."
