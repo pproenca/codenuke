@@ -513,9 +513,10 @@ two moves, "never ask"). The proposer is invoked per iteration with the relevant
   a different agent).
 - **Timeout**: proposer calls default to `900000ms` (15 minutes). Override with `CN_TIMEOUT` or
   `proposerTimeoutMs`.
-- **Failure handling**: a proposer error is logged as `crash`, timeout as `crash-timeout`, and
-  budget exhaustion as `crash-budget`, then reverted; a raise that touches non-test source, or
-  whose tests fail on current code, is rejected
+- **Failure handling**: proposer calls run in their own process group. A proposer error is logged
+  as `crash`, timeout as `crash-timeout` (with the whole process group reaped), and budget
+  exhaustion as `crash-budget`, then reverted; a raise that touches non-test source, or whose
+  tests fail on current code, is rejected
   (`raise-badtest`). Failures are non-fatal — the loop continues.
 
 ## Git safety

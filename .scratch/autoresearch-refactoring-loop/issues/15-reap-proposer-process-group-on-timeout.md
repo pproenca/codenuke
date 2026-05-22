@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Reap the proposer process group on timeout/exit (orphaned claude -p keeps burning budget)
 
@@ -19,3 +19,10 @@ Spawn the proposer detached in its own process group and, on timeout/abnormal ex
 ## Blocked by
 
 None - can start immediately. Related: issue 14.
+
+## Resolution
+
+Proposers now run in a detached process group. On timeout the loop sends `SIGTERM` to the
+group and escalates to `SIGKILL` if it has not exited. Tests cover both `CN_PROPOSER` and the
+default `claude -p` adapter with a child process that would otherwise survive and write a marker
+after the loop exits.

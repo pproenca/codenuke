@@ -332,6 +332,85 @@ describe("codenuke run", () => {
     expect(results).toContain("proposer timeout");
   });
 
+  it("reaps proposer child processes on timeout", () => {
+    const root = fixtureRoot("codenuke-run-proposer-reap-");
+    const tag = `proposer-reap-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-proposer-reap-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-proposer-reap-state-${Date.now()}.json`);
+    const marker = join(root, "orphan-marker.txt");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-proposer-reap" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { spawn } from "node:child_process";
+spawn(process.execPath, [
+  "-e",
+  ${JSON.stringify(`setTimeout(() => require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive\\n"), 600); setTimeout(() => {}, 5000);`)},
+], { stdio: "ignore" });
+setTimeout(() => {}, 5000);
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TIMEOUT: "100",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    spawnSync("node", ["-e", "setTimeout(() => {}, 900)"]);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\tcrash-timeout\t");
+    expect(existsSync(marker)).toBe(false);
+  });
+
   it("logs a distinct status when the proposer exhausts its budget", () => {
     const root = fixtureRoot("codenuke-run-proposer-budget-");
     const tag = `proposer-budget-${Date.now()}`;
@@ -1023,6 +1102,86 @@ writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
     expect(result.stdout).toContain("→ KEEP");
     expect(allowedTools).toBe("Edit Write Read Grep Glob");
     expect(allowedTools).not.toMatch(/\b(?:Bash|Shell|Git)\b/u);
+  });
+
+  it("reaps default proposer adapter child processes on timeout", () => {
+    const root = fixtureRoot("codenuke-run-default-proposer-reap-");
+    const tag = `default-proposer-reap-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-default-proposer-reap-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-default-proposer-reap-state-${Date.now()}.json`);
+    const fakeBin = join(root, "fake-bin");
+    const marker = join(root, "default-orphan-marker.txt");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-default-proposer-reap" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      root,
+      "fake-bin/claude",
+      `#!/usr/bin/env node
+import { spawn } from "node:child_process";
+spawn(process.execPath, [
+  "-e",
+  ${JSON.stringify(`setTimeout(() => require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive\\n"), 600); setTimeout(() => {}, 5000);`)},
+], { stdio: "ignore" });
+setTimeout(() => {}, 5000);
+`,
+    );
+    chmodSync(join(fakeBin, "claude"), 0o755);
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_TIMEOUT: "100",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    spawnSync("node", ["-e", "setTimeout(() => {}, 900)"]);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\tcrash-timeout\t");
+    expect(existsSync(marker)).toBe(false);
   });
 
   it("does not expose the held-out benchmark to the raise proposer worktree", () => {

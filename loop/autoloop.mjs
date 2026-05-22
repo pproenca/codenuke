@@ -12,7 +12,7 @@
 // Proposer = headless `claude -p` editing ONLY the worktree (no Bash/git ⇒ cannot touch
 // the scorer = immutability). Override with CN_PROPOSER (a shell cmd run in the worktree).
 
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import {
   readFileSync,
   writeFileSync,
@@ -61,6 +61,46 @@ const shTry = (cmd, opts = {}) => {
     };
   }
 };
+const shGroupTry = (cmd, opts = {}) =>
+  new Promise((resolve) => {
+    const child = spawn(cmd, {
+      cwd: opts.cwd,
+      detached: true,
+      env: opts.env ?? process.env,
+      shell: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const out = [];
+    const timeout = opts.timeout ?? 300000;
+    let done = false;
+    let timedOut = false;
+    const killGroup = (signal) => {
+      try {
+        process.kill(-child.pid, signal);
+      } catch {}
+    };
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killGroup("SIGTERM");
+      setTimeout(() => {
+        if (!done) killGroup("SIGKILL");
+      }, 1000).unref();
+    }, timeout);
+    timer.unref();
+    child.stdout.on("data", (chunk) => out.push(chunk));
+    child.stderr.on("data", (chunk) => out.push(chunk));
+    child.on("error", (error) => {
+      done = true;
+      clearTimeout(timer);
+      resolve({ ok: false, out: String(error), timedOut: false });
+    });
+    child.on("close", (code) => {
+      done = true;
+      clearTimeout(timer);
+      if (code !== 0 && !timedOut) killGroup("SIGTERM");
+      resolve({ ok: code === 0 && !timedOut, out: Buffer.concat(out).toString(), timedOut });
+    });
+  });
 const cleanWT = () => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
@@ -245,10 +285,10 @@ function logRow(...cols) {
 
 function proposer(prompt, regionKey) {
   const env = { ...process.env, CN_REGION: regionKey, CN_TARGET: regionTarget(regionKey) };
-  if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: C.proposerTimeoutMs, env });
+  if (PROPOSER) return shGroupTry(PROPOSER, { cwd: WT, timeout: C.proposerTimeoutMs, env });
   writeFileSync(C.promptFile, prompt);
   const cmd = `claude -p --permission-mode bypassPermissions --no-session-persistence --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${C.proposerBudgetUsd} --output-format json < ${C.promptFile}`;
-  return shTry(cmd, { cwd: WT, timeout: C.proposerTimeoutMs, env });
+  return shGroupTry(cmd, { cwd: WT, timeout: C.proposerTimeoutMs, env });
 }
 const reducePrompt = (regionKey) =>
   `${readFileSync(C.program, "utf8")}\n\n---\nYou are running now. Target region: ${regionTarget(regionKey)}. Make exactly ONE behavior-preserving reduction in a single file under ${regionTarget(regionKey)}, then stop. Do not run commands; just edit.`;
@@ -317,7 +357,7 @@ for (let i = 1; i <= N; i++) {
     }
     const loBefore = region.lo;
     prepareProposerWorktree();
-    const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
+    const p = await proposer(raisePrompt(activeRegion, specs), activeRegion);
     if (!p.ok) {
       const failure = proposerFailure(p);
       logRow(i, "-", 0, 0, "-", region.p.toFixed(2), "-", failure.status, failure.description);
@@ -405,7 +445,7 @@ for (let i = 1; i <= N; i++) {
   }
 
   prepareProposerWorktree();
-  const p = proposer(reducePrompt(activeRegion), activeRegion);
+  const p = await proposer(reducePrompt(activeRegion), activeRegion);
   if (!p.ok) {
     const failure = proposerFailure(p);
     logRow(i, "-", 0, 0, "-", region.p.toFixed(2), "+Inf", failure.status, failure.description);
