@@ -10,6 +10,7 @@
 
 import { execSync } from "node:child_process";
 import {
+  appendFileSync,
   readFileSync,
   writeFileSync,
   readdirSync,
@@ -116,14 +117,22 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
   };
   const green = () => shTry(C.testCommand, { cwd: WT }).ok;
+  function excludeWorktreeHelper(path) {
+    const exclude = sh(`git -C ${WT} rev-parse --git-path info/exclude`).trim();
+    let current = "";
+    try {
+      current = readFileSync(exclude, "utf8");
+    } catch {}
+    if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
+  }
   const cleanWT = () => {
     shTry(`git -C ${WT} reset --hard HEAD`);
-    shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+    shTry(`git -C ${WT} clean -fdq`);
   };
   const cleanDirtyPaths = (paths) => {
     shTry(`git -C ${WT} reset --hard HEAD`);
     for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
-    shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+    shTry(`git -C ${WT} clean -fdq`);
   };
   const dirtyPaths = () =>
     shTry(`git -C ${WT} status --porcelain`)
@@ -176,6 +185,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   sh(`git -C ${C.repo} worktree add -f ${WT} ${REF}`);
   try {
     symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
+    excludeWorktreeHelper("node_modules");
   } catch {}
   if (!green()) {
     console.log("baseline RED — abort");

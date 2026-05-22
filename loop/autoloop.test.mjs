@@ -69,6 +69,60 @@ describe("codenuke run", () => {
     expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
   });
 
+  it("halts when a blocked region has no survivor specs to raise", () => {
+    const root = fixtureRoot("codenuke-run-raise-skip-terminal-");
+    const tag = `raise-skip-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-raise-skip-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-raise-skip-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-raise-skip" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 0,
+            p: 0,
+            lo: 0,
+            hi: 1,
+            admissible: false,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "run", "3"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: "true",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8").trim().split("\n");
+    expect(results).toHaveLength(2);
+    expect(results[1]).toContain("\traise-skip\t");
+    expect(result.stdout).not.toContain("--- iter 2/3");
+  });
+
   it("iterates detected fence regions instead of the default target slug", () => {
     const root = fixtureRoot("codenuke-run-regions-");
     const tag = `regions-${Date.now()}`;

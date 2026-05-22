@@ -135,6 +135,51 @@ describe("change-cost implementer prompt", () => {
 });
 
 describe("codenuke changecost", () => {
+  it("installs the hidden accept test after implementation and gates on it", () => {
+    const root = fixtureRoot("codenuke-changecost-hidden-accept-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-hidden-accept" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        region: "src",
+        acceptPath: "tests/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-hidden-wt-${Date.now()}`);
+    const implementer = join(root, "implementer.mjs");
+    write(root, "implementer.mjs", "process.exit(0);\n");
+    const testCommand =
+      "node -e \"const fs=require('fs');const accept=fs.existsSync('tests/value.accept.test.ts');const src=fs.readFileSync('src/index.ts','utf8');process.exit(!accept || src.includes('value = 2') ? 0 : 1)\"";
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: testCommand,
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        CN_WORKTREE: worktree,
+        CN_TAG: `hidden-${Date.now()}`,
+      },
+    });
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("acceptance/suite RED");
+    expect(artifact.results[0]).toMatchObject({ status: "not-done" });
+    expect(existsSync(join(worktree, "tests/value.accept.test.ts"))).toBe(false);
+    expect(existsSync(worktree)).toBe(false);
+  });
+
   it("rejects and cleans implementer edits outside non-test source", () => {
     const root = fixtureRoot("codenuke-changecost-surface-");
     initRepo(root);

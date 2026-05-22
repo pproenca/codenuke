@@ -84,7 +84,7 @@ Zero-config by default — codenuke auto-detects everything below. Override via 
 | `srcDir`           | `CN_SRC`       | `src`                                                |
 | `target`           | `CN_TARGET`    | `<srcDir>/` (the region the loop reduces)            |
 | `baseline`         | `CN_BASE`      | `HEAD`                                               |
-| `testCommand`      | `CN_TEST`      | vitest / jest / `npm test`                           |
+| `testCommand`      | `CN_TEST`      | vitest / jest / mocha / ava / bun / package test     |
 | `typeCheckCommand` | `CN_TYPECHECK` | `tsc --noEmit` if a `tsconfig.json` exists, else off |
 | `regions`          | `CN_REGIONS`   | subdirectories of `srcDir` with source               |
 | `fenceLB`          | `CN_FENCE_LB`  | `0.90` (Wilson CI lower bound a region must clear)   |

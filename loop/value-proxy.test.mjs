@@ -114,4 +114,34 @@ describe("codenuke validate-proxy", () => {
       candidates: 2,
     });
   });
+
+  it("fails closed when proxy rank does not track measured change-cost", () => {
+    const root = fixtureRoot("codenuke-validate-proxy-low-rho-");
+    write(
+      root,
+      ".codenuke/value-proxy.json",
+      JSON.stringify([
+        { id: "bad-a", proxy: 1, Vhat: 10 },
+        { id: "bad-b", proxy: 2, Vhat: 20 },
+        { id: "bad-c", proxy: 3, Vhat: 30 },
+      ]),
+    );
+
+    const result = spawnSync("node", [cli, "validate-proxy"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("value proxy validation: FAIL");
+    expect(artifact).toMatchObject({
+      passed: false,
+      rho: -1,
+      candidates: 3,
+      minimumRho: 0.6,
+    });
+  });
 });

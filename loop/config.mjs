@@ -24,12 +24,26 @@ const sh = (cmd, cwd) => {
   }
 };
 
-function detectTestCommand(repo) {
+function commandAvailable(command, cwd, env) {
+  try {
+    execSync(`command -v ${JSON.stringify(command)}`, {
+      cwd,
+      env,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function detectTestCommand(repo, env = process.env) {
   if (existsSync(`${repo}/node_modules/.bin/vitest`))
     return "node_modules/.bin/vitest run --reporter=dot";
   if (existsSync(`${repo}/node_modules/.bin/jest`)) return "node_modules/.bin/jest";
   if (existsSync(`${repo}/node_modules/.bin/mocha`)) return "node_modules/.bin/mocha";
   if (existsSync(`${repo}/node_modules/.bin/ava`)) return "node_modules/.bin/ava";
+  if (commandAvailable("bun", repo, env)) return "bun test";
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
@@ -156,7 +170,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
     tag,
     branch: `autoresearch/${tag}`,
     worktree: wt,
-    testCommand: pick("CN_TEST", "testCommand", detectTestCommand(repo)),
+    testCommand: pick("CN_TEST", "testCommand", detectTestCommand(repo, env)),
     typeCheckCommand: env.CN_TYPECHECK ?? fileCfg.typeCheckCommand ?? detectTypeCheck(repo),
     // periodic-audit artifacts + loop state (kept OUTSIDE the worktree)
     state: pick("CN_STATE", "state", `/tmp/codenuke-${slug(tag)}-${region}.state.json`),

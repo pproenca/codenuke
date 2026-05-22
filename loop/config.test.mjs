@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -130,5 +130,18 @@ describe("zero-config test command detection", () => {
     const config = loadConfig({}, root);
 
     expect(config.testCommand).toBe("node_modules/.bin/mocha");
+  });
+
+  it("detects bun test before package-manager fallback when bun is on PATH", async () => {
+    const root = await fixtureRoot("codenuke-bun-test-");
+    const bin = await fixtureRoot("codenuke-bun-bin-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(root, "pnpm-lock.yaml", "lockfileVersion: '9.0'\n");
+    await write(bin, "bun", "#!/bin/sh\nexit 0\n");
+    chmodSync(join(bin, "bun"), 0o755);
+
+    const config = loadConfig({ PATH: `${bin}:${process.env.PATH ?? ""}` }, root);
+
+    expect(config.testCommand).toBe("bun test");
   });
 });

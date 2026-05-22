@@ -209,12 +209,46 @@ function assertPackagedLoop(bin) {
     throw new Error("expected packaged run to leave user source untouched");
   }
   write(
+    "codenuke.benchmark/value/meta.json",
+    JSON.stringify({
+      id: "value",
+      title: "Change value",
+      prompt: "Change the exported value from 1 to 2.",
+      region: "src",
+      acceptPath: "src/value.accept.test.ts",
+    }),
+  );
+  write("codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+  write(
+    "implementer.mjs",
+    [
+      'import { readFileSync, writeFileSync } from "node:fs";',
+      'writeFileSync("src/index.ts", readFileSync("src/index.ts", "utf8").replaceAll("value > 0", "value > -1"));',
+      "",
+    ].join("\n"),
+  );
+  run("git", ["add", "codenuke.benchmark", "implementer.mjs"], { cwd: fixtureRoot });
+  run("git", ["commit", "-m", "benchmark"], { cwd: fixtureRoot });
+  const changecostEnv = {
+    ...env,
+    CN_IMPLEMENTER: "node implementer.mjs",
+    CN_TEST: 'node -e "process.exit(0)"',
+    CN_BETA: "0",
+  };
+  run(bin, ["changecost", "HEAD"], { cwd: fixtureRoot, env: changecostEnv });
+  const changecost = JSON.parse(
+    readFileSync(join(fixtureRoot, ".codenuke", "changecost.json"), "utf8"),
+  );
+  if (changecost.done !== 1 || changecost.Vhat == null) {
+    throw new Error("expected packaged changecost to produce one measured Vhat");
+  }
+  write(
     ".codenuke/value-proxy.json",
     JSON.stringify({
       candidates: [
-        { id: "small", proxy: 1, Vhat: 30 },
-        { id: "medium", proxy: 2, Vhat: 20 },
-        { id: "large", proxy: 3, Vhat: 10 },
+        { id: "baseline", proxy: 1, Vhat: changecost.Vhat + 20 },
+        { id: "measured", proxy: 2, Vhat: changecost.Vhat },
+        { id: "target", proxy: 3, Vhat: Math.max(0, changecost.Vhat - 20) },
       ],
     }),
   );

@@ -199,7 +199,7 @@ for (let i = 1; i <= N; i++) {
         "raise-skip",
         `${activeRegion}: no survivor specs — run 'fence' (AST-aware audit) first`,
       );
-      continue;
+      break;
     }
     const loBefore = region.lo;
     const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
