@@ -13,7 +13,15 @@
 // the scorer = immutability). Override with CN_PROPOSER (a shell cmd run in the worktree).
 
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  appendFileSync,
+  mkdirSync,
+  rmSync,
+} from "node:fs";
+import { relative } from "node:path";
 import {
   calibrationArtifactStatus,
   fenceArtifactStatus,
@@ -29,6 +37,9 @@ const N = Number(process.argv[2]) || 5;
 const PROPOSER = process.env.CN_PROPOSER;
 const TIMEOUT = 300000;
 const LONG_RUN_ITERATIONS = 5;
+const benchmarkRel = relative(C.repo, C.benchmarkDir);
+const benchmarkInsideRepo =
+  benchmarkRel && !benchmarkRel.startsWith("..") && !benchmarkRel.startsWith("/");
 
 const sh = (cmd, opts = {}) => {
   const r = execSync(cmd, {
@@ -59,6 +70,25 @@ const discardTipCommit = () => {
   shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
 };
 const quote = (value) => JSON.stringify(value);
+const isHiddenBenchmarkDeletion = (line) => {
+  const status = line.slice(0, 2);
+  const path = line
+    .slice(3)
+    .trim()
+    .replace(/^.* -> /u, "");
+  return (
+    benchmarkInsideRepo &&
+    path.startsWith(`${benchmarkRel}/`) &&
+    status.includes("D") &&
+    !status.includes("?")
+  );
+};
+const hideBenchmarkFromProposer = () => {
+  if (benchmarkInsideRepo) rmSync(`${WT}/${benchmarkRel}`, { recursive: true, force: true });
+};
+const restoreHiddenBenchmark = () => {
+  if (benchmarkInsideRepo) shTry(`git -C ${WT} checkout -- ${quote(benchmarkRel)}`);
+};
 const cleanDirtyPaths = (paths) => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
@@ -72,10 +102,11 @@ const loadFence = () => {
     return null;
   }
 };
-const wtDirty = () => shTry(`git -C ${WT} status --porcelain`).out.trim().length > 0;
+const wtDirty = () => dirtyPaths().length > 0;
 const dirtyPaths = () =>
   shTry(`git -C ${WT} status --porcelain`)
     .out.split("\n")
+    .filter((line) => !isHiddenBenchmarkDeletion(line))
     .map((line) => line.slice(3).trim())
     .filter(Boolean)
     .map((path) => path.replace(/^.* -> /u, ""))
@@ -250,6 +281,7 @@ for (let i = 1; i <= N; i++) {
       break;
     }
     const loBefore = region.lo;
+    hideBenchmarkFromProposer();
     const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
     if (!p.ok) {
       logRow(
@@ -287,6 +319,7 @@ for (let i = 1; i <= N; i++) {
       cleanDirtyPaths(disallowed);
       continue;
     }
+    restoreHiddenBenchmark();
     if (!shTry(C.testCommand, { cwd: WT }).ok) {
       logRow(
         i,
@@ -342,6 +375,7 @@ for (let i = 1; i <= N; i++) {
     continue;
   }
 
+  hideBenchmarkFromProposer();
   const p = proposer(reducePrompt(activeRegion), activeRegion);
   if (!p.ok) {
     logRow(
@@ -374,6 +408,7 @@ for (let i = 1; i <= N; i++) {
     cleanDirtyPaths(disallowed);
     continue;
   }
+  restoreHiddenBenchmark();
   const s = shTry(`node ${SCORER} score --json`, { cwd: C.repo });
   const jline = (s.out.split("\n").find((l) => l.startsWith("@@JSON@@")) || "").slice(
     "@@JSON@@".length,

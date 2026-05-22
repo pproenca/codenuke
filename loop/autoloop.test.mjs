@@ -616,6 +616,182 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
   });
 
+  it("does not expose the held-out benchmark to the reduce proposer worktree", () => {
+    const root = fixtureRoot("codenuke-run-hidden-benchmark-");
+    const tag = `hidden-benchmark-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-hidden-benchmark-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-hidden-benchmark-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-hidden-benchmark" }));
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const first = input + 1;
+  const second = first + 1;
+  return second;
+}
+`,
+    );
+    write(root, "codenuke.benchmark/value/meta.json", JSON.stringify({ id: "value" }));
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { existsSync, writeFileSync } from "node:fs";
+if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
+  writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
+}
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).not.toContain("→ KEEP");
+    expect(results).toContain("\tnoop\t");
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(existsSync(join(worktree, "codenuke.benchmark/value/accept.test.ts"))).toBe(true);
+  });
+
+  it("does not expose the held-out benchmark to the raise proposer worktree", () => {
+    const root = fixtureRoot("codenuke-run-hidden-benchmark-raise-");
+    const tag = `hidden-benchmark-raise-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-hidden-benchmark-raise-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-hidden-benchmark-raise-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-hidden-benchmark-raise" }));
+    const source = "export const isLower = (left, right) => left < right;\n";
+    write(root, "src/index.ts", source);
+    write(root, "codenuke.benchmark/value/meta.json", JSON.stringify({ id: "value" }));
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    commit(root, "initial");
+    const start = source.indexOf("<");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 1,
+            p: 0,
+            lo: 0,
+            hi: 0.7934506856227626,
+            admissible: false,
+            survivorSpecs: [
+              {
+                rel: "src/index.ts",
+                start,
+                end: start + 1,
+                repl: ">",
+                op: "<",
+              },
+            ],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { existsSync, writeFileSync } from "node:fs";
+if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
+  writeFileSync("src/index.test.js", "export const pinned = true;\\n");
+}
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\traise-noop\t");
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(existsSync(join(worktree, "src/index.test.js"))).toBe(false);
+    expect(existsSync(join(worktree, "codenuke.benchmark/value/accept.test.ts"))).toBe(true);
+  });
+
   it("does not keep characterization tests when fence replay makes no gain", () => {
     const root = fixtureRoot("codenuke-run-raise-nogain-");
     const tag = `raise-nogain-${Date.now()}`;
