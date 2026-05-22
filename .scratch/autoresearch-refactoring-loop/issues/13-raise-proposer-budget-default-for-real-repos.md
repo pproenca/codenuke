@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Raise the proposer budget default so a real-repo raise can complete
 
@@ -20,3 +20,9 @@ Raise the default to a value adequate for a real-repo raise (suggest ~$8, docume
 ## Blocked by
 
 None - can start immediately.
+
+## Resolution
+
+Default proposer budget is now `$8`, with `CN_BUDGET` and `proposerBudgetUsd` overrides
+preserved. Budget-exhausted proposer failures are classified as `crash-budget` in
+`results.tsv` so they are distinguishable from generic proposer crashes.

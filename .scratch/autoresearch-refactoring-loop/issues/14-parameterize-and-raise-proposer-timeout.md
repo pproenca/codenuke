@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Parameterize and raise the proposer timeout (300s is too short for real repos)
 
@@ -20,3 +20,10 @@ Resolve a proposer timeout from `CN_TIMEOUT` > `codenuke.loop.json` (`proposerTi
 ## Blocked by
 
 None - can start immediately. Related: issue 15 (the timeout currently leaks the proposer).
+
+## Resolution
+
+Proposer timeout now resolves from `CN_TIMEOUT` > `codenuke.loop.json` `proposerTimeoutMs` >
+`900000` (15 minutes), is surfaced on config, and is used for both `CN_PROPOSER` and the
+default `claude -p` adapter. Timed-out proposers are classified as `crash-timeout` in
+`results.tsv`.

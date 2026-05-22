@@ -36,7 +36,6 @@ const SCORER = new URL("./scorer.mjs", import.meta.url).pathname;
 const FENCE = new URL("./fence.mjs", import.meta.url).pathname;
 const N = Number(process.argv[2]) || 5;
 const PROPOSER = process.env.CN_PROPOSER;
-const TIMEOUT = 300000;
 const LONG_RUN_ITERATIONS = 5;
 const benchmarkRel = relative(C.repo, C.benchmarkDir);
 const benchmarkInsideRepo =
@@ -58,7 +57,7 @@ const shTry = (cmd, opts = {}) => {
     return {
       ok: false,
       out: (e.stdout?.toString() || "") + (e.stderr?.toString() || ""),
-      killed: !!e.killed,
+      timedOut: e.signal === "SIGTERM" || e.code === "ETIMEDOUT",
     };
   }
 };
@@ -113,6 +112,19 @@ const cleanDirtyPaths = (paths) => {
   shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
 };
 const perr = (p) => (p.out || "").replace(/\s+/g, " ").slice(-200);
+const proposerFailure = (p) => {
+  if (p.timedOut)
+    return {
+      status: "crash-timeout",
+      description: `proposer timeout after ${C.proposerTimeoutMs}ms`,
+    };
+  if (/Reached maximum budget|maximum budget/iu.test(p.out || ""))
+    return {
+      status: "crash-budget",
+      description: `proposer budget exhausted: ${perr(p)}`,
+    };
+  return { status: "crash", description: `proposer error: ${perr(p)}` };
+};
 const loadFence = () => {
   try {
     return JSON.parse(readFileSync(C.fenceArtifact, "utf8"));
@@ -233,10 +245,10 @@ function logRow(...cols) {
 
 function proposer(prompt, regionKey) {
   const env = { ...process.env, CN_REGION: regionKey, CN_TARGET: regionTarget(regionKey) };
-  if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: TIMEOUT, env });
+  if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: C.proposerTimeoutMs, env });
   writeFileSync(C.promptFile, prompt);
   const cmd = `claude -p --permission-mode bypassPermissions --no-session-persistence --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${C.proposerBudgetUsd} --output-format json < ${C.promptFile}`;
-  return shTry(cmd, { cwd: WT, timeout: TIMEOUT, env });
+  return shTry(cmd, { cwd: WT, timeout: C.proposerTimeoutMs, env });
 }
 const reducePrompt = (regionKey) =>
   `${readFileSync(C.program, "utf8")}\n\n---\nYou are running now. Target region: ${regionTarget(regionKey)}. Make exactly ONE behavior-preserving reduction in a single file under ${regionTarget(regionKey)}, then stop. Do not run commands; just edit.`;
@@ -307,17 +319,8 @@ for (let i = 1; i <= N; i++) {
     prepareProposerWorktree();
     const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
     if (!p.ok) {
-      logRow(
-        i,
-        "-",
-        0,
-        0,
-        "-",
-        region.p.toFixed(2),
-        "-",
-        "crash",
-        `proposer ${p.killed ? "timeout" : "error"}: ${perr(p)}`,
-      );
+      const failure = proposerFailure(p);
+      logRow(i, "-", 0, 0, "-", region.p.toFixed(2), "-", failure.status, failure.description);
       restoreAfterProposer();
       cleanWT();
       continue;
@@ -404,17 +407,8 @@ for (let i = 1; i <= N; i++) {
   prepareProposerWorktree();
   const p = proposer(reducePrompt(activeRegion), activeRegion);
   if (!p.ok) {
-    logRow(
-      i,
-      "-",
-      0,
-      0,
-      "-",
-      region.p.toFixed(2),
-      "+Inf",
-      "crash",
-      `proposer ${p.killed ? "timeout" : "error"}: ${perr(p)}`,
-    );
+    const failure = proposerFailure(p);
+    logRow(i, "-", 0, 0, "-", region.p.toFixed(2), "+Inf", failure.status, failure.description);
     restoreAfterProposer();
     cleanWT();
     continue;

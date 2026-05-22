@@ -247,3 +247,33 @@ describe("zero-config test command detection", () => {
     expect(config.testCommand).toBe("bun test");
   });
 });
+
+describe("proposer resource limits", () => {
+  it("uses larger real-repo defaults for proposer budget and timeout", async () => {
+    const root = await fixtureRoot("codenuke-proposer-limits-default-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+
+    const config = loadConfig({}, root);
+
+    expect(config.proposerBudgetUsd).toBe("8");
+    expect(config.proposerTimeoutMs).toBe(900000);
+  });
+
+  it("lets config file and env override proposer budget and timeout", async () => {
+    const root = await fixtureRoot("codenuke-proposer-limits-env-");
+    await write(root, "src/index.ts", "export const run = () => true;\n");
+    await write(
+      root,
+      "codenuke.loop.json",
+      JSON.stringify({ proposerBudgetUsd: "4", proposerTimeoutMs: 600000 }),
+    );
+
+    const fileConfig = loadConfig({}, root);
+    const envConfig = loadConfig({ CN_BUDGET: "12", CN_TIMEOUT: "1200000" }, root);
+
+    expect(fileConfig.proposerBudgetUsd).toBe("4");
+    expect(fileConfig.proposerTimeoutMs).toBe(600000);
+    expect(envConfig.proposerBudgetUsd).toBe("12");
+    expect(envConfig.proposerTimeoutMs).toBe(1200000);
+  });
+});

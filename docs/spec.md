@@ -223,14 +223,15 @@ loop unrolled.
   "results": ".codenuke/results.tsv",
   "benchmarkDir": "codenuke.benchmark",
   "fenceLB": 0.9,
-  "proposerBudgetUsd": "1.50"
+  "proposerBudgetUsd": "8",
+  "proposerTimeoutMs": 900000
 }
 ```
 
 - **Environment variables**: `CN_REPO`, `CN_SRC`, `CN_TARGET`, `CN_BASE`, `CN_TAG`,
   `CN_REGIONS`, `CN_TEST`, `CN_TYPECHECK`, `CN_FENCE`, `CN_FENCE_LB`, `CN_RESULTS`,
   `CN_BENCH`, `CN_BETA`, `CN_MIN_RHO`, `CN_MIN_CANDIDATES`, `CN_BUDGET`, `CN_PROPOSER`,
-  `CN_WORKTREE`, `CN_STATE`.
+  `CN_TIMEOUT`, `CN_WORKTREE`, `CN_STATE`.
 - **Secrets**: none read by the engine. The proposer (`claude` CLI) uses its own auth; the
   engine never handles credentials.
 
@@ -318,7 +319,8 @@ type FenceArtifact = {
 
 // .codenuke/results.tsv  (tab-separated; one row per iteration)
 //   iter  commit  dAST  dCx  behavior  mfence  loss  status  description
-// status ∈ keep | revert | raise | raise-nogain | raise-skip | raise-badtest | raise-error | crash | noop
+// status ∈ keep | revert | raise | raise-nogain | raise-skip | raise-badtest | raise-error
+//          | crash | crash-timeout | crash-budget | noop
 
 // codenuke.benchmark/<id>/meta.json  (+ accept.test.ts beside it)
 type BenchmarkDelta = {
@@ -504,11 +506,16 @@ two moves, "never ask"). The proposer is invoked per iteration with the relevant
 
 - **Default adapter**: `claude -p --permission-mode bypassPermissions --no-session-persistence
 --allowedTools "Edit Write Read Grep Glob" --max-budget-usd <budget>`. No shell/git ⇒ cannot
-  touch the scorer. Budget-capped per iteration.
+  touch the scorer. Budget-capped per iteration; the default budget is `$8`, chosen from
+  real-repo raise attempts where `$1.50` was too small to read source and author characterization
+  tests. Override with `CN_BUDGET` or `proposerBudgetUsd`.
 - **Override**: `CN_PROPOSER="<shell command run in the worktree>"` (for deterministic tests or
   a different agent).
-- **Failure handling**: a proposer error or timeout is logged (`crash`) and reverted; a raise
-  that touches non-test source, or whose tests fail on current code, is rejected
+- **Timeout**: proposer calls default to `900000ms` (15 minutes). Override with `CN_TIMEOUT` or
+  `proposerTimeoutMs`.
+- **Failure handling**: a proposer error is logged as `crash`, timeout as `crash-timeout`, and
+  budget exhaustion as `crash-budget`, then reverted; a raise that touches non-test source, or
+  whose tests fail on current code, is rejected
   (`raise-badtest`). Failures are non-fatal — the loop continues.
 
 ## Git safety

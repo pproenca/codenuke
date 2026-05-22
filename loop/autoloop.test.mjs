@@ -268,6 +268,142 @@ describe("codenuke run", () => {
     expect(result.stdout).not.toContain("--- iter 2/3");
   });
 
+  it("logs a distinct status when the proposer times out", () => {
+    const root = fixtureRoot("codenuke-run-proposer-timeout-");
+    const tag = `proposer-timeout-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-proposer-timeout-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-proposer-timeout-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-proposer-timeout" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: 'node -e "setTimeout(() => {}, 1000)"',
+        CN_TIMEOUT: "50",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\tcrash-timeout\t");
+    expect(results).toContain("proposer timeout");
+  });
+
+  it("logs a distinct status when the proposer exhausts its budget", () => {
+    const root = fixtureRoot("codenuke-run-proposer-budget-");
+    const tag = `proposer-budget-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-proposer-budget-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-proposer-budget-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-proposer-budget" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+console.error("Reached maximum budget ($1.5)");
+process.exit(1);
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("\tcrash-budget\t");
+    expect(results).toContain("proposer budget exhausted");
+  });
+
   it("iterates detected fence regions instead of the default target slug", () => {
     const root = fixtureRoot("codenuke-run-regions-");
     const tag = `regions-${Date.now()}`;

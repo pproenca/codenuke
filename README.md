@@ -84,17 +84,19 @@ works on a fresh `autoresearch/<tag>` branch and logs every iteration to
 Zero-config by default — codenuke auto-detects everything below. Override via a
 `codenuke.loop.json` at your repo root or `CN_*` env vars.
 
-| key (json)         | env            | default (auto-detected)                              |
-| ------------------ | -------------- | ---------------------------------------------------- |
-| `repo`             | `CN_REPO`      | current directory                                    |
-| `srcDir`           | `CN_SRC`       | `src`                                                |
-| `target`           | `CN_TARGET`    | all detected regions (`<srcDir>/` means no filter)   |
-| `baseline`         | `CN_BASE`      | `HEAD`                                               |
-| `testCommand`      | `CN_TEST`      | vitest / jest / mocha / ava / bun / package test     |
-| `typeCheckCommand` | `CN_TYPECHECK` | `tsc --noEmit` if a `tsconfig.json` exists, else off |
-| `regions`          | `CN_REGIONS`   | subdirectories of `srcDir` with source               |
-| `fenceLB`          | `CN_FENCE_LB`  | `0.90` (Wilson CI lower bound a region must clear)   |
-| `tag`              | `CN_TAG`       | `run` (→ branch `autoresearch/run`)                  |
+| key (json)          | env            | default (auto-detected)                              |
+| ------------------- | -------------- | ---------------------------------------------------- |
+| `repo`              | `CN_REPO`      | current directory                                    |
+| `srcDir`            | `CN_SRC`       | `src`                                                |
+| `target`            | `CN_TARGET`    | all detected regions (`<srcDir>/` means no filter)   |
+| `baseline`          | `CN_BASE`      | `HEAD`                                               |
+| `testCommand`       | `CN_TEST`      | vitest / jest / mocha / ava / bun / package test     |
+| `typeCheckCommand`  | `CN_TYPECHECK` | `tsc --noEmit` if a `tsconfig.json` exists, else off |
+| `regions`           | `CN_REGIONS`   | subdirectories of `srcDir` with source               |
+| `fenceLB`           | `CN_FENCE_LB`  | `0.90` (Wilson CI lower bound a region must clear)   |
+| `tag`               | `CN_TAG`       | `run` (→ branch `autoresearch/run`)                  |
+| `proposerBudgetUsd` | `CN_BUDGET`    | `8` (per-iteration default proposer budget)          |
+| `proposerTimeoutMs` | `CN_TIMEOUT`   | `900000` (15 minute proposer wall-clock timeout)     |
 
 The proposer is also pluggable: `CN_PROPOSER="<shell cmd run in the worktree>"` replaces the
 default `claude -p`. The default proposer interface has no shell/git tools, and `run`
