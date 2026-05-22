@@ -57,7 +57,7 @@ export function lcsEditSize(a, b) {
   return n - prev[m] + (m - prev[m]);
 }
 export function editCost(beforeMap, afterMap, srcDir = "src") {
-  const counted = (p) => p.startsWith(srcDir + "/") && isSourceFile(p);
+  const counted = (p) => (srcDir === "." || p.startsWith(`${srcDir}/`)) && isSourceFile(p);
   const files = new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)].filter(counted));
   let tokens = 0,
     touched = 0;
@@ -134,6 +134,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
     shTry(`git -C ${WT} clean -fdq`);
   };
+  const cleanupWorktree = () => {
+    try {
+      rmSync(`${WT}/node_modules`, { force: true });
+    } catch {}
+    try {
+      sh(`git -C ${C.repo} worktree remove --force ${WT}`);
+      sh(`git -C ${C.repo} worktree prune`);
+    } catch {}
+  };
   const dirtyPaths = () =>
     shTry(`git -C ${WT} status --porcelain`)
       .out.split("\n")
@@ -189,6 +198,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   } catch {}
   if (!green()) {
     console.log("baseline RED — abort");
+    cleanupWorktree();
     process.exit(1);
   }
   const baseline = snapshot();
@@ -265,13 +275,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       2,
     ),
   );
-  try {
-    rmSync(`${WT}/node_modules`, { force: true });
-  } catch {}
-  try {
-    sh(`git -C ${C.repo} worktree remove --force ${WT}`);
-    sh(`git -C ${C.repo} worktree prune`);
-  } catch {}
+  cleanupWorktree();
   console.log(
     `\n=== 𝒱̂(${REF}) = ${Vhat == null ? "n/a" : Vhat.toFixed(1)} over ${done.length}/${Δ.length} changes ===  -> ${OUT}`,
   );

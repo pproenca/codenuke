@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -70,6 +70,24 @@ describe("codenuke scorer operations", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("run `codenuke init` first");
     expect(result.stderr).not.toContain("ENOENT");
+  });
+
+  it("removes the scorer worktree when init finds a red baseline", () => {
+    const root = fixtureRoot("codenuke-score-red-baseline-");
+    const worktree = join(tmpdir(), `codenuke-score-red-wt-${Date.now()}`);
+    initRepo(root);
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+
+    const result = runCodenuke(root, ["init"], {
+      CN_TEST: 'node -e "process.exit(1)"',
+      CN_WORKTREE: worktree,
+      CN_STATE: join(tmpdir(), `codenuke-score-red-state-${Date.now()}.json`),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("baseline tests RED");
+    expect(existsSync(worktree)).toBe(false);
   });
 
   it("uses calibration scales when computing score gain", () => {
@@ -278,6 +296,72 @@ export const value = (input) => input * 2;
 
     const score = scoreJson(root, env);
 
+    expect(score.admissible).toBe(false);
+    expect(score.keep).toBe(false);
+    expect(score.loss).toBeNull();
+    expect(score.gates).toMatchObject({ G1: true, G1prime: false, G3: true, G4: true });
+  });
+
+  it("fails closed when the fence artifact was measured on a different baseline", () => {
+    const root = fixtureRoot("codenuke-score-stale-fence-");
+    const worktree = join(tmpdir(), `codenuke-score-stale-fence-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-stale-fence-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.901,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export const value = (input) => input * 2;
+`,
+    );
+
+    const result = runCodenuke(root, ["score", "--json"], env);
+    const line = result.stdout.split("\n").find((candidate) => candidate.startsWith("@@JSON@@"));
+    const score = JSON.parse(line.slice("@@JSON@@".length));
+
+    expect(result.stdout).toContain("STALE AUDIT");
     expect(score.admissible).toBe(false);
     expect(score.keep).toBe(false);
     expect(score.loss).toBeNull();

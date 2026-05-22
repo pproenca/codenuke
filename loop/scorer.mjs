@@ -21,6 +21,7 @@ import {
   rmSync,
   mkdirSync,
 } from "node:fs";
+import { fenceArtifactStatus } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 
@@ -57,6 +58,15 @@ function excludeWorktreeHelper(path) {
   } catch {}
   if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
 }
+function cleanupWorktree() {
+  try {
+    rmSync(`${WT}/node_modules`, { force: true });
+  } catch {}
+  try {
+    shRepo(`git worktree remove --force ${WT}`);
+    shRepo("git worktree prune");
+  } catch {}
+}
 
 function testsPass() {
   try {
@@ -92,13 +102,7 @@ const changedSource = () =>
     .split("\n")
     .map((s) => s.trim())
     .filter(isSourceFile);
-const loadFence = () => {
-  try {
-    return JSON.parse(readFileSync(C.fenceArtifact, "utf8"));
-  } catch {
-    return null;
-  }
-};
+const loadFenceStatus = () => fenceArtifactStatus(C);
 const loadCalibration = () => {
   try {
     return JSON.parse(readFileSync(`${C.repo}/.codenuke/calibration.json`, "utf8")).scales;
@@ -129,6 +133,7 @@ if (cmd === "init") {
     t0 = typeErrors();
   if (!green) {
     console.log(`baseline tests RED (cmd: ${C.testCommand}) — abort`);
+    cleanupWorktree();
     process.exit(1);
   }
   writeState({ baselineTsc: t0, startL: targetL("HEAD"), accepted: [], iter: 0 });
@@ -155,7 +160,8 @@ if (cmd === "init") {
     dDup = before.dupMass - after.dupMass,
     dCx = before.complexity - after.complexity;
 
-  const fence = loadFence();
+  const fenceStatus = loadFenceStatus();
+  const fence = fenceStatus.usable ? fenceStatus.artifact : null;
   const touched = [...new Set(changed.map((p) => regionOf(p, C.srcDir)))];
   const fenceOf = (r) => fence?.regions?.[r] ?? null;
   const blocked = touched.filter((r) => !(fenceOf(r)?.admissible === true));
@@ -184,9 +190,11 @@ if (cmd === "init") {
   const Y = (b) => (b ? "✓" : "✗");
   const fenceTxt = G1prime
     ? `clear (mfence=${(mfence * 100).toFixed(0)}%)`
-    : fence == null
-      ? "NO AUDIT (fail-closed)"
-      : `blocked: ${blocked.map((r) => `${r}[lo=${((fenceOf(r)?.lo ?? 0) * 100).toFixed(0)}%]`).join(", ")}`;
+    : fenceStatus.stale
+      ? "STALE AUDIT (fail-closed)"
+      : fence == null
+        ? "NO AUDIT (fail-closed)"
+        : `blocked: ${blocked.map((r) => `${r}[lo=${((fenceOf(r)?.lo ?? 0) * 100).toFixed(0)}%]`).join(", ")}`;
   console.log(`\n  candidate: ${changed.map((p) => p.replace(C.srcDir + "/", "")).join(", ")}`);
   console.log(
     `  gates: G1 ${Y(G1)}  G1′ ${Y(G1prime)} (${fenceTxt})  G3 ${Y(G3)} (types ${tscNow}/${st.baselineTsc})  G4↓ ${Y(G4)}`,
@@ -249,15 +257,9 @@ if (cmd === "init") {
   );
 } else if (cmd === "cleanup") {
   try {
-    rmSync(`${WT}/node_modules`, { force: true });
-  } catch {}
-  try {
     rmSync(C.state);
   } catch {}
-  try {
-    shRepo(`git worktree remove --force ${WT}`);
-    shRepo("git worktree prune");
-  } catch {}
+  cleanupWorktree();
   console.log("worktree removed.");
 } else console.log("usage: scorer.mjs init|score [--json]|accept|revert|status|cleanup");
 

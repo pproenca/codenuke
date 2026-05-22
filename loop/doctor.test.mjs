@@ -102,6 +102,49 @@ describe("codenuke doctor", () => {
     expect(result.stdout).toContain("ready");
   });
 
+  it("reports a stale fence artifact as a readiness gap", () => {
+    const root = fixtureRoot("codenuke-doctor-stale-fence-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 1,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TEST: 'node -e "process.exit(0)"',
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stdout).toContain("fence: stale");
+    expect(result.stdout).toContain("- fence artifact stale");
+  });
+
   it("runs readiness commands in an isolated worktree without dirtying the user repo", () => {
     const root = fixtureRoot("codenuke-doctor-isolation-");
     initGreenRepo(root);

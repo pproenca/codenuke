@@ -289,6 +289,7 @@ type ScoreVerdict = {
 // .codenuke/fence-fidelity.json
 type FenceArtifact = {
   baseline: string;
+  baselineSha?: string; // pinned commit used to detect stale fence artifacts
   generatedAt: string;
   method: "ast-aware";
   threshold: number;

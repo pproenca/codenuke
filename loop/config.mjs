@@ -141,14 +141,16 @@ function detectRegions(repo, srcDir) {
   }
 }
 
+function normalizeRegions(regions) {
+  return regions.map((region) => String(region).trim()).filter(Boolean);
+}
+
 export function loadConfig(env = process.env, cwd = process.cwd()) {
-  const fileCfg = (() => {
-    try {
-      return JSON.parse(readFileSync(`${cwd}/codenuke.loop.json`, "utf8"));
-    } catch {
-      return {};
-    }
-  })();
+  const cwdFileCfg = readJson(`${cwd}/codenuke.loop.json`) ?? {};
+  const configuredRepo = env.CN_REPO ?? cwdFileCfg.repo ?? cwd;
+  const repoFileCfg =
+    configuredRepo === cwd ? cwdFileCfg : (readJson(`${configuredRepo}/codenuke.loop.json`) ?? {});
+  const fileCfg = env.CN_REPO ? repoFileCfg : { ...repoFileCfg, ...cwdFileCfg };
   const pick = (envKey, cfgKey, dflt) => env[envKey] ?? fileCfg[cfgKey] ?? dflt;
 
   const repo = pick("CN_REPO", "repo", cwd);
@@ -157,7 +159,12 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
   const baseline = pick("CN_BASE", "baseline", "HEAD");
   const tag = pick("CN_TAG", "tag", "run");
   const region = slug(target.replace(new RegExp(`^${srcDir}/?`), "") || target);
-  const regions = env.CN_REGIONS?.split(",") ?? fileCfg.regions ?? detectRegions(repo, srcDir);
+  const envRegions =
+    env.CN_REGIONS == null ? undefined : normalizeRegions(env.CN_REGIONS.split(","));
+  const fileRegions = Array.isArray(fileCfg.regions)
+    ? normalizeRegions(fileCfg.regions)
+    : undefined;
+  const regions = envRegions ?? fileRegions ?? detectRegions(repo, srcDir);
   const wt = pick("CN_WORKTREE", "worktree", `/tmp/codenuke-${slug(tag)}-${region}`);
 
   return {

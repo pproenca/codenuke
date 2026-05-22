@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -55,6 +55,7 @@ describe("codenuke fence", () => {
 
     expect(result.status).toBe(0);
     const artifact = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
+    expect(artifact.baselineSha).toMatch(/^[0-9a-f]{40}$/);
     expect(artifact.regions.src.total).toBe(1);
     expect(artifact.regions.src.survivorSpecs).toEqual([
       expect.objectContaining({ rel: "src/index.ts", repl: ">", op: "<→>" }),
@@ -90,6 +91,84 @@ describe("codenuke fence", () => {
     const artifact = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
     expect(Object.keys(artifact.regions)).toEqual(["src"]);
     expect(artifact.regions.src.total).toBeGreaterThan(0);
+  });
+
+  it("updates the pinned baseline metadata on filtered fence refreshes", async () => {
+    const root = await fixtureRoot("codenuke-fence-filtered-baseline-");
+    await write(root, "package.json", JSON.stringify({ name: "fence-filtered-baseline" }));
+    await write(
+      root,
+      "src/index.ts",
+      "export const isLower = (left: number, right: number) => left < right;\n",
+    );
+    git(root, ["init"]);
+    git(root, ["config", "user.email", "test@example.com"]);
+    git(root, ["config", "user.name", "Test User"]);
+    git(root, ["config", "commit.gpgsign", "false"]);
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "initial"]);
+    await write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "OLD",
+        baselineSha: "0000000000000000000000000000000000000000",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {},
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "fence", "5", "123", "src"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TAG: `filtered-${Date.now()}`,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
+    expect(artifact.baseline).toBe("HEAD");
+    expect(artifact.baselineSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(artifact.baselineSha).not.toBe("0000000000000000000000000000000000000000");
+  });
+
+  it("removes the audit worktree when the baseline is red", async () => {
+    const root = await fixtureRoot("codenuke-fence-red-baseline-");
+    const worktree = join(tmpdir(), `codenuke-fence-red-wt-${Date.now()}`);
+    await write(root, "package.json", JSON.stringify({ name: "fence-red-baseline" }));
+    await write(
+      root,
+      "src/index.ts",
+      "export const isLower = (left: number, right: number) => left < right;\n",
+    );
+    git(root, ["init"]);
+    git(root, ["config", "user.email", "test@example.com"]);
+    git(root, ["config", "user.name", "Test User"]);
+    git(root, ["config", "commit.gpgsign", "false"]);
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "initial"]);
+
+    const result = spawnSync("node", [cli, "fence", "5", "123"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(1)"',
+        CN_WORKTREE: worktree,
+        CN_TAG: `red-${Date.now()}`,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("baseline RED");
+    expect(existsSync(worktree)).toBe(false);
   });
 
   it("samples the same mutation plan for the same seed", async () => {

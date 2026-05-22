@@ -71,6 +71,17 @@ describe("edit size — formatting & comment invariant", () => {
       editCost({ "src/m.ts": `const x=1;` }, { "src/m.ts": `// r\nconst x = 1;` }).tokens,
     ).toBe(0);
   });
+
+  it("counts root-layout source files when srcDir is the repo root", () => {
+    const result = editCost(
+      { "index.ts": `export const value = 1;`, "index.test.ts": `expect(value).toBe(1);` },
+      { "index.ts": `export const value = 2;`, "index.test.ts": `expect(value).toBe(2);` },
+      ".",
+    );
+
+    expect(result.tokens).toBeGreaterThan(0);
+    expect(result.perFile).toEqual({ "index.ts": result.tokens });
+  });
 });
 
 describe("lcsEditSize", () => {
@@ -230,6 +241,43 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(artifact.results[0].status).toBe("impl-bad-surface");
     expect(artifact.results[0].disallowed.join("\n")).toContain("codenuke.benchmark/leak");
     expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
+  });
+
+  it("removes the benchmark worktree when the baseline is red", () => {
+    const root = fixtureRoot("codenuke-changecost-red-baseline-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-red-baseline" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        region: "src",
+        acceptPath: "tests/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-red-wt-${Date.now()}`);
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(1)"',
+        CN_WORKTREE: worktree,
+        CN_TAG: `red-${Date.now()}`,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("baseline RED");
+    expect(existsSync(worktree)).toBe(false);
   });
 
   it("is deterministic with a scripted implementer and favors the deduplicated variant", () => {

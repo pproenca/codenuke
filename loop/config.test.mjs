@@ -16,6 +16,63 @@ async function write(root, path, contents) {
 }
 
 describe("zero-config source region detection", () => {
+  it("reads codenuke.loop.json from the CN_REPO target root", async () => {
+    const cwd = await fixtureRoot("codenuke-cwd-");
+    const repo = await fixtureRoot("codenuke-config-repo-");
+    await write(repo, "custom/index.ts", "export const configured = true;\n");
+    await write(
+      repo,
+      "codenuke.loop.json",
+      JSON.stringify({
+        srcDir: "custom",
+        target: "custom/",
+        testCommand: "node configured-test.mjs",
+        regions: ["custom"],
+      }),
+    );
+
+    const config = loadConfig({ CN_REPO: repo }, cwd);
+
+    expect(config.repo).toBe(repo);
+    expect(config.srcDir).toBe("custom");
+    expect(config.target).toBe("custom/");
+    expect(config.testCommand).toBe("node configured-test.mjs");
+    expect(config.regions).toEqual(["custom"]);
+  });
+
+  it("lets CN_* values override repo-root codenuke.loop.json", async () => {
+    const cwd = await fixtureRoot("codenuke-cwd-");
+    const repo = await fixtureRoot("codenuke-config-env-repo-");
+    await write(repo, "configured/index.ts", "export const configured = true;\n");
+    await write(repo, "envsrc/index.ts", "export const env = true;\n");
+    await write(
+      repo,
+      "codenuke.loop.json",
+      JSON.stringify({
+        srcDir: "configured",
+        target: "configured/",
+        testCommand: "node configured-test.mjs",
+        regions: ["configured"],
+      }),
+    );
+
+    const config = loadConfig(
+      {
+        CN_REPO: repo,
+        CN_SRC: "envsrc",
+        CN_TARGET: "envsrc/narrow/",
+        CN_TEST: "node env-test.mjs",
+        CN_REGIONS: " envsrc , narrow ,, ",
+      },
+      cwd,
+    );
+
+    expect(config.srcDir).toBe("envsrc");
+    expect(config.target).toBe("envsrc/narrow/");
+    expect(config.testCommand).toBe("node env-test.mjs");
+    expect(config.regions).toEqual(["envsrc", "narrow"]);
+  });
+
   it("uses the flat source directory as the single region when source exists directly under src", async () => {
     const root = await fixtureRoot("codenuke-flat-src-");
     await write(root, "src/index.ts", "export const run = () => true;\n");

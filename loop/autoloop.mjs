@@ -14,6 +14,7 @@
 
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
+import { fenceArtifactStatus } from "./artifacts.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
 
 const C = loadConfig();
@@ -110,10 +111,17 @@ function chooseRegion(fence) {
   );
 }
 function requireRunFence() {
-  const fence = loadFence();
-  if (!fence?.regions || typeof fence.regions !== "object") {
+  const status = fenceArtifactStatus(C);
+  const fence = status.artifact;
+  if (!fence) {
     console.log(
       `fence artifact missing or invalid at ${C.fenceArtifact}; run \`codenuke fence\` first, then \`codenuke doctor\`.`,
+    );
+    process.exit(1);
+  }
+  if (!status.usable) {
+    console.log(
+      `fence artifact is stale for baseline ${C.baseline}; run \`codenuke fence\` first, then \`codenuke doctor\`.`,
     );
     process.exit(1);
   }

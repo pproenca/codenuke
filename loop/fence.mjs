@@ -126,6 +126,15 @@ const writeArtifact = (obj) => {
   } catch {}
   writeFileSync(OUT, JSON.stringify(obj, null, 2));
 };
+const cleanupWorktree = () => {
+  try {
+    rmSync(`${WT}/node_modules`, { force: true });
+  } catch {}
+  try {
+    sh(`git worktree remove --force ${WT}`, C.repo);
+    sh(`git worktree prune`, C.repo);
+  } catch {}
+};
 
 // ---------- replay (monotonic re-audit of a region's survivors) ----------
 if (process.argv[2] === "replay") {
@@ -206,6 +215,7 @@ console.log(
 if (runTests(WT) !== "green") {
   writeArtifact({ error: "baseline red" });
   console.log("baseline RED — abort");
+  cleanupWorktree();
   process.exit(1);
 }
 
@@ -231,6 +241,7 @@ for (const region of regions) {
 
 let out = {
   baseline: C.baseline,
+  baselineSha: sh(`git rev-parse --verify ${JSON.stringify(C.baseline)}`, C.repo).trim(),
   generatedAt: new Date().toISOString(),
   method: "ast-aware",
   threshold: THRESHOLD,
@@ -240,7 +251,8 @@ let out = {
 };
 if (REGION_FILTER) {
   try {
-    out = { ...JSON.parse(readFileSync(OUT, "utf8")), generatedAt: out.generatedAt };
+    const previous = JSON.parse(readFileSync(OUT, "utf8"));
+    out = { ...previous, ...out, regions: previous.regions ?? {} };
   } catch {}
 }
 let done = 0,
@@ -277,13 +289,7 @@ for (const region of regions) {
   );
   writeArtifact(out);
 }
-try {
-  rmSync(`${WT}/node_modules`, { force: true });
-} catch {}
-try {
-  sh(`git worktree remove --force ${WT}`, C.repo);
-  sh(`git worktree prune`, C.repo);
-} catch {}
+cleanupWorktree();
 console.log(`\n-> ${OUT}`);
 for (const [r, v] of Object.entries(out.regions))
   console.log(
