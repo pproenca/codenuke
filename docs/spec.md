@@ -512,7 +512,8 @@ worktree at `baseline`.
 2. The trajectory lives on a dedicated `autoresearch/<tag>` branch, never on the user's branch.
 3. A reject is a `git reset --hard` + `git clean` scoped to `srcDir` in the worktree.
 4. Loop state lives **outside** the worktree, so it is never committed or reset by git ops.
-5. `accept` stages only `srcDir`, so generated state never enters the trajectory.
+5. `accept` stages only the scorer-observed source files, so generated state never enters the
+   trajectory even when `srcDir` is the repo root (`.`).
 6. The baseline must be green; the loop aborts if it is not.
 
 ## Test command selection

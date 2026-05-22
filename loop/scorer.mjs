@@ -36,6 +36,7 @@ const sh = (cmd, opts = {}) =>
   }).toString();
 const shRepo = (cmd) =>
   execSync(cmd, { cwd: C.repo, maxBuffer: 1 << 30, stdio: ["ignore", "pipe", "pipe"] }).toString();
+const quote = (value) => JSON.stringify(value);
 const readState = () => JSON.parse(readFileSync(C.state, "utf8"));
 const writeState = (s) => writeFileSync(C.state, JSON.stringify(s, null, 2));
 const showAt = (ref, p) => {
@@ -228,11 +229,12 @@ if (cmd === "init") {
   }
 } else if (cmd === "accept") {
   const st = requireState();
-  if (changedSource().length === 0) {
+  const changed = changedSource();
+  if (changed.length === 0) {
     console.log("nothing to accept.");
     process.exit(0);
   }
-  sh(`git add -A -- ${C.srcDir}`);
+  sh(`git add -A -- ${changed.map(quote).join(" ")}`);
   sh(
     `git -c user.email=loop@codenuke -c user.name=codenuke -c commit.gpgsign=false commit -m "reduce: accepted refactor"`,
   );
