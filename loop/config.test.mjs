@@ -152,6 +152,20 @@ describe("zero-config source region detection", () => {
     expect(config.regions).toEqual(["custom"]);
   });
 
+  it("prefers a larger conventional src tree over a small tsconfig include target", async () => {
+    const root = await fixtureRoot("codenuke-tsconfig-small-include-");
+    await write(root, "tsconfig.json", JSON.stringify({ include: ["public-src/**/*.ts"] }));
+    await write(root, "public-src/index.ts", "export const browser = true;\n");
+    await write(root, "src/core.ts", "export const core = true;\n");
+    await write(root, "src/engine.ts", "export const engine = true;\n");
+    await write(root, "src/workflow.ts", "export const workflow = true;\n");
+
+    const config = loadConfig({}, root);
+
+    expect(config.srcDir).toBe("src");
+    expect(config.regions).toEqual(["src"]);
+  });
+
   it("uses package.json source hints before conventional source directories", async () => {
     const root = await fixtureRoot("codenuke-package-source-");
     await write(root, "package.json", JSON.stringify({ source: "custom/index.ts" }));

@@ -70,18 +70,22 @@ const isSourcePath = (p) =>
   /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
 
 function hasSourceFile(dir) {
+  return sourceFileCount(dir) > 0;
+}
+
+function sourceFileCount(dir) {
   try {
     const entries = readdirSync(dir, { withFileTypes: true });
-    return entries.some((entry) => {
+    return entries.reduce((count, entry) => {
       const path = `${dir}/${entry.name}`;
       if (entry.isDirectory()) {
-        if (IGNORED_SOURCE_DIRS.has(entry.name)) return false;
-        return hasSourceFile(path);
+        if (IGNORED_SOURCE_DIRS.has(entry.name)) return count;
+        return count + sourceFileCount(path);
       }
-      return entry.isFile() && isSourcePath(entry.name);
-    });
+      return count + (entry.isFile() && isSourcePath(entry.name) ? 1 : 0);
+    }, 0);
   } catch {
-    return false;
+    return 0;
   }
 }
 
@@ -116,10 +120,21 @@ function packageHintPaths(value) {
 function detectSrcDir(repo) {
   const tsconfig = readJson(`${repo}/tsconfig.json`);
   const rootDir = tsconfig?.compilerOptions?.rootDir;
-  if (rootDir && hasSourceFile(`${repo}/${rootDir}`)) return cleanDir(rootDir);
+  const tsconfigCandidates = [];
+  if (rootDir) tsconfigCandidates.push(cleanDir(rootDir));
   for (const pattern of tsconfig?.include ?? []) {
     const candidate = includeBase(pattern);
-    if (hasSourceFile(`${repo}/${candidate}`)) return candidate;
+    tsconfigCandidates.push(candidate);
+  }
+  const tsconfigSource = tsconfigCandidates
+    .map((candidate) => ({ candidate, count: sourceFileCount(`${repo}/${candidate}`) }))
+    .filter(({ count }) => count > 0)
+    .sort((left, right) => right.count - left.count)[0];
+  const conventionalSource = ["src", "lib", "app", "source"]
+    .map((candidate) => ({ candidate, count: sourceFileCount(`${repo}/${candidate}`) }))
+    .find(({ count }) => count > 0);
+  if (tsconfigSource && (!conventionalSource || tsconfigSource.count >= conventionalSource.count)) {
+    return tsconfigSource.candidate;
   }
 
   const pkg = readJson(`${repo}/package.json`);
@@ -129,9 +144,7 @@ function detectSrcDir(repo) {
     if (candidate !== "." && hasSourceFile(`${repo}/${candidate}`)) return candidate;
   }
 
-  for (const candidate of ["src", "lib", "app", "source"]) {
-    if (hasSourceFile(`${repo}/${candidate}`)) return candidate;
-  }
+  if (conventionalSource) return conventionalSource.candidate;
   return hasSourceFile(repo) ? "." : "src";
 }
 

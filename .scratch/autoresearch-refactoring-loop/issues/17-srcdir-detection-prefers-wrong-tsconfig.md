@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 
 # srcDir detection picks the wrong source dir when a repo has multiple tsconfigs
 
@@ -24,3 +24,11 @@ But on `../codecharter` (2026-05-22) the root `tsconfig.json` `include` points a
 ## Blocked by
 
 None - needs a maintainer decision before implementation.
+
+## Resolution
+
+Decision: keep tsconfig precedence when it is unambiguous or tied, but let the first
+conventional source directory win when it contains more source files than the tsconfig target.
+This preserves existing tsconfig-first behavior for small/tied fixtures while fixing the
+codecharter-style case where a root tsconfig points at a small frontend and `src/` is the main
+engine.

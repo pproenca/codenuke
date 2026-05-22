@@ -239,8 +239,11 @@ loop unrolled.
 The fence and the loop share **one** detected region set (this is what makes the loop work
 zero-config, not a no-op).
 
-- **`srcDir`**: `tsconfig.json` (`rootDir` / `include`) → `package.json` hints → the first of
-  `src` / `lib` / `app` / `source` that contains source → the repo root (`.`). Override `CN_SRC`.
+- **`srcDir`**: when `tsconfig.json` (`rootDir` / `include`) and a conventional source
+  directory both exist, the tsconfig target is used only if it is at least as sourceful as the
+  first sourceful conventional directory (`src` / `lib` / `app` / `source`); otherwise that
+  conventional directory wins. Without that tie-breaker: `package.json` hints → the first
+  sourceful conventional directory → the repo root (`.`). Override `CN_SRC`.
 - **`regions`**: the immediate subdirectories of `srcDir` that contain source. If `srcDir` has
   no such subdirectories (a flat layout), **`srcDir` itself is the single region**. The set is
   **never empty when source exists**. Override/filter with `CN_REGIONS`.
