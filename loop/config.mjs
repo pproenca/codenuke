@@ -11,6 +11,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execSync } from "node:child_process";
 
+const IGNORED_SOURCE_DIRS = new Set([".codenuke", ".git", "coverage", "dist", "node_modules"]);
+
 const slug = (v) =>
   String(v)
     .replace(/^\.?\/*/, "")
@@ -64,7 +66,15 @@ const isSourcePath = (p) =>
 
 function hasSourceFile(dir) {
   try {
-    return readdirSync(dir, { recursive: true }).some((f) => isSourcePath(String(f)));
+    const entries = readdirSync(dir, { withFileTypes: true });
+    return entries.some((entry) => {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (IGNORED_SOURCE_DIRS.has(entry.name)) return false;
+        return hasSourceFile(path);
+      }
+      return entry.isFile() && isSourcePath(entry.name);
+    });
   } catch {
     return false;
   }
@@ -126,6 +136,7 @@ function detectRegions(repo, srcDir) {
   if (!existsSync(root)) return [];
   try {
     const nested = readdirSync(root)
+      .filter((name) => !IGNORED_SOURCE_DIRS.has(name))
       .filter((name) => {
         try {
           return statSync(`${root}/${name}`).isDirectory() && hasSourceFile(`${root}/${name}`);
@@ -194,7 +205,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
 }
 
 export const regionOf = (p, srcDir = "src") => {
-  if (srcDir === ".") return ".";
+  if (srcDir === ".") return p.includes("/") ? p.split("/")[0] : ".";
   const rel = p.startsWith(`${srcDir}/`) ? p.slice(srcDir.length + 1) : p;
   return rel.includes("/") ? rel.split("/")[0] : srcDir;
 };

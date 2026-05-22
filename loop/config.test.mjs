@@ -115,6 +115,19 @@ describe("zero-config source region detection", () => {
     expect(config.regions).toEqual(["."]);
   });
 
+  it("ignores dependency and generated directories when detecting root-layout regions", async () => {
+    const root = await fixtureRoot("codenuke-root-ignored-dirs-");
+    await write(root, "loop/index.ts", "export const owned = true;\n");
+    await write(root, "node_modules/pkg/index.js", "export const dependency = true;\n");
+    await write(root, ".codenuke/generated.mjs", "export const state = true;\n");
+    await write(root, "dist/bundle.js", "export const bundled = true;\n");
+
+    const config = loadConfig({}, root);
+
+    expect(config.srcDir).toBe(".");
+    expect(config.regions).toEqual(["loop"]);
+  });
+
   it("uses tsconfig rootDir before conventional source directories", async () => {
     const root = await fixtureRoot("codenuke-tsconfig-root-");
     await write(root, "tsconfig.json", JSON.stringify({ compilerOptions: { rootDir: "custom" } }));
@@ -175,6 +188,10 @@ describe("region keys", () => {
 
   it("maps root source files to the root region", () => {
     expect(regionOf("index.ts", ".")).toBe(".");
+  });
+
+  it("maps nested root-layout source files to their immediate child region", () => {
+    expect(regionOf("loop/config.mjs", ".")).toBe("loop");
   });
 });
 
