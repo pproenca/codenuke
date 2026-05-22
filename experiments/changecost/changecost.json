@@ -1,0 +1,25 @@
+{
+  "ref": "cc-taxed",
+  "head": "23fcc18",
+  "beta": 60,
+  "generatedAt": "2026-05-22T14:04:53.463Z",
+  "Vhat": 28.666666666666664,
+  "done": 1,
+  "total": 1,
+  "results": [
+    {
+      "id": "rate-bump",
+      "status": "done",
+      "editTokens": 6,
+      "filesTouched": 1,
+      "regions": [
+        "mappers"
+      ],
+      "verifyFrac": 0.37777777777777777,
+      "cost": 28.666666666666664,
+      "perFile": {
+        "src/mappers/cc-rate.ts": 6
+      }
+    }
+  ]
+}

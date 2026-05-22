@@ -56,25 +56,28 @@ refactoring.
   counting a hang as caught.
 - `loop.mjs init` now honors `CN_BASE` (use `CN_BASE=2d81f6c` since HEAD is red).
 
-## M3 STATUS (also done this session): autonomous loop BUILT + verified
-- `experiments/loop/autoloop.mjs` runs `propose (claude -p, edit-only) → score
-  (loop.mjs --json) → keep/revert → append results.tsv`, no human. `program.md` =
-  proposer skill. Verified: scripted proposer (keep/stack/revert/self-policing) AND a
-  **real `claude -p` proposer** kept a ΔAST=34 reduction in `mappers/shared.ts` unattended.
-- Bug fixed: `accept` was committing the state file → a revert's reset clobbered loop
-  state. State now lives OUTSIDE the worktree; `accept` stages only `src`.
-- Run it: `CN_BASE=2d81f6c CN_FIDELITY=<artifact> node experiments/loop/autoloop.mjs N`.
+## M3 STATUS (done this session): autonomous loop COMPLETE — both moves proven on the REAL fence
+- `experiments/loop/autoloop.mjs` runs `propose (claude -p, edit-only) → score → keep/revert
+  → log`, no human, on branch `autoresearch/<tag>`. It chooses **raise** (region blocked →
+  add characterization tests to earn admissibility) or **reduce** (admissible → shrink code),
+  read from the artifact. `lib.mjs` = `loopConfig`/`raiseReadiness` (per-tag-per-region state).
+- **Fence-raising PROVEN, real fence:** `cli` driven 47%→84%→**91% lo (ADMISSIBLE)** by
+  LLM-written characterization tests + monotonic `fidelity.mjs replay` (re-runs only prior
+  survivors; adding tests only kills). Then the loop **mode-switched to reduce**; reductions
+  reverted on G3 (cli type-tight) — self-policing. KEEP proven separately (ΔAST=34, mappers/shared.ts).
+- Lessons baked in: commit proposer tests *before* re-measuring (else a fresh audit ignores
+  untracked tests); state lives OUTSIDE the worktree; `--no-session-persistence` on the
+  proposer (intermittent empty-output crashes from concurrent `claude -p`); replay is non-fatal.
+- Run it: `CN_BASE=2d81f6c CN_TARGET=src/cli/ CN_TAG=cli node experiments/loop/autoloop.mjs N`.
 
-## Next actions (the M-ladder exits that remain)
-- **Headroom substrate (gates both M1-finish and the M3 exit):** codenuke is tidy +
-  weak-fenced → 0 admissible regions → loop keeps nothing here. Find/stand up a mid-size
-  TS repo with cruft AND a strong test suite; measure its fence (`fidelity.mjs`); run
-  `autoloop.mjs` for ≥10 kept iters (M3 exit). *Open:* is the 0.90-CI-LB bar feasible on
-  any real region, or too strict?
-- **Fence-raising move:** let the loop auto-add characterization tests to clear a region
-  (raise `mfence` past 0.90), *then* refactor — the automated form of GOAL.md M1's "blocked
-  OR given characterization tests until they clear it." This is what lets the loop earn
-  admissibility on weaker substrates (and would unblock codenuke itself).
+## Next actions (the loop is built; these reach the R1–R5 exits)
+- **Equivalent-mutant exclusion (correctness):** a region with >~10% equivalent mutants
+  can't reach lo 0.90 by testing (cli's last `&&` survivor). Exclude them from the
+  denominator — but *reviewed*, never auto-claimed by the optimizer (Goodhart). See
+  memory `cli-equivalent-mutants`.
+- **A region that is admissible AND has reduction headroom:** cli is admissible but
+  type-tight; mappers has headroom but unraised. Raise mappers, or point the loop at a
+  mid-size TS repo with cruft + a real suite, then run `autoloop.mjs` for ≥10 kept iters (M3/M5 exit).
 
 ## Environment & gotchas (will bite a fresh session)
 - **`master` HEAD (`e8aa9f2`) has a RED test baseline.** The known-green commit is

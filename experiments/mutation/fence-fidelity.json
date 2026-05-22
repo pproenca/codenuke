@@ -408,12 +408,12 @@
       }
     },
     "cli": {
-      "caught": 36,
+      "caught": 59,
       "total": 60,
-      "p": 0.6,
-      "lo": 0.47365824394206846,
-      "hi": 0.714306969962345,
-      "admissible": false,
+      "p": 0.9833333333333333,
+      "lo": 0.9114466177322051,
+      "hi": 0.9970519161391262,
+      "admissible": true,
       "fileTotals": {
         "src/cli/main.ts": 57,
         "src/cli/bootstrap.ts": 3
@@ -421,171 +421,10 @@
       "survivorSpecs": [
         {
           "rel": "src/cli/main.ts",
-          "start": 12671,
-          "end": 12673,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13132,
-          "end": 13134,
-          "repl": "&&",
-          "op": "||→&&"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13119,
-          "end": 13122,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 8877,
-          "end": 8879,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
           "start": 12161,
           "end": 12163,
           "repl": "||",
           "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 8897,
-          "end": 8899,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/bootstrap.ts",
-          "start": 943,
-          "end": 948,
-          "repl": "true",
-          "op": "false→true"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13095,
-          "end": 13097,
-          "repl": "&&",
-          "op": "||→&&"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12992,
-          "end": 12994,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12765,
-          "end": 12767,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12978,
-          "end": 12981,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12685,
-          "end": 12688,
-          "repl": "===",
-          "op": "!==→==="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12658,
-          "end": 12661,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13008,
-          "end": 13011,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12895,
-          "end": 12898,
-          "repl": "===",
-          "op": "!==→==="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12885,
-          "end": 12887,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12722,
-          "end": 12724,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 8921,
-          "end": 8923,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13156,
-          "end": 13159,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12694,
-          "end": 12696,
-          "repl": "||",
-          "op": "&&→||"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13082,
-          "end": 13085,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12872,
-          "end": 12875,
-          "repl": "!==",
-          "op": "===→!=="
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 13170,
-          "end": 13172,
-          "repl": "&&",
-          "op": "||→&&"
-        },
-        {
-          "rel": "src/cli/main.ts",
-          "start": 12752,
-          "end": 12755,
-          "repl": "!==",
-          "op": "===→!=="
         }
       ]
     }

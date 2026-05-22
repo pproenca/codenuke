@@ -55,7 +55,10 @@ function logRow(iter, commit, dAST, dCx, behavior, mfence, loss, status, desc) {
 function proposer(prompt) {
   if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: PROPOSER_TIMEOUT });
   writeFileSync(PROMPT_FILE, prompt);
-  const cmd = `claude -p --permission-mode bypassPermissions --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${BUDGET} --output-format json < ${PROMPT_FILE}`;
+  // --no-session-persistence: isolate each proposer so concurrent `claude -p` instances
+  // (this session + the loop + parallel runs) don't collide on session storage (the
+  // intermittent empty-output non-zero exits seen in the cli runs).
+  const cmd = `claude -p --permission-mode bypassPermissions --no-session-persistence --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${BUDGET} --output-format json < ${PROMPT_FILE}`;
   return shTry(cmd, { cwd: WT, timeout: PROPOSER_TIMEOUT });
 }
 

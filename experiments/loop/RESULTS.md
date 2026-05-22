@@ -25,15 +25,42 @@ judged, kept, logged — unattended. Cost ≈ $0.15–0.40/iter (budget-capped v
 
 Trajectory (`results.tsv`): **3 keeps + 1 revert, cumulative −40 AST nodes** on mappers.
 
-## What this is NOT yet (the M3 exit, GOAL.md, is still open)
-- The KEEP path was shown with a **fixture fence** marking mappers admissible. On the
-  **real** fence (mappers 62%, all 6 regions G1′-blocked — mutation/RESULTS.md) the
-  autonomous loop **correctly keeps nothing on codenuke**. A real M3 run (≥10 kept iters)
-  needs a substrate with **both** (a) refactoring headroom **and** (b) ≥1 region whose
-  fence clears 0.90 — or the loop's **fence-raising move** (auto-add characterization
-  tests to clear a region, *then* refactor). **codenuke is not that substrate** (already
-  tidy + weak fence). Finding/standing one up is the next step.
-- `results.tsv` iter numbering restarts per invocation (cosmetic; commit+status are authoritative).
+## (3) Fence-raising move — PROVEN on the real fence (no fixture), region `cli`
+
+The keystone that makes the loop work on a real (sub-1.0) fence: when a region is
+G1′-blocked, the loop's proposer **adds characterization tests** to kill the surviving
+mutants (GOAL.md M1: "blocked **or given characterization tests until they clear it**"),
+re-measures via monotonic replay, and **earns** admissibility — then switches to reducing.
+
+Run on `cli` (real artifact, AST-aware audit: 36/60 = 60%, lo 47%, 24 survivors):
+
+| iter | mode | outcome |
+|---|---|---|
+| raise | `cli` 47%→93% (lo **84%**) | 20 survivors killed; tests committed `32e2cf6` |
+| raise | `cli` 84%→98% (lo **91% ADMISSIBLE ✓**) | 3 more killed → 59/60; committed `b970969` |
+| reduce | ΔAST=32, `cli/main.ts` | **REVERT** — G3 (types) failed (self-policing) |
+| reduce | ΔAST=37, `cli/main.ts` | **REVERT** — G3 again |
+
+**Every behavior demonstrated autonomously, real fence, no human:** a blocked region's
+fence is raised by LLM-written characterization tests (monotonic replay confirms the
+kills), it **crosses 0.90 → the loop mode-switches to reduce**, and a type-unsound
+reduction is **rejected by the immutable scorer**. The 1 remaining `cli` survivor is an
+**equivalent mutant** (`main.ts` `&&`, no behavioral difference → unkillable by tests) —
+it doesn't block admissibility at 59/60 but illustrates the equivalent-mutant ceiling.
+
+**What's proven vs. still open.** Proven: both moves (raise + reduce), the mode-switch,
+self-policing, monotonic replay, the `autoresearch/<tag>` branch — all on the real fence.
+Still open: a *kept* reduction in an admissible region on the real fence — `cli` is
+admissible but type-tight (no clean reduction found in 2 tries; the gate correctly rejected
+both), and `mappers` has headroom but its fence isn't raised yet. The full **M5** run
+(≥10 kept iters, R1–R5) wants a substrate with admissible fence **and** reduction headroom.
+- **Equivalent-mutant exclusion** is the next correctness item: a region whose
+  equivalent-mutant rate exceeds 10% can't reach lo ≥ 0.90 by testing alone; those mutants
+  must be excluded from the denominator — but conservatively/reviewed, never by the
+  optimizer itself (Goodhart).
+- Intermittent empty-output proposer crashes (concurrent `claude -p` session contention)
+  are handled non-fatally and mitigated with `--no-session-persistence`.
+- `results.tsv` iter numbering restarts per invocation (cosmetic; commit+status authoritative).
 
 ## Bug found + fixed while building this
 `accept`'s `git add -A` committed the loop **state file** into the trajectory; a later

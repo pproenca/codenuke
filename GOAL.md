@@ -67,36 +67,39 @@ bound > 0.5 on ≥2 repos — so the agent spends experiments where value is lik
   global "80%" was an optimistic artifact — per-region random sampling gives **60%
   [55,65]** (regions 53–71%; experiments/mutation/RESULTS.md).
 - Value signal: co-change **falsified**; complexity **promising** (not yet robust).
-- M1: **gate WIRED + re-measured; exit NOT met.** `loop.mjs` applies G1′ (region
-  admissible iff Wilson lo ≥ 0.90, read from pinned `fence-fidelity.json`, fail-closed).
-  Re-measured: **0/6 regions clear the bar** (mappers 62% [51.9,71.5] … cli 71%
-  [57.7,81.7]) → the loop currently has **zero admissible regions** until weak fences
-  get characterization tests + re-audit. Gate proven data-driven end-to-end (same diff:
-  REJECT on real artifact, KEEP on a fixture flipping the region admissible).
-- M2: **mostly done.** Scorer is a single command (`loop.mjs score --json`); immutable in
-  practice (the proposer's toolset has no Bash/git, so it can't touch the judge);
-  `program.md` written; `results.tsv` adopted. TODO: a dedicated `autoresearch/<tag>`
-  branch (today the worktree commits are the trajectory).
-- M3: **autonomous loop BUILT + verified** (`autoloop.mjs`: propose via `claude -p` →
-  score → keep/revert → log, no human). A real LLM proposer kept a ΔAST=34 reduction
-  unattended (`mappers/shared.ts`, loss −0.568). **Exit (≥10 kept iters on a real repo)
-  NOT met:** codenuke has no admissible region (fence too weak) *and* no headroom — needs
-  a headroom substrate or the loop's fence-raising move. See experiments/loop/RESULTS.md.
-- M4–M5: not started.
+- M1: **gate WIRED + re-measured + ESCAPE PATH PROVEN.** `loop.mjs` applies G1′ (region
+  admissible iff Wilson lo ≥ 0.90, pinned `fence-fidelity.json`, fail-closed). Initial
+  re-measure: 0/6 regions clear the bar (60% [55,65]). But the loop's **fence-raising
+  move now clears a region autonomously**: `cli` was driven 47%→**91% lo (ADMISSIBLE)** by
+  LLM-written characterization tests + monotonic replay (experiments/loop/RESULTS.md §3).
+  So "blocked OR given characterization tests until they clear it" is real, not aspirational.
+- M2: **done.** Scorer is one command (`loop.mjs score --json`); immutable in practice
+  (proposer toolset has no Bash/git); `program.md`, `results.tsv`, and the
+  `autoresearch/<tag>` branch all in place.
+- M3: **autonomous loop COMPLETE — both moves + mode-switch proven on the REAL fence.**
+  `autoloop.mjs` runs `propose → score → keep/revert → log`, no human, choosing **raise**
+  (add characterization tests to earn admissibility) when blocked and **reduce** when
+  admissible. Proven: raise (cli 47%→91% lo), the mode-switch (→reduce on crossing 0.90),
+  reduce self-policing (G3 reverts), and a kept reduction (ΔAST=34, mappers/shared.ts).
+  **Exit (≥10 kept iters) NOT met:** needs a region that is *both* admissible *and* has
+  reduction headroom (cli is admissible but type-tight; mappers has headroom but unraised).
+- M4–M5: not started — need the headroom-and-raisable substrate + equivalent-mutant
+  exclusion (regions with >10% equivalent mutants can't reach lo 0.90 by testing alone).
 
-## Immediate next two moves
+## Immediate next moves (the loop is COMPLETE; these drive it to the M5 exit)
 
-1. **M1 finish** — the gate is wired + measured but **no region is admissible**. To
-   clear the exit, add characterization tests targeting the per-file survivors in
-   `fence-fidelity.json` (start with mappers, the loop target), re-run `fidelity.mjs`,
-   and get ≥1 region's Wilson lo over 0.90. *Open question this surfaced:* the 0.90-CI-LB
-   bar may be too strict for any region to clear at a feasible mutant budget — decide
-   whether to keep it, soften to a point estimate, or coarsen regions.
-2. **M3 exit (loop is BUILT)** — `autoloop.mjs` runs propose→score→keep/revert→log
-   unattended (verified with a real `claude -p` proposer). To hit the *exit* (≥10 kept
-   iters), stand up a **headroom** TS repo with a strong test suite, measure its
-   fence-fidelity (`fidelity.mjs`), and run `autoloop.mjs` there. Optionally add the
-   **fence-raising move** (loop auto-adds characterization tests to clear a region, then
-   refactors) so it can earn admissibility on weaker substrates autonomously.
+The mechanism is done and proven on the real fence (raise + reduce + mode-switch +
+self-policing). What remains is reaching the *quantitative* exits (R1–R5):
+
+1. **Equivalent-mutant exclusion.** A region whose equivalent-mutant rate exceeds ~10%
+   can never reach lo ≥ 0.90 by testing (e.g., cli's last `&&` survivor). Add a *reviewed*
+   exclusion: the proposer may flag a survivor as equivalent **with justification**, but
+   the exclusion is confirmed by an independent judge, never by the optimizer (Goodhart).
+2. **Run on a headroom-and-raisable region.** Need one region that is *both* admissible
+   (raisable to lo ≥ 0.90) *and* has reduction headroom. cli is admissible but type-tight;
+   mappers has headroom but unraised. Either raise mappers, or point the loop at a
+   mid-size TS repo with cruft + a real suite; then run `autoloop.mjs` for ≥10 kept iters.
+3. **Then M4/M5:** audit a ≥20-iter run for R2 (independent characterization audit),
+   R3 (blind review ≥90% genuine), R4 (additivity); ship when R1–R5 hold.
 
 Hold every step to its measured exit. Keep negative results. Ship when R1–R5 pass.

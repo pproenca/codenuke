@@ -101,9 +101,10 @@ validated prioritizer only improves experiment *efficiency*.
 
 ## 6. What is missing (prioritized)
 
-> **Status (updated):** items 1–3 are now BUILT + verified; the gap is now a valid
-> *substrate* and the loop's fence-raising move. See `experiments/loop/RESULTS.md`
-> (M3) and `experiments/mutation/RESULTS.md` (M1).
+> **Status (updated):** items 1–4 are now BUILT + verified on the real fence (incl. the
+> fence-raising move: `cli` 47%→91% lo, autonomous). The remaining gap is *quantitative*
+> — a region that is both admissible AND has reduction headroom, plus equivalent-mutant
+> exclusion. See `experiments/loop/RESULTS.md` (M3 §3) and `experiments/mutation/RESULTS.md` (M1).
 
 1. ~~**The autonomous proposer loop (core mechanism).**~~ **DONE** — `autoloop.mjs`
    drives propose (`claude -p`, edit-only) → score → keep/revert → log, no human; a
@@ -114,11 +115,14 @@ validated prioritizer only improves experiment *efficiency*.
    gate currently blocks everything on codenuke. Open: characterization tests / the bar.
 3. ~~**Plumbing.**~~ **MOSTLY DONE** — immutable scorer command (`loop.mjs score --json`),
    `program.md`, `results.tsv`. TODO: dedicated `autoresearch/<tag>` branch.
-4. **Valid substrate + fence-raising move (the new top gap).** codenuke is tidy + weakly
-   fenced → the loop correctly keeps nothing. Need a headroom repo with a strong suite,
-   and/or a loop move that auto-adds characterization tests to clear a region before
-   refactoring it.
-5. **(Optional) Validated prioritizer:** finish the complexity value-signal
+4. ~~**Fence-raising move.**~~ **DONE + PROVEN (real fence)** — the loop adds
+   characterization tests to clear a blocked region, then refactors. `cli` raised
+   47%→91% lo (ADMISSIBLE) autonomously, then mode-switched to reduce (RESULTS §3).
+5. **Quantitative exits (the new top gap).** Need a region that is both admissible *and*
+   has reduction headroom (cli is admissible but type-tight; mappers has headroom but
+   unraised), plus **equivalent-mutant exclusion** (a region with >10% equivalent mutants
+   can't reach lo 0.90 by testing — exclude them, reviewed, never by the optimizer).
+6. **(Optional) Validated prioritizer:** finish the complexity value-signal
    out-of-sample (opencode with blobs + a 3rd repo, ≥30 positives, churn-controlled)
    so the agent spends experiments where value is likeliest.
 
