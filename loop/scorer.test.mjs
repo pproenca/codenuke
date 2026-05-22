@@ -408,6 +408,82 @@ export const value = (input) => input + 3;
     expect(largerReduction.gain).toBeGreaterThan(smallerReduction.gain);
   });
 
+  it("does not keep a reformat-only candidate with no AST reduction", () => {
+    const root = fixtureRoot("codenuke-score-reformat-");
+    const worktree = join(tmpdir(), `codenuke-score-reformat-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-score-reformat-state-${Date.now()}.json`);
+    const env = {
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_TYPECHECK: "",
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+    initRepo(root);
+    write(
+      root,
+      "src/index.ts",
+      `
+export function value(input) {
+  const doubled = input * 2;
+  return doubled + 1;
+}
+`,
+    );
+    commit(root, "initial");
+    expect(runCodenuke(root, ["init"], env).status).toBe(0);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    write(
+      worktree,
+      "src/index.ts",
+      `
+export function value( input ) {
+const doubled=input*2
+return doubled+1
+}
+`,
+    );
+
+    const score = scoreJson(root, env);
+
+    expect(score.dL).toBe(0);
+    expect(score.admissible).toBe(false);
+    expect(score.keep).toBe(false);
+    expect(score.loss).toBeNull();
+    expect(score.gates).toMatchObject({ G1: true, G1prime: true, G3: true, G4: false });
+  });
+
   it("accepts only scored source files in a root-layout repo", () => {
     const root = fixtureRoot("codenuke-score-root-accept-");
     const worktree = join(tmpdir(), `codenuke-score-root-accept-wt-${Date.now()}`);

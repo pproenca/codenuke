@@ -37,6 +37,15 @@ function gitOutput(root, args) {
   return execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 }
 
+function sourceWithMutationSites(count) {
+  return (
+    Array.from(
+      { length: count },
+      (_, index) => `export const isAbove${index} = (value) => value > ${index};`,
+    ).join("\n") + "\n"
+  );
+}
+
 describe("codenuke run", () => {
   it("aborts before initializing when the fence artifact is missing", () => {
     const root = fixtureRoot("codenuke-run-no-fence-");
@@ -456,6 +465,72 @@ writeFileSync("src/b/index.ts", "export const value = (input) => input + 2;\\n")
     expect(results).toContain("\tkeep\t");
   });
 
+  it.each([
+    ["src subdir", "src/a/index.ts", "a"],
+    ["flat src", "src/index.ts", "src"],
+    ["lib", "lib/index.ts", "lib"],
+    ["root", "index.ts", "."],
+  ])("aligns fence keys and run regions for %s layout", (_name, sourcePath, regionKey) => {
+    const root = fixtureRoot("codenuke-run-layout-");
+    const tag = `layout-${regionKey.replace(/\W+/gu, "root")}-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-layout-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-layout-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-layout" }));
+    write(root, sourcePath, sourceWithMutationSites(35));
+    commit(root, "initial");
+    const sourceBeforeRun = readFileSync(join(root, sourcePath), "utf8");
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(sourcePath)}, "export const isAbove0 = (value) => value > 0;\\n");
+`,
+    );
+    const env = {
+      ...process.env,
+      CN_TEST: `node -e "const fs=require('fs');process.exit(fs.readFileSync('${sourcePath}','utf8').includes(' < ')?1:0)"`,
+      CN_TYPECHECK: "",
+      CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+      CN_TAG: tag,
+      CN_WORKTREE: worktree,
+      CN_STATE: state,
+    };
+
+    const fenced = spawnSync("node", [cli, "fence", "35", "1337"], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    });
+    expect(fenced.status).toBe(0);
+    const fence = JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8"));
+    expect(Object.keys(fence.regions)).toEqual([regionKey]);
+    expect(fence.regions[regionKey]).toMatchObject({ total: 35, admissible: true });
+
+    const calibrated = spawnSync("node", [cli, "calibrate"], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    });
+    expect(calibrated.status).toBe(0);
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`[reduce] ${regionKey}`);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+    expect(results).toContain("\tkeep\t");
+    expect(results).not.toContain("\traise-skip\t");
+    expect(readFileSync(join(root, sourcePath), "utf8")).toBe(sourceBeforeRun);
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+  });
+
   it("rejects and cleans a reduce proposer edit outside the source surface", () => {
     const root = fixtureRoot("codenuke-run-outside-");
     const tag = `outside-${Date.now()}`;
@@ -615,6 +690,86 @@ writeFileSync("src/index.test.js", "export const placeholder = true;\\n");
     expect(results).toContain("\traise-nogain\t");
     expect(gitOutput(root, ["rev-parse", `autoresearch/${tag}`])).toBe(baseline);
     expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(existsSync(join(worktree, "src/index.test.js"))).toBe(false);
+  });
+
+  it("rejects and cleans a raise proposer edit outside the test surface", () => {
+    const root = fixtureRoot("codenuke-run-raise-bad-source-");
+    const tag = `raise-bad-source-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-raise-bad-source-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-raise-bad-source-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-raise-bad-source" }));
+    const source = "export const isLower = (left, right) => left < right;\n";
+    write(root, "src/index.ts", source);
+    commit(root, "initial");
+    const baseline = gitOutput(root, ["rev-parse", "HEAD"]);
+    const start = source.indexOf("<");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 1,
+            p: 0,
+            lo: 0,
+            hi: 0.7934567085261071,
+            admissible: false,
+            survivorSpecs: [{ rel: "src/index.ts", start, end: start + 1, repl: ">", op: "<→>" }],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync("src/index.ts", "export const isLower = () => true;\\n");
+writeFileSync("src/index.test.js", "export const placeholder = true;\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+    expect(results).toContain("\traise-badtest\t");
+    expect(results).toContain("touched outside raise test surface");
+    expect(gitOutput(root, ["rev-parse", `autoresearch/${tag}`])).toBe(baseline);
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(readFileSync(join(worktree, "src/index.ts"), "utf8")).toBe(source);
     expect(existsSync(join(worktree, "src/index.test.js"))).toBe(false);
   });
 
