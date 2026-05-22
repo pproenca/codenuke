@@ -1,206 +1,124 @@
 # codenuke
 
-Automated code reduction through behavior-preserving refactoring.
+**Autonomous, behavior-preserving code reduction.** An agent proposes a refactor, an
+_immutable metric_ judges it, the change is kept only if it is genuinely smaller **and**
+behavior-preserved — otherwise reverted. Repeat, unattended.
 
-`codenuke` maps a repo into semantic feature slices, reviews each slice with a
-provider for evidence-backed opportunities to reduce code, persists findings,
-and can run an explicit refactor loop for one finding at a time.
+It is [Karpathy's `autoresearch`](https://github.com/karpathy/autoresearch) loop applied to
+refactoring: there, an agent edits `train.py` and an immutable `val_bpb` keeps-or-discards;
+here, an agent edits your source and an immutable scorer keeps-or-reverts. You don't touch
+the engine — you point it at your repo and let it run. Everything happens in an isolated
+git worktree, so **your working tree is never touched** and a reject is just a `git reset`.
 
-Findings must name the future-change scenario they improve and record current
-cost, target cost, behavior invariant, and evidence. "Cleaner" is not a finding
-unless the same class of future change becomes more local, safer, faster, or
-cheaper with less code.
+> Why this is hard (and how the metric is built to be trustworthy) is written up in
+> [`research/THEORY.md`](research/THEORY.md). Short version: "less code" is _not_ the
+> objective — the objective is **lower future-change cost**, and the two diverge. codenuke
+> measures the right thing instead of assuming it.
 
-Current status: early CLI. Review/report/state are implemented; patching exists
-behind `codenuke fix --finding <id>` and still requires manual review of the
-resulting worktree changes.
+## How it works
 
-## Install
-
-```bash
-pnpm add -g codenuke
+```
+            ┌─────────── isolated git worktree @ your baseline ───────────┐
+ propose ──▶│  an LLM edits ONLY your source (no shell/git → can't game)   │
+            └──────────────────────────────┬──────────────────────────────┘
+                                            ▼
+   score (immutable judge) ── lexicographic: gates ≻ value ──────────────────────────
+     G1  behavior   the test suite stays green                    (was green at baseline)
+     G1′ fence      the touched region's behavior-fence is trusted (mutation-score CI ≥ 0.90)
+     G3  types      no new type errors                            (skipped if no typecheck)
+     G4  size       net source AST nodes strictly decrease        (formatting-invariant)
+     value         z-scored reduction (AST + complexity);  keep iff  loss = risk − value < 0
+                                            ▼
+   keep (commit, advance) ──── or ──── revert (git reset)  ──▶ log to .codenuke/results.tsv
 ```
 
-From source:
+Two things make it trustworthy enough to run unattended:
+
+- **The scorer is immutable.** The proposer can only edit source (its toolset has no
+  shell/git), so it cannot rewrite the judge — improving the score _requires_ genuinely
+  improving the code. This is the property that makes `val_bpb` honest, reproduced here.
+- **The behavior fence is measured, not assumed.** Tests are an _approximate_ behavior
+  oracle. `codenuke-loop fence` mutation-tests each region to measure how many behavior
+  changes its tests actually catch (with a 95% CI). The loop only refactors a region whose
+  fence clears the bar — and where it doesn't, it **earns** the right by first writing
+  characterization tests until the fence clears (the _fence-raising_ move), then refactors.
+
+## Quickstart
+
+**Requirements:** Node ≥ 22, `git`, a JS/TS repo with a test command, and an LLM proposer —
+the [`claude`](https://docs.claude.com/en/docs/claude-code) CLI by default (or any command
+via `CN_PROPOSER`).
 
 ```bash
-pnpm install
-pnpm build
-pnpm link --global
+npm install -g codenuke          # or: npx codenuke-loop …
+cd your-repo                     # run from your repo root
+
+# 1. Measure each source region's behavior-fence fidelity (periodic; minutes–hours).
+codenuke-loop fence
+
+# 2. Run the loop: propose → score → keep/revert, unattended.
+codenuke-loop run 20
 ```
 
-## Agent Skill
+`fence` writes `.codenuke/fence-fidelity.json`; `run` works on a fresh `autoresearch/<tag>`
+branch and logs every iteration to `.codenuke/results.tsv`. Nothing touches your tree.
 
-Install the companion skill for Codex or other skill-aware agents:
+## Configuration
 
-```bash
-npx skills add pproenca/codenuke --skill codenuke --agent codex
-```
+Zero-config by default — codenuke auto-detects everything below. Override via a
+`codenuke.loop.json` at your repo root or `CN_*` env vars.
 
-The skill uses `npx --yes codenuke@latest`, so users can set up review and
-one-finding auto-fix loops without installing `codenuke` globally.
+| key (json)         | env            | default (auto-detected)                              |
+| ------------------ | -------------- | ---------------------------------------------------- |
+| `repo`             | `CN_REPO`      | current directory                                    |
+| `srcDir`           | `CN_SRC`       | `src`                                                |
+| `target`           | `CN_TARGET`    | `<srcDir>/` (the region the loop reduces)            |
+| `baseline`         | `CN_BASE`      | `HEAD`                                               |
+| `testCommand`      | `CN_TEST`      | vitest / jest / `npm test`                           |
+| `typeCheckCommand` | `CN_TYPECHECK` | `tsc --noEmit` if a `tsconfig.json` exists, else off |
+| `regions`          | `CN_REGIONS`   | subdirectories of `srcDir` with source               |
+| `fenceLB`          | `CN_FENCE_LB`  | `0.90` (Wilson CI lower bound a region must clear)   |
+| `tag`              | `CN_TAG`       | `run` (→ branch `autoresearch/run`)                  |
 
-## Workflow
-
-```bash
-codenuke init
-codenuke map
-codenuke review --limit 3 --jobs 3
-codenuke report
-codenuke next
-codenuke show --finding <id>
-codenuke triage --finding <id> --status false-positive --note "covered by tests"
-codenuke fix --finding <id>
-codenuke revalidate --finding <id>
-codenuke revalidate --all --status open
-```
-
-`fix` does not commit, push, open PRs, or land changes. It runs configured
-validation commands and records a patch attempt under `.codenuke/`.
-
-## Source Layout
-
-- `src/cli.ts`: executable wrapper that preserves the published `dist/cli.js`
-  bin entrypoint.
-- `src/cli/`: command-line parsing and output rendering.
-- `src/workflow/`: init/map/review/report/triage/fix/revalidate orchestration,
-  persistent state, finding selection, prompts, and reporting.
-- `src/mapping/`: feature-map orchestration, including deterministic and
-  agent-assisted mapping.
-- `src/mappers/`: framework and language feature mappers plus mapper-local
-  traversal helpers.
-- `src/provider/`: provider command construction, JSON extraction, and strict
-  output schemas.
-- `src/platform/`: project detection, filesystem/git/process helpers, errors,
-  IDs, progress, and shared durable record schemas.
-
-## What It Maps Today
-
-- npm package bins
-- selected root and workspace package scripts: `start`, `build`, `test`,
-  `lint`, `typecheck`, `format`
-- Node/TypeScript workspace packages under `apps/*`, `packages/*`, and package
-  workspace patterns
-- generic extension/plugin packages under workspace roots such as `extensions/*`
-  and `plugins/*`, including package metadata, source, docs, and nearby tests
-- semantic Node source groups for large packages, including runtime, commands,
-  auth, storage, monitor, webhook, setup, server, and client slices
-- Nx project metadata from `project.json`, including project-scoped validation
-  targets
-- Turborepo task metadata for workspace-aware validation commands and feature
-  context
-- Next.js `app/` and `pages/` routes, including routes inside monorepo apps
-- React Router routes and React components
-- Go package slices from `go list ./...`, including command packages
-- Go package tests and same-repo imports as review context
-- Java/Kotlin Gradle source groups and root Gradle build/test commands
-- JVM semantic roles from Java and Kotlin code evidence such as annotations,
-  imports, interfaces, inheritance, supertypes, and method signatures
-- Kotlin Android semantic roles for UI entrypoints, ViewModels, data
-  boundaries, external clients, and dependency injection, including Metro
-- Ruby project metadata, executables, source groups, RSpec/Minitest suites
-- Rust `src/main.rs`, `src/bin/*.rs`, `src/lib.rs`, `crates/*`, and
-  `tests/*.rs`
-- C/C++ standalone `main()` files, CMake `add_executable` / `add_library`
-  targets, and autotools `bin_PROGRAMS` / `lib_LTLIBRARIES` targets
-- Python project metadata, console scripts, bounded source groups, pytest suites,
-  and Flask/FastAPI routes
-- SwiftPM `Sources/*` targets and `Tests/*` suites
-- Laravel/PHP projects from `composer.json` and `artisan`, including routes,
-  controllers, form requests, Artisan commands, jobs, services, models,
-  migrations, seeders, Composer scripts, and PHP test suites
-- common project config files
-
-Deeper framework mappers and agent-assisted enrichment are next steps.
-
-## Provider
-
-The default provider is the local Codex CLI.
-
-```bash
-codex --version
-codenuke doctor
-```
-
-Provider calls use `codex exec` with strict JSON schemas, ephemeral sessions,
-and a non-interactive approval policy. Review and revalidate run read-only; fix
-planning runs with workspace-write because Codex may edit the working tree
-during the explicit fix command.
-
-Supported provider names today:
-
-- `codex`: local Codex CLI
-- `acpx`: any ACP-compatible coding agent (Codex / Claude / Pi / Gemini / ...) via openclaw/acpx
-- `grok`: local Grok Build CLI
-- `opencode`: local OpenCode CLI
-- `mock`: deterministic test provider
-- `mock-fail`: failure test provider
+The proposer is also pluggable: `CN_PROPOSER="<shell cmd run in the worktree>"` replaces the
+default `claude -p`.
 
 ## Commands
 
-- `codenuke init`: create `.codenuke/`, detect project basics, write config
-- `codenuke map`: write feature records
-- `codenuke status`: show project, dirty state, feature/finding counts
-- `codenuke review`: review pending or selected features for concrete findings
-- `codenuke report`: print or write a Markdown findings report
-- `codenuke next`: print the next actionable finding
-- `codenuke show --finding <id>`: inspect one finding with evidence and suggested validation
-- `codenuke triage --finding <id> --status <status>`: mark a finding with optional history note
-- `codenuke fix --finding <id>`: run the explicit patch loop for one finding
-- `codenuke revalidate --finding <id>`: re-check one finding
-- `codenuke revalidate --all`: re-check open findings with report-style filters
-- `codenuke doctor`: check provider availability
-- `codenuke clean-locks`: clear feature locks
-
-Useful flags:
-
-- `--root <path>`
-- `--state-dir <path>`
-- `--config <path>`
-- `--json`
-- `--plain`
-- `--limit <n>`
-- `--jobs <n>`
-- `--source <heuristic|auto|agent>`
-- `--feature <id>`
-- `--project <name-or-root>`
-- `--finding <id>`
-- `--status <status>`
-- `--severity <severity>`
-- `--provider <name>`
-- `--model <name>`
-- `--reasoning-effort <none|minimal|low|medium|high|xhigh>`
-- `--output <path>` / `-o <path>`
-- `--dry-run`
-- `--force`
-
-Unknown flags fail fast.
-
-## State
-
-State is project-local by default:
-
-```text
-.codenuke/
-  config.json
-  project.json
-  features/*.json
-  findings/*.json
-  patches/*.json
-  reports/*.md
-  runs/*.json
+```
+codenuke-loop fence [cap=60] [seed=1337]   measure per-region behavior-fence fidelity (periodic)
+codenuke-loop run [iterations=5]           run the loop (propose → score → keep/revert)
+codenuke-loop score [--json]               score the current worktree change
+codenuke-loop changecost [ref]             evaluate change-cost on your benchmark (periodic; advanced)
+codenuke-loop init | accept | revert | status | cleanup
 ```
 
-Feature records are the durable work units. Findings and patch attempts link back
-to features so runs can resume and be audited.
+**`changecost` (advanced).** The cheap inner-loop value (AST/complexity) is a _proxy_ for
+the real objective — future-change cost. `changecost` _measures_ it: it implements a
+held-out benchmark of change-requests (`codenuke.benchmark/<id>/{meta.json,accept.test.ts}`)
+and reports the realized edit + verification cost. Use it to validate that the cheap proxy
+tracks real change cost before trusting long unattended runs. See
+[`research/THEORY.md`](research/THEORY.md) and
+[`research/experiments/changecost/`](research/experiments) for the construction and proofs.
 
-## Safety
+## How honest is it?
 
-- Review does not edit files.
-- Fix is explicit and selected by finding ID.
-- Fix refuses a dirty source worktree by default.
-- Codenuke never commits, pushes, opens PRs, or lands changes today.
-- Provider output is parsed through strict schemas.
-- Symlinked directories and generated build output are skipped during mapping.
+codenuke is deliberate about the line between proved and measured (see `research/`):
 
-See `docs/spec.md` for the longer product and implementation spec.
+- **Safety is validated and measured.** The behavior-fence fidelity is mutation-tested with
+  a CI; the type and size gates are exact. The fence-raising move is demonstrated to take a
+  region from blocked to admissible autonomously.
+- **The value signal is a _proxy_ under validation.** "Less code + complexity down" is a
+  good but not ground-truth proxy for "cheaper future change." `changecost` is the
+  ground-truth measurement; treat large unattended runs as experiments until the proxy is
+  validated to track it on your repo. We are honest that this is the open frontier.
+
+## The original review/fix CLI
+
+codenuke began as a static analyzer that maps a repo into feature slices and reviews each
+for reduction findings (`codenuke review | report | fix`). That CLI still ships; its docs
+moved to [`docs/review-cli.md`](docs/review-cli.md). The loop above is the direction.
+
+## License
+
+MIT.

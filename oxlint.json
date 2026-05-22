@@ -5,5 +5,18 @@
     "suspicious": "error",
     "perf": "off"
   },
-  "ignorePatterns": ["dist/**", "coverage/**", ".codenuke/**", "fixtures/**"]
+  "ignorePatterns": ["dist/**", "coverage/**", ".codenuke/**", "fixtures/**", "research/**"],
+  "overrides": [
+    {
+      "files": ["loop/**/*.mjs", "bin/**/*.mjs"],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-array-sort": "off",
+        "unicorn/no-new-array": "off",
+        "unicorn/prefer-string-starts-ends-with": "off",
+        "no-underscore-dangle": "off",
+        "no-unused-vars": "off"
+      }
+    }
+  ]
 }

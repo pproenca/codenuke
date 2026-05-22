@@ -1,13 +1,16 @@
 {
   "name": "codenuke",
   "version": "0.3.0",
-  "description": "Automated code review for concrete issues.",
+  "description": "Autonomous behavior-preserving code reduction: an immutable metric drives a propose → score → keep/revert loop (Karpathy's autoresearch, applied to refactoring).",
   "license": "MIT",
   "bin": {
-    "codenuke": "dist/cli.js"
+    "codenuke": "dist/cli.js",
+    "codenuke-loop": "bin/codenuke-loop.mjs"
   },
   "files": [
     "dist",
+    "loop",
+    "bin",
     "README.md",
     "LICENSE"
   ],
@@ -20,6 +23,8 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "vitest run",
+    "loop:fence": "node bin/codenuke-loop.mjs fence",
+    "loop:run": "node bin/codenuke-loop.mjs run",
     "eval": "pnpm -s build && node evals/scripts/run-all.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },
