@@ -1,6 +1,6 @@
 function ranks(values) {
   const sorted = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
-  const ranked = new Array(values.length);
+  const ranked = Array.from({ length: values.length });
   let cursor = 0;
   while (cursor < sorted.length) {
     let end = cursor;
