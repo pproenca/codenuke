@@ -45,7 +45,7 @@ worktree on an `autoresearch/<tag>` branch, so your working tree is never touche
 - runtime: Node `>= 22`, `git`
 - language: JavaScript (ESM `.mjs` engine; runs directly, no build step)
 - proposer: the `claude` CLI by default; any command via `CN_PROPOSER`
-- example target: this repo's own `src/` (the codebase the loop runs on)
+- example target: temporary fixture repositories used by `pnpm eval` and `pnpm pack:smoke`
 
 ## TypeScript / tooling requirements
 
@@ -596,8 +596,8 @@ unless all pass (see Conformance). `z = 1.96` throughout.
 - **Detection fixtures** — assert `srcDir` + a non-empty `regions` set are resolved on each
   layout (subdir `src`, flat `src`, `lib`, root) and that `fence` keys and `run`'s region set
   match (the no-op regression: `run` must act, not `raise-skip`).
-- A worked example target: this repo's own `src/` + its test suite (the example's behavior
-  fence; keeps CI honest).
+- A worked example target: deterministic temporary fixture repositories exercised through
+  `pnpm eval` and `pnpm pack:smoke`; no legacy implementation tree is required in the repo.
 - Determinism tests: seeded fence sampling is reproducible run-to-run.
 
 ## Initial repo skeleton
@@ -620,7 +620,7 @@ codenuke/
     stats.mjs             # Wilson interval, etc.
     program.md            # the proposer skill
     *.test.mjs            # engine unit tests
-  src/                    # the worked example target
+  evals/                  # deterministic loop CLI eval
 ```
 
 ## Release criteria for v0.1 (production-ready on a new repo)

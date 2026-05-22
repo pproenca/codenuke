@@ -113,9 +113,10 @@ codenuke is deliberate about the line between proved and measured (see [`docs/sp
 
 ## The worked example
 
-This repo's own `src/` is the example target — the codebase the loop runs on — the way
-[`autoresearch`](https://github.com/karpathy/autoresearch) ships `train.py` as the thing
-being optimized. Point codenuke at any TypeScript repo the same way.
+The repository no longer carries a legacy target implementation. The shipped code is the
+loop CLI itself: `bin/` plus `loop/`. The deterministic eval and package smoke create
+temporary target repositories so the metric, calibration, and readiness gates are tested
+without mixing old review/fix workflow code into the package.
 
 ## License
 
