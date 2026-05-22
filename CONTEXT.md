@@ -4,6 +4,42 @@ Codenuke helps engineers find and apply evidence-backed, behavior-preserving imp
 
 ## Language
 
+**Autoresearch Refactoring Loop**:
+A codenuke workflow where a proposer repeatedly offers behavior-preserving reductions and an independent scorer keeps only admissible improvements.
+_Avoid_: trusted refactoring workflow, cleanup sprint, manual review workflow
+
+**Behavior Fence**:
+A measured safety boundary that determines whether a code region is trusted for autonomous refactoring.
+_Avoid_: test coverage, confidence score, static safety check
+
+**Fence Calibration**:
+A periodic measurement of behavior fence strength before or during an autoresearch refactoring loop.
+_Avoid_: setup check, test run, one-time initialization
+
+**Core Loop Surface**:
+The user-facing command set for preparing, calibrating, running, judging, accepting, rejecting, and clearing an autoresearch refactoring loop.
+_Avoid_: hidden scorer API, manual prototype surface, debug-only workflow
+
+**Single Command Path**:
+A CLI design rule where each user action has exactly one supported command and no synonym commands.
+_Avoid_: aliases, backwards-compatible duplicate verbs, hidden alternate paths
+
+**Scorer Operation**:
+A user-facing action that judges, accepts, or rejects a candidate reduction outside the unattended loop.
+_Avoid_: hidden command, debug-only command, provider review step
+
+**Kept Reduction**:
+A behavior-preserving reduction accepted by the scorer during an autoresearch refactoring loop.
+_Avoid_: fix, finding, cleanup commit
+
+**Change-Cost Benchmark**:
+A held-out measurement of whether reductions lower the cost of future changes.
+_Avoid_: quality score, vibe check, generic benchmark
+
+**Product Contract**:
+The canonical specification of codenuke's goals, command surface, state, safety rules, and release criteria.
+_Avoid_: README quickstart, implementation notes, marketing copy
+
 **Trusted Refactoring Workflow**:
 A codenuke workflow that turns bounded evidence about maintainability risk into a behavior-preserving improvement with validation.
 _Avoid_: cleanup workflow, general bug hunt
@@ -82,6 +118,15 @@ _Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
 
 ## Relationships
 
+- An **Autoresearch Refactoring Loop** depends on a **Behavior Fence** to decide whether autonomous refactoring is admissible.
+- **Fence Calibration** measures the **Behavior Fence**.
+- The **Core Loop Surface** includes explicit **Fence Calibration**, the **Autoresearch Refactoring Loop**, and public **Scorer Operations**.
+- The **Core Loop Surface** follows a **Single Command Path** so agents do not choose between duplicate verbs for the same action.
+- A **Scorer Operation** can be run manually or by an **Autoresearch Refactoring Loop**.
+- An **Autoresearch Refactoring Loop** produces zero or more **Kept Reductions**.
+- A **Kept Reduction** should preserve behavior and lower future-change cost.
+- A **Change-Cost Benchmark** validates whether **Kept Reductions** improve the intended long-term objective.
+- The **Product Contract** is the source of truth for the **Core Loop Surface**.
 - A **Trusted Refactoring Workflow** depends on evidence that the target code can be changed without altering intended behavior.
 - A **Refactoring Signal** can support a finding, but is not itself a finding.
 - A **Refactoring Opportunity Candidate** can group multiple **Refactoring Signals**, but is not itself a **Refactoring Finding**.
@@ -105,6 +150,9 @@ _Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
 - A **Patch Boundary** protects the **Trusted Refactoring Workflow** from unrelated worktree churn.
 
 ## Example dialogue
+
+> **Dev:** "Can we run the **Autoresearch Refactoring Loop** before calibrating the **Behavior Fence**?"
+> **Domain expert:** "No — the loop needs **Fence Calibration** before it can decide whether to raise the fence or attempt reductions."
 
 > **Dev:** "Should this broad cleanup be part of the **Trusted Refactoring Workflow**?"
 > **Domain expert:** "Only if it can be reduced to a bounded, behavior-preserving improvement with validation."
@@ -147,3 +195,8 @@ _Avoid_: formatter cleanup, whole-repo edit allowance, provider discretion
 - "baseline" was used broadly; resolved: an **Agent Quality Baseline** is a reference measurement for comparing Trusted Refactoring Workflow changes, not a single ad hoc run.
 - "large refactoring opportunity" was treated as a finding; resolved: before review proves actionability, use **Refactoring Opportunity Candidate**.
 - "`--ludicrous-mode`" was treated as permission for broad direct fixes; resolved: **Ludicrous Review Mode** only increases recall for review candidates and does not bypass finding evidence, patch boundaries, or validation.
+- "canonical workflow" was ambiguous between the older map/review/fix surface and the autoresearch loop; resolved: the **Autoresearch Refactoring Loop** is the primary product workflow, while the older **Trusted Refactoring Workflow** language describes a legacy or secondary review workflow until deliberately re-integrated.
+- "`score`", "`accept`", "`revert`", and "`cleanup`" were treated as hidden or internal commands; resolved: `score`, `approve`, `reject`, and `clear` are public **Scorer Operations** in the **Core Loop Surface**.
+- "`fence`" was used as the safety-calibration command name; resolved: the product command should be `calibrate`, while **Behavior Fence** remains the domain term being measured.
+- "backwards-compatible aliases" were considered for old command names; resolved: the CLI should use a **Single Command Path** with no duplicate commands for the same action.
+- "`README.md`" and "`docs/spec.md`" were both treated as product authorities; resolved: `docs/spec.md` is the **Product Contract**, while `README.md` is a quickstart.
