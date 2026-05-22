@@ -20,6 +20,7 @@ import {
   appendFileSync,
   mkdirSync,
   rmSync,
+  symlinkSync,
 } from "node:fs";
 import { relative } from "node:path";
 import {
@@ -89,6 +90,23 @@ const hideBenchmarkFromProposer = () => {
 const restoreHiddenBenchmark = () => {
   if (benchmarkInsideRepo) shTry(`git -C ${WT} checkout -- ${quote(benchmarkRel)}`);
 };
+const hideRuntimeDepsFromProposer = () => {
+  rmSync(`${WT}/node_modules`, { recursive: true, force: true });
+};
+const restoreRuntimeDeps = () => {
+  rmSync(`${WT}/node_modules`, { recursive: true, force: true });
+  try {
+    symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
+  } catch {}
+};
+const prepareProposerWorktree = () => {
+  hideBenchmarkFromProposer();
+  hideRuntimeDepsFromProposer();
+};
+const restoreAfterProposer = () => {
+  restoreHiddenBenchmark();
+  restoreRuntimeDeps();
+};
 const cleanDirtyPaths = (paths) => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
@@ -102,7 +120,6 @@ const loadFence = () => {
     return null;
   }
 };
-const wtDirty = () => dirtyPaths().length > 0;
 const dirtyPaths = () =>
   shTry(`git -C ${WT} status --porcelain`)
     .out.split("\n")
@@ -111,12 +128,18 @@ const dirtyPaths = () =>
     .filter(Boolean)
     .map((path) => path.replace(/^.* -> /u, ""))
     .filter((path) => path !== "node_modules" && !path.startsWith("node_modules/"));
+const dirtyPathsAfterProposer = () => {
+  const paths = dirtyPaths();
+  if (existsSync(`${WT}/node_modules`)) paths.push("node_modules");
+  return [...new Set(paths)];
+};
+const wtDirty = () => dirtyPathsAfterProposer().length > 0;
 const underSrcDir = (path) =>
   C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
 const allowedReducePath = (path) => underSrcDir(path) && isSourceFile(path);
 const allowedRaisePath = (path) => underSrcDir(path) && /\.(test|spec)\.[jt]sx?$/u.test(path);
 const regionTarget = (regionKey) => {
-  if (C.srcDir === ".") return ".";
+  if (C.srcDir === ".") return regionKey === "." ? "." : `${regionKey}/`;
   if (regionKey === C.srcDir) return `${C.srcDir}/`;
   return `${C.srcDir}/${regionKey}/`;
 };
@@ -281,7 +304,7 @@ for (let i = 1; i <= N; i++) {
       break;
     }
     const loBefore = region.lo;
-    hideBenchmarkFromProposer();
+    prepareProposerWorktree();
     const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
     if (!p.ok) {
       logRow(
@@ -295,15 +318,17 @@ for (let i = 1; i <= N; i++) {
         "crash",
         `proposer ${p.killed ? "timeout" : "error"}: ${perr(p)}`,
       );
+      restoreAfterProposer();
       cleanWT();
       continue;
     }
     if (!wtDirty()) {
       logRow(i, "-", 0, 0, "-", region.p.toFixed(2), "-", "raise-noop", "no tests added");
+      restoreAfterProposer();
       cleanWT();
       continue;
     }
-    const disallowed = dirtyPaths().filter((path) => !allowedRaisePath(path));
+    const disallowed = dirtyPathsAfterProposer().filter((path) => !allowedRaisePath(path));
     if (disallowed.length) {
       logRow(
         i,
@@ -316,10 +341,11 @@ for (let i = 1; i <= N; i++) {
         "raise-badtest",
         `touched outside raise test surface: ${disallowed.join(",")}`,
       );
+      restoreAfterProposer();
       cleanDirtyPaths(disallowed);
       continue;
     }
-    restoreHiddenBenchmark();
+    restoreAfterProposer();
     if (!shTry(C.testCommand, { cwd: WT }).ok) {
       logRow(
         i,
@@ -375,7 +401,7 @@ for (let i = 1; i <= N; i++) {
     continue;
   }
 
-  hideBenchmarkFromProposer();
+  prepareProposerWorktree();
   const p = proposer(reducePrompt(activeRegion), activeRegion);
   if (!p.ok) {
     logRow(
@@ -389,10 +415,11 @@ for (let i = 1; i <= N; i++) {
       "crash",
       `proposer ${p.killed ? "timeout" : "error"}: ${perr(p)}`,
     );
+    restoreAfterProposer();
     cleanWT();
     continue;
   }
-  const disallowed = dirtyPaths().filter((path) => !allowedReducePath(path));
+  const disallowed = dirtyPathsAfterProposer().filter((path) => !allowedReducePath(path));
   if (disallowed.length) {
     logRow(
       i,
@@ -405,10 +432,11 @@ for (let i = 1; i <= N; i++) {
       "revert",
       `proposer touched outside reduce source surface: ${disallowed.join(",")}`,
     );
+    restoreAfterProposer();
     cleanDirtyPaths(disallowed);
     continue;
   }
-  restoreHiddenBenchmark();
+  restoreAfterProposer();
   const s = shTry(`node ${SCORER} score --json`, { cwd: C.repo });
   const jline = (s.out.split("\n").find((l) => l.startsWith("@@JSON@@")) || "").slice(
     "@@JSON@@".length,

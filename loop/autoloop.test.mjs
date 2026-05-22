@@ -623,6 +623,95 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
   });
 
+  it("rejects and cleans a root-layout reduce proposer edit under node_modules", () => {
+    const root = fixtureRoot("codenuke-run-node-modules-");
+    const tag = `node-modules-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-node-modules-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-node-modules-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-node-modules" }));
+    write(root, ".gitignore", "node_modules/\n");
+    write(root, "node_modules/.bin/.keep", "");
+    write(
+      root,
+      "core/index.ts",
+      `
+export function value(input) {
+  const first = input + 1;
+  const second = first + 1;
+  return second;
+}
+`,
+    );
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          core: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { mkdirSync, writeFileSync } from "node:fs";
+writeFileSync("core/index.ts", "export const value = (input) => input + 2;\\n");
+mkdirSync("node_modules/pkg", { recursive: true });
+writeFileSync("node_modules/pkg/index.js", "export const leak = true;\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+
+    expect(result.status).toBe(0);
+    expect(results).toContain("proposer touched outside reduce source surface");
+    expect(results).toContain("node_modules");
+    expect(results).not.toContain("\tkeep\t");
+    expect(existsSync(join(worktree, "node_modules/pkg/index.js"))).toBe(false);
+    expect(existsSync(join(root, "node_modules/pkg/index.js"))).toBe(false);
+  });
+
   it("does not expose the held-out benchmark to the reduce proposer worktree", () => {
     const root = fixtureRoot("codenuke-run-hidden-benchmark-");
     const tag = `hidden-benchmark-${Date.now()}`;
