@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 describe("package smoke script", () => {
-  it("packs, installs, and exercises the packaged CLI mapping contract", async () => {
+  it("packs, installs, and exercises the packaged loop CLI contract", async () => {
     const scratch = await mkdtemp(join(tmpdir(), "codenuke-package-smoke-test-"));
     const fakeBin = join(scratch, "bin");
     const npmLog = join(scratch, "npm.log");
@@ -25,7 +25,7 @@ describe("package smoke script", () => {
       });
 
       expect(result.status, result.stderr).toBe(0);
-      expect(result.stdout).toBe("packaged CLI smoke mapped 4 features\n");
+      expect(result.stdout).toBe("packaged CLI smoke loop ready=true\n");
       const npmCommands = (await readFile(npmLog, "utf8"))
         .trim()
         .split("\n")
@@ -80,7 +80,7 @@ async function writeFakeNpm(fakeBin: string): Promise<void> {
       "}",
       "function fakeCliBody() {",
       "  return String.raw`",
-      "const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');",
+      "const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');",
       "const { join } = require('node:path');",
       "const args = process.argv.slice(2);",
       "const projectRoot = process.env.PACKAGE_SMOKE_PROJECT_ROOT;",
@@ -93,27 +93,21 @@ async function writeFakeNpm(fakeBin: string): Promise<void> {
       "  process.stderr.write('error: unknown command: does-not-exist\\n');",
       "  process.exit(2);",
       "}",
-      "const rootIndex = args.indexOf('--root');",
-      "const fixtureRoot = args[rootIndex + 1];",
-      "const command = args[rootIndex + 2];",
-      "const featureDir = join(fixtureRoot, '.codenuke', 'features');",
-      "if (command === 'init') {",
-      "  mkdirSync(featureDir, { recursive: true });",
-      "  process.stdout.write('{\"initialized\":true}\\n');",
+      "if (args[0] === 'doctor') {",
+      "  const fence = existsSync(join(process.cwd(), '.codenuke', 'fence-fidelity.json'));",
+      "  const calibration = existsSync(join(process.cwd(), '.codenuke', 'calibration.json'));",
+      "  process.stdout.write(`fence: ${fence ? 'present' : 'missing'}\\n`);",
+      "  process.stdout.write(`calibration: ${calibration ? 'present' : 'missing'}\\n`);",
+      "  process.exit(fence && calibration ? 0 : 2);",
+      "}",
+      "if (args[0] === 'fence') {",
+      "  mkdirSync(join(process.cwd(), '.codenuke'), { recursive: true });",
+      "  writeFileSync(join(process.cwd(), '.codenuke', 'fence-fidelity.json'), JSON.stringify({ regions: { src: { total: 1 } } }));",
       "  process.exit(0);",
       "}",
-      "if (command === 'map') {",
-      "  mkdirSync(featureDir, { recursive: true });",
-      "  const features = [",
-      "    { source: 'python-project', title: 'Python project mixed-app' },",
-      "    { source: 'python-fastapi-route', title: 'FastAPI route POST /webhook' },",
-      "    { source: 'next-app-route', title: 'frontend route /dashboard' },",
-      "    { source: 'node-package', title: 'Node package frontend' },",
-      "  ];",
-      "  for (const [index, feature] of features.entries()) {",
-      "    writeFileSync(join(featureDir, String(index) + '.json'), JSON.stringify(feature));",
-      "  }",
-      "  process.stdout.write('{\"features\":4}\\n');",
+      "if (args[0] === 'calibrate') {",
+      "  mkdirSync(join(process.cwd(), '.codenuke'), { recursive: true });",
+      "  writeFileSync(join(process.cwd(), '.codenuke', 'calibration.json'), JSON.stringify({ scales: { sL: 1, sCx: 1, sDup: 1 } }));",
       "  process.exit(0);",
       "}",
       "process.exit(1);",

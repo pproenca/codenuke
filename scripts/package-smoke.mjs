@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -36,6 +36,7 @@ function runOptions(command, options, stdio) {
     encoding: "utf8",
     env: {
       ...process.env,
+      ...options.env,
       NPM_CONFIG_CACHE: npmCache,
       npm_config_cache: npmCache,
       npm_config_update_notifier: "false",
@@ -55,55 +56,37 @@ try {
   createFixture();
   const bin = packAndInstallCli();
   assertPackagedCliBasics(bin);
-  const mapped = assertPackagedMapping(bin);
-  console.log(`packaged CLI smoke mapped ${mapped.features} features`);
+  const readiness = assertPackagedLoop(bin);
+  console.log(`packaged CLI smoke loop ready=${readiness.ready}`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
 
 function createFixture() {
+  mkdirSync(fixtureRoot, { recursive: true });
+  run("git", ["init"], { cwd: fixtureRoot });
+  run("git", ["config", "user.email", "test@example.com"], { cwd: fixtureRoot });
+  run("git", ["config", "user.name", "Test User"], { cwd: fixtureRoot });
+  run("git", ["config", "commit.gpgsign", "false"], { cwd: fixtureRoot });
   write(
-    "pyproject.toml",
-    [
-      "[project]",
-      'name = "mixed-app"',
-      'dependencies = ["fastapi", "pytest"]',
-      "",
-      "[tool.pytest.ini_options]",
-      'testpaths = ["tests"]',
-      "",
-    ].join("\n"),
-  );
-  write("app/__init__.py", "");
-  write(
-    "app/main.py",
-    [
-      "from fastapi import FastAPI",
-      "",
-      "app = FastAPI()",
-      "",
-      '@app.post("/webhook")',
-      "async def webhook() -> dict[str, str]:",
-      '    return {"status": "ok"}',
-      "",
-    ].join("\n"),
-  );
-  write("tests/test_ingest.py", "def test_ingest() -> None:\n    assert True\n");
-  write("pnpm-workspace.yaml", ["packages:", "  - frontend", ""].join("\n"));
-  write(
-    "frontend/package.json",
+    "package.json",
     JSON.stringify(
       {
-        name: "frontend",
-        scripts: { test: "vitest run" },
-        dependencies: { next: "1.0.0" },
+        name: "loop-smoke",
+        type: "module",
       },
       null,
       2,
     ),
   );
-  write("frontend/src/app/dashboard/page.tsx", "export default function Page() { return null; }\n");
-  write("frontend/src/app/dashboard/page.test.tsx", "test('dashboard', () => {});\n");
+  write(
+    "src/index.ts",
+    ["export function isPositive(value: number): boolean {", "  return value > 0;", "}", ""].join(
+      "\n",
+    ),
+  );
+  run("git", ["add", "."], { cwd: fixtureRoot });
+  run("git", ["commit", "-m", "initial"], { cwd: fixtureRoot });
 }
 
 function packAndInstallCli() {
@@ -157,35 +140,42 @@ function assertPackagedCliBasics(bin) {
   }
 }
 
-function assertPackagedMapping(bin) {
-  run(bin, ["--root", fixtureRoot, "init", "--force", "--json"]);
-  const mapped = JSON.parse(run(bin, ["--root", fixtureRoot, "map", "--json"]));
-  const features = readMappedFeatures(fixtureRoot);
-  const sources = new Set(features.map((feature) => feature.source));
-  const titles = new Set(features.map((feature) => feature.title));
-
-  if (mapped.features < 4) {
+function assertPackagedLoop(bin) {
+  const env = {
+    CN_TEST: 'node -e "process.exit(0)"',
+    CN_PROPOSER: "true",
+  };
+  const initialDoctor = runResult(bin, ["doctor"], { cwd: fixtureRoot, env });
+  if (initialDoctor.status !== 2) {
     throw new Error(
-      `expected packaged CLI to map several fixture features, got ${mapped.features}`,
+      `expected doctor to report missing readiness gaps, got ${initialDoctor.status}`,
     );
   }
-  if (!sources.has("python-project")) {
-    throw new Error("expected packaged CLI to include Python project mapping");
+  if (!initialDoctor.stdout.includes("fence: missing")) {
+    throw new Error("expected doctor to report missing fence artifact");
   }
-  if (!sources.has("python-fastapi-route")) {
-    throw new Error("expected packaged CLI to include FastAPI route mapping");
-  }
-  if (!titles.has("frontend route /dashboard")) {
-    throw new Error("expected packaged CLI to include nested Next workspace route mapping");
-  }
-  return mapped;
-}
 
-function readMappedFeatures(projectRoot) {
-  const featureDir = join(projectRoot, ".codenuke", "features");
-  return readdirSync(featureDir).map((file) =>
-    JSON.parse(readFileSync(join(featureDir, file), "utf8")),
-  );
+  run(bin, ["fence", "1", "1337"], { cwd: fixtureRoot, env });
+  const fence = JSON.parse(readFileSync(join(fixtureRoot, ".codenuke", "fence-fidelity.json")));
+  if (!fence.regions?.src || fence.regions.src.total !== 1) {
+    throw new Error("expected packaged fence to write a src region artifact");
+  }
+
+  run(bin, ["calibrate"], { cwd: fixtureRoot, env });
+  const calibration = JSON.parse(readFileSync(join(fixtureRoot, ".codenuke", "calibration.json")));
+  if (
+    calibration.scales?.sL <= 0 ||
+    calibration.scales?.sCx <= 0 ||
+    calibration.scales?.sDup <= 0
+  ) {
+    throw new Error("expected packaged calibrate to write positive scales");
+  }
+
+  const readyDoctor = runResult(bin, ["doctor"], { cwd: fixtureRoot, env });
+  if (readyDoctor.status !== 0) {
+    throw new Error(`expected doctor to report ready, got ${readyDoctor.status}`);
+  }
+  return { ready: true };
 }
 
 function packFilename(output) {

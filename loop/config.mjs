@@ -28,6 +28,8 @@ function detectTestCommand(repo) {
   if (existsSync(`${repo}/node_modules/.bin/vitest`))
     return "node_modules/.bin/vitest run --reporter=dot";
   if (existsSync(`${repo}/node_modules/.bin/jest`)) return "node_modules/.bin/jest";
+  if (existsSync(`${repo}/node_modules/.bin/mocha`)) return "node_modules/.bin/mocha";
+  if (existsSync(`${repo}/node_modules/.bin/ava`)) return "node_modules/.bin/ava";
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
@@ -43,31 +45,83 @@ function detectTypeCheck(repo) {
   return null; // no type gate (G3) if the repo isn't TS-typechecked
 }
 
+const isSourcePath = (p) =>
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
+
+function hasSourceFile(dir) {
+  try {
+    return readdirSync(dir, { recursive: true }).some((f) => isSourcePath(String(f)));
+  } catch {
+    return false;
+  }
+}
+
+function readJson(path) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+const cleanDir = (dir) => String(dir).replace(/^\.\//, "").replace(/\/+$/, "") || ".";
+
+function includeBase(pattern) {
+  const beforeGlob = String(pattern).split(/[*?{]/u)[0] ?? "";
+  const cleaned = cleanDir(beforeGlob);
+  if (/\.[A-Za-z0-9]+$/.test(cleaned)) {
+    const parts = cleaned.split("/");
+    parts.pop();
+    return cleanDir(parts.join("/"));
+  }
+  return cleaned;
+}
+
+function packageHintPaths(value) {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(packageHintPaths);
+  if (value && typeof value === "object") return Object.values(value).flatMap(packageHintPaths);
+  return [];
+}
+
+function detectSrcDir(repo) {
+  const tsconfig = readJson(`${repo}/tsconfig.json`);
+  const rootDir = tsconfig?.compilerOptions?.rootDir;
+  if (rootDir && hasSourceFile(`${repo}/${rootDir}`)) return cleanDir(rootDir);
+  for (const pattern of tsconfig?.include ?? []) {
+    const candidate = includeBase(pattern);
+    if (hasSourceFile(`${repo}/${candidate}`)) return candidate;
+  }
+
+  const pkg = readJson(`${repo}/package.json`);
+  const packageHints = [pkg?.source].flatMap(packageHintPaths);
+  for (const hint of packageHints) {
+    const candidate = includeBase(hint);
+    if (candidate !== "." && hasSourceFile(`${repo}/${candidate}`)) return candidate;
+  }
+
+  for (const candidate of ["src", "lib", "app", "source"]) {
+    if (hasSourceFile(`${repo}/${candidate}`)) return candidate;
+  }
+  return hasSourceFile(repo) ? "." : "src";
+}
+
 // Source regions = immediate subdirectories of srcDir that contain non-test source.
 function detectRegions(repo, srcDir) {
   const root = `${repo}/${srcDir}`;
   if (!existsSync(root)) return [];
-  const isSrc = (p) =>
-    /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) &&
-    !/\.d\.ts$/.test(p) &&
-    !/\.(test|spec|accept)\./.test(p);
-  const hasSource = (dir) => {
-    try {
-      return readdirSync(dir, { recursive: true }).some((f) => isSrc(String(f)));
-    } catch {
-      return false;
-    }
-  };
   try {
-    return readdirSync(root)
+    const nested = readdirSync(root)
       .filter((name) => {
         try {
-          return statSync(`${root}/${name}`).isDirectory() && hasSource(`${root}/${name}`);
+          return statSync(`${root}/${name}`).isDirectory() && hasSourceFile(`${root}/${name}`);
         } catch {
           return false;
         }
       })
       .sort();
+    if (nested.length > 0) return nested;
+    return hasSourceFile(root) ? [srcDir] : [];
   } catch {
     return [];
   }
@@ -84,7 +138,7 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
   const pick = (envKey, cfgKey, dflt) => env[envKey] ?? fileCfg[cfgKey] ?? dflt;
 
   const repo = pick("CN_REPO", "repo", cwd);
-  const srcDir = pick("CN_SRC", "srcDir", "src");
+  const srcDir = pick("CN_SRC", "srcDir", detectSrcDir(repo));
   const target = pick("CN_TARGET", "target", `${srcDir}/`);
   const baseline = pick("CN_BASE", "baseline", "HEAD");
   const tag = pick("CN_TAG", "tag", "run");
@@ -118,8 +172,11 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
   };
 }
 
-export const regionOf = (p, srcDir = "src") =>
-  p.replace(new RegExp(`^${srcDir}/`), "").split("/")[0];
+export const regionOf = (p, srcDir = "src") => {
+  if (srcDir === ".") return ".";
+  const rel = p.startsWith(`${srcDir}/`) ? p.slice(srcDir.length + 1) : p;
+  return rel.includes("/") ? rel.split("/")[0] : srcDir;
+};
 export const isSourceFile = (p) =>
   /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
 export { slug, sh };

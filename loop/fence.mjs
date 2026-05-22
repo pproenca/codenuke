@@ -113,8 +113,10 @@ function shuffle(arr, rng) {
   }
   return arr;
 }
+const regionPath = (region) =>
+  C.srcDir === "." || region === C.srcDir ? C.srcDir : `${C.srcDir}/${region}`;
 const filesIn = (region) =>
-  (sh(`git ls-tree -r --name-only ${C.baseline} -- ${C.srcDir}/${region}`, C.repo) || "")
+  (sh(`git ls-tree -r --name-only ${C.baseline} -- ${regionPath(region)}`, C.repo) || "")
     .split("\n")
     .map((s) => s.trim())
     .filter(isSourceFile);
@@ -136,6 +138,21 @@ if (process.argv[2] === "replay") {
     process.exit(1);
   }
   const specs = r.survivorSpecs || [];
+  for (const rel of new Set(specs.map((s) => s.rel))) {
+    let baselineSource;
+    let currentSource;
+    try {
+      baselineSource = sh(`git show ${art.baseline}:${rel}`, C.repo);
+      currentSource = readFileSync(`${wt}/${rel}`, "utf8");
+    } catch {
+      console.error(`source changed before replay: ${rel}`);
+      process.exit(1);
+    }
+    if (baselineSource !== currentSource) {
+      console.error(`source changed before replay: ${rel}`);
+      process.exit(1);
+    }
+  }
   if (runTests(wt) !== "green") {
     console.error("worktree baseline not green — abort replay");
     process.exit(1);

@@ -83,6 +83,19 @@ const loadFence = () => {
     return null;
   }
 };
+const loadCalibration = () => {
+  try {
+    return JSON.parse(readFileSync(`${C.repo}/.codenuke/calibration.json`, "utf8")).scales;
+  } catch {
+    return null;
+  }
+};
+
+function requireState() {
+  if (existsSync(C.state)) return readState();
+  console.log("run `codenuke init` first");
+  process.exit(1);
+}
 
 const cmd = process.argv[2];
 
@@ -105,7 +118,7 @@ if (cmd === "init") {
   console.log(`baseline GREEN ✓  typeErrors=${t0}  ${C.target} astNodes=${targetL("HEAD")}`);
   console.log(`proposer edits ${WT}/${C.target} to reduce code (preserve behavior), then 'score'.`);
 } else if (cmd === "score") {
-  const st = readState();
+  const st = requireState();
   const changed = changedSource();
   if (changed.length === 0) {
     console.log("no candidate (working tree clean) — proposer must edit first.");
@@ -138,7 +151,11 @@ if (cmd === "init") {
   const admissible = G1 && G1prime && G3 && G4;
 
   const W = C.weights;
-  const gain = W.dL * (dL / W.scaleL) + W.dCx * (dCx / W.scaleCx) + W.dDup * (dDup / W.scaleDup);
+  const scales = loadCalibration();
+  const scaleL = scales?.sL ?? W.scaleL;
+  const scaleCx = scales?.sCx ?? W.scaleCx;
+  const scaleDup = scales?.sDup ?? W.scaleDup;
+  const gain = W.dL * (dL / scaleL) + W.dCx * (dCx / scaleCx) + W.dDup * (dDup / scaleDup);
   const ss = sh(`git diff --shortstat HEAD -- ${C.srcDir}`) || "";
   const diffsize =
     Number(ss.match(/(\d+) insert/)?.[1] ?? 0) + Number(ss.match(/(\d+) delet/)?.[1] ?? 0);
@@ -185,13 +202,15 @@ if (cmd === "init") {
     );
   }
 } else if (cmd === "accept") {
-  const st = readState();
+  const st = requireState();
   if (changedSource().length === 0) {
     console.log("nothing to accept.");
     process.exit(0);
   }
   sh(`git add -A -- ${C.srcDir}`);
-  sh(`git -c user.email=loop@codenuke -c user.name=codenuke commit -m "reduce: accepted refactor"`);
+  sh(
+    `git -c user.email=loop@codenuke -c user.name=codenuke -c commit.gpgsign=false commit -m "reduce: accepted refactor"`,
+  );
   st.iter += 1;
   st.accepted.push(sh("git rev-parse --short HEAD").trim());
   writeState(st);
@@ -203,7 +222,7 @@ if (cmd === "init") {
   } catch {}
   console.log("candidate reverted.");
 } else if (cmd === "status") {
-  const st = readState();
+  const st = requireState();
   const now = targetL("HEAD"),
     cut = st.startL - now;
   console.log(`iterations=${st.iter} accepted=[${st.accepted.join(", ")}]`);

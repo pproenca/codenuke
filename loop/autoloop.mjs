@@ -57,20 +57,52 @@ const loadFence = () => {
   }
 };
 const wtDirty = () => shTry(`git -C ${WT} status --porcelain ${C.srcDir}`).out.trim().length > 0;
+const regionTarget = (regionKey) => {
+  if (C.srcDir === ".") return ".";
+  if (regionKey === C.srcDir) return `${C.srcDir}/`;
+  return `${C.srcDir}/${regionKey}/`;
+};
+function inScopeRegions(fence) {
+  const fenced = fence?.regions ?? {};
+  const filter = targetRegionFilter();
+  const detected = C.regions.filter((regionKey) => fenced[regionKey]);
+  if (filter) return detected.filter((regionKey) => regionKey === filter);
+  if (detected.length > 0) return detected;
+  return Object.keys(fenced);
+}
+function targetRegionFilter() {
+  const target = C.target.replace(/\/+$/, "");
+  const src = C.srcDir.replace(/\/+$/, "");
+  if (target === src || target === `${src}` || target === ".") return null;
+  const rel = C.srcDir === "." ? target : target.replace(new RegExp(`^${C.srcDir}/?`), "");
+  return rel ? rel.split("/")[0] : null;
+}
+function chooseRegion(fence) {
+  const candidates = inScopeRegions(fence);
+  const blocked = candidates
+    .filter((regionKey) => fence.regions[regionKey]?.admissible !== true)
+    .sort((left, right) => (fence.regions[right]?.lo ?? 0) - (fence.regions[left]?.lo ?? 0));
+  return (
+    blocked[0] ??
+    candidates.find((regionKey) => fence.regions[regionKey]?.admissible === true) ??
+    C.region
+  );
+}
 function logRow(...cols) {
   appendFileSync(C.results, cols.join("\t") + "\n");
   console.log(`  → ${cols[6]?.toUpperCase?.() ?? cols[6]}  ${cols[7] ?? ""}`);
 }
 
-function proposer(prompt) {
-  if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: TIMEOUT, env: process.env });
+function proposer(prompt, regionKey) {
+  const env = { ...process.env, CN_REGION: regionKey, CN_TARGET: regionTarget(regionKey) };
+  if (PROPOSER) return shTry(PROPOSER, { cwd: WT, timeout: TIMEOUT, env });
   writeFileSync(C.promptFile, prompt);
   const cmd = `claude -p --permission-mode bypassPermissions --no-session-persistence --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${C.proposerBudgetUsd} --output-format json < ${C.promptFile}`;
-  return shTry(cmd, { cwd: WT, timeout: TIMEOUT });
+  return shTry(cmd, { cwd: WT, timeout: TIMEOUT, env });
 }
-const reducePrompt = () =>
-  `${readFileSync(C.program, "utf8")}\n\n---\nYou are running now. Target region: ${C.target}. Make exactly ONE behavior-preserving reduction in a single file under ${C.target}, then stop. Do not run commands; just edit.`;
-function raisePrompt(specs) {
+const reducePrompt = (regionKey) =>
+  `${readFileSync(C.program, "utf8")}\n\n---\nYou are running now. Target region: ${regionTarget(regionKey)}. Make exactly ONE behavior-preserving reduction in a single file under ${regionTarget(regionKey)}, then stop. Do not run commands; just edit.`;
+function raisePrompt(regionKey, specs) {
   const shown = specs
     .slice(0, 12)
     .map((s) => {
@@ -81,7 +113,7 @@ function raisePrompt(specs) {
       return `  - ${s.rel} line ${ln}: operator \`${s.op}\` is undetected by any test`;
     })
     .join("\n");
-  return `You are the fence-raising proposer. The region ${C.target} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests (colocated test files under ${C.target}) that pin the CURRENT behavior so these mutations would be caught. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
+  return `You are the fence-raising proposer. The region ${regionTarget(regionKey)} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests (colocated test files under ${regionTarget(regionKey)}) that pin the CURRENT behavior so these mutations would be caught. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
 }
 
 // ---- ensure worktree + branch + results ----
@@ -101,15 +133,17 @@ if (!existsSync(C.results))
   );
 
 console.log(
-  `\n=== autoloop: ${N} iters, proposer=${PROPOSER ? "scripted" : "claude -p"}, region=${C.region}, branch=${C.branch} ===`,
+  `\n=== autoloop: ${N} iters, proposer=${PROPOSER ? "scripted" : "claude -p"}, regions=${C.regions.join(",") || C.region}, branch=${C.branch} ===`,
 );
 let kept = 0,
   raised = 0;
 for (let i = 1; i <= N; i++) {
-  const region = loadFence()?.regions?.[C.region];
+  const fence = loadFence();
+  const activeRegion = fence ? chooseRegion(fence) : C.region;
+  const region = fence?.regions?.[activeRegion];
   const mode = region?.admissible === true ? "reduce" : "raise";
   console.log(
-    `\n--- iter ${i}/${N} [${mode}] ${C.region} fence ${region ? (region.p * 100).toFixed(0) + "% lo=" + (region.lo * 100).toFixed(0) + "%" : "unmeasured"} ---`,
+    `\n--- iter ${i}/${N} [${mode}] ${activeRegion} fence ${region ? (region.p * 100).toFixed(0) + "% lo=" + (region.lo * 100).toFixed(0) + "%" : "unmeasured"} ---`,
   );
 
   if (mode === "raise") {
@@ -124,12 +158,12 @@ for (let i = 1; i <= N; i++) {
         region ? region.p.toFixed(2) : "-",
         "-",
         "raise-skip",
-        `${C.region}: no survivor specs — run 'fence' (AST-aware audit) first`,
+        `${activeRegion}: no survivor specs — run 'fence' (AST-aware audit) first`,
       );
       continue;
     }
     const loBefore = region.lo;
-    const p = proposer(raisePrompt(specs));
+    const p = proposer(raisePrompt(activeRegion, specs), activeRegion);
     if (!p.ok) {
       logRow(
         i,
@@ -187,10 +221,10 @@ for (let i = 1; i <= N; i++) {
     }
     sh(`git -C ${WT} add -A -- ${C.srcDir}`);
     shTry(
-      `git -C ${WT} -c user.email=loop@codenuke -c user.name=codenuke commit -m "raise(iter ${i}): characterization tests for ${C.region}"`,
+      `git -C ${WT} -c user.email=loop@codenuke -c user.name=codenuke -c commit.gpgsign=false commit -m "raise(iter ${i}): characterization tests for ${activeRegion}"`,
     );
     const commit = sh(`git -C ${WT} rev-parse --short HEAD`).trim();
-    const rep = shTry(`node ${FENCE} replay ${C.region} ${WT}`, { cwd: C.repo });
+    const rep = shTry(`node ${FENCE} replay ${activeRegion} ${WT}`, { cwd: C.repo });
     if (!rep.ok) {
       logRow(
         i,
@@ -205,7 +239,7 @@ for (let i = 1; i <= N; i++) {
       );
       continue;
     }
-    const after = loadFence().regions[C.region];
+    const after = loadFence().regions[activeRegion];
     raised++;
     logRow(
       i,
@@ -216,12 +250,12 @@ for (let i = 1; i <= N; i++) {
       after.p.toFixed(2),
       "-",
       after.lo > loBefore + 1e-9 ? "raise" : "raise-nogain",
-      `${C.region} fence ${(loBefore * 100).toFixed(0)}%→${(after.p * 100).toFixed(0)}% lo=${(after.lo * 100).toFixed(0)}%${after.admissible ? " ADMISSIBLE✓" : ""}`,
+      `${activeRegion} fence ${(loBefore * 100).toFixed(0)}%→${(after.p * 100).toFixed(0)}% lo=${(after.lo * 100).toFixed(0)}%${after.admissible ? " ADMISSIBLE✓" : ""}`,
     );
     continue;
   }
 
-  const p = proposer(reducePrompt());
+  const p = proposer(reducePrompt(activeRegion), activeRegion);
   if (!p.ok) {
     logRow(
       i,

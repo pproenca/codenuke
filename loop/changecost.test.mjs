@@ -1,5 +1,58 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { tokenize, lcsEditSize, editCost, verifyCost } from "./changecost.mjs";
+
+const cli = fileURLToPath(new URL("../bin/codenuke.mjs", import.meta.url));
+
+function fixtureRoot(name) {
+  return mkdtempSync(join(tmpdir(), name));
+}
+
+function write(root, path, contents) {
+  const absolute = join(root, path);
+  mkdirSync(absolute.split("/").slice(0, -1).join("/"), { recursive: true });
+  writeFileSync(absolute, contents);
+}
+
+function git(root, args) {
+  execFileSync("git", args, { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+}
+
+function initRepo(root) {
+  git(root, ["init"]);
+  git(root, ["config", "user.email", "test@example.com"]);
+  git(root, ["config", "user.name", "Test User"]);
+  git(root, ["config", "commit.gpgsign", "false"]);
+}
+
+function commit(root, message) {
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", message]);
+  return execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim();
+}
+
+function runChangecost(root, ref, implementer, tag) {
+  const result = spawnSync("node", [cli, "changecost", ref], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CN_TEST: 'node -e "process.exit(0)"',
+      CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+      CN_TAG: tag,
+      CN_BETA: "0",
+    },
+  });
+  const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+  return { result, artifact };
+}
 
 describe("edit size — formatting & comment invariant", () => {
   it("ignores whitespace and comments", () => {
@@ -18,6 +71,14 @@ describe("lcsEditSize", () => {
   it("counts insertions + deletions", () => {
     expect(lcsEditSize(["a", "b", "c"], ["a", "x", "c"])).toBe(2);
     expect(lcsEditSize([], ["a", "b"])).toBe(2);
+  });
+
+  it("is symmetric and zero for identical sequences", () => {
+    const before = ["export", "const", "rate", "=", "1"];
+    const after = ["export", "const", "rate", "=", "2", ";"];
+
+    expect(lcsEditSize(before, before)).toBe(0);
+    expect(lcsEditSize(before, after)).toBe(lcsEditSize(after, before));
   });
 });
 
@@ -46,5 +107,78 @@ describe("verifyCost — safer = cheaper to verify", () => {
     expect(verifyCost(["cli"], art)).toBeCloseTo(0.02, 5);
     expect(verifyCost(["mappers"], art)).toBeCloseTo(0.38, 5);
     expect(verifyCost(["unknown"], art)).toBe(1);
+  });
+});
+
+describe("codenuke changecost", () => {
+  it("is deterministic with a scripted implementer and favors the deduplicated variant", () => {
+    const root = fixtureRoot("codenuke-changecost-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-fixture" }));
+    write(
+      root,
+      "src/rate.ts",
+      `
+export const a = 1 * 1.0;
+export const b = 2 * 1.0;
+export const c = 3 * 1.0;
+`,
+    );
+    const duplicatedRef = commit(root, "duplicated");
+    write(
+      root,
+      "src/rate.ts",
+      `
+const RATE = 1.0;
+export const a = 1 * RATE;
+export const b = 2 * RATE;
+export const c = 3 * RATE;
+`,
+    );
+    const deduplicatedRef = commit(root, "deduplicated");
+    write(
+      root,
+      "codenuke.benchmark/rate/meta.json",
+      JSON.stringify({
+        id: "rate",
+        title: "Change rate",
+        prompt: "Change the rate from 1.0 to 2.0.",
+        region: "src",
+        acceptPath: "src/rate.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/rate/accept.test.ts", "export const accepted = true;\n");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+      }),
+    );
+    const implementer = join(root, "implementer.mjs");
+    write(
+      root,
+      "implementer.mjs",
+      `
+import { readFileSync, writeFileSync } from "node:fs";
+const path = "src/rate.ts";
+writeFileSync(path, readFileSync(path, "utf8").replaceAll("1.0", "2.0"));
+`,
+    );
+
+    const duplicated = runChangecost(root, duplicatedRef, implementer, "dup");
+    const duplicatedRepeat = runChangecost(root, duplicatedRef, implementer, "dup-repeat");
+    const deduplicated = runChangecost(root, deduplicatedRef, implementer, "dedup");
+
+    expect(duplicated.result.status).toBe(0);
+    expect(duplicated.artifact.results[0]).toMatchObject({ status: "done", verifyFrac: 0 });
+    expect(duplicatedRepeat.artifact.Vhat).toBe(duplicated.artifact.Vhat);
+    expect(deduplicated.artifact.Vhat).toBeLessThan(duplicated.artifact.Vhat);
   });
 });
