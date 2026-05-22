@@ -12,5 +12,3 @@ const tracked = execFileSync("git", ["ls-files"], { encoding: "utf8" })
 for (const path of tracked) {
   execFileSync(process.execPath, ["--check", path], { stdio: "inherit" });
 }
-
-console.log(`checked ${tracked.length} JavaScript files`);
