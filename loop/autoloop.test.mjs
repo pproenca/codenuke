@@ -123,6 +123,71 @@ describe("codenuke run", () => {
     expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
   });
 
+  it("aborts long unattended runs before initializing when proxy validation is missing", () => {
+    const root = fixtureRoot("codenuke-run-no-proxy-validation-");
+    const tag = `no-proxy-validation-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-no-proxy-validation-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-no-proxy-validation-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-no-proxy-validation" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 35,
+            total: 35,
+            p: 1,
+            lo: 0.9010957324106112,
+            hi: 1,
+            admissible: true,
+            survivorSpecs: [],
+          },
+        },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+
+    const result = spawnSync("node", [cli, "run", "6"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: "true",
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("value proxy validation missing");
+    expect(result.stdout).toContain("codenuke changecost");
+    expect(result.stdout).toContain("codenuke validate-proxy");
+    expect(existsSync(worktree)).toBe(false);
+    expect(existsSync(join(root, ".codenuke/results.tsv"))).toBe(false);
+  });
+
   it("halts when a blocked region has no survivor specs to raise", () => {
     const root = fixtureRoot("codenuke-run-raise-skip-terminal-");
     const tag = `raise-skip-${Date.now()}`;

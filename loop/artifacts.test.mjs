@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { fenceArtifactStatus } from "./artifacts.mjs";
+import { fenceArtifactStatus, valueProxyValidationStatus } from "./artifacts.mjs";
 
 function fixtureRoot(name) {
   return mkdtempSync(join(tmpdir(), name));
@@ -149,6 +149,57 @@ describe("artifact validation", () => {
       usable: false,
       stale: false,
       reason: "invalid-regions",
+    });
+  });
+
+  it("accepts a passing value-proxy validation artifact", () => {
+    const root = fixtureRoot("codenuke-artifacts-proxy-valid-");
+    initRepo(root);
+    write(
+      root,
+      ".codenuke/value-proxy-validation.json",
+      JSON.stringify({
+        passed: true,
+        reason: null,
+        candidates: 3,
+        minimumCandidates: 3,
+        minimumRho: 0.6,
+        rho: 1,
+        rows: [
+          { id: "baseline", proxy: 1, Vhat: 30 },
+          { id: "candidate", proxy: 2, Vhat: 20 },
+          { id: "target", proxy: 3, Vhat: 10 },
+        ],
+      }),
+    );
+
+    expect(valueProxyValidationStatus(config(root))).toMatchObject({ usable: true, reason: null });
+  });
+
+  it("rejects a failed value-proxy validation artifact", () => {
+    const root = fixtureRoot("codenuke-artifacts-proxy-failed-");
+    initRepo(root);
+    write(
+      root,
+      ".codenuke/value-proxy-validation.json",
+      JSON.stringify({
+        passed: false,
+        reason: "low-rho",
+        candidates: 3,
+        minimumCandidates: 3,
+        minimumRho: 0.6,
+        rho: -1,
+        rows: [
+          { id: "baseline", proxy: 1, Vhat: 10 },
+          { id: "candidate", proxy: 2, Vhat: 20 },
+          { id: "target", proxy: 3, Vhat: 30 },
+        ],
+      }),
+    );
+
+    expect(valueProxyValidationStatus(config(root))).toMatchObject({
+      usable: false,
+      reason: "invalid",
     });
   });
 });

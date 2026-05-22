@@ -14,7 +14,11 @@
 
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from "node:fs";
-import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
+import {
+  calibrationArtifactStatus,
+  fenceArtifactStatus,
+  valueProxyValidationStatus,
+} from "./artifacts.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
 
 const C = loadConfig();
@@ -24,6 +28,7 @@ const FENCE = new URL("./fence.mjs", import.meta.url).pathname;
 const N = Number(process.argv[2]) || 5;
 const PROPOSER = process.env.CN_PROPOSER;
 const TIMEOUT = 300000;
+const LONG_RUN_ITERATIONS = 5;
 
 const sh = (cmd, opts = {}) => {
   const r = execSync(cmd, {
@@ -151,6 +156,22 @@ function requireRunCalibration() {
     process.exit(1);
   }
 }
+function requireValueProxyValidationForLongRun() {
+  if (N <= LONG_RUN_ITERATIONS) return;
+  const status = valueProxyValidationStatus(C);
+  if (!status.artifact) {
+    console.log(
+      `value proxy validation missing at ${C.repo}/.codenuke/value-proxy-validation.json; run \`codenuke changecost\` and \`codenuke validate-proxy\` before long unattended runs.`,
+    );
+    process.exit(1);
+  }
+  if (!status.usable) {
+    console.log(
+      `value proxy validation is not passing; run \`codenuke changecost\` and \`codenuke validate-proxy\` before long unattended runs.`,
+    );
+    process.exit(1);
+  }
+}
 function logRow(...cols) {
   appendFileSync(C.results, cols.join("\t") + "\n");
   console.log(`  → ${cols[7]?.toUpperCase?.() ?? cols[7]}  ${cols[8] ?? ""}`);
@@ -182,6 +203,7 @@ function raisePrompt(regionKey, specs) {
 // ---- ensure measured fence, worktree + branch + results ----
 requireRunFence();
 requireRunCalibration();
+requireValueProxyValidationForLongRun();
 try {
   mkdirSync(C.results.split("/").slice(0, -1).join("/"), { recursive: true });
 } catch {}

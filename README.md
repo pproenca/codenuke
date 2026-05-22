@@ -62,13 +62,19 @@ codenuke fence
 # 3. Calibrate the value scales for this repo.
 codenuke calibrate
 
-# 4. Run the loop: propose → score → keep/revert, unattended.
+# 4. Run a short loop smoke: propose → score → keep/revert.
+codenuke run 5
+
+# 5. Before longer unattended runs, validate proxy value against changecost.
+codenuke changecost HEAD
+codenuke validate-proxy .codenuke/value-proxy.json
 codenuke run 20
 ```
 
 The metric path is deliberately staged: hard gates first (`tests`, measured fence, optional
 types, AST-size reduction), then calibrated proxy value/loss, then periodic
-`changecost`/Spearman validation before long unattended runs. `fence` writes
+`changecost`/Spearman validation before long unattended runs. Runs above the default
+iteration budget require a passing `.codenuke/value-proxy-validation.json`. `fence` writes
 `.codenuke/fence-fidelity.json`; `calibrate` writes `.codenuke/calibration.json`; `run`
 works on a fresh `autoresearch/<tag>` branch and logs every iteration to
 `.codenuke/results.tsv`. Nothing touches your tree.

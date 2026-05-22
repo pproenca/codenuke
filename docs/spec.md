@@ -121,6 +121,9 @@ codenuke run [iterations=5]
   region set (see Source & region detection).
 - Requires a fence artifact (run `fence` first), calibration (run `calibrate`), and a green
   baseline; aborts with a pointer to `doctor` otherwise.
+- Runs above the default iteration budget (`> 5`) also require a passing
+  `.codenuke/value-proxy-validation.json` from `validate-proxy`; this keeps long unattended
+  runs behind the `changecost`/Spearman empirical bridge.
 - No human in the loop. Kept changes are commits on `autoresearch/<tag>`; every iteration
   appends a row to `.codenuke/results.tsv`.
 - Output: per-iteration `[mode] region fence …` then `[KEEP|REVERT|RAISE|…] description`.

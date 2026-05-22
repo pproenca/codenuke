@@ -166,3 +166,28 @@ export function calibrationArtifactStatus(config) {
 
   return { artifact, usable: true, stale: false, reason: null };
 }
+
+export function valueProxyValidationStatus(config) {
+  const path = `${config.repo}/.codenuke/value-proxy-validation.json`;
+  const artifact = readJson(path);
+  if (!artifact) return { artifact: null, usable: false, reason: "missing" };
+  if (
+    artifact.passed !== true ||
+    artifact.reason !== null ||
+    !nonNegativeInteger(artifact.candidates) ||
+    !nonNegativeInteger(artifact.minimumCandidates) ||
+    artifact.candidates < artifact.minimumCandidates ||
+    !finiteNumber(artifact.minimumRho) ||
+    !finiteNumber(artifact.rho) ||
+    artifact.rho < artifact.minimumRho ||
+    !Array.isArray(artifact.rows) ||
+    artifact.rows.length !== artifact.candidates ||
+    !artifact.rows.every(
+      (row) => nonEmptyString(row?.id) && finiteNumber(row.proxy) && finiteNumber(row.Vhat),
+    )
+  ) {
+    return { artifact, usable: false, reason: "invalid" };
+  }
+
+  return { artifact, usable: true, reason: null };
+}
