@@ -90,6 +90,8 @@ export function value(input) {
     );
     write(root, "src/b/index.ts", "export const untouched = true;\n");
     commit(root, "initial");
+    const branchBefore = gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const headBefore = gitOutput(root, ["rev-parse", "HEAD"]);
     write(
       root,
       ".codenuke/fence-fidelity.json",
@@ -145,6 +147,21 @@ writeFileSync("src/a/index.ts", "export const value = (input) => input + 3;\\n")
     const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
     expect(results).toContain("\tkeep\t");
     expect(results).not.toContain("\traise-skip\t");
+    expect(gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"])).toBe(branchBefore);
+    expect(gitOutput(root, ["rev-parse", "HEAD"])).toBe(headBefore);
+    expect(gitOutput(root, ["rev-parse", "--verify", `refs/heads/autoresearch/${tag}`])).not.toBe(
+      headBefore,
+    );
+    expect(gitOutput(root, ["show", `autoresearch/${tag}:src/a/index.ts`])).toBe(
+      "export const value = (input) => input + 3;",
+    );
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(
+      spawnSync("node", ["-e", "process.exit(0)"], {
+        cwd: worktree,
+        encoding: "utf8",
+      }).status,
+    ).toBe(0);
   });
 
   it("respects a target filter when choosing the active region", () => {
@@ -307,6 +324,73 @@ writeFileSync("codenuke.benchmark/leak/meta.json", "{}\\n");
     expect(results).toContain("proposer touched outside reduce source surface");
     expect(results).not.toContain("\tkeep\t");
     expect(existsSync(join(worktree, "codenuke.benchmark/leak/meta.json"))).toBe(false);
+  });
+
+  it("does not keep characterization tests when fence replay makes no gain", () => {
+    const root = fixtureRoot("codenuke-run-raise-nogain-");
+    const tag = `raise-nogain-${Date.now()}`;
+    const worktree = join(tmpdir(), `codenuke-run-raise-nogain-wt-${Date.now()}`);
+    const state = join(tmpdir(), `codenuke-run-raise-nogain-state-${Date.now()}.json`);
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "run-raise-nogain" }));
+    const source = "export const isLower = (left, right) => left < right;\n";
+    write(root, "src/index.ts", source);
+    commit(root, "initial");
+    const baseline = gitOutput(root, ["rev-parse", "HEAD"]);
+    const start = source.indexOf("<");
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 0,
+            total: 1,
+            p: 0,
+            lo: 0,
+            hi: 1,
+            admissible: false,
+            survivorSpecs: [{ rel: "src/index.ts", start, end: start + 1, repl: ">", op: "<→>" }],
+          },
+        },
+      }),
+    );
+    const proposer = join(root, "proposer.mjs");
+    write(
+      root,
+      "proposer.mjs",
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync("src/index.test.js", "export const placeholder = true;\\n");
+`,
+    );
+
+    const result = spawnSync("node", [cli, "run", "1"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_TEST: 'node -e "process.exit(0)"',
+        CN_TYPECHECK: "",
+        CN_PROPOSER: `node ${JSON.stringify(proposer)}`,
+        CN_TAG: tag,
+        CN_WORKTREE: worktree,
+        CN_STATE: state,
+      },
+    });
+
+    expect(result.status).toBe(0);
+    const results = readFileSync(join(root, ".codenuke/results.tsv"), "utf8");
+    expect(results).toContain("\traise-nogain\t");
+    expect(gitOutput(root, ["rev-parse", `autoresearch/${tag}`])).toBe(baseline);
+    expect(gitOutput(worktree, ["status", "--porcelain"])).toBe("");
+    expect(existsSync(join(worktree, "src/index.test.js"))).toBe(false);
   });
 
   it("keeps reductions in the isolated worktree and preserves a dirty user tree", () => {

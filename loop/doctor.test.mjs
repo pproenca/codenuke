@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,10 @@ function write(root, path, contents) {
 
 function git(root, args) {
   execFileSync("git", args, { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+}
+
+function gitOutput(root, args) {
+  return execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 }
 
 function initGreenRepo(root) {
@@ -96,5 +100,54 @@ describe("codenuke doctor", () => {
     expect(result.stdout).toContain("fence: present");
     expect(result.stdout).toContain("calibration: present");
     expect(result.stdout).toContain("ready");
+  });
+
+  it("runs readiness commands in an isolated worktree without dirtying the user repo", () => {
+    const root = fixtureRoot("codenuke-doctor-isolation-");
+    initGreenRepo(root);
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: { src: { caught: 35, total: 35, p: 1, lo: 0.901, hi: 1, admissible: true } },
+      }),
+    );
+    write(
+      root,
+      ".codenuke/calibration.json",
+      JSON.stringify({
+        baseline: "HEAD",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        commitsSampled: 1,
+        scales: { sL: 1, sCx: 1, sDup: 1 },
+      }),
+    );
+    const branchBefore = gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const headBefore = gitOutput(root, ["rev-parse", "HEAD"]);
+
+    const result = spawnSync("node", [cli, "doctor"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CN_PROPOSER: "true",
+        CN_TAG: `doctor-isolation-${Date.now()}`,
+        CN_TEST:
+          "node -e \"require('fs').writeFileSync('src/generated.ts', 'export const generated = true;\\\\n')\"",
+      },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("ready");
+    expect(existsSync(join(root, "src/generated.ts"))).toBe(false);
+    expect(gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"])).toBe(branchBefore);
+    expect(gitOutput(root, ["rev-parse", "HEAD"])).toBe(headBefore);
+    expect(gitOutput(root, ["status", "--porcelain", "--", "src"])).toBe("");
   });
 });

@@ -12,7 +12,15 @@
 // then value = z-scored (ΔAST + Δcomplexity + ΔdupΔ), keep iff loss = risk − value < 0.
 
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, symlinkSync, rmSync, mkdirSync } from "node:fs";
+import {
+  appendFileSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  symlinkSync,
+  rmSync,
+  mkdirSync,
+} from "node:fs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 
@@ -41,6 +49,14 @@ const ensureDir = (f) => {
     mkdirSync(f.split("/").slice(0, -1).join("/"), { recursive: true });
   } catch {}
 };
+function excludeWorktreeHelper(path) {
+  const exclude = sh("git rev-parse --git-path info/exclude").trim();
+  let current = "";
+  try {
+    current = readFileSync(exclude, "utf8");
+  } catch {}
+  if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
+}
 
 function testsPass() {
   try {
@@ -106,6 +122,7 @@ if (cmd === "init") {
   shRepo(`git worktree add -f ${WT} ${C.baseline}`);
   try {
     symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
+    excludeWorktreeHelper("node_modules");
   } catch {}
   console.log(`verifying baseline (test${C.typeCheckCommand ? " + typecheck" : ""})…`);
   const green = testsPass(),

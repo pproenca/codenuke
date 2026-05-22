@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { loadConfig } from "./config.mjs";
+import { readFileSync, rmSync, symlinkSync } from "node:fs";
+import { loadConfig, slug } from "./config.mjs";
 
 const C = loadConfig();
+const WT = `${C.worktree}-doctor-${slug(Date.now())}`;
 
 function runOk(command, cwd = C.repo, timeout = 30000) {
   try {
@@ -33,9 +34,34 @@ function jsonExists(path) {
   }
 }
 
-const baselineExists = runOk(`git rev-parse --verify ${JSON.stringify(C.baseline)}`);
-const baselineGreen = baselineExists && runOk(C.testCommand);
-const typecheckOk = C.typeCheckCommand ? runOk(C.typeCheckCommand) : true;
+function isolatedChecks() {
+  if (!runOk(`git rev-parse --verify ${JSON.stringify(C.baseline)}`, C.repo)) {
+    return { baselineExists: false, baselineGreen: false, typecheckOk: false };
+  }
+  try {
+    runOk(`git worktree remove --force ${JSON.stringify(WT)}`, C.repo, 10000);
+    execSync(`git worktree add -f ${JSON.stringify(WT)} ${JSON.stringify(C.baseline)}`, {
+      cwd: C.repo,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    try {
+      symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
+    } catch {}
+    const baselineGreen = runOk(C.testCommand, WT);
+    const typecheckOk = C.typeCheckCommand ? runOk(C.typeCheckCommand, WT) : true;
+    return { baselineExists: true, baselineGreen, typecheckOk };
+  } catch {
+    return { baselineExists: true, baselineGreen: false, typecheckOk: false };
+  } finally {
+    try {
+      rmSync(`${WT}/node_modules`, { force: true });
+    } catch {}
+    runOk(`git worktree remove --force ${JSON.stringify(WT)}`, C.repo, 10000);
+    runOk("git worktree prune", C.repo, 10000);
+  }
+}
+
+const { baselineExists, baselineGreen, typecheckOk } = isolatedChecks();
 const hasRegions = C.regions.length > 0;
 const fencePresent = jsonExists(C.fenceArtifact);
 const calibrationPath = `${C.repo}/.codenuke/calibration.json`;

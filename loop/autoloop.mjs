@@ -48,6 +48,10 @@ const cleanWT = () => {
   shTry(`git -C ${WT} reset --hard HEAD`);
   shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
 };
+const discardTipCommit = () => {
+  shTry(`git -C ${WT} reset --hard HEAD~1`);
+  shTry(`git -C ${WT} clean -fdq ${C.srcDir}`);
+};
 const quote = (value) => JSON.stringify(value);
 const cleanDirtyPaths = (paths) => {
   shTry(`git -C ${WT} reset --hard HEAD`);
@@ -257,9 +261,10 @@ for (let i = 1; i <= N; i++) {
     const commit = sh(`git -C ${WT} rev-parse --short HEAD`).trim();
     const rep = shTry(`node ${FENCE} replay ${activeRegion} ${WT}`, { cwd: C.repo });
     if (!rep.ok) {
+      discardTipCommit();
       logRow(
         i,
-        commit,
+        "-",
         0,
         0,
         "true",
@@ -272,15 +277,18 @@ for (let i = 1; i <= N; i++) {
     }
     const after = loadFence().regions[activeRegion];
     raised++;
+    const status = after.lo > loBefore + 1e-9 ? "raise" : "raise-nogain";
+    const keptCommit = status === "raise";
+    if (!keptCommit) discardTipCommit();
     logRow(
       i,
-      commit,
+      keptCommit ? commit : "-",
       0,
       0,
       "true",
       after.p.toFixed(2),
       "-",
-      after.lo > loBefore + 1e-9 ? "raise" : "raise-nogain",
+      status,
       `${activeRegion} fence ${(loBefore * 100).toFixed(0)}%→${(after.p * 100).toFixed(0)}% lo=${(after.lo * 100).toFixed(0)}%${after.admissible ? " ADMISSIBLE✓" : ""}`,
     );
     continue;
