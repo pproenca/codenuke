@@ -58,16 +58,21 @@ function scalesFor(repo) {
 }
 
 function changecost(sub, ref) {
+  // Benchmarks live centrally in codenuke (codenuke.benchmarks/<name>), not in the substrate
+  // repo — so substrate repos stay pristine and the benchmark is held-out from the proposer by
+  // construction (it is physically outside the proposer's worktree).
+  const bench = `${repoRoot}/codenuke.benchmarks/${sub.name}`;
+  const expand = (s) => s.replaceAll("{bench}", bench).replaceAll("{repo}", sub.repoAbs);
   const env = {
     ...process.env,
     CN_REPO: sub.repoAbs,
     CN_SRC: sub.srcDir,
-    CN_TEST: sub.testCommand.replaceAll("{repo}", sub.repoAbs),
+    CN_TEST: expand(sub.testCommand),
     CN_TYPECHECK: "",
-    CN_BENCH: `${sub.repoAbs}/${sub.benchmark}`,
+    CN_BENCH: bench,
     CN_TAG: `validate-${sub.name}`,
   };
-  if (sub.implementer) env.CN_IMPLEMENTER = sub.implementer.replaceAll("{repo}", sub.repoAbs);
+  if (sub.implementer) env.CN_IMPLEMENTER = expand(sub.implementer);
   try {
     execSync(`node ${CHANGECOST} ${ref}`, {
       env,

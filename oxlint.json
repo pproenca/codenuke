@@ -5,7 +5,14 @@
     "suspicious": "error",
     "perf": "off"
   },
-  "ignorePatterns": ["dist/**", "coverage/**", ".codenuke/**", "fixtures/**", "research/**"],
+  "ignorePatterns": [
+    "dist/**",
+    "coverage/**",
+    ".codenuke/**",
+    "fixtures/**",
+    "research/**",
+    "codenuke.benchmarks/**"
+  ],
   "overrides": [
     {
       "files": ["loop/**/*.mjs", "bin/**/*.mjs"],
