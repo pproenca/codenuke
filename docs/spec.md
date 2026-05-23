@@ -44,7 +44,7 @@ worktree on an `autoresearch/<tag>` branch, so your working tree is never touche
 - CLI: `codenuke` (`bin/codenuke.mjs`)
 - runtime: Node `>= 22`, `git`
 - language: JavaScript (ESM `.mjs` engine; runs directly, no build step)
-- proposer: the `claude` CLI by default; any command via `CN_PROPOSER`
+- proposer: the `codex` CLI by default; any command via `CN_PROPOSER`
 - example target: temporary fixture repositories used by `pnpm eval` and `pnpm pack:smoke`
 
 ## TypeScript / tooling requirements
@@ -185,7 +185,7 @@ codenuke doctor
 
 - Preflight readiness check — prints what was detected and whether the repo is ready: green
   baseline? `srcDir` + non-empty `regions`? a terminating test command (and typecheck)? a fence
-  artifact (and its staleness)? calibration present? a proposer available (`claude` CLI or
+  artifact (and its staleness)? calibration present? a proposer available (`codex` CLI or
   `CN_PROPOSER`)? Exit `0` if ready, `2` with the specific gaps if not. **Run this first on a
   new repo.**
 
@@ -231,8 +231,11 @@ loop unrolled.
 - **Environment variables**: `CN_REPO`, `CN_SRC`, `CN_TARGET`, `CN_BASE`, `CN_TAG`,
   `CN_REGIONS`, `CN_TEST`, `CN_TYPECHECK`, `CN_FENCE`, `CN_FENCE_LB`, `CN_RESULTS`,
   `CN_BENCH`, `CN_BETA`, `CN_MIN_RHO`, `CN_MIN_CANDIDATES`, `CN_BUDGET`, `CN_PROPOSER`,
-  `CN_TIMEOUT`, `CN_WORKTREE`, `CN_STATE`.
-- **Secrets**: none read by the engine. The proposer (`claude` CLI) uses its own auth; the
+  `CN_CODEX_SANDBOX`, `CN_MODEL`, `CN_REASONING_EFFORT`, `CN_TIMEOUT`, `CN_WORKTREE`,
+  `CN_STATE`.
+- `proposerBudgetUsd` / `CN_BUDGET` is retained for compatibility with older proposer adapters;
+  the default Codex adapter does not consume a dollar-budget flag.
+- **Secrets**: none read by the engine. The proposer (`codex` CLI) uses its own auth; the
   engine never handles credentials.
 
 ### Source & region detection
@@ -427,8 +430,9 @@ On `autoresearch/<tag>`, in an isolated worktree, for each iteration:
 5. Append a row to `results.tsv`.
 6. Repeat until the iteration budget is exhausted or interrupted.
 
-The proposer is structurally separated from the scorer: it has no shell/git in its toolset, so
-it cannot run, read, or rewrite the judge. Improving the score requires improving the code.
+The proposer is structurally separated from the scorer: Codex is rooted at the isolated target
+worktree, the scorer runs from codenuke's own engine path, and the loop rejects edits outside the
+allowed source/test surface. Improving the score requires improving the code.
 
 **Step contract.**
 
@@ -504,11 +508,11 @@ from the proposer**, so the loop cannot overfit it.
 two moves, "never ask"). The proposer is invoked per iteration with the relevant prompt
 (`reduce` or `raise`).
 
-- **Default adapter**: `claude -p --permission-mode bypassPermissions --no-session-persistence
---allowedTools "Edit Write Read Grep Glob" --max-budget-usd <budget>`. No shell/git ⇒ cannot
-  touch the scorer. Budget-capped per iteration; the default budget is `$8`, chosen from
-  real-repo raise attempts where `$1.50` was too small to read source and author characterization
-  tests. Override with `CN_BUDGET` or `proposerBudgetUsd`.
+- **Default adapter**: `codex exec --cd <worktree> --sandbox workspace-write
+--output-last-message <tmp> -`. The prompt is passed on stdin, and Codex is rooted at the
+  isolated worktree. Override the sandbox with `CN_CODEX_SANDBOX`; `none` and `bypass` map to
+  Codex's dangerous no-sandbox flag and should only be used under an outer sandbox. Override the
+  model with `CN_MODEL` and reasoning effort with `CN_REASONING_EFFORT`.
 - **Override**: `CN_PROPOSER="<shell command run in the worktree>"` (for deterministic tests or
   a different agent).
 - **Timeout**: proposer calls default to `900000ms` (15 minutes). Override with `CN_TIMEOUT` or
@@ -634,8 +638,9 @@ unless all pass (see Conformance). `z = 1.96` throughout.
 
 - **AC-I1 — tree untouched:** after every command, INV-1 holds (checked from both a clean and a
   dirty repo).
-- **AC-I2 — proposer sandbox:** the proposer is launched with no shell/git tool and cannot read
-  the benchmark; a proposer edit outside `srcDir` (in `raise`, outside tests) is rejected.
+- **AC-I2 — proposer sandbox:** the proposer is launched against the isolated worktree, the
+  benchmark is hidden, and a proposer edit outside `srcDir` (in `raise`, outside tests) is
+  rejected.
 
 ## Testing requirements
 
@@ -688,8 +693,8 @@ their own repo. Each line is a conformance check.
   `autoresearch/<tag>` branch and a `results.tsv`. (No single-`target` region; `fence` and `run`
   share the detected set.)
 - `codenuke calibrate` derives per-repo value scales; the keep-threshold is repo-meaningful.
-- The scorer is immutable from the proposer (no shell/git in its toolset); the change-cost
-  benchmark is hidden from the proposer.
+- The scorer is immutable from the proposer; the default Codex adapter is rooted at the isolated
+  worktree and the change-cost benchmark is hidden from the proposer.
 - Worktree isolation verified: the user's tree is never modified; a manual command before
   `init` fails fast with guidance (no stack trace).
 - The value proxy is validated against `changecost` on ≥ 1 real repo (ρ ≥ 0.6) before

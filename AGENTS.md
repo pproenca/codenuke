@@ -109,8 +109,9 @@ package install behavior, or safety guarantees.
 
 - Do not commit `.codenuke/` state, credentials, provider transcripts, or generated `dist/`
   edits.
-- The proposer must not be able to edit the scorer or run shell/git through the approved
-  adapter path.
+- The proposer must not be able to edit the scorer through the approved adapter path. The
+  default Codex adapter is rooted at the isolated worktree; keep scorer execution outside that
+  proposer workspace and preserve surface checks for source/test edits.
 - `run`, `fence`, `changecost`, and scorer operations must not commit, push, open PRs, or
   land changes outside their explicit spec surface.
 - Keep dirty-worktree safeguards intact unless the user explicitly asks for a different

@@ -1015,13 +1015,13 @@ if (existsSync("codenuke.benchmark/value/accept.test.ts")) {
     expect(existsSync(join(worktree, "codenuke.benchmark/value/accept.test.ts"))).toBe(true);
   });
 
-  it("runs the default proposer adapter without shell or git tools", () => {
+  it("runs the default Codex proposer adapter with a workspace-write sandbox", () => {
     const root = fixtureRoot("codenuke-run-default-proposer-");
     const tag = `default-proposer-${Date.now()}`;
     const worktree = join(tmpdir(), `codenuke-run-default-proposer-wt-${Date.now()}`);
     const state = join(tmpdir(), `codenuke-run-default-proposer-state-${Date.now()}.json`);
     const fakeBin = join(root, "fake-bin");
-    const capture = join(root, "claude-args.json");
+    const capture = join(root, "codex-args.json");
     initRepo(root);
     write(root, "package.json", JSON.stringify({ name: "run-default-proposer" }));
     write(
@@ -1071,14 +1071,17 @@ export function value(input) {
     );
     write(
       root,
-      "fake-bin/claude",
+      "fake-bin/codex",
       `#!/usr/bin/env node
 import { writeFileSync } from "node:fs";
-writeFileSync(process.env.CN_FAKE_CLAUDE_ARGS, JSON.stringify(process.argv.slice(2)));
+const args = process.argv.slice(2);
+writeFileSync(process.env.CN_FAKE_CODEX_ARGS, JSON.stringify(args));
+const outputIndex = args.indexOf("--output-last-message");
+if (outputIndex !== -1) writeFileSync(args[outputIndex + 1], "{}\\n");
 writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
 `,
     );
-    chmodSync(join(fakeBin, "claude"), 0o755);
+    chmodSync(join(fakeBin, "codex"), 0o755);
 
     const result = spawnSync("node", [cli, "run", "1"], {
       cwd: root,
@@ -1086,7 +1089,7 @@ writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
       env: {
         ...process.env,
         PATH: `${fakeBin}:${process.env.PATH}`,
-        CN_FAKE_CLAUDE_ARGS: capture,
+        CN_FAKE_CODEX_ARGS: capture,
         CN_TEST: 'node -e "process.exit(0)"',
         CN_TYPECHECK: "",
         CN_TAG: tag,
@@ -1095,13 +1098,16 @@ writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
       },
     });
     const args = JSON.parse(readFileSync(capture, "utf8"));
-    const allowedTools = args[args.indexOf("--allowedTools") + 1];
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("proposer=claude -p");
+    expect(result.stdout).toContain("proposer=codex exec");
     expect(result.stdout).toContain("→ KEEP");
-    expect(allowedTools).toBe("Edit Write Read Grep Glob");
-    expect(allowedTools).not.toMatch(/\b(?:Bash|Shell|Git)\b/u);
+    expect(args).toContain("exec");
+    expect(args).toContain("--cd");
+    expect(args[args.indexOf("--cd") + 1]).toBe(worktree);
+    expect(args).toContain("--sandbox");
+    expect(args[args.indexOf("--sandbox") + 1]).toBe("workspace-write");
+    expect(args).toContain("--output-last-message");
   });
 
   it("reaps default proposer adapter child processes on timeout", () => {
@@ -1150,7 +1156,7 @@ writeFileSync("src/index.ts", "export const value = (input) => input + 2;\\n");
     );
     write(
       root,
-      "fake-bin/claude",
+      "fake-bin/codex",
       `#!/usr/bin/env node
 import { spawn } from "node:child_process";
 spawn(process.execPath, [
@@ -1160,7 +1166,7 @@ spawn(process.execPath, [
 setTimeout(() => {}, 5000);
 `,
     );
-    chmodSync(join(fakeBin, "claude"), 0o755);
+    chmodSync(join(fakeBin, "codex"), 0o755);
 
     const result = spawnSync("node", [cli, "run", "1"], {
       cwd: root,
@@ -1555,7 +1561,7 @@ writeFileSync("src/index.test.ts", "export const misplaced = true;\\n");
     );
     write(
       root,
-      "fake-bin/claude",
+      "fake-bin/codex",
       `#!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 writeFileSync(${JSON.stringify(promptCapture)}, readFileSync(0, "utf8"));
@@ -1563,7 +1569,7 @@ mkdirSync("test", { recursive: true });
 writeFileSync("test/pinned.test.ts", "export const pinned = true;\\n");
 `,
     );
-    chmodSync(join(fakeBin, "claude"), 0o755);
+    chmodSync(join(fakeBin, "codex"), 0o755);
 
     const result = spawnSync("node", [cli, "run", "1"], {
       cwd: root,

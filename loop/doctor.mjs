@@ -63,7 +63,7 @@ const calibrationPath = `${C.repo}/.codenuke/calibration.json`;
 const calibrationStatus = calibrationArtifactStatus(C);
 const calibrationPresent = calibrationStatus.artifact != null;
 const calibrationUsable = calibrationStatus.usable;
-const proposerAvailable = process.env.CN_PROPOSER ? true : commandAvailable("claude");
+const proposerAvailable = process.env.CN_PROPOSER ? true : commandAvailable("codex");
 
 const gaps = [];
 if (!baselineExists) gaps.push(`baseline ${C.baseline} not found`);

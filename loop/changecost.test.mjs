@@ -1,5 +1,12 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -189,6 +196,66 @@ describe("codenuke changecost", () => {
     expect(artifact.results[0]).toMatchObject({ status: "not-done" });
     expect(existsSync(join(worktree, "tests/value.accept.test.ts"))).toBe(false);
     expect(existsSync(worktree)).toBe(false);
+  });
+
+  it("uses Codex as the default benchmark implementer", () => {
+    const root = fixtureRoot("codenuke-changecost-default-codex-");
+    const fakeBin = join(root, "fake-bin");
+    const capture = join(root, "codex-args.json");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "changecost-default-codex" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(
+      root,
+      "codenuke.benchmark/value/meta.json",
+      JSON.stringify({
+        id: "value",
+        title: "Change value",
+        prompt: "Change the exported value to 2.",
+        acceptPath: "tests/value.accept.test.ts",
+      }),
+    );
+    write(root, "codenuke.benchmark/value/accept.test.ts", "export const accepted = true;\n");
+    const ref = commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-default-codex-wt-${Date.now()}`);
+    write(
+      root,
+      "fake-bin/codex",
+      `#!/usr/bin/env node
+import { writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+writeFileSync(${JSON.stringify(capture)}, JSON.stringify(args));
+const outputIndex = args.indexOf("--output-last-message");
+if (outputIndex !== -1) writeFileSync(args[outputIndex + 1], "{}\\n");
+writeFileSync("src/index.ts", "export const value = 2;\\n");
+`,
+    );
+    chmodSync(join(fakeBin, "codex"), 0o755);
+    const testCommand =
+      "node -e \"const fs=require('fs');const accept=fs.existsSync('tests/value.accept.test.ts');const src=fs.readFileSync('src/index.ts','utf8');process.exit(!accept || src.includes('value = 2') ? 0 : 1)\"";
+
+    const result = spawnSync("node", [cli, "changecost", ref], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        CN_TEST: testCommand,
+        CN_WORKTREE: worktree,
+        CN_TAG: `default-codex-${Date.now()}`,
+      },
+    });
+    const args = JSON.parse(readFileSync(capture, "utf8"));
+    const artifact = JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8"));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("implementer=codex exec");
+    expect(args).toContain("exec");
+    expect(args[args.indexOf("--cd") + 1]).toBe(`${worktree}-changecost`);
+    expect(args[args.indexOf("--sandbox") + 1]).toBe("workspace-write");
+    expect(artifact.results[0]).toMatchObject({ status: "done" });
+    expect(existsSync(`${worktree}-changecost`)).toBe(false);
   });
 
   it("rejects and cleans implementer edits outside non-test source", () => {

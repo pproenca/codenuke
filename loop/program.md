@@ -19,9 +19,9 @@ changing behavior**. Less code that does the same thing, verified by tests.
 3. **Net reduction.** The change must _strictly reduce_ AST node count when complete.
    Deduplication that adds an abstraction bigger than what it removes does NOT count —
    the scorer rejects "more DRY but more code."
-4. **Stay in source.** Edit only non-test files under the configured source root. Never edit tests, configs,
-   or anything under `experiments/`. (You have no shell/git access by design — the
-   scorer is the judge and must stay out of your reach.)
+4. **Stay in source.** Edit only non-test files under the configured source root. Never edit tests,
+   configs, or anything under `experiments/`. Do not run shell or git commands; the scorer is the
+   judge and must stay out of your reach.
 
 ## What good reductions look like
 

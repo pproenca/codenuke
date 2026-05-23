@@ -19,7 +19,7 @@ git worktree, so **your working tree is never touched** and a reject is just a `
 
 ```
             ┌─────────── isolated git worktree @ your baseline ───────────┐
- propose ──▶│  an LLM edits ONLY your source (no shell/git → can't game)   │
+ propose ──▶│  Codex edits ONLY the isolated worktree source               │
             └──────────────────────────────┬──────────────────────────────┘
                                             ▼
    score (immutable judge) ── lexicographic: gates ≻ value ──────────────────────────
@@ -34,9 +34,10 @@ git worktree, so **your working tree is never touched** and a reject is just a `
 
 Two things make it trustworthy enough to run unattended:
 
-- **The scorer is immutable.** The proposer can only edit source (its toolset has no
-  shell/git), so it cannot rewrite the judge — improving the score _requires_ genuinely
-  improving the code. This is the property that makes `val_bpb` honest, reproduced here.
+- **The scorer is immutable.** The default Codex proposer runs against the isolated target
+  worktree, while the scorer runs from codenuke itself and `run` rejects edits outside the
+  allowed source/test surface — improving the score _requires_ genuinely improving the code.
+  This is the property that makes `val_bpb` honest, reproduced here.
 - **The behavior fence is measured, not assumed.** Tests are an _approximate_ behavior
   oracle. `codenuke fence` mutation-tests each region to measure how many behavior
   changes its tests actually catch (with a 95% CI). The loop only refactors a region whose
@@ -45,9 +46,9 @@ Two things make it trustworthy enough to run unattended:
 
 ## Quickstart
 
-**Requirements:** Node ≥ 22, `git`, a JS/TS repo with a test command, and an LLM proposer —
-the [`claude`](https://docs.claude.com/en/docs/claude-code) CLI by default (or any command
-via `CN_PROPOSER`).
+**Requirements:** Node ≥ 22, `git`, a JS/TS repo with a test command, and the
+[`codex`](https://developers.openai.com/codex/cli) CLI by default (or any command via
+`CN_PROPOSER`).
 
 ```bash
 npm install -g codenuke          # or: npx codenuke …
@@ -95,13 +96,16 @@ Zero-config by default — codenuke auto-detects everything below. Override via 
 | `regions`           | `CN_REGIONS`   | subdirectories of `srcDir` with source               |
 | `fenceLB`           | `CN_FENCE_LB`  | `0.90` (Wilson CI lower bound a region must clear)   |
 | `tag`               | `CN_TAG`       | `run` (→ branch `autoresearch/run`)                  |
-| `proposerBudgetUsd` | `CN_BUDGET`    | `8` (per-iteration default proposer budget)          |
+| `proposerBudgetUsd` | `CN_BUDGET`    | `8` (legacy budget field; Codex default ignores it)  |
 | `proposerTimeoutMs` | `CN_TIMEOUT`   | `900000` (15 minute proposer wall-clock timeout)     |
 
 The proposer is also pluggable: `CN_PROPOSER="<shell cmd run in the worktree>"` replaces the
-default `claude -p`. The default proposer interface has no shell/git tools, and `run`
-rejects proposer edits outside the allowed surface (`srcDir` source for reductions, tests
-for fence-raising).
+default `codex exec`. The Codex adapter runs with `--sandbox workspace-write` by default,
+captures the final message with `--output-last-message`, and passes the prompt on stdin.
+Override the sandbox with `CN_CODEX_SANDBOX` (`read-only`, `workspace-write`,
+`danger-full-access`, or `none`/`bypass` when an outer sandbox provides isolation), the model
+with `CN_MODEL`, and reasoning effort with `CN_REASONING_EFFORT`. `run` rejects proposer edits
+outside the allowed surface (`srcDir` source for reductions, tests for fence-raising).
 
 ## Commands
 

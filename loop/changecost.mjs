@@ -23,6 +23,7 @@ import { relative } from "node:path";
 import ts from "typescript";
 import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
+import { runCodexAgent } from "./agent-adapter.mjs";
 
 // ---------- library: formatting-invariant edit size + verify cost ----------
 export function tokenize(name, text) {
@@ -219,7 +220,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const baseline = snapshot();
   console.log(
-    `evaluate_changecost @ ${REF}  β=${BETA}  implementer=${IMPLEMENTER ? "scripted" : "claude -p"}`,
+    `evaluate_changecost @ ${REF}  β=${BETA}  implementer=${IMPLEMENTER ? "scripted" : "codex exec"}`,
   );
 
   const results = [];
@@ -238,10 +239,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       });
     else {
       writeFileSync(C.promptFile, prompt);
-      impl = shTry(
-        `claude -p --permission-mode bypassPermissions --no-session-persistence --allowedTools ${JSON.stringify("Edit Write Read Grep Glob")} --max-budget-usd ${C.proposerBudgetUsd} --output-format json < ${C.promptFile}`,
-        { cwd: WT, timeout: 300000 },
-      );
+      impl = await runCodexAgent(prompt, {
+        cwd: WT,
+        timeout: 300000,
+        env: { ...process.env, CN_DELTA: delta.id },
+        outputPath: `${C.promptFile}.last.txt`,
+      });
     }
     if (!impl.ok) {
       console.log("  implementer error");
