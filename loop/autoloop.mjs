@@ -27,7 +27,7 @@ import {
   fenceArtifactStatus,
   valueProxyValidationStatus,
 } from "./artifacts.mjs";
-import { isSourceFile, loadConfig } from "./config.mjs";
+import { isSourceFile, isUnderSourceDir, loadConfig } from "./config.mjs";
 import { runCodexAgent, runShellGroup } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
 import {
@@ -111,9 +111,7 @@ const dirtyPathsAfterProposer = () => {
   return [...new Set(paths)];
 };
 const wtDirty = () => dirtyPathsAfterProposer().length > 0;
-const underSrcDir = (path) =>
-  C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
-const allowedReducePath = (path) => underSrcDir(path) && isSourceFile(path);
+const allowedReducePath = (path) => isUnderSourceDir(path, C.srcDir) && isSourceFile(path);
 const underTestRoot = (path, root) => root === "." || path === root || path.startsWith(`${root}/`);
 const allowedRaisePath = (path) =>
   /\.(test|spec)\.[jt]sx?$/u.test(path) &&

@@ -20,7 +20,7 @@ import {
 import { relative } from "node:path";
 import ts from "typescript";
 import { fenceArtifactStatus } from "./artifacts.mjs";
-import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
+import { isSourceFile, isUnderSourceDir, loadConfig, regionOf } from "./config.mjs";
 import { runCodexAgent } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
 import {
@@ -126,9 +126,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       ignoreEntry: ({ path, status }) =>
         isHiddenBenchmarkDeletion({ benchmarkInsideRepo, benchmarkRel, path, status }),
     }).filter((path) => !isNodeModulesPath(path));
-  const underSrcDir = (path) =>
-    C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
-  const allowedImplementerPath = (path) => underSrcDir(path) && isSourceFile(path);
+  const allowedImplementerPath = (path) => isUnderSourceDir(path, C.srcDir) && isSourceFile(path);
   const snapshot = () => {
     const m = {};
     for (const f of sh(`git -C ${WT} ls-files ${C.srcDir}`)

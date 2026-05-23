@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { sourceWithMutationSites, writeFixtureFile } from "../../scripts/loop-fixture.mjs";
 
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const cli = join(repoRoot, "bin", "codenuke.mjs");
 const tmp = mkdtempSync(join(tmpdir(), "codenuke-loop-eval-"));
 const fixtureRoot = join(tmp, "repo");
 
-function write(path, contents) {
-  const full = join(fixtureRoot, path);
-  mkdirSync(dirname(full), { recursive: true });
-  writeFileSync(full, contents, "utf8");
-}
+const write = writeFixtureFile.bind(null, fixtureRoot);
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -37,15 +34,6 @@ function runResult(command, args, options = {}) {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
-}
-
-function sourceWithMutationSites(count) {
-  return (
-    Array.from(
-      { length: count },
-      (_, index) => `export const isAbove${index} = (value: number): boolean => value > ${index};`,
-    ).join("\n") + "\n"
-  );
 }
 
 try {

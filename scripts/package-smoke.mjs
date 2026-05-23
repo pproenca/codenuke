@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { sourceWithMutationSites, writeFixtureFile } from "./loop-fixture.mjs";
 
 const moduleRequire = createRequire(import.meta.url);
 const root = process.cwd();
@@ -12,11 +13,7 @@ const fixtureRoot = join(tmp, "fixture");
 const installRoot = join(tmp, "installed");
 const npmCache = join(tmp, "npm-cache");
 
-function write(path, contents) {
-  const full = join(fixtureRoot, path);
-  mkdirSync(dirname(full), { recursive: true });
-  writeFileSync(full, contents, "utf8");
-}
+const write = writeFixtureFile.bind(null, fixtureRoot);
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, runOptions(command, options, options.stdio ?? "pipe"));
@@ -90,15 +87,6 @@ function createFixture() {
   );
   run("git", ["add", "."], { cwd: fixtureRoot });
   run("git", ["commit", "-m", "initial"], { cwd: fixtureRoot });
-}
-
-function sourceWithMutationSites(count) {
-  return (
-    Array.from(
-      { length: count },
-      (_, index) => `export const isAbove${index} = (value: number): boolean => value > ${index};`,
-    ).join("\n") + "\n"
-  );
 }
 
 function packAndInstallCli() {

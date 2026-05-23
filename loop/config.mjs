@@ -54,8 +54,6 @@ function detectTypeCheck(repo) {
   return null; // no type gate (G3) if the repo isn't TS-typechecked
 }
 
-const isSourcePath = (p) =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
 const isTestPath = (p) => /\.(test|spec)\.[jt]sx?$/.test(p) && !/\.d\.ts$/.test(p);
 
 function hasSourceFile(dir) {
@@ -71,7 +69,7 @@ function sourceFileCount(dir) {
         if (IGNORED_SOURCE_DIRS.has(entry.name)) return count;
         return count + sourceFileCount(path);
       }
-      return count + (entry.isFile() && isSourcePath(entry.name) ? 1 : 0);
+      return count + (entry.isFile() && isSourceFile(entry.name) ? 1 : 0);
     }, 0);
   } catch {
     return 0;
@@ -248,4 +246,6 @@ export const regionOf = (p, srcDir = "src") => {
 };
 export const isSourceFile = (p) =>
   /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
+export const isUnderSourceDir = (path, srcDir) =>
+  srcDir === "." || path === srcDir || path.startsWith(`${srcDir}/`);
 export { slug, sh };
