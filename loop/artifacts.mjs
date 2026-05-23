@@ -174,6 +174,13 @@ export function valueProxyValidationStatus(config) {
     artifact.rho < -1 ||
     artifact.rho > 1 ||
     artifact.rho < artifact.minimumRho ||
+    !finiteNumber(artifact.alpha) ||
+    artifact.alpha <= 0 ||
+    artifact.alpha > 1 ||
+    !finiteNumber(artifact.pValue) ||
+    artifact.pValue < 0 ||
+    artifact.pValue > 1 ||
+    artifact.pValue > artifact.alpha ||
     !Array.isArray(artifact.rows) ||
     artifact.rows.length !== artifact.candidates ||
     !artifact.rows.every(

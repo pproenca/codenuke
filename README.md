@@ -141,7 +141,9 @@ tracks real change cost before trusting long unattended runs. See [`docs/spec.md
 
 Run `codenuke validate-proxy .codenuke/value-proxy.json`; it writes
 `.codenuke/value-proxy-validation.json` and fails unless Spearman rho clears the configured
-bar (`CN_MIN_RHO`, default `0.6`).
+bar (`CN_MIN_RHO`, default `0.6`) **and** a one-sided permutation p-value clears `CN_ALPHA`
+(default `0.05`). Significance at ρ = 0.6 needs at least 9 candidates — a strong correlation on
+3 candidates (p ≈ 0.167) is rejected as statistically vacuous.
 
 ## How honest is it?
 

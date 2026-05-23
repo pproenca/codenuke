@@ -233,11 +233,12 @@ function assertPackagedLoop(bin) {
   write(
     ".codenuke/value-proxy.json",
     JSON.stringify({
-      candidates: [
-        { id: "baseline", proxy: 1, Vhat: changecost.Vhat + 20 },
-        { id: "measured", proxy: 2, Vhat: changecost.Vhat },
-        { id: "target", proxy: 3, Vhat: Math.max(0, changecost.Vhat - 20) },
-      ],
+      // Significance needs enough candidates (n=3 can never beat alpha=0.05); use 9.
+      candidates: Array.from({ length: 9 }, (_, i) => ({
+        id: `candidate-${i}`,
+        proxy: i + 1,
+        Vhat: changecost.Vhat + (9 - i) * 5,
+      })),
     }),
   );
   const proxy = runResult(bin, ["validate-proxy"], { cwd: fixtureRoot, env });
@@ -247,8 +248,10 @@ function assertPackagedLoop(bin) {
   const proxyReport = JSON.parse(
     readFileSync(join(fixtureRoot, ".codenuke", "value-proxy-validation.json"), "utf8"),
   );
-  if (proxyReport.passed !== true || proxyReport.rho !== 1) {
-    throw new Error("expected packaged validate-proxy to write a passing Spearman report");
+  if (proxyReport.passed !== true || proxyReport.rho !== 1 || !(proxyReport.pValue <= 0.05)) {
+    throw new Error(
+      "expected packaged validate-proxy to write a passing, significant Spearman report",
+    );
   }
   return { ready: true };
 }

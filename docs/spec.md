@@ -158,12 +158,17 @@ codenuke validate-proxy [path=.codenuke/value-proxy.json]
 - Validates the calibrated inner-loop proxy against measured `changecost` results before long
   unattended runs. Input rows are `{id, proxy, Vhat}` candidates, where higher `proxy` should
   rank with lower measured `Vhat`.
-- Computes Spearman rho over `proxy` and `-Vhat`, writes
-  `.codenuke/value-proxy-validation.json`, and exits `0` only when the corpus is large enough
-  and rho clears `CN_MIN_RHO` (default `0.6`).
+- Computes Spearman rho over `proxy` and `-Vhat` **and a one-sided permutation p-value**, writes
+  `.codenuke/value-proxy-validation.json`, and exits `0` only when the corpus clears the floor,
+  rho clears `CN_MIN_RHO` (default `0.6`), **and** the permutation p-value clears `CN_ALPHA`
+  (default `0.05`). The p-value is exact for `n ≤ 9` (full enumeration) and a fixed-seed sample
+  above that, so it stays deterministic (INV-5).
+- **Effect size is not evidence.** A perfect rho on `n = 3` candidates has p = 1/3! ≈ `0.167`, so
+  it can never clear `α = 0.05` — significance at `ρ = 0.6` needs `n ≥ 9`. This closes the n=3
+  trap: a small-but-strong correlation no longer passes.
 - This is the empirical bridge from "calibrated proxy" to "trust it on this repo"; it fails
   closed for invalid validation config, too-small corpora, malformed rows, undefined
-  correlation, or low rho.
+  correlation, low rho, or a non-significant p-value.
 
 ### `calibrate`
 
@@ -230,7 +235,7 @@ loop unrolled.
 
 - **Environment variables**: `CN_REPO`, `CN_SRC`, `CN_TARGET`, `CN_BASE`, `CN_TAG`,
   `CN_REGIONS`, `CN_TEST`, `CN_TYPECHECK`, `CN_FENCE`, `CN_FENCE_LB`, `CN_RESULTS`,
-  `CN_BENCH`, `CN_BETA`, `CN_MIN_RHO`, `CN_MIN_CANDIDATES`, `CN_BUDGET`, `CN_PROPOSER`,
+  `CN_BENCH`, `CN_BETA`, `CN_MIN_RHO`, `CN_MIN_CANDIDATES`, `CN_ALPHA`, `CN_BUDGET`, `CN_PROPOSER`,
   `CN_CODEX_SANDBOX`, `CN_MODEL`, `CN_REASONING_EFFORT`, `CN_TIMEOUT`, `CN_WORKTREE`,
   `CN_STATE`.
 - `proposerBudgetUsd` / `CN_BUDGET` is retained for compatibility with older proposer adapters;
@@ -346,11 +351,14 @@ type Calibration = {
 // .codenuke/value-proxy-validation.json  (codenuke validate-proxy)
 type ValueProxyValidation = {
   passed: boolean;
-  reason: string | null;
+  reason: string | null; // too-small-corpus | undefined-rank-correlation | low-rho | not-significant
   candidates: number;
   minimumCandidates: number;
   minimumRho: number;
+  alpha: number; // significance threshold (CN_ALPHA)
   rho: number | null; // Spearman(proxy, -Vhat)
+  pValue: number | null; // one-sided permutation p-value for rho
+  pMethod: "exact" | "sampled" | "degenerate" | null;
   rows: { id: string; proxy: number; Vhat: number }[];
 };
 ```
@@ -387,7 +395,8 @@ loss  = risk − value     (and +∞ for any inadmissible change)
 
 Per-repo scales make the keep-threshold `loss < 0` meaningful on the target repo; **before
 calibration the keep _magnitude_ is heuristic (the gates stay exact, so safety is unaffected)**.
-The proxy should be validated against `changecost` (Spearman ρ ≥ 0.6) before long unattended runs.
+The proxy should be validated against `changecost` (Spearman ρ ≥ 0.6 **and** a significant
+permutation p ≤ 0.05, which needs n ≥ 9 candidates) before long unattended runs.
 
 A behavior break or type regression is `loss = +∞` regardless of how much code it removes.
 That lexicographic structure is the self-policing property: the score cannot be improved by
