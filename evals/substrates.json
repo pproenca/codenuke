@@ -1,0 +1,25 @@
+{
+  "_doc": "Substrate list for the repeatable proxy↔𝒱̂ validation loop. Run: pnpm validate-substrates [name]. Each substrate needs a committed codenuke.benchmark/ (held-out change-requests) and candidate git refs (code-states spanning a reduction range from the baseline). {repo} expands to the absolute repo path. implementer=null uses the codex LLM implementer (billable, adapts per candidate → 𝒱̂ co-varies); a command string uses a deterministic scripted implementer (INV-5).",
+  "substrates": [
+    {
+      "name": "codecharter",
+      "repo": "../../codecharter",
+      "srcDir": "src",
+      "testCommand": "node {repo}/codenuke.benchmark/run-stable-tests.mjs",
+      "benchmark": "codenuke.benchmark",
+      "implementer": "node {repo}/codenuke.benchmark/implementer.mjs",
+      "baseline": "495d7b8",
+      "candidates": ["495d7b8", "d6e00bd", "f2335dd", "8bf38ae", "1c30ae1", "9282709"]
+    },
+    {
+      "name": "node-semver",
+      "repo": "../../node-semver",
+      "srcDir": "functions",
+      "testCommand": "node {repo}/codenuke.benchmark/run-tests.mjs",
+      "benchmark": "codenuke.benchmark",
+      "implementer": null,
+      "baseline": "7641608",
+      "candidates": ["7641608", "6fee4f1"]
+    }
+  ]
+}

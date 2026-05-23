@@ -25,6 +25,7 @@
     "loop:fence": "node bin/codenuke.mjs fence",
     "loop:run": "node bin/codenuke.mjs run",
     "eval": "node evals/scripts/run-loop.mjs",
+    "validate-substrates": "node evals/scripts/validate-substrates.mjs",
     "pack:smoke": "node scripts/package-smoke.mjs"
   },
   "dependencies": {
