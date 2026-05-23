@@ -19,3 +19,36 @@ export function removeWorktree(repo, worktree) {
     runCommand("git worktree prune", { cwd: repo });
   } catch {}
 }
+
+export function resetAndCleanWorktree(run, worktree, options = {}) {
+  run(`git -C ${worktree} reset --hard ${options.ref ?? "HEAD"}`);
+  for (const path of options.paths ?? [])
+    run(`git -C ${worktree} clean -fdq -- ${quoteShellArg(path)}`);
+  if (options.all) run(`git -C ${worktree} clean -fdq`);
+}
+
+export const gitStatusPath = (line) =>
+  line
+    .slice(3)
+    .trim()
+    .replace(/^.* -> /u, "");
+
+export const isNodeModulesPath = (path) =>
+  path === "node_modules" || path.startsWith("node_modules/");
+
+export function isHiddenBenchmarkDeletion({ benchmarkInsideRepo, benchmarkRel, path, status }) {
+  return (
+    benchmarkInsideRepo &&
+    path.startsWith(`${benchmarkRel}/`) &&
+    status.includes("D") &&
+    !status.includes("?")
+  );
+}
+
+export function dirtyPathsFromPorcelain(output, { ignoreEntry = () => false } = {}) {
+  return output.split("\n").flatMap((line) => {
+    const path = gitStatusPath(line);
+    const status = line.slice(0, 2);
+    return path && !ignoreEntry({ line, path, status }) ? [path] : [];
+  });
+}

@@ -1,19 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { loadConfig } from "./config.mjs";
-
-function ranks(values) {
-  const sorted = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
-  const ranked = Array.from({ length: values.length });
-  let cursor = 0;
-  while (cursor < sorted.length) {
-    let end = cursor;
-    while (end + 1 < sorted.length && sorted[end + 1].value === sorted[cursor].value) end++;
-    const rank = (cursor + end) / 2 + 1;
-    for (let index = cursor; index <= end; index++) ranked[sorted[index].index] = rank;
-    cursor = end + 1;
-  }
-  return ranked;
-}
+import { ranks } from "./stats.mjs";
 
 function pearson(left, right) {
   const n = left.length;

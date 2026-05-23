@@ -23,7 +23,14 @@ import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 import { runCodexAgent } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
-import { excludeWorktreeHelper, removeWorktree } from "./worktree.mjs";
+import {
+  dirtyPathsFromPorcelain,
+  excludeWorktreeHelper,
+  isHiddenBenchmarkDeletion,
+  isNodeModulesPath,
+  removeWorktree,
+  resetAndCleanWorktree,
+} from "./worktree.mjs";
 
 // ---------- library: formatting-invariant edit size + verify cost ----------
 export function tokenize(name, text) {
@@ -108,39 +115,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const sh = (c, opts = {}) => runCommand(c, { env: process.env, ...opts });
   const shTry = (c, opts = {}) => tryCommand(c, { env: process.env, ...opts });
   const green = () => shTry(C.testCommand, { cwd: WT }).ok;
-  const cleanWT = () => {
-    shTry(`git -C ${WT} reset --hard HEAD`);
-    shTry(`git -C ${WT} clean -fdq`);
-  };
-  const cleanDirtyPaths = (paths) => {
-    shTry(`git -C ${WT} reset --hard HEAD`);
-    for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
-    shTry(`git -C ${WT} clean -fdq`);
-  };
+  const cleanWT = () => resetAndCleanWorktree(shTry, WT, { all: true });
+  const cleanDirtyPaths = (paths) => resetAndCleanWorktree(shTry, WT, { paths, all: true });
   const hideBenchmarkFromWorktree = () => {
     if (benchmarkInsideRepo) rmSync(`${WT}/${benchmarkRel}`, { recursive: true, force: true });
   };
   const cleanupWorktree = () => removeWorktree(C.repo, WT);
   const dirtyPaths = () =>
-    shTry(`git -C ${WT} status --porcelain`)
-      .out.split("\n")
-      .filter((line) => {
-        const status = line.slice(0, 2);
-        const path = line
-          .slice(3)
-          .trim()
-          .replace(/^.* -> /u, "");
-        return !(
-          benchmarkInsideRepo &&
-          path.startsWith(`${benchmarkRel}/`) &&
-          status.includes("D") &&
-          !status.includes("?")
-        );
-      })
-      .map((line) => line.slice(3).trim())
-      .filter(Boolean)
-      .map((path) => path.replace(/^.* -> /u, ""))
-      .filter((path) => path !== "node_modules" && !path.startsWith("node_modules/"));
+    dirtyPathsFromPorcelain(shTry(`git -C ${WT} status --porcelain`).out, {
+      ignoreEntry: ({ path, status }) =>
+        isHiddenBenchmarkDeletion({ benchmarkInsideRepo, benchmarkRel, path, status }),
+    }).filter((path) => !isNodeModulesPath(path));
   const underSrcDir = (path) =>
     C.srcDir === "." || path === C.srcDir || path.startsWith(`${C.srcDir}/`);
   const allowedImplementerPath = (path) => underSrcDir(path) && isSourceFile(path);

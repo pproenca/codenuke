@@ -27,7 +27,7 @@ export function wilson(k, n, z = 1.96) {
   return { p, lo: Math.max(0, center - half), hi: Math.min(1, center + half) };
 }
 
-function ranks(values) {
+export function ranks(values) {
   const idx = values.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
   const r = new Array(values.length);
   let i = 0;

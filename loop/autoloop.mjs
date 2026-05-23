@@ -30,6 +30,12 @@ import {
 import { isSourceFile, loadConfig } from "./config.mjs";
 import { runCodexAgent, runShellGroup } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
+import {
+  dirtyPathsFromPorcelain,
+  isHiddenBenchmarkDeletion,
+  isNodeModulesPath,
+  resetAndCleanWorktree,
+} from "./worktree.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
@@ -45,27 +51,9 @@ const benchmarkInsideRepo =
 const sh = (cmd, opts = {}) => runCommand(cmd, { env: process.env, ...opts });
 const shTry = (cmd, opts = {}) => tryCommand(cmd, { env: process.env, ...opts });
 const cleanRoots = () => [...new Set([C.srcDir, ...C.testLayout.roots])];
-const cleanWT = () => {
-  shTry(`git -C ${WT} reset --hard HEAD`);
-  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
-};
-const discardTipCommit = () => {
-  shTry(`git -C ${WT} reset --hard HEAD~1`);
-  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
-};
-const isHiddenBenchmarkDeletion = (line) => {
-  const status = line.slice(0, 2);
-  const path = line
-    .slice(3)
-    .trim()
-    .replace(/^.* -> /u, "");
-  return (
-    benchmarkInsideRepo &&
-    path.startsWith(`${benchmarkRel}/`) &&
-    status.includes("D") &&
-    !status.includes("?")
-  );
-};
+const cleanWT = () => resetAndCleanWorktree(shTry, WT, { paths: cleanRoots() });
+const discardTipCommit = () =>
+  resetAndCleanWorktree(shTry, WT, { ref: "HEAD~1", paths: cleanRoots() });
 const hideBenchmarkFromProposer = () => {
   if (benchmarkInsideRepo) rmSync(`${WT}/${benchmarkRel}`, { recursive: true, force: true });
 };
@@ -89,11 +77,8 @@ const restoreAfterProposer = () => {
   restoreHiddenBenchmark();
   restoreRuntimeDeps();
 };
-const cleanDirtyPaths = (paths) => {
-  shTry(`git -C ${WT} reset --hard HEAD`);
-  for (const path of paths) shTry(`git -C ${WT} clean -fdq -- ${quote(path)}`);
-  for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
-};
+const cleanDirtyPaths = (paths) =>
+  resetAndCleanWorktree(shTry, WT, { paths: [...paths, ...cleanRoots()] });
 const perr = (p) => (p.out || "").replace(/\s+/g, " ").slice(-200);
 const proposerFailure = (p) => {
   if (p.timedOut)
@@ -116,13 +101,10 @@ const loadFence = () => {
   }
 };
 const dirtyPaths = () =>
-  shTry(`git -C ${WT} status --porcelain`)
-    .out.split("\n")
-    .filter((line) => !isHiddenBenchmarkDeletion(line))
-    .map((line) => line.slice(3).trim())
-    .filter(Boolean)
-    .map((path) => path.replace(/^.* -> /u, ""))
-    .filter((path) => path !== "node_modules" && !path.startsWith("node_modules/"));
+  dirtyPathsFromPorcelain(shTry(`git -C ${WT} status --porcelain`).out, {
+    ignoreEntry: ({ path, status }) =>
+      isHiddenBenchmarkDeletion({ benchmarkInsideRepo, benchmarkRel, path, status }),
+  }).filter((path) => !isNodeModulesPath(path));
 const dirtyPathsAfterProposer = () => {
   const paths = dirtyPaths();
   if (existsSync(`${WT}/node_modules`)) paths.push("node_modules");

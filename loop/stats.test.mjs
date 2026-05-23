@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { wilson } from "./stats.mjs";
+import { ranks, wilson } from "./stats.mjs";
+
+describe("average tie ranks", () => {
+  it("assigns average ranks while preserving original order", () => {
+    expect(ranks([10, 20, 10, 30])).toEqual([1.5, 3, 1.5, 4]);
+  });
+});
 
 describe("Wilson confidence interval", () => {
   it("matches the specified examples", () => {
