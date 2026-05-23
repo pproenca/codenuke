@@ -22,3 +22,11 @@ export function tryCommand(command, options = {}) {
     };
   }
 }
+
+export function commandAvailable(command, options = {}) {
+  if (!command) return false;
+  return tryCommand(`command -v ${quoteShellArg(command)}`, {
+    stdio: ["ignore", "pipe", "ignore"],
+    ...options,
+  }).ok;
+}

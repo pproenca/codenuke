@@ -8,8 +8,9 @@
 // No machine-specific paths, no pinned commits, no fixed module names — those were the
 // codenuke-only assumptions of the research prototype.
 
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { quoteShellArg, runCommand } from "./shell.mjs";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { readJson } from "./json.mjs";
+import { commandAvailable, runCommand } from "./shell.mjs";
 
 const IGNORED_SOURCE_DIRS = new Set([".codenuke", ".git", "coverage", "dist", "node_modules"]);
 
@@ -26,19 +27,6 @@ const sh = (cmd, cwd) => {
   }
 };
 
-function commandAvailable(command, cwd, env) {
-  try {
-    runCommand(`command -v ${quoteShellArg(command)}`, {
-      cwd,
-      env,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function detectTestCommand(repo, env = process.env) {
   if (existsSync(`${repo}/node_modules/.bin/vitest`))
     return "node_modules/.bin/vitest run --reporter=dot";
@@ -50,7 +38,7 @@ function detectTestCommand(repo, env = process.env) {
     existsSync(`${repo}/bun.lock`) ||
     existsSync(`${repo}/bun.lockb`) ||
     String(pkg?.packageManager ?? "").startsWith("bun@");
-  if (usesBun && commandAvailable("bun", repo, env)) return "bun test";
+  if (usesBun && commandAvailable("bun", { cwd: repo, env })) return "bun test";
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
@@ -123,14 +111,6 @@ function detectTestLayout(repo, srcDir) {
         ? "co-located **/*.(test|spec).[jt]s(x) files"
         : `${root}/**/*.(test|spec).[jt]s(x)`,
   };
-}
-
-function readJson(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 const cleanDir = (dir) => String(dir).replace(/^\.\//, "").replace(/\/+$/, "") || ".";

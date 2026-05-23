@@ -3,6 +3,7 @@ import { execSync } from "node:child_process";
 import { rmSync, symlinkSync } from "node:fs";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, slug } from "./config.mjs";
+import { commandAvailable } from "./shell.mjs";
 
 const C = loadConfig();
 const WT = `${C.worktree}-doctor-${slug(Date.now())}`;
@@ -20,11 +21,6 @@ function runOk(command, cwd = C.repo, timeout = COMMAND_TIMEOUT) {
   } catch {
     return false;
   }
-}
-
-function commandAvailable(command) {
-  if (!command) return false;
-  return runOk(`command -v ${JSON.stringify(command)}`, C.repo, 5000);
 }
 
 function isolatedChecks() {
@@ -63,7 +59,9 @@ const calibrationPath = `${C.repo}/.codenuke/calibration.json`;
 const calibrationStatus = calibrationArtifactStatus(C);
 const calibrationPresent = calibrationStatus.artifact != null;
 const calibrationUsable = calibrationStatus.usable;
-const proposerAvailable = process.env.CN_PROPOSER ? true : commandAvailable("codex");
+const proposerAvailable = process.env.CN_PROPOSER
+  ? true
+  : commandAvailable("codex", { cwd: C.repo, env: process.env, timeout: 5000 });
 
 const gaps = [];
 if (!baselineExists) gaps.push(`baseline ${C.baseline} not found`);

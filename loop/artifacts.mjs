@@ -1,18 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readJson } from "./json.mjs";
 import { wilson } from "./stats.mjs";
 
 export const DEFAULT_CALIBRATION_SCALES = { sL: 150, sCx: 15, sDup: 5 };
 export const MIN_CALIBRATION_COMMITS = 3;
 const FENCE_NUMBER_TOLERANCE = 1e-9;
-
-function readJson(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
 
 function resolveRef(repo, ref) {
   try {

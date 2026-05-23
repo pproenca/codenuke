@@ -2,7 +2,7 @@ import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { quoteShellArg, runCommand, tryCommand } from "./shell.mjs";
+import { commandAvailable, quoteShellArg, runCommand, tryCommand } from "./shell.mjs";
 
 describe("shell helpers", () => {
   it("quotes values for shell commands the same way existing call sites did", () => {
@@ -27,5 +27,13 @@ describe("shell helpers", () => {
     );
 
     expect(result).toEqual({ ok: false, out: "outerr", timedOut: false });
+  });
+
+  it("checks command availability with caller-provided cwd and env", () => {
+    expect(commandAvailable("node", { cwd: process.cwd(), env: process.env })).toBe(true);
+    expect(commandAvailable("definitely-not-a-codenuke-command", { env: { PATH: "" } })).toBe(
+      false,
+    );
+    expect(commandAvailable("", { env: process.env })).toBe(false);
   });
 });
