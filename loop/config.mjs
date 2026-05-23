@@ -240,7 +240,17 @@ export function loadConfig(env = process.env, cwd = process.cwd()) {
     benchmarkDir: pick("CN_BENCH", "benchmarkDir", `${repo}/codenuke.benchmark`), // committable (val-set)
     // thresholds + value weights (calibrated; see docs/spec.md)
     thresholds: { fenceLB: Number(env.CN_FENCE_LB ?? fileCfg.fenceLB ?? 0.9) },
-    weights: { dL: 1.0, dCx: 1.8, dDup: 0.35, scaleL: 150, scaleCx: 15, scaleDup: 5, r3: 1.0 },
+    weights: {
+      dL: 1.0,
+      dCx: 1.8,
+      dDup: 0.35,
+      scaleL: 150,
+      scaleCx: 15,
+      scaleDup: 5,
+      r3: 1.0,
+      ...fileCfg.weights,
+      ...(env.CN_WEIGHTS && JSON.parse(env.CN_WEIGHTS)),
+    },
     proposerBudgetUsd: pick("CN_BUDGET", "proposerBudgetUsd", "8"),
     proposerTimeoutMs: Number(pick("CN_TIMEOUT", "proposerTimeoutMs", 900000)),
   };
