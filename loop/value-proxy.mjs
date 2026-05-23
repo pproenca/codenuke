@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { loadConfig } from "./config.mjs";
+import { finiteNumber } from "./guards.mjs";
 import { ranks } from "./stats.mjs";
 
 function pearson(left, right) {
@@ -54,10 +55,6 @@ export function validateValueProxy(candidates, options = {}) {
     rho,
     rows: candidates,
   };
-}
-
-function finiteNumber(value) {
-  return typeof value === "number" && Number.isFinite(value);
 }
 
 function readCandidates(path) {

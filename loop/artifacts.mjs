@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { finiteNumber } from "./guards.mjs";
 import { readJson } from "./json.mjs";
 import { wilson } from "./stats.mjs";
 
@@ -39,10 +40,6 @@ export function fenceArtifactStatus(config) {
   }
 
   return { artifact, usable: true, stale: false, reason: null };
-}
-
-function finiteNumber(value) {
-  return typeof value === "number" && Number.isFinite(value);
 }
 
 function nonNegativeInteger(value) {
