@@ -1,37 +1,26 @@
 #!/usr/bin/env node
-import { execSync } from "node:child_process";
-import { rmSync, symlinkSync } from "node:fs";
+import { symlinkSync } from "node:fs";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, slug } from "./config.mjs";
-import { commandAvailable } from "./shell.mjs";
+import { commandAvailable, quoteShellArg, runCommand, tryCommand } from "./shell.mjs";
+import { removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const WT = `${C.worktree}-doctor-${slug(Date.now())}`;
 const COMMAND_TIMEOUT = 300000;
 
 function runOk(command, cwd = C.repo, timeout = COMMAND_TIMEOUT) {
-  try {
-    execSync(command, {
-      cwd,
-      timeout,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return tryCommand(command, { cwd, timeout, env: process.env }).ok;
 }
 
 function isolatedChecks() {
-  if (!runOk(`git rev-parse --verify ${JSON.stringify(C.baseline)}`, C.repo)) {
+  if (!runOk(`git rev-parse --verify ${quoteShellArg(C.baseline)}`, C.repo)) {
     return { baselineExists: false, baselineGreen: false, typecheckOk: false };
   }
   try {
-    runOk(`git worktree remove --force ${JSON.stringify(WT)}`, C.repo, 10000);
-    execSync(`git worktree add -f ${JSON.stringify(WT)} ${JSON.stringify(C.baseline)}`, {
+    removeWorktree(C.repo, WT);
+    runCommand(`git worktree add -f ${quoteShellArg(WT)} ${quoteShellArg(C.baseline)}`, {
       cwd: C.repo,
-      stdio: ["ignore", "pipe", "pipe"],
     });
     try {
       symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
@@ -42,11 +31,7 @@ function isolatedChecks() {
   } catch {
     return { baselineExists: true, baselineGreen: false, typecheckOk: false };
   } finally {
-    try {
-      rmSync(`${WT}/node_modules`, { force: true });
-    } catch {}
-    runOk(`git worktree remove --force ${JSON.stringify(WT)}`, C.repo, 10000);
-    runOk("git worktree prune", C.repo, 10000);
+    removeWorktree(C.repo, WT);
   }
 }
 
