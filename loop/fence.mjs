@@ -10,12 +10,12 @@
 // Mutation testing is expensive ⇒ run periodically, not per-score (it stays out of the
 // inner loop). A run is deterministic (seeded sampling) so it is reproducible.
 
-import { readFileSync, writeFileSync, symlinkSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import ts from "typescript";
 import { wilson } from "./stats.mjs";
 import { loadConfig, isSourceFile } from "./config.mjs";
 import { runCommand } from "./shell.mjs";
-import { removeWorktree } from "./worktree.mjs";
+import { linkWorktreeNodeModules, removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const OUT = C.fenceArtifact;
@@ -195,9 +195,7 @@ if (regions.length === 0) {
 
 removeWorktree(C.repo, WT);
 sh(`git worktree add -f ${WT} ${C.baseline}`, C.repo);
-try {
-  symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-} catch {}
+linkWorktreeNodeModules(C.repo, WT);
 console.log(
   `fence audit (AST-aware) @ ${C.baseline}  cap=${CAP}/region  seed=${SEED}  regions=${regions.join(",")}`,
 );

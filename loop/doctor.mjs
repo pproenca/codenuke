@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import { symlinkSync } from "node:fs";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, slug } from "./config.mjs";
 import { commandAvailable, quoteShellArg, runCommand, tryCommand } from "./shell.mjs";
-import { removeWorktree } from "./worktree.mjs";
+import { linkWorktreeNodeModules, removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const WT = `${C.worktree}-doctor-${slug(Date.now())}`;
@@ -22,9 +21,7 @@ function isolatedChecks() {
     runCommand(`git worktree add -f ${quoteShellArg(WT)} ${quoteShellArg(C.baseline)}`, {
       cwd: C.repo,
     });
-    try {
-      symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-    } catch {}
+    linkWorktreeNodeModules(C.repo, WT);
     const baselineGreen = runOk(C.testCommand, WT);
     const typecheckOk = C.typeCheckCommand ? runOk(C.typeCheckCommand, WT) : true;
     return { baselineExists: true, baselineGreen, typecheckOk };

@@ -19,7 +19,6 @@ import {
   appendFileSync,
   mkdirSync,
   rmSync,
-  symlinkSync,
 } from "node:fs";
 import { relative } from "node:path";
 import {
@@ -34,7 +33,9 @@ import {
   dirtyPathsFromPorcelain,
   isHiddenBenchmarkDeletion,
   isNodeModulesPath,
+  linkWorktreeNodeModules,
   resetAndCleanWorktree,
+  unlinkWorktreeNodeModules,
 } from "./worktree.mjs";
 
 const C = loadConfig();
@@ -61,13 +62,11 @@ const restoreHiddenBenchmark = () => {
   if (benchmarkInsideRepo) shTry(`git -C ${WT} checkout -- ${quote(benchmarkRel)}`);
 };
 const hideRuntimeDepsFromProposer = () => {
-  rmSync(`${WT}/node_modules`, { recursive: true, force: true });
+  unlinkWorktreeNodeModules(C.repo, WT);
 };
 const restoreRuntimeDeps = () => {
-  rmSync(`${WT}/node_modules`, { recursive: true, force: true });
-  try {
-    symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-  } catch {}
+  unlinkWorktreeNodeModules(C.repo, WT);
+  linkWorktreeNodeModules(C.repo, WT);
 };
 const prepareProposerWorktree = () => {
   hideBenchmarkFromProposer();

@@ -8,15 +8,7 @@
 //   import { editCost, verifyCost } from "./changecost.mjs"   (library)
 //   node loop/changecost.mjs [ref]                            (run the benchmark → 𝒱̂)
 
-import {
-  readFileSync,
-  writeFileSync,
-  readdirSync,
-  existsSync,
-  symlinkSync,
-  rmSync,
-  mkdirSync,
-} from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, existsSync, rmSync, mkdirSync } from "node:fs";
 import { relative } from "node:path";
 import ts from "typescript";
 import { fenceArtifactStatus } from "./artifacts.mjs";
@@ -25,9 +17,9 @@ import { runCodexAgent } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
 import {
   dirtyPathsFromPorcelain,
-  excludeWorktreeHelper,
   isHiddenBenchmarkDeletion,
   isNodeModulesPath,
+  linkWorktreeNodeModules,
   removeWorktree,
   resetAndCleanWorktree,
 } from "./worktree.mjs";
@@ -159,10 +151,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   removeWorktree(C.repo, WT);
   sh(`git -C ${C.repo} worktree add -f ${WT} ${REF}`);
-  try {
-    symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-    excludeWorktreeHelper(WT, "node_modules");
-  } catch {}
+  linkWorktreeNodeModules(C.repo, WT);
   if (!green()) {
     console.log("baseline RED — abort");
     cleanupWorktree();

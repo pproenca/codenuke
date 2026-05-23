@@ -11,12 +11,12 @@
 //   G4  size       — net source AST nodes strictly decrease
 // then value = z-scored (ΔAST + Δcomplexity + ΔdupΔ), keep iff loss = risk − value < 0.
 
-import { readFileSync, writeFileSync, existsSync, symlinkSync, rmSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, rmSync, mkdirSync } from "node:fs";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 import { quoteShellArg as quote, runCommand } from "./shell.mjs";
-import { excludeWorktreeHelper, removeWorktree } from "./worktree.mjs";
+import { linkWorktreeNodeModules, removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
@@ -89,10 +89,7 @@ const cmd = process.argv[2];
 if (cmd === "init") {
   removeWorktree(C.repo, WT);
   shRepo(`git worktree add -f ${WT} ${C.baseline}`);
-  try {
-    symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-    excludeWorktreeHelper(WT, "node_modules");
-  } catch {}
+  linkWorktreeNodeModules(C.repo, WT);
   console.log(`verifying baseline (test${C.typeCheckCommand ? " + typecheck" : ""})…`);
   const green = testsPass(),
     t0 = typeErrors();
