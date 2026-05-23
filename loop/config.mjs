@@ -9,7 +9,7 @@
 // codenuke-only assumptions of the research prototype.
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { quoteShellArg, runCommand } from "./shell.mjs";
 
 const IGNORED_SOURCE_DIRS = new Set([".codenuke", ".git", "coverage", "dist", "node_modules"]);
 
@@ -20,7 +20,7 @@ const slug = (v) =>
     .replace(/[^A-Za-z0-9_.-]+/g, "-") || "root";
 const sh = (cmd, cwd) => {
   try {
-    return execSync(cmd, { cwd, stdio: ["ignore", "pipe", "ignore"] }).toString();
+    return runCommand(cmd, { cwd, stdio: ["ignore", "pipe", "ignore"] });
   } catch {
     return "";
   }
@@ -28,7 +28,7 @@ const sh = (cmd, cwd) => {
 
 function commandAvailable(command, cwd, env) {
   try {
-    execSync(`command -v ${JSON.stringify(command)}`, {
+    runCommand(`command -v ${quoteShellArg(command)}`, {
       cwd,
       env,
       stdio: ["ignore", "pipe", "ignore"],

@@ -1,18 +1,14 @@
 #!/usr/bin/env node
-import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { DEFAULT_CALIBRATION_SCALES, MIN_CALIBRATION_COMMITS } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
+import { quoteShellArg as quote, runCommand } from "./shell.mjs";
 
 const C = loadConfig();
 
 function sh(command) {
-  return execSync(command, {
-    cwd: C.repo,
-    maxBuffer: 1 << 30,
-    stdio: ["ignore", "pipe", "pipe"],
-  }).toString();
+  return runCommand(command, { cwd: C.repo });
 }
 
 function trySh(command) {
@@ -21,10 +17,6 @@ function trySh(command) {
   } catch {
     return "";
   }
-}
-
-function quote(value) {
-  return JSON.stringify(value);
 }
 
 function sourcePath() {

@@ -12,7 +12,6 @@
 // Proposer = headless `codex exec` editing only the isolated worktree. Override with
 // CN_PROPOSER (a shell cmd run in the worktree).
 
-import { execSync } from "node:child_process";
 import {
   readFileSync,
   writeFileSync,
@@ -30,6 +29,7 @@ import {
 } from "./artifacts.mjs";
 import { isSourceFile, loadConfig } from "./config.mjs";
 import { runCodexAgent, runShellGroup } from "./agent-adapter.mjs";
+import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
@@ -42,26 +42,8 @@ const benchmarkRel = relative(C.repo, C.benchmarkDir);
 const benchmarkInsideRepo =
   benchmarkRel && !benchmarkRel.startsWith("..") && !benchmarkRel.startsWith("/");
 
-const sh = (cmd, opts = {}) => {
-  const r = execSync(cmd, {
-    maxBuffer: 1 << 30,
-    stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
-    ...opts,
-  });
-  return r ? r.toString() : "";
-};
-const shTry = (cmd, opts = {}) => {
-  try {
-    return { ok: true, out: sh(cmd, opts) };
-  } catch (e) {
-    return {
-      ok: false,
-      out: (e.stdout?.toString() || "") + (e.stderr?.toString() || ""),
-      timedOut: e.signal === "SIGTERM" || e.code === "ETIMEDOUT",
-    };
-  }
-};
+const sh = (cmd, opts = {}) => runCommand(cmd, { env: process.env, ...opts });
+const shTry = (cmd, opts = {}) => tryCommand(cmd, { env: process.env, ...opts });
 const cleanRoots = () => [...new Set([C.srcDir, ...C.testLayout.roots])];
 const cleanWT = () => {
   shTry(`git -C ${WT} reset --hard HEAD`);
@@ -71,7 +53,6 @@ const discardTipCommit = () => {
   shTry(`git -C ${WT} reset --hard HEAD~1`);
   for (const root of cleanRoots()) shTry(`git -C ${WT} clean -fdq -- ${quote(root)}`);
 };
-const quote = (value) => JSON.stringify(value);
 const isHiddenBenchmarkDeletion = (line) => {
   const status = line.slice(0, 2);
   const path = line

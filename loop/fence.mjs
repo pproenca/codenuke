@@ -10,11 +10,11 @@
 // Mutation testing is expensive ⇒ run periodically, not per-score (it stays out of the
 // inner loop). A run is deterministic (seeded sampling) so it is reproducible.
 
-import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, symlinkSync, rmSync, mkdirSync } from "node:fs";
 import ts from "typescript";
 import { wilson } from "./stats.mjs";
 import { loadConfig, isSourceFile } from "./config.mjs";
+import { runCommand } from "./shell.mjs";
 
 const C = loadConfig();
 const OUT = C.fenceArtifact;
@@ -23,14 +23,12 @@ const TIMEOUT_MS = 45000; // a hang (sync infinite loop from a flipped guard) = 
 const WT = `${C.worktree}-fence`;
 
 const sh = (c, cwd, timeout) => {
-  const r = execSync(c, {
+  const r = runCommand(c, {
     cwd,
-    maxBuffer: 1 << 30,
-    stdio: ["ignore", "pipe", "pipe"],
     timeout,
     killSignal: "SIGKILL",
   });
-  return r ? r.toString() : "";
+  return r;
 };
 function runTests(cwd) {
   try {
@@ -39,7 +37,7 @@ function runTests(cwd) {
   } catch (e) {
     if (e && (e.killed || e.signal === "SIGKILL")) {
       try {
-        execSync("pkill -9 -f vitest");
+        runCommand("pkill -9 -f vitest");
       } catch {}
       return "timeout";
     }

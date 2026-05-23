@@ -8,7 +8,6 @@
 //   import { editCost, verifyCost } from "./changecost.mjs"   (library)
 //   node loop/changecost.mjs [ref]                            (run the benchmark → 𝒱̂)
 
-import { execSync } from "node:child_process";
 import {
   appendFileSync,
   readFileSync,
@@ -24,6 +23,7 @@ import ts from "typescript";
 import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 import { runCodexAgent } from "./agent-adapter.mjs";
+import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
 
 // ---------- library: formatting-invariant edit size + verify cost ----------
 export function tokenize(name, text) {
@@ -102,26 +102,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const REF = process.argv[2] || C.baseline;
   const BETA = Number(process.env.CN_BETA ?? 60);
   const IMPLEMENTER = process.env.CN_IMPLEMENTER;
-  const quote = (value) => JSON.stringify(value);
   const benchmarkRel = relative(C.repo, C.benchmarkDir);
   const benchmarkInsideRepo =
     benchmarkRel && !benchmarkRel.startsWith("..") && !benchmarkRel.startsWith("/");
-  const sh = (c, opts = {}) => {
-    const r = execSync(c, {
-      maxBuffer: 1 << 30,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
-      ...opts,
-    });
-    return r ? r.toString() : "";
-  };
-  const shTry = (c, opts = {}) => {
-    try {
-      return { ok: true, out: sh(c, opts) };
-    } catch (e) {
-      return { ok: false, out: (e.stdout?.toString() || "") + (e.stderr?.toString() || "") };
-    }
-  };
+  const sh = (c, opts = {}) => runCommand(c, { env: process.env, ...opts });
+  const shTry = (c, opts = {}) => tryCommand(c, { env: process.env, ...opts });
   const green = () => shTry(C.testCommand, { cwd: WT }).ok;
   function excludeWorktreeHelper(path) {
     const exclude = sh(`git -C ${WT} rev-parse --git-path info/exclude`).trim();

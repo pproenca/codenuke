@@ -11,7 +11,6 @@
 //   G4  size       — net source AST nodes strictly decrease
 // then value = z-scored (ΔAST + Δcomplexity + ΔdupΔ), keep iff loss = risk − value < 0.
 
-import { execSync } from "node:child_process";
 import {
   appendFileSync,
   readFileSync,
@@ -24,19 +23,12 @@ import {
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
+import { quoteShellArg as quote, runCommand } from "./shell.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
-const sh = (cmd, opts = {}) =>
-  execSync(cmd, {
-    cwd: WT,
-    maxBuffer: 1 << 30,
-    stdio: ["ignore", "pipe", "pipe"],
-    ...opts,
-  }).toString();
-const shRepo = (cmd) =>
-  execSync(cmd, { cwd: C.repo, maxBuffer: 1 << 30, stdio: ["ignore", "pipe", "pipe"] }).toString();
-const quote = (value) => JSON.stringify(value);
+const sh = (cmd, opts = {}) => runCommand(cmd, { cwd: WT, ...opts });
+const shRepo = (cmd) => runCommand(cmd, { cwd: C.repo });
 const readState = () => JSON.parse(readFileSync(C.state, "utf8"));
 const writeState = (s) => writeFileSync(C.state, JSON.stringify(s, null, 2));
 const showAt = (ref, p) => {
