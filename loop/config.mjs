@@ -93,7 +93,14 @@ function hasTestFile(dir) {
 }
 
 function detectTestLayout(repo, srcDir) {
-  for (const root of ["test", "tests"]) {
+  // Repo-root test dirs first, then the package-level ones (a monorepo keeps tests next to the
+  // package's src, e.g. packages/x/test alongside packages/x/src — not at the repo root).
+  const candidates = ["test", "tests"];
+  if (srcDir !== "." && srcDir.includes("/")) {
+    const pkgRoot = srcDir.split("/").slice(0, -1).join("/");
+    candidates.push(`${pkgRoot}/test`, `${pkgRoot}/tests`);
+  }
+  for (const root of candidates) {
     if (hasTestFile(`${repo}/${root}`)) {
       return {
         roots: [root],
