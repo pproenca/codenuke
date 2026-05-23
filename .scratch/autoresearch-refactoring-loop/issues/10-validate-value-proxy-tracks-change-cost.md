@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Validate the value proxy tracks change-cost
 
@@ -8,11 +8,22 @@ Add the conformance path that proves the cheap inner-loop value proxy tracks the
 
 ## Acceptance criteria
 
-- [ ] The validation command or test fixture computes both the scorer value proxy and `Vhat` over the same ordered candidate corpus.
-- [ ] Spearman rank correlation is computed deterministically and tested on known positive, negative, and tied-ranking examples.
-- [ ] The report includes the corpus identity, candidate count, per-candidate proxy value, per-candidate `Vhat`, `rho`, and pass/fail against `rho >= 0.6`.
-- [ ] The validation fails closed when the corpus is too small to support a meaningful rank correlation.
-- [ ] The release documentation distinguishes proven local deterministic proxy validation from any future LLM-backed or multi-repo claims.
+- [x] The validation command or test fixture computes both the scorer value proxy and `Vhat` over the same ordered candidate corpus.
+- [x] Spearman rank correlation is computed deterministically and tested on known positive, negative, and tied-ranking examples.
+- [x] The report includes the corpus identity, candidate count, per-candidate proxy value, per-candidate `Vhat`, `rho`, and pass/fail against `rho >= 0.6`.
+- [x] The validation fails closed when the corpus is too small to support a meaningful rank correlation.
+- [x] The release documentation distinguishes proven local deterministic proxy validation from any future LLM-backed or multi-repo claims.
+
+## Evidence
+
+- Unit/CLI coverage: `loop/value-proxy.test.mjs`.
+- Runtime gate: `loop/autoloop.mjs` requires a passing
+  `.codenuke/value-proxy-validation.json` before long unattended runs.
+- Real-repo deterministic validation:
+  `.scratch/autoresearch-refactoring-loop/proxy-validation-codecharter-2026-05-22.md`.
+  The codecharter temp-worktree corpus measured three scored candidates and two held-out
+  `changecost` deltas per candidate, then passed `codenuke validate-proxy` with
+  `rho=0.866` and `minimumRho=0.6`.
 
 ## Blocked by
 
