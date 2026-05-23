@@ -11,19 +11,12 @@
 //   G4  size       — net source AST nodes strictly decrease
 // then value = z-scored (ΔAST + Δcomplexity + ΔdupΔ), keep iff loss = risk − value < 0.
 
-import {
-  appendFileSync,
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  symlinkSync,
-  rmSync,
-  mkdirSync,
-} from "node:fs";
+import { readFileSync, writeFileSync, existsSync, symlinkSync, rmSync, mkdirSync } from "node:fs";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "./artifacts.mjs";
 import { measure } from "./measure.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 import { quoteShellArg as quote, runCommand } from "./shell.mjs";
+import { excludeWorktreeHelper, removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const WT = C.worktree;
@@ -43,23 +36,7 @@ const ensureDir = (f) => {
     mkdirSync(f.split("/").slice(0, -1).join("/"), { recursive: true });
   } catch {}
 };
-function excludeWorktreeHelper(path) {
-  const exclude = sh("git rev-parse --git-path info/exclude").trim();
-  let current = "";
-  try {
-    current = readFileSync(exclude, "utf8");
-  } catch {}
-  if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
-}
-function cleanupWorktree() {
-  try {
-    rmSync(`${WT}/node_modules`, { force: true });
-  } catch {}
-  try {
-    shRepo(`git worktree remove --force ${WT}`);
-    shRepo("git worktree prune");
-  } catch {}
-}
+const cleanupWorktree = () => removeWorktree(C.repo, WT);
 
 function testsPass() {
   try {
@@ -110,13 +87,11 @@ function requireState() {
 const cmd = process.argv[2];
 
 if (cmd === "init") {
-  try {
-    shRepo(`git worktree remove --force ${WT}`);
-  } catch {}
+  removeWorktree(C.repo, WT);
   shRepo(`git worktree add -f ${WT} ${C.baseline}`);
   try {
     symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-    excludeWorktreeHelper("node_modules");
+    excludeWorktreeHelper(WT, "node_modules");
   } catch {}
   console.log(`verifying baseline (test${C.typeCheckCommand ? " + typecheck" : ""})…`);
   const green = testsPass(),

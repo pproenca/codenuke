@@ -10,11 +10,12 @@
 // Mutation testing is expensive ⇒ run periodically, not per-score (it stays out of the
 // inner loop). A run is deterministic (seeded sampling) so it is reproducible.
 
-import { readFileSync, writeFileSync, symlinkSync, rmSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, symlinkSync, mkdirSync } from "node:fs";
 import ts from "typescript";
 import { wilson } from "./stats.mjs";
 import { loadConfig, isSourceFile } from "./config.mjs";
 import { runCommand } from "./shell.mjs";
+import { removeWorktree } from "./worktree.mjs";
 
 const C = loadConfig();
 const OUT = C.fenceArtifact;
@@ -124,15 +125,7 @@ const writeArtifact = (obj) => {
   } catch {}
   writeFileSync(OUT, JSON.stringify(obj, null, 2));
 };
-const cleanupWorktree = () => {
-  try {
-    rmSync(`${WT}/node_modules`, { force: true });
-  } catch {}
-  try {
-    sh(`git worktree remove --force ${WT}`, C.repo);
-    sh(`git worktree prune`, C.repo);
-  } catch {}
-};
+const cleanupWorktree = () => removeWorktree(C.repo, WT);
 
 // ---------- replay (monotonic re-audit of a region's survivors) ----------
 if (process.argv[2] === "replay") {
@@ -200,9 +193,7 @@ if (regions.length === 0) {
   process.exit(1);
 }
 
-try {
-  sh(`git worktree remove --force ${WT}`, C.repo);
-} catch {}
+removeWorktree(C.repo, WT);
 sh(`git worktree add -f ${WT} ${C.baseline}`, C.repo);
 try {
   symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);

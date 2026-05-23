@@ -9,7 +9,6 @@
 //   node loop/changecost.mjs [ref]                            (run the benchmark → 𝒱̂)
 
 import {
-  appendFileSync,
   readFileSync,
   writeFileSync,
   readdirSync,
@@ -24,6 +23,7 @@ import { fenceArtifactStatus } from "./artifacts.mjs";
 import { loadConfig, regionOf, isSourceFile } from "./config.mjs";
 import { runCodexAgent } from "./agent-adapter.mjs";
 import { quoteShellArg as quote, runCommand, tryCommand } from "./shell.mjs";
+import { excludeWorktreeHelper, removeWorktree } from "./worktree.mjs";
 
 // ---------- library: formatting-invariant edit size + verify cost ----------
 export function tokenize(name, text) {
@@ -108,14 +108,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const sh = (c, opts = {}) => runCommand(c, { env: process.env, ...opts });
   const shTry = (c, opts = {}) => tryCommand(c, { env: process.env, ...opts });
   const green = () => shTry(C.testCommand, { cwd: WT }).ok;
-  function excludeWorktreeHelper(path) {
-    const exclude = sh(`git -C ${WT} rev-parse --git-path info/exclude`).trim();
-    let current = "";
-    try {
-      current = readFileSync(exclude, "utf8");
-    } catch {}
-    if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
-  }
   const cleanWT = () => {
     shTry(`git -C ${WT} reset --hard HEAD`);
     shTry(`git -C ${WT} clean -fdq`);
@@ -128,15 +120,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const hideBenchmarkFromWorktree = () => {
     if (benchmarkInsideRepo) rmSync(`${WT}/${benchmarkRel}`, { recursive: true, force: true });
   };
-  const cleanupWorktree = () => {
-    try {
-      rmSync(`${WT}/node_modules`, { force: true });
-    } catch {}
-    try {
-      sh(`git -C ${C.repo} worktree remove --force ${WT}`);
-      sh(`git -C ${C.repo} worktree prune`);
-    } catch {}
-  };
+  const cleanupWorktree = () => removeWorktree(C.repo, WT);
   const dirtyPaths = () =>
     shTry(`git -C ${WT} status --porcelain`)
       .out.split("\n")
@@ -190,13 +174,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
 
-  try {
-    sh(`git -C ${C.repo} worktree remove --force ${WT}`);
-  } catch {}
+  removeWorktree(C.repo, WT);
   sh(`git -C ${C.repo} worktree add -f ${WT} ${REF}`);
   try {
     symlinkSync(`${C.repo}/node_modules`, `${WT}/node_modules`);
-    excludeWorktreeHelper("node_modules");
+    excludeWorktreeHelper(WT, "node_modules");
   } catch {}
   if (!green()) {
     console.log("baseline RED — abort");
