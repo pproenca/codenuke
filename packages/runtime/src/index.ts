@@ -9,6 +9,8 @@
  * (`Effect.die("unimplemented: RULE-xxx")`) for wave 2.
  */
 export * from "./config/config.ts"
+export { readArtifactBundle } from "./artifacts/artifact-readiness.ts"
+export type { ArtifactBundle } from "./artifacts/artifact-readiness.ts"
 export * from "./git/git.ts"
 export * from "./score/score.ts"
 export * from "./fence/fence-run.ts"

@@ -9,11 +9,11 @@
  * RULE-053) and the worktree at `<repo>/.codenuke/worktree` (both gitignored).
  */
 import { FileSystem, Path } from "@effect/platform"
-import { isSourceFile, measureFiles } from "@codenuke/core"
+import { isSourceFile, measureFiles, type CommandSpec } from "@codenuke/core"
 import { Effect, Either } from "effect"
 import { Git } from "../git/git.ts"
 import { decodeEngineState, type EngineState } from "../orchestrator/state.ts"
-import { scoreCurrentChange } from "../score/score.ts"
+import { runTypecheckCount, scoreCurrentChange } from "../score/score.ts"
 
 const stateFile = (path: Path.Path, repo: string): string => path.join(repo, ".codenuke", "state.json")
 export const managedWorktree = (path: Path.Path, repo: string): string =>
@@ -72,6 +72,12 @@ const measureRegionL = (worktree: string, region: string) =>
 export interface LifecycleOptions {
   readonly repo: string
   readonly region: string
+  readonly typeCheckCommand?: CommandSpec | null
+  readonly threshold?: number
+}
+
+export interface ScoringLifecycleOptions extends LifecycleOptions {
+  readonly testCommand: CommandSpec
 }
 
 /** RULE-044 `init` — create the managed worktree at HEAD + write fresh engine state. */
@@ -88,23 +94,33 @@ export const runInit = (opts: LifecycleOptions) =>
     const baselineSha = yield* git.resolveSha(opts.repo, "HEAD")
     yield* git.worktreeAdd(opts.repo, worktree, baselineSha)
     const startL = yield* measureRegionL(worktree, opts.region)
-    const state: EngineState = { baselineSha, baselineTsc: 0, startL, accepted: [], iter: 0 }
+    const baselineTsc = yield* runTypecheckCount(worktree, opts.typeCheckCommand)
+    const state: EngineState = { baselineSha, baselineTsc, startL, accepted: [], iter: 0 }
     yield* writeState(fs, path, opts.repo, state)
     return { worktree, baselineSha, startL }
   })
 
 /** RULE-044/035 `score` — judge the pending change in the managed worktree (or cwd if uninit). */
-export const runScore = (opts: LifecycleOptions) =>
+export const runScore = (opts: ScoringLifecycleOptions) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const state = yield* readState(fs, path, opts.repo)
     const target = state ? managedWorktree(path, opts.repo) : opts.repo
-    return yield* scoreCurrentChange({ repo: target, region: opts.region })
+    return yield* scoreCurrentChange({
+      repo: target,
+      artifactRepo: opts.repo,
+      region: opts.region,
+      testCommand: opts.testCommand,
+      typeCheckCommand: opts.typeCheckCommand,
+      baselineTypeErrors: state?.baselineTsc,
+      baselineSha: state?.baselineSha,
+      threshold: opts.threshold,
+    })
   })
 
 /** RULE-044 `accept` — commit the managed worktree change; advance state. */
-export const runAccept = (opts: LifecycleOptions) =>
+export const runAccept = (opts: ScoringLifecycleOptions) =>
   Effect.gen(function* () {
     const git = yield* Git
     const fs = yield* FileSystem.FileSystem
@@ -112,6 +128,19 @@ export const runAccept = (opts: LifecycleOptions) =>
     const state = yield* readState(fs, path, opts.repo)
     if (!state) return { ok: false as const, reason: "not initialized — run `codenuke init`" }
     const worktree = managedWorktree(path, opts.repo)
+    const scored = yield* scoreCurrentChange({
+      repo: worktree,
+      artifactRepo: opts.repo,
+      region: opts.region,
+      testCommand: opts.testCommand,
+      typeCheckCommand: opts.typeCheckCommand,
+      baselineTypeErrors: state.baselineTsc,
+      baselineSha: state.baselineSha,
+      threshold: opts.threshold,
+    })
+    if (scored.status !== "accepted" || scored.verdict?.keep !== true) {
+      return { ok: false as const, reason: `score rejected (${scored.status})` }
+    }
     const sha = yield* git.commitAll(worktree, `codenuke: accept #${state.iter + 1}`)
     yield* writeState(fs, path, opts.repo, {
       ...state,

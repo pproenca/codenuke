@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "candidates": [
+    {
+      "id": "kept-reduction",
+      "dL": 40,
+      "loss": -0.8,
+      "metricKeep": true,
+      "testsPass": true,
+      "reverted": false,
+      "retainedReduction": 40,
+      "verificationCost": 8
+    },
+    {
+      "id": "risky-reduction",
+      "dL": 80,
+      "loss": 0.4,
+      "metricKeep": false,
+      "testsPass": true,
+      "reverted": true,
+      "retainedReduction": 0,
+      "verificationCost": 20
+    },
+    {
+      "id": "test-only-false-positive",
+      "dL": 15,
+      "loss": 0.2,
+      "metricKeep": false,
+      "testsPass": true,
+      "reverted": true,
+      "retainedReduction": 0,
+      "verificationCost": 12
+    },
+    {
+      "id": "blocked-growth",
+      "dL": -5,
+      "loss": null,
+      "metricKeep": false,
+      "testsPass": false,
+      "reverted": false,
+      "retainedReduction": 0,
+      "verificationCost": 4
+    }
+  ]
+}

@@ -1,62 +1,170 @@
-import { describe, it } from "@effect/vitest";
+import { describe, expect, it } from "@effect/vitest";
+import {
+  DEFAULT_CALIBRATION_SCALES,
+  costOf,
+  validateCalibrationArtifact,
+  validateChangeCostArtifact,
+  validateFenceArtifact,
+  validateValueProxy,
+  validateValueProxyArtifact,
+  vhatOf,
+  wilson,
+} from "../src/index.ts";
 
-/**
- * Artifact validation (RULE-022/023/024/030/054) is the central fail-closed gate.
- * The readers decode via Schema then recompute-and-compare (anti-tamper) — that
- * effectful machinery lands in a later wave, so `ArtifactsLive` is a stub here and
- * these acceptance tests are SKIPPED. They are written now so the RULE-054/030
- * FIXES stay tracked in the traceability map.
- */
-describe("Artifacts service (stubbed — Schema decode + recompute-and-compare)", () => {
-  // RULE-022 — fence artifact status + anti-tamper
-  it.skip("RULE-022 hand-edited region (admissible:true but lo<threshold) → invalid-regions", () => {
-    // TODO: re-derive wilson(caught,total); compare p/lo/hi within 1e-9; check admissible==(lo>=threshold).
+const SHA = "a".repeat(40);
+const OTHER_SHA = "b".repeat(40);
+
+const fenceArtifact = () => {
+  const w = wilson(60, 60);
+  return {
+    schemaVersion: 1 as const,
+    baseline: "HEAD",
+    baselineSha: SHA,
+    generatedAt: "2026-05-25T00:00:00.000Z",
+    method: "ast-aware" as const,
+    threshold: 0.9,
+    capPerRegion: 60,
+    seed: 1337,
+    regions: {
+      src: {
+        caught: 60,
+        total: 60,
+        p: w.p,
+        lo: w.lo,
+        hi: w.hi,
+        admissible: w.lo >= 0.9,
+        survivorSpecs: [],
+      },
+    },
+  };
+};
+
+const calibrationArtifact = (overrides: Record<string, unknown> = {}) => ({
+  schemaVersion: 1 as const,
+  baseline: "HEAD",
+  baselineSha: SHA,
+  generatedAt: "2026-05-25T00:00:00.000Z",
+  commitsSampled: 3,
+  scales: { sL: 150, sCx: 15, sDup: 5 },
+  ...overrides,
+});
+
+const valueProxyArtifact = () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({
+    id: `candidate-${i + 1}`,
+    proxy: i + 1,
+    Vhat: 12 - i,
+  }));
+  const report = validateValueProxy(rows);
+  expect(report.passed).toBe(true);
+  return {
+    schemaVersion: 1 as const,
+    input: ".codenuke/value-proxy-input.json",
+    ...report,
+    rows,
+  };
+};
+
+const changecostArtifact = () => {
+  const cost = costOf(10, 0, 60);
+  return {
+    schemaVersion: 1 as const,
+    ref: "HEAD",
+    beta: 60,
+    Vhat: vhatOf([cost]),
+    done: 1,
+    total: 1,
+    results: [
+      {
+        id: "task-1",
+        status: "done" as const,
+        editTokens: 10,
+        filesTouched: 1,
+        regions: ["src"],
+        verifyFrac: 0,
+        cost,
+      },
+    ],
+  };
+};
+
+describe("artifact validation — schema decode plus re-derivation", () => {
+  it("rejects hand-edited fence admissibility and Wilson values", () => {
+    const valid = fenceArtifact();
+    expect(validateFenceArtifact(valid, { baselineSha: SHA, threshold: 0.9 }).status.usable).toBe(true);
+
+    expect(
+      validateFenceArtifact(
+        { ...valid, regions: { src: { ...valid.regions.src, admissible: !valid.regions.src.admissible } } },
+        { baselineSha: SHA, threshold: 0.9 },
+      ).status.reason,
+    ).toContain("admissible");
+
+    expect(
+      validateFenceArtifact(
+        { ...valid, regions: { src: { ...valid.regions.src, lo: valid.regions.src.lo - 0.01 } } },
+        { baselineSha: SHA, threshold: 0.9 },
+      ).status.reason,
+    ).toContain("wilson");
   });
 
-  it.skip("RULE-022 stored p differing from wilson(caught,total) by >1e-9 → invalid-regions", () => {
-    // TODO: anti-tamper Wilson re-derivation.
+  it("marks stale fence/calibration baselines unusable", () => {
+    expect(validateFenceArtifact(fenceArtifact(), { baselineSha: OTHER_SHA, threshold: 0.9 }).status).toMatchObject({
+      stale: true,
+      usable: false,
+    });
+    expect(validateCalibrationArtifact(calibrationArtifact(), { baselineSha: OTHER_SHA }).status).toMatchObject({
+      stale: true,
+      usable: false,
+    });
   });
 
-  it.skip("RULE-022 method!=ast-aware or threshold!=fenceLB → invalid-metadata; baseline drift → stale", () => {
-    // TODO: metadata + staleness checks.
+  it("validates calibration positive finite scales and default-scale provenance", () => {
+    expect(validateCalibrationArtifact(calibrationArtifact(), { baselineSha: SHA }).status.usable).toBe(true);
+    expect(
+      validateCalibrationArtifact(calibrationArtifact({ scales: { sL: 0, sCx: 15, sDup: 5 } }), { baselineSha: SHA })
+        .status.reason,
+    ).toBe("invalid-scales");
+    expect(
+      validateCalibrationArtifact(calibrationArtifact({ commitsSampled: 2, scales: { sL: 10, sCx: 15, sDup: 5 } }), {
+        baselineSha: SHA,
+      }).status.reason,
+    ).toBe("invalid-provenance");
+    expect(
+      validateCalibrationArtifact(calibrationArtifact({ commitsSampled: 2, scales: DEFAULT_CALIBRATION_SCALES }), {
+        baselineSha: SHA,
+      }).status.usable,
+    ).toBe(true);
   });
 
-  // RULE-023 — calibration artifact status + provenance
-  it.skip("RULE-023 commitsSampled=2 with custom scales → invalid-provenance; with default scales → usable", () => {
-    // TODO: provenance branch (<3 commits but == defaults ⇒ valid).
+  it("re-runs value-proxy rho and p-value validation from rows", () => {
+    const valid = valueProxyArtifact();
+    expect(validateValueProxyArtifact(valid).status.usable).toBe(true);
+
+    expect(validateValueProxyArtifact({ ...valid, rho: valid.rho! - 0.01 }).status.reason).toContain(
+      "re-derivation",
+    );
+    expect(validateValueProxyArtifact({ ...valid, pValue: valid.pValue! + 0.01 }).status.reason).toContain(
+      "re-derivation",
+    );
+    expect(validateValueProxyArtifact({ ...valid, passed: false }).status.usable).toBe(false);
   });
 
-  it.skip("RULE-023 sL=0 → invalid-scales; drifted baseline → stale", () => {
-    // TODO: positive-finite scale check + staleness.
-  });
+  it("re-derives changecost verifyFrac, cost, done count, and Vhat", () => {
+    const valid = changecostArtifact();
+    expect(validateChangeCostArtifact(valid, { src: { p: 1 } }).status.usable).toBe(true);
 
-  // RULE-024 — value-proxy validation contract + re-derivation
-  it.skip("RULE-024 stored rho differs from rho re-derived from rows by >1e-9 → fails", () => {
-    // TODO: re-run validateValueProxy; require matching rho/pValue within 1e-9 and identical pMethod.
-  });
-
-  it.skip("RULE-024 hand-edited passed:true with mismatched p-value → rejected by re-derivation", () => {
-    // TODO: anti-tamper p-value re-derivation.
-  });
-
-  // RULE-030 — fail-closed startup gate (ordered), INCLUDING the RULE-054 changecost step (FIX)
-  it.skip("RULE-030 startup gate fails closed at the FIRST gap in fixed order (fence → calibration → value-proxy)", () => {
-    // TODO: ordered check; first failure → exitCode 1, stop.
-  });
-
-  it.skip("RULE-030/054 validateAll INCLUDES a changecost readiness check (FIX — legacy gate omitted it)", () => {
-    // TODO: assert Artifacts.validateAll() runs readChangeCost() so value-proxy Vhat
-    // provenance chains to a validated changecost artifact. This is the RULE-054 fix.
-  });
-
-  // RULE-054 — changecost artifact re-derivation (UN-WIRED in legacy; FIX = wire it)
-  it.skip("RULE-054 stored cost differing from editTokens + beta*verifyFrac by >1e-9 → invalid", () => {
-    // TODO: per done-result, verifyFrac ~= changeCostVerifyFrac(regions,fence); cost ~= editTokens + beta*verifyFrac;
-    //       Vhat===null iff no done results else mean(costs); tolerance 1e-9; null-fence → expected verifyFrac 1.
-  });
-
-  it.skip("RULE-054 changecost is reachable from the startup gate (no production module bypasses it) — the defect to fix", () => {
-    // TODO: call-graph assertion — Artifacts.validateAll is the single caller path
-    // for changecost validation; nothing derives value-proxy from an unvalidated changecost.
+    expect(
+      validateChangeCostArtifact(
+        { ...valid, results: [{ ...valid.results[0]!, verifyFrac: 0.5, cost: 40 }] },
+        { src: { p: 1 } },
+      ).status.reason,
+    ).toContain("tampered");
+    expect(validateChangeCostArtifact({ ...valid, done: 0 }, { src: { p: 1 } }).status.reason).toBe(
+      "tampered: done-count",
+    );
+    expect(validateChangeCostArtifact({ ...valid, Vhat: 11 }, { src: { p: 1 } }).status.reason).toBe(
+      "tampered: Vhat",
+    );
   });
 });

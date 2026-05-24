@@ -34,7 +34,7 @@ never touched by the loop.
 | Command | Purpose |
 |---|---|
 | `fence [cap] [seed] [regions]` | AST-aware mutation audit → `.codenuke/fence-fidelity.json` |
-| `run` / `loop [iterations]` | the reduce autoloop (startup gate → propose → score → keep/revert) |
+| `run` / `loop [iterations] [--json]` | the reduce autoloop (startup gate → propose → score → keep/revert) |
 | `score [--json]` | judge the pending change (managed worktree, or cwd) |
 | `init`/`accept`/`revert`/`status`/`cleanup` | manual scorer lifecycle over a managed worktree |
 | `calibrate` | per-repo value scales from git history |

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "@effect/vitest"
 import type { Measurement } from "@codenuke/core"
 import { decide } from "@codenuke/core"
-import { assembleScoreInputs, renderScoreHuman, SCORE_DEFAULT_WEIGHTS } from "../src/score/score.ts"
+import {
+  assembleScoreInputs,
+  decideEnvelope,
+  type GateInputs,
+  renderScoreHuman,
+  SCORE_DEFAULT_WEIGHTS,
+} from "../src/score/score.ts"
 
 /**
  * RULE-035 score walking skeleton (Slice 0) — the pure assembly + decide path.
@@ -10,10 +16,19 @@ import { assembleScoreInputs, renderScoreHuman, SCORE_DEFAULT_WEIGHTS } from "..
  */
 
 const m = (L: number, complexity: number, dupMass: number): Measurement => ({ L, complexity, dupMass })
+const gates = (diffsize: number): GateInputs => ({
+  testsPass: true,
+  fenceUsable: true,
+  blockedRegions: [],
+  touchedFidelities: [],
+  diffsize,
+  typeErrors: 0,
+  baselineTypeErrors: 0,
+})
 
-describe("RULE-035 score skeleton — assembleScoreInputs", () => {
-  it("RULE-035 sets the Slice-0 safety stubs and passes through diffsize/weights", () => {
-    const inputs = assembleScoreInputs({ before: m(100, 10, 5), after: m(90, 8, 5), diffsize: 12 })
+describe("RULE-035 score assembly — assembleScoreInputs", () => {
+  it("RULE-035 requires explicit gate inputs and passes through diffsize/weights", () => {
+    const inputs = assembleScoreInputs({ before: m(100, 10, 5), after: m(90, 8, 5), ...gates(12) })
     expect(inputs.testsPass).toBe(true)
     expect(inputs.fenceUsable).toBe(true)
     expect(inputs.blockedRegions).toEqual([])
@@ -26,7 +41,7 @@ describe("RULE-035 score skeleton — assembleScoreInputs", () => {
   })
 
   it("RULE-035 a real reduction (smaller AST, gates pass) is KEPT with loss<0", () => {
-    const v = decide(assembleScoreInputs({ before: m(100, 10, 5), after: m(90, 8, 5), diffsize: 10 }))
+    const v = decide(assembleScoreInputs({ before: m(100, 10, 5), after: m(90, 8, 5), ...gates(10) }))
     expect(v.admissible).toBe(true)
     expect(v.dL).toBe(10)
     expect(v.gain).toBeGreaterThan(0)
@@ -38,7 +53,7 @@ describe("RULE-035 score skeleton — assembleScoreInputs", () => {
   })
 
   it("RULE-035/RULE-021 code that GREW (ΔL≤0) fails G4 and is reverted", () => {
-    const v = decide(assembleScoreInputs({ before: m(90, 8, 5), after: m(100, 10, 5), diffsize: 10 }))
+    const v = decide(assembleScoreInputs({ before: m(90, 8, 5), after: m(100, 10, 5), ...gates(10) }))
     expect(v.gates.G4).toBe(false)
     expect(v.admissible).toBe(false)
     expect(v.keep).toBe(false)
@@ -47,8 +62,18 @@ describe("RULE-035 score skeleton — assembleScoreInputs", () => {
   })
 
   it("RULE-035 renderScoreHuman summarizes keep + gates", () => {
-    const v = decide(assembleScoreInputs({ before: m(100, 10, 5), after: m(90, 8, 5), diffsize: 10 }))
-    const text = renderScoreHuman(v)
+    const before = m(100, 10, 5)
+    const after = m(90, 8, 5)
+    const envelope = decideEnvelope({
+      before,
+      after,
+      gates: gates(10),
+      baselineSha: "a".repeat(40),
+      confidence: "bootstrap",
+      artifactHashes: {},
+      config: {},
+    })
+    const text = renderScoreHuman(envelope)
     expect(text).toContain("KEEP")
     expect(text).toContain("gates:")
   })

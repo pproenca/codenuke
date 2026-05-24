@@ -188,12 +188,16 @@ activity shows up live in the active renderer. Thread continuity (`threadId` per
 type ProgressEvent =
   | { _tag: "RunStarted"; iterations: number; baselineSha: string }
   | { _tag: "RegionSelected"; region: string; mode: "reduce" | "raise" }
+  | { _tag: "IterationStarted"; iter: number; total: number }
+  | { _tag: "PhaseStarted"; iter: number; phase: LoopPhase }
+  | { _tag: "PhaseFinished"; iter: number; phase: LoopPhase; ok: boolean; ms: number }
   | { _tag: "ProposerEvent"; ev: ProposerEvent }          // from §5
   | { _tag: "MutationProgress"; region: string; done: number; total: number }
-  | { _tag: "Scored"; verdict: Verdict }
+  | { _tag: "Scored"; envelope: ScoreEnvelope }           // public schemaVersion: 2
   | { _tag: "KeptOrReverted"; kept: boolean; reason: string }
   | { _tag: "ArtifactWritten"; path: string; kind: string }
-  | { _tag: "Heartbeat"; ms: number }
+  | { _tag: "RunFinished"; kept: number; reverted: number; iterations: number; reductionPct: number; resultRef: string | null }
+  | { _tag: "Heartbeat"; ms: number; iter?: number; phase?: LoopPhase }
   | { _tag: "Message"; level: "info" | "warn" | "error"; text: string }
 ```
 
@@ -208,10 +212,11 @@ concurrently with a live renderer.)
 - **NDJSON renderer** (`--json` / `--stream`) — one JSON object per line on
   **stdout**, diagnostics on **stderr**. Replaces the legacy `@@JSON@@` sentinel.
 
-`Scored` carries the **full `Verdict` including `failedGates`** — that is the
-sole observable sink for the **RULE-063 fix** now that C12's `results.tsv` is
-deferred, so the RULE-063 acceptance test asserts `failedGates` on the `Scored`
-NDJSON event (and `score --json` gains `failedGates`/`blocked` fields).
+`Scored` carries the public v2 `ScoreEnvelope`, not a bare or flattened
+`Verdict`. `score --json` and progress `Scored` events emit exactly that latest
+envelope shape: `{ schemaVersion: 2, _tag: "Scored", status, metric, guardrails,
+verdict }`. The inner `Verdict` still contains `failedGates`, but JSON consumers
+must read it through `envelope.verdict`.
 
 Heartbeats (15s, RULE-047) become a `Stream` tick merged into the bus.
 
@@ -342,8 +347,9 @@ incorporated:
 - **Effect API mis-claims** → `PubSub` (not `Hub`); exit-code table owned by
   `runMain` handler (not "free" from `@effect/cli`); finalizers require `runMain` +
   no `process.exit` (§7, §8, §10).
-- **C12 vs RULE-063** → `failedGates` surfaced on the `Scored` NDJSON event +
-  `score --json`; acceptance test asserts there (§6).
+- **C12 vs RULE-063** → `failedGates` surfaced inside the v2 `ScoreEnvelope`
+  emitted by `Scored` NDJSON events and `score --json`; acceptance test asserts
+  there (§6).
 
 **Minors (fixed):** fence-gap helper moved to `core/kernel` (pure leaf), not
 `domain` (§4); explicit "two PRNGs, do not unify" note (§4); three distinct

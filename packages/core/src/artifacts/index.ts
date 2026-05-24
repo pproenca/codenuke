@@ -13,18 +13,237 @@
  * SCAFFOLD: `ArtifactsLive` is a stub. The acceptance tests are `it.skip` keyed
  * by RULE-022/023/024/030/054 — written now so the fixes stay tracked.
  */
-import { Context, Effect, Layer } from "effect";
-import type {
-  ArtifactStatus,
+import { Context, Effect, Either, Layer, ParseResult, Schema } from "effect";
+import {
   CalibrationArtifact,
   ChangeCostArtifact,
   FenceArtifact,
-  ValueProxyStatus,
   ValueProxyValidationArtifact,
 } from "../domain/index.ts";
+import type {
+  ArtifactStatus,
+  ValueProxyStatus,
+} from "../domain/index.ts";
+import { costOf, type FenceRegions, verifyFrac, vhatOf } from "../changecost/index.ts";
+import { wilson } from "../kernel/index.ts";
+import { validateValueProxy } from "../value-proxy/index.ts";
 
 /** Anti-tamper / re-derivation tolerance (RULE-022/024/054). */
 export const NUMBER_TOLERANCE = 1e-9;
+
+export const DEFAULT_CALIBRATION_SCALES = { sL: 150, sCx: 15, sDup: 5 } as const;
+export const MIN_CALIBRATION_COMMITS = 3;
+
+export interface ValidationResult<T, S = ArtifactStatus> {
+  readonly status: S;
+  readonly artifact: T | null;
+}
+
+const missingArtifact = (): ArtifactStatus => ({
+  present: false,
+  stale: false,
+  usable: false,
+  reason: "missing",
+});
+
+const invalidArtifact = (reason: string): ArtifactStatus => ({
+  present: true,
+  stale: false,
+  usable: false,
+  reason,
+});
+
+const staleArtifact = (reason: string): ArtifactStatus => ({
+  present: true,
+  stale: true,
+  usable: false,
+  reason,
+});
+
+const usableArtifact = (): ArtifactStatus => ({
+  present: true,
+  stale: false,
+  usable: true,
+  reason: null,
+});
+
+const missingValueArtifact = (): ValueProxyStatus => ({
+  present: false,
+  usable: false,
+  reason: "missing",
+});
+
+const invalidValueArtifact = (reason: string): ValueProxyStatus => ({
+  present: true,
+  usable: false,
+  reason,
+});
+
+const usableValueArtifact = (): ValueProxyStatus => ({
+  present: true,
+  usable: true,
+  reason: null,
+});
+
+const parseError = (error: ParseResult.ParseError): string =>
+  ParseResult.TreeFormatter.formatErrorSync(error);
+
+const nearlyEqual = (a: number, b: number): boolean =>
+  Math.abs(a - b) <= NUMBER_TOLERANCE;
+
+const isPositiveFinite = (n: number): boolean => Number.isFinite(n) && n > 0;
+
+const decodeEither = <A, I>(
+  schema: Schema.Schema<A, I, never>,
+  raw: unknown,
+): Either.Either<A, ParseResult.ParseError> => Schema.decodeUnknownEither(schema)(raw);
+
+export const validateFenceArtifact = (
+  raw: unknown,
+  opts: { readonly baselineSha: string; readonly threshold: number },
+): ValidationResult<FenceArtifact> => {
+  if (raw === null || raw === undefined) return { status: missingArtifact(), artifact: null };
+  const decoded = decodeEither(FenceArtifact, raw);
+  if (Either.isLeft(decoded)) {
+    return { status: invalidArtifact(`invalid-metadata: ${parseError(decoded.left)}`), artifact: null };
+  }
+  const artifact = decoded.right;
+  if (artifact.baselineSha !== opts.baselineSha) {
+    return { status: staleArtifact(`stale-baseline-${artifact.baselineSha}-${opts.baselineSha}`), artifact };
+  }
+  if (artifact.threshold !== opts.threshold) {
+    return { status: invalidArtifact("invalid-metadata: threshold mismatch"), artifact };
+  }
+  for (const [region, rec] of Object.entries(artifact.regions)) {
+    if (!Number.isInteger(rec.caught) || !Number.isInteger(rec.total) || rec.caught < 0 || rec.total < 0 || rec.caught > rec.total) {
+      return { status: invalidArtifact(`invalid-regions: ${region} caught/total`), artifact };
+    }
+    const w = wilson(rec.caught, rec.total);
+    if (!nearlyEqual(w.p, rec.p) || !nearlyEqual(w.lo, rec.lo) || !nearlyEqual(w.hi, rec.hi)) {
+      return { status: invalidArtifact(`invalid-regions: ${region} wilson`), artifact };
+    }
+    if (rec.admissible !== (rec.lo >= artifact.threshold)) {
+      return { status: invalidArtifact(`invalid-regions: ${region} admissible`), artifact };
+    }
+    if (rec.survivorSpecs.length !== rec.total - rec.caught) {
+      return { status: invalidArtifact(`invalid-regions: ${region} survivors`), artifact };
+    }
+  }
+  return { status: usableArtifact(), artifact };
+};
+
+const isDefaultScales = (artifact: CalibrationArtifact): boolean =>
+  artifact.scales.sL === DEFAULT_CALIBRATION_SCALES.sL &&
+  artifact.scales.sCx === DEFAULT_CALIBRATION_SCALES.sCx &&
+  artifact.scales.sDup === DEFAULT_CALIBRATION_SCALES.sDup;
+
+export const validateCalibrationArtifact = (
+  raw: unknown,
+  opts: { readonly baselineSha: string },
+): ValidationResult<CalibrationArtifact> => {
+  if (raw === null || raw === undefined) return { status: missingArtifact(), artifact: null };
+  const decoded = decodeEither(CalibrationArtifact, raw);
+  if (Either.isLeft(decoded)) {
+    return { status: invalidArtifact(`invalid-metadata: ${parseError(decoded.left)}`), artifact: null };
+  }
+  const artifact = decoded.right;
+  if (artifact.baselineSha !== opts.baselineSha) {
+    return { status: staleArtifact(`stale-baseline-${artifact.baselineSha}-${opts.baselineSha}`), artifact };
+  }
+  if (!isPositiveFinite(artifact.scales.sL) || !isPositiveFinite(artifact.scales.sCx) || !isPositiveFinite(artifact.scales.sDup)) {
+    return { status: invalidArtifact("invalid-scales"), artifact };
+  }
+  if (artifact.commitsSampled < MIN_CALIBRATION_COMMITS && !isDefaultScales(artifact)) {
+    return { status: invalidArtifact("invalid-provenance"), artifact };
+  }
+  return { status: usableArtifact(), artifact };
+};
+
+export const validateValueProxyArtifact = (
+  raw: unknown,
+): ValidationResult<ValueProxyValidationArtifact, ValueProxyStatus> => {
+  if (raw === null || raw === undefined) return { status: missingValueArtifact(), artifact: null };
+  const decoded = decodeEither(ValueProxyValidationArtifact, raw);
+  if (Either.isLeft(decoded)) {
+    return { status: invalidValueArtifact(`malformed-input: ${parseError(decoded.left)}`), artifact: null };
+  }
+  const artifact = decoded.right;
+  if (!artifact.passed || artifact.reason !== null) {
+    return { status: invalidValueArtifact(artifact.reason ?? "not-passed"), artifact };
+  }
+  if (artifact.candidates < artifact.minimumCandidates || artifact.minimumCandidates < 2) {
+    return { status: invalidValueArtifact("too-small-corpus"), artifact };
+  }
+  if (artifact.rows.length !== artifact.candidates) {
+    return { status: invalidValueArtifact("malformed-input: row-count"), artifact };
+  }
+  if (artifact.rho === null || artifact.rho < artifact.minimumRho || artifact.rho < -1 || artifact.rho > 1) {
+    return { status: invalidValueArtifact("low-rho"), artifact };
+  }
+  if (artifact.pValue === null || artifact.pValue < 0 || artifact.pValue > artifact.alpha) {
+    return { status: invalidValueArtifact("not-significant"), artifact };
+  }
+  const rerun = validateValueProxy(artifact.rows, {
+    minimumCandidates: artifact.minimumCandidates,
+    minimumRho: artifact.minimumRho,
+    alpha: artifact.alpha,
+  });
+  if (
+    rerun.passed !== artifact.passed ||
+    rerun.reason !== artifact.reason ||
+    rerun.rho === null ||
+    rerun.pValue === null ||
+    artifact.pMethod === null ||
+    !nearlyEqual(rerun.rho, artifact.rho) ||
+    !nearlyEqual(rerun.pValue, artifact.pValue) ||
+    rerun.pMethod !== artifact.pMethod
+  ) {
+    return { status: invalidValueArtifact("tampered: value-proxy re-derivation mismatch"), artifact };
+  }
+  return { status: usableValueArtifact(), artifact };
+};
+
+export const validateChangeCostArtifact = (
+  raw: unknown,
+  fence: FenceRegions | null,
+): ValidationResult<ChangeCostArtifact, ValueProxyStatus> => {
+  if (raw === null || raw === undefined) return { status: missingValueArtifact(), artifact: null };
+  const decoded = decodeEither(ChangeCostArtifact, raw);
+  if (Either.isLeft(decoded)) {
+    return { status: invalidValueArtifact(`malformed-input: ${parseError(decoded.left)}`), artifact: null };
+  }
+  const artifact = decoded.right;
+  if (!isPositiveFinite(artifact.beta) || artifact.results.length !== artifact.total) {
+    return { status: invalidValueArtifact("invalid-metadata"), artifact };
+  }
+  const doneCosts: number[] = [];
+  let done = 0;
+  for (const result of artifact.results) {
+    if (result.status !== "done") continue;
+    done += 1;
+    if (
+      typeof result.editTokens !== "number" ||
+      typeof result.verifyFrac !== "number" ||
+      typeof result.cost !== "number"
+    ) {
+      return { status: invalidValueArtifact(`invalid-result: ${result.id}`), artifact };
+    }
+    const expectedVerify = fence === null ? 1 : verifyFrac(result.regions ?? [], fence);
+    const expectedCost = costOf(result.editTokens, expectedVerify, artifact.beta);
+    if (!nearlyEqual(result.verifyFrac, expectedVerify) || !nearlyEqual(result.cost, expectedCost)) {
+      return { status: invalidValueArtifact(`tampered: ${result.id}`), artifact };
+    }
+    doneCosts.push(result.cost);
+  }
+  if (done !== artifact.done) {
+    return { status: invalidValueArtifact("tampered: done-count"), artifact };
+  }
+  const expectedVhat = vhatOf(doneCosts);
+  if (expectedVhat === null ? artifact.Vhat !== null : artifact.Vhat === null || !nearlyEqual(artifact.Vhat, expectedVhat)) {
+    return { status: invalidValueArtifact("tampered: Vhat"), artifact };
+  }
+  return { status: usableValueArtifact(), artifact };
+};
 
 export class Artifacts extends Context.Tag("Artifacts")<
   Artifacts,

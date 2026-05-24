@@ -24,7 +24,9 @@ import {
   ConfigLive,
   GitLive,
   makeApplyingFakeProposerLive,
+  ndjsonRenderer,
   OrchestratorLive,
+  ProgressBus,
   ProgressBusLive,
   renderScoreHuman,
   runAccept,
@@ -40,11 +42,13 @@ import {
   runStatus,
   runValidateProxy,
   shouldRequireValueProxyValidation,
-  startupGate,
+  ttyRenderer,
   toNdjson,
   ValueProxyServiceLive,
 } from "@codenuke/runtime"
-import { Cause, Console, Effect, Layer, Option } from "effect"
+import { Cause, Console, Effect, Fiber, Layer, Option } from "effect"
+import { existsSync } from "node:fs"
+import { resolve as pathResolve } from "node:path"
 
 /** Build the test CommandSpec from the env (argv only; never a shell string). */
 const testCommandFromEnv = (): { readonly file: string; readonly args: readonly string[] } => {
@@ -57,6 +61,33 @@ const testCommandFromEnv = (): { readonly file: string; readonly args: readonly 
   } catch {
     return { file, args: ["test"] }
   }
+}
+
+const envCommand = (
+  prefix: string,
+  fallback: { readonly file: string; readonly args: readonly string[] } | null,
+): { readonly file: string; readonly args: readonly string[] } | null => {
+  const file = process.env[`${prefix}_FILE`] ?? fallback?.file
+  const raw = process.env[`${prefix}_ARGS_JSON`]
+  if (!file) return null
+  if (!raw) return { file, args: fallback?.args ?? [] }
+  try {
+    const v: unknown = JSON.parse(raw)
+    return { file, args: Array.isArray(v) ? v.map(String) : fallback?.args ?? [] }
+  } catch {
+    return { file, args: fallback?.args ?? [] }
+  }
+}
+
+const typeCheckCommandFromEnv = (): { readonly file: string; readonly args: readonly string[] } | null => {
+  if (process.env.CN_TYPECHECK_FILE || process.env.CN_TYPECHECK_ARGS_JSON) {
+    return envCommand("CN_TYPECHECK", { file: process.env.CN_TYPECHECK_FILE ?? "npm", args: ["run", "typecheck"] })
+  }
+  const tsc = pathResolve(process.cwd(), "node_modules/.bin/tsc")
+  if (existsSync(pathResolve(process.cwd(), "tsconfig.json")) && existsSync(tsc)) {
+    return { file: tsc, args: ["-p", "tsconfig.json", "--noEmit"] }
+  }
+  return null
 }
 import { exitCodeFor, EXIT_NOT_READY } from "./exit-codes.ts"
 
@@ -117,15 +148,10 @@ const fence = Command.make(
  * (`codex` default | `fake`); the applying fake removes CN_FAKE_MARKER lines from
  * CN_FAKE_FILE for hermetic smokes. Region = CN_SRC (or `src`).
  */
-const reduceRun = (iterations: number) =>
+const reduceRun = (iterations: number, json: boolean) =>
   Effect.gen(function* () {
     const repo = process.cwd()
     const region = process.env.CN_SRC ?? "src"
-    const gap = yield* startupGate(repo, iterations)
-    if (gap !== null) {
-      yield* Console.error(`codenuke: not ready — ${gap.message}`)
-      return yield* Effect.fail({ _tag: "NotReady" as const })
-    }
     const provider = process.env.CN_PROPOSER_PROVIDER ?? "codex"
     const proposerLayer =
       provider === "fake"
@@ -134,37 +160,47 @@ const reduceRun = (iterations: number) =>
             marker: process.env.CN_FAKE_MARKER ?? "codenuke:remove",
           })
         : CodexProposerLive
+    const progress = yield* ProgressBus
+    const renderer = json ? ndjsonRenderer(progress.stream) : ttyRenderer(progress.stream, process.stderr.isTTY && !process.env.NO_COLOR)
+    const renderFiber = yield* Effect.fork(renderer)
     const report = yield* runReduceLoop({
       repo,
       region,
       iterations,
       testCommand: testCommandFromEnv(),
+      typeCheckCommand: typeCheckCommandFromEnv(),
       threshold: 0.9,
       resultRef: "refs/codenuke/result",
-    }).pipe(Effect.provide(proposerLayer))
-    yield* Console.log(
-      `run: kept ${report.kept}, reverted ${report.reverted} over ${iterations} iteration(s); reduction ${report.reductionPct.toFixed(1)}%`,
+    }).pipe(
+      Effect.provide(proposerLayer),
+      Effect.ensuring(progress.shutdown),
+      Effect.ensuring(Fiber.join(renderFiber).pipe(Effect.ignore)),
     )
-    for (const o of report.iterations) {
-      yield* Console.log(`  #${o.iter} ${o.kept ? "KEEP" : "REVERT"} ΔL=${o.dL} (${o.reason})`)
-    }
-    yield* Console.log("journal: .codenuke/results.tsv")
-    if (report.resultRef !== null) {
-      yield* Console.log(`result: ${report.resultRef} — \`git merge ${report.resultRef}\` to adopt`)
+    if (!json) {
+      yield* Console.log(
+        `run: kept ${report.kept}, reverted ${report.reverted} over ${report.iterations.length} iteration(s); reduction ${report.reductionPct.toFixed(1)}%`,
+      )
+      for (const o of report.iterations) {
+        yield* Console.log(`  #${o.iter} ${o.kept ? "KEEP" : "REVERT"} ΔL=${o.dL} (${o.reason})`)
+      }
+      yield* Console.log("journal: .codenuke/results.tsv")
+      if (report.resultRef !== null) {
+        yield* Console.log(`result: ${report.resultRef} — \`git merge ${report.resultRef}\` to adopt`)
+      }
     }
   })
 
 const run = Command.make(
   "run",
-  { iterations: Args.integer({ name: "iterations" }).pipe(Args.withDefault(5)) },
-  ({ iterations }) => reduceRun(iterations),
+  { iterations: Args.integer({ name: "iterations" }).pipe(Args.withDefault(5)), json: jsonOption },
+  ({ iterations, json }) => reduceRun(iterations, json),
 )
 
 /** `loop` is an alias of `run`. */
 const loop = Command.make(
   "loop",
-  { iterations: Args.integer({ name: "iterations" }).pipe(Args.withDefault(5)) },
-  ({ iterations }) => reduceRun(iterations),
+  { iterations: Args.integer({ name: "iterations" }).pipe(Args.withDefault(5)), json: jsonOption },
+  ({ iterations, json }) => reduceRun(iterations, json),
 )
 
 /** The target region (single-region for now): CN_SRC or `src`. */
@@ -173,12 +209,17 @@ const srcRegion = (): string => process.env.CN_SRC ?? "src"
 /**
  * `score [--json]` — judge the pending change in the managed worktree (RULE-044/035),
  * or the cwd working-tree change when uninitialized. `--json` emits the `Scored`
- * NDJSON event (surfacing the RULE-063 `failedGates` fix); otherwise a human summary.
+ * v2 envelope; otherwise a human summary.
  */
 const score = Command.make("score", { json: jsonOption }, ({ json }) =>
   Effect.gen(function* () {
-    const verdict = yield* runScore({ repo: process.cwd(), region: srcRegion() })
-    yield* Console.log(json ? toNdjson({ _tag: "Scored", verdict }) : renderScoreHuman(verdict))
+    const envelope = yield* runScore({
+      repo: process.cwd(),
+      region: srcRegion(),
+      testCommand: testCommandFromEnv(),
+      typeCheckCommand: typeCheckCommandFromEnv(),
+    })
+    yield* Console.log(json ? toNdjson({ _tag: "Scored", envelope }) : renderScoreHuman(envelope))
   }),
 )
 
@@ -261,7 +302,7 @@ const doctor = Command.make(
 /** RULE-044 — manual scorer lifecycle over a persistent managed worktree. */
 const init = Command.make("init", {}, () =>
   Effect.gen(function* () {
-    const r = yield* runInit({ repo: process.cwd(), region: srcRegion() })
+    const r = yield* runInit({ repo: process.cwd(), region: srcRegion(), typeCheckCommand: typeCheckCommandFromEnv() })
     yield* Console.log(
       `init: managed worktree ${r.worktree} @ ${r.baselineSha.slice(0, 7)} (startL=${r.startL})`,
     )
@@ -269,7 +310,12 @@ const init = Command.make("init", {}, () =>
 )
 const accept = Command.make("accept", {}, () =>
   Effect.gen(function* () {
-    const r = yield* runAccept({ repo: process.cwd(), region: srcRegion() })
+    const r = yield* runAccept({
+      repo: process.cwd(),
+      region: srcRegion(),
+      testCommand: testCommandFromEnv(),
+      typeCheckCommand: typeCheckCommandFromEnv(),
+    })
     yield* Console.log(r.ok ? `accept: committed ${r.sha.slice(0, 7)} (iter ${r.iter})` : `accept: ${r.reason}`)
   }),
 )

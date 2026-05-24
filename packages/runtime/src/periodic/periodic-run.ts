@@ -17,7 +17,7 @@ import { Effect } from "effect"
 import { Git } from "../git/git.ts"
 import { type ReadinessGap } from "../orchestrator/orchestrator.ts"
 import { collectGaps } from "../orchestrator/orchestrator.ts"
-import { readArtifactReadiness } from "../loop/loop.ts"
+import { readArtifactBundle } from "../artifacts/artifact-readiness.ts"
 import { type CommitDelta, deriveCalibration, HISTORY_WINDOW } from "./calibrate.ts"
 import { type Candidate, DEFAULT_VALIDATION_OPTIONS, validateValueProxy } from "./value-proxy.ts"
 
@@ -141,5 +141,30 @@ export const runValidateProxy = (opts: { readonly repo: string; readonly inputPa
 export const runDoctor = (
   repo: string,
   requireValueProxy = true,
-): Effect.Effect<readonly ReadinessGap[], never, FileSystem.FileSystem | Path.Path> =>
-  readArtifactReadiness(repo).pipe(Effect.map((r) => collectGaps(r, requireValueProxy)))
+) =>
+  Effect.gen(function* () {
+    const git = yield* Git
+    const baselineSha = yield* git.resolveSha(repo, "HEAD")
+    const bundle = yield* readArtifactBundle({ repo, baselineSha, threshold: 0.9 })
+    return collectGaps(bundle.readiness, requireValueProxy).map((gap) => {
+      const reason =
+        gap.kind.startsWith("fence")
+          ? bundle.artifactStatuses.fence.reason
+          : gap.kind.startsWith("calibration")
+            ? bundle.artifactStatuses.calibration.reason
+            : gap.kind.startsWith("changecost")
+              ? bundle.artifactStatuses.changecost.reason
+              : gap.kind.startsWith("value-proxy")
+                ? bundle.artifactStatuses.valueProxy.reason
+                : null
+      if (reason === null || reason === "missing") return gap
+      const detail = reason.includes("stale")
+        ? "stale"
+        : reason.includes("tampered") || reason.includes("wilson") || reason.includes("re-derivation")
+          ? "failed re-derivation"
+          : reason.includes("invalid") || reason.includes("malformed")
+            ? "failed decode"
+            : "unusable"
+      return { ...gap, message: `${gap.message}: ${detail} (${reason})` }
+    })
+  })

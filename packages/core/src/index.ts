@@ -22,11 +22,19 @@ export {
   Measurement,
   Weights,
   CalibrationScales,
+  MetricConfidence,
+  MetricIdentity,
+  MetricProvenance,
+  MetricContext,
+  GuardrailFailure,
+  GuardrailReport,
   ScoreInputs,
   Gates,
   GateName,
   Verdict,
+  ScoreEnvelope,
   ScoreResult,
+  Opportunity,
   // fence
   MutationSite,
   PlannedMutation,
@@ -112,8 +120,68 @@ export {
 } from "./measure/index.ts";
 export type { Files } from "./measure/index.ts";
 
+// --- deterministic discovery -------------------------------------------------
+export { discoverOpportunities } from "./discovery/index.ts";
+
+// --- metric envelope / guardrails -------------------------------------------
+export {
+  METRIC_NAME,
+  METRIC_SEMVER,
+  METRIC_REPRESENTATION,
+  formulaConstantsOf,
+  guardrailReport,
+  hashString,
+  hashUnknown,
+  metricContext,
+  scoreEnvelope,
+  scoreEnvelopeStatus,
+  stableStringify,
+} from "./metric/index.ts";
+
+// --- value-proxy pure validation --------------------------------------------
+export {
+  ALPHA,
+  DEFAULT_VALIDATION_OPTIONS,
+  EXACT_CAP,
+  MIN_CANDIDATES,
+  MIN_RHO,
+  PERMUTATION_EPS,
+  PERMUTATION_SAMPLES,
+  PERMUTATION_SEED,
+  makePrng,
+  permutationPValue,
+  pMethodForSize,
+  validateValueProxy,
+} from "./value-proxy/index.ts";
+export type { PermutationResult, ValidationOptions, ValidationReportCore } from "./value-proxy/index.ts";
+
+// --- changecost pure validation ---------------------------------------------
+export {
+  DEFAULT_BETA,
+  costOf,
+  editSize,
+  editTokensOf,
+  fidelityOf,
+  lcsLength,
+  tokenize,
+  verifyFrac,
+  vhatOf,
+} from "./changecost/index.ts";
+export type { FenceRegions, PerFileEdit } from "./changecost/index.ts";
+
 // --- artifacts --------------------------------------------------------------
-export { Artifacts, ArtifactsLive, NUMBER_TOLERANCE } from "./artifacts/index.ts";
+export {
+  Artifacts,
+  ArtifactsLive,
+  DEFAULT_CALIBRATION_SCALES,
+  MIN_CALIBRATION_COMMITS,
+  NUMBER_TOLERANCE,
+  validateCalibrationArtifact,
+  validateChangeCostArtifact,
+  validateFenceArtifact,
+  validateValueProxyArtifact,
+} from "./artifacts/index.ts";
+export type { ValidationResult } from "./artifacts/index.ts";
 
 // --- subprocess env allowlist (C8) ------------------------------------------
 export {

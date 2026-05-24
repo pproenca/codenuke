@@ -56,6 +56,52 @@ export const CalibrationScales = Schema.Struct({
 });
 export type CalibrationScales = Schema.Schema.Type<typeof CalibrationScales>;
 
+/** Metric confidence reported with every v2 scored-result envelope. */
+export const MetricConfidence = Schema.Literal("bootstrap", "calibrated", "validated");
+export type MetricConfidence = Schema.Schema.Type<typeof MetricConfidence>;
+
+/** Stable identity of the metric contract used to score a candidate. */
+export const MetricIdentity = Schema.Struct({
+  name: Schema.String,
+  semver: Schema.String,
+});
+export type MetricIdentity = Schema.Schema.Type<typeof MetricIdentity>;
+
+/** Runtime provenance needed to reproduce a metric verdict. */
+export const MetricProvenance = Schema.Struct({
+  baselineSha: Schema.String,
+  configHash: Schema.String,
+  artifactHashes: Schema.Record({ key: Schema.String, value: Schema.String }),
+  toolchain: Schema.Record({ key: Schema.String, value: Schema.String }),
+});
+export type MetricProvenance = Schema.Schema.Type<typeof MetricProvenance>;
+
+/** Full metric context embedded in the public v2 scored-result envelope. */
+export const MetricContext = Schema.Struct({
+  identity: MetricIdentity,
+  confidence: MetricConfidence,
+  formulaConstants: Schema.Record({ key: Schema.String, value: FiniteNumber }),
+  representation: Schema.String,
+  provenance: MetricProvenance,
+});
+export type MetricContext = Schema.Schema.Type<typeof MetricContext>;
+
+/** Stable guardrail failure emitted when a hard veto rejects or blocks a candidate. */
+export const GuardrailFailure = Schema.Struct({
+  code: Schema.String,
+  message: Schema.String,
+  severity: Schema.Literal("reject", "block"),
+  path: Schema.optional(Schema.String),
+});
+export type GuardrailFailure = Schema.Schema.Type<typeof GuardrailFailure>;
+
+/** Aggregated guardrail report; all failures are hard vetoes, never soft penalties. */
+export const GuardrailReport = Schema.Struct({
+  passed: Schema.Boolean,
+  failures: Schema.Array(GuardrailFailure),
+});
+export type GuardrailReport = Schema.Schema.Type<typeof GuardrailReport>;
+
 /** Everything pure `decide` needs (assembled by the side-effectful caller). */
 export const ScoreInputs = Schema.Struct({
   before: Measurement,
@@ -107,6 +153,17 @@ export const Verdict = Schema.Struct({
 });
 export type Verdict = Schema.Schema.Type<typeof Verdict>;
 
+/** Public v2 scored-result envelope emitted by `score --json` and progress events. */
+export const ScoreEnvelope = Schema.Struct({
+  schemaVersion: Schema.Literal(2),
+  _tag: Schema.Literal("Scored"),
+  status: Schema.Literal("accepted", "rejected", "blocked"),
+  metric: MetricContext,
+  guardrails: GuardrailReport,
+  verdict: Schema.NullOr(Verdict),
+});
+export type ScoreEnvelope = Schema.Schema.Type<typeof ScoreEnvelope>;
+
 /** Verdict + run context for reporting (runtime.ts:83). */
 export const ScoreResult = Schema.Struct({
   ...Verdict.fields,
@@ -115,6 +172,24 @@ export const ScoreResult = Schema.Struct({
   blocked: Schema.Array(Schema.String),
 });
 export type ScoreResult = Schema.Schema.Type<typeof ScoreResult>;
+
+/** Deterministic JS/TS graph-discovery opportunity. */
+export const Opportunity = Schema.Struct({
+  id: Schema.String,
+  kind: Schema.Literal(
+    "duplicate-subtree",
+    "wrapper-chain",
+    "unused-symbol",
+    "similar-function",
+    "local-simplification",
+  ),
+  region: Schema.String,
+  files: Schema.Array(Schema.String),
+  inputHash: Schema.String,
+  estimatedGain: FiniteNumber,
+  evidence: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+});
+export type Opportunity = Schema.Schema.Type<typeof Opportunity>;
 
 // ---------------------------------------------------------------------------
 // Fence (behavior fidelity)
