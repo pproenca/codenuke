@@ -82,21 +82,30 @@ function validSurvivorSpec(spec: Record<string, unknown> | undefined): boolean {
     nonEmptyString(spec?.rel) &&
     nonNegativeInteger(spec?.start) &&
     nonNegativeInteger(spec?.end) &&
-    (spec!.end as number) > (spec!.start as number) &&
+    spec.end > spec.start &&
     typeof spec?.repl === "string" &&
     nonEmptyString(spec?.op)
   );
 }
 
-function validFenceRegions(regions: Record<string, Record<string, unknown>>, threshold: number): boolean {
-  if (!finiteNumber(threshold)) return false;
-  if (Object.keys(regions).length === 0) return false;
+function validFenceRegions(
+  regions: Record<string, Record<string, unknown>>,
+  threshold: number,
+): boolean {
+  if (!finiteNumber(threshold)) {
+    return false;
+  }
+  if (Object.keys(regions).length === 0) {
+    return false;
+  }
   return Object.values(regions).every((region) => {
-    if (!isRecord(region)) return false;
+    if (!isRecord(region)) {
+      return false;
+    }
     if (
       !nonNegativeInteger(region?.caught) ||
       !nonNegativeInteger(region?.total) ||
-      (region.caught as number) > (region.total as number) ||
+      region.caught > region.total ||
       !finiteNumber(region.p) ||
       !finiteNumber(region.lo) ||
       !finiteNumber(region.hi) ||
@@ -105,16 +114,26 @@ function validFenceRegions(regions: Record<string, Record<string, unknown>>, thr
     ) {
       return false;
     }
-    const p = region.p as number;
-    const lo = region.lo as number;
-    const hi = region.hi as number;
-    if (lo < 0 || p < lo || hi < p || hi > 1) return false;
-    const expected = wilson(region.caught as number, region.total as number);
-    if (!nearlyEqual(p, expected.p) || !nearlyEqual(lo, expected.lo) || !nearlyEqual(hi, expected.hi)) {
+    const p = region.p;
+    const lo = region.lo;
+    const hi = region.hi;
+    if (lo < 0 || p < lo || hi < p || hi > 1) {
       return false;
     }
-    if (region.survivorSpecs.length !== (region.total as number) - (region.caught as number)) return false;
-    if (!region.survivorSpecs.every(validSurvivorSpec)) return false;
+    const expected = wilson(region.caught, region.total);
+    if (
+      !nearlyEqual(p, expected.p) ||
+      !nearlyEqual(lo, expected.lo) ||
+      !nearlyEqual(hi, expected.hi)
+    ) {
+      return false;
+    }
+    if (region.survivorSpecs.length !== region.total - region.caught) {
+      return false;
+    }
+    if (!region.survivorSpecs.every(validSurvivorSpec)) {
+      return false;
+    }
     return region.admissible === lo >= threshold;
   });
 }
@@ -139,7 +158,12 @@ export function fenceArtifactStatus(config: ArtifactConfig): ArtifactStatus {
   if (!validFenceMetadata(artifact, config.thresholds.fenceLB)) {
     return { artifact, usable: false, stale: false, reason: "invalid-metadata" };
   }
-  if (!validFenceRegions(artifact.regions as Record<string, Record<string, unknown>>, config.thresholds.fenceLB)) {
+  if (
+    !validFenceRegions(
+      artifact.regions as Record<string, Record<string, unknown>>,
+      config.thresholds.fenceLB,
+    )
+  ) {
     return { artifact, usable: false, stale: false, reason: "invalid-regions" };
   }
 
@@ -158,7 +182,9 @@ function matchesDefaultCalibrationScales(scales: Record<string, unknown> | undef
 export function calibrationArtifactStatus(config: ArtifactConfig): ArtifactStatus {
   const path = `${config.repo}/.codenuke/calibration.json`;
   const artifact = readJson<Record<string, unknown>>(path);
-  if (!artifact) return { artifact: null, usable: false, stale: false, reason: "missing" };
+  if (!artifact) {
+    return { artifact: null, usable: false, stale: false, reason: "missing" };
+  }
 
   const baselineSha = resolveRef(config.repo, config.baseline);
   if (artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha)) {
@@ -179,7 +205,8 @@ export function calibrationArtifactStatus(config: ArtifactConfig): ArtifactStatu
   if (
     !Number.isInteger(artifact.commitsSampled) ||
     (artifact.commitsSampled as number) < 0 ||
-    ((artifact.commitsSampled as number) < MIN_CALIBRATION_COMMITS && !matchesDefaultCalibrationScales(scales))
+    ((artifact.commitsSampled as number) < MIN_CALIBRATION_COMMITS &&
+      !matchesDefaultCalibrationScales(scales))
   ) {
     return { artifact, usable: false, stale: false, reason: "invalid-provenance" };
   }
@@ -198,7 +225,9 @@ export function calibrationArtifactStatus(config: ArtifactConfig): ArtifactStatu
 export function valueProxyValidationStatus(config: ArtifactConfig): ValueProxyStatus {
   const path = `${config.repo}/.codenuke/value-proxy-validation.json`;
   const artifact = readJson<Record<string, unknown>>(path);
-  if (!artifact) return { artifact: null, usable: false, reason: "missing" };
+  if (!artifact) {
+    return { artifact: null, usable: false, reason: "missing" };
+  }
   const rows = artifact.rows;
   if (
     artifact.schemaVersion !== 1 ||
@@ -207,23 +236,23 @@ export function valueProxyValidationStatus(config: ArtifactConfig): ValueProxySt
     !nonNegativeInteger(artifact.candidates) ||
     !Number.isInteger(artifact.minimumCandidates) ||
     (artifact.minimumCandidates as number) < 2 ||
-    (artifact.candidates as number) < (artifact.minimumCandidates as number) ||
+    artifact.candidates < (artifact.minimumCandidates as number) ||
     !finiteNumber(artifact.minimumRho) ||
-    (artifact.minimumRho as number) < -1 ||
-    (artifact.minimumRho as number) > 1 ||
+    artifact.minimumRho < -1 ||
+    artifact.minimumRho > 1 ||
     !finiteNumber(artifact.rho) ||
-    (artifact.rho as number) < -1 ||
-    (artifact.rho as number) > 1 ||
-    (artifact.rho as number) < (artifact.minimumRho as number) ||
+    artifact.rho < -1 ||
+    artifact.rho > 1 ||
+    artifact.rho < artifact.minimumRho ||
     !finiteNumber(artifact.alpha) ||
-    (artifact.alpha as number) <= 0 ||
-    (artifact.alpha as number) > 1 ||
+    artifact.alpha <= 0 ||
+    artifact.alpha > 1 ||
     !finiteNumber(artifact.pValue) ||
-    (artifact.pValue as number) < 0 ||
-    (artifact.pValue as number) > 1 ||
-    (artifact.pValue as number) > (artifact.alpha as number) ||
+    artifact.pValue < 0 ||
+    artifact.pValue > 1 ||
+    artifact.pValue > artifact.alpha ||
     !Array.isArray(rows) ||
-    rows.length !== (artifact.candidates as number) ||
+    rows.length !== artifact.candidates ||
     !rows.every(
       (row: Record<string, unknown>) =>
         nonEmptyString(row?.id) && finiteNumber(row?.proxy) && finiteNumber(row?.Vhat),
@@ -233,14 +262,14 @@ export function valueProxyValidationStatus(config: ArtifactConfig): ValueProxySt
   }
   const derived = validateValueProxy(rows as { id: string; proxy: number; Vhat: number }[], {
     minimumCandidates: artifact.minimumCandidates as number,
-    minimumRho: artifact.minimumRho as number,
-    alpha: artifact.alpha as number,
+    minimumRho: artifact.minimumRho,
+    alpha: artifact.alpha,
   });
   if (
-    derived.passed !== true ||
+    !derived.passed ||
     derived.reason !== null ||
-    !nearlyEqual(derived.rho as number, artifact.rho as number) ||
-    !nearlyEqual(derived.pValue as number, artifact.pValue as number) ||
+    !nearlyEqual(derived.rho as number, artifact.rho) ||
+    !nearlyEqual(derived.pValue as number, artifact.pValue) ||
     derived.pMethod !== artifact.pMethod
   ) {
     return { artifact, usable: false, reason: "invalid" };
@@ -253,8 +282,12 @@ function changeCostVerifyFrac(
   regions: readonly string[],
   fenceArtifact: Record<string, unknown> | null,
 ): number {
-  if (!fenceArtifact) return 1;
-  if (regions.length === 0) return 0;
+  if (!fenceArtifact) {
+    return 1;
+  }
+  if (regions.length === 0) {
+    return 0;
+  }
   const fenceRegions = fenceArtifact.regions as Record<string, Record<string, unknown>> | undefined;
   const fidelity = (region: string): number => {
     const p = fenceRegions?.[region]?.p;
@@ -274,15 +307,17 @@ function validChangeCostDoneResult(
     !Array.isArray(result.regions) ||
     !result.regions.every(nonEmptyString) ||
     !finiteNonNegativeNumber(result.verifyFrac) ||
-    (result.verifyFrac as number) > 1 ||
+    result.verifyFrac > 1 ||
     !finiteNonNegativeNumber(result.cost)
   ) {
     return false;
   }
   const expectedVerifyFrac = changeCostVerifyFrac(result.regions, fenceArtifact);
-  if (!nearlyEqual(result.verifyFrac as number, expectedVerifyFrac)) return false;
-  const expectedCost = (result.editTokens as number) + beta * (result.verifyFrac as number);
-  return nearlyEqual(result.cost as number, expectedCost);
+  if (!nearlyEqual(result.verifyFrac, expectedVerifyFrac)) {
+    return false;
+  }
+  const expectedCost = result.editTokens + beta * result.verifyFrac;
+  return nearlyEqual(result.cost, expectedCost);
 }
 
 function validChangeCostResult(
@@ -290,8 +325,12 @@ function validChangeCostResult(
   beta: number,
   fenceArtifact: Record<string, unknown> | null,
 ): result is Record<string, unknown> {
-  if (!isRecord(result) || !nonEmptyString(result.id) || !nonEmptyString(result.status)) return false;
-  if (!["impl-fail", "impl-bad-surface", "not-done", "done"].includes(result.status)) return false;
+  if (!isRecord(result) || !nonEmptyString(result.id) || !nonEmptyString(result.status)) {
+    return false;
+  }
+  if (!["impl-fail", "impl-bad-surface", "not-done", "done"].includes(result.status)) {
+    return false;
+  }
   return result.status === "done" ? validChangeCostDoneResult(result, beta, fenceArtifact) : true;
 }
 
@@ -299,7 +338,9 @@ function validChangeCostResult(
 export function changeCostArtifactStatus(config: ArtifactConfig): ChangeCostArtifactStatus {
   const path = `${config.repo}/.codenuke/changecost.json`;
   const artifact = readJson<Record<string, unknown>>(path);
-  if (!artifact) return { artifact: null, usable: false, reason: "missing" };
+  if (!artifact) {
+    return { artifact: null, usable: false, reason: "missing" };
+  }
   const results = artifact.results;
   const fenceStatus = fenceArtifactStatus(config);
   const fence = fenceStatus.usable ? fenceStatus.artifact : null;
@@ -310,7 +351,7 @@ export function changeCostArtifactStatus(config: ArtifactConfig): ChangeCostArti
     !nonNegativeInteger(artifact.done) ||
     !nonNegativeInteger(artifact.total) ||
     !Array.isArray(results) ||
-    results.length !== (artifact.total as number) ||
+    results.length !== artifact.total ||
     !results.every((result) => validChangeCostResult(result, artifact.beta as number, fence))
   ) {
     return { artifact, usable: false, reason: "invalid" };
@@ -319,7 +360,7 @@ export function changeCostArtifactStatus(config: ArtifactConfig): ChangeCostArti
   const doneResults = results.filter(
     (result): result is Record<string, unknown> => isRecord(result) && result.status === "done",
   );
-  if (doneResults.length !== (artifact.done as number)) {
+  if (doneResults.length !== artifact.done) {
     return { artifact, usable: false, reason: "invalid" };
   }
   const expectedVhat =
@@ -327,7 +368,9 @@ export function changeCostArtifactStatus(config: ArtifactConfig): ChangeCostArti
       ? null
       : doneResults.reduce((sum, result) => sum + (result.cost as number), 0) / doneResults.length;
   if (expectedVhat === null) {
-    if (artifact.Vhat !== null) return { artifact, usable: false, reason: "invalid" };
+    if (artifact.Vhat !== null) {
+      return { artifact, usable: false, reason: "invalid" };
+    }
   } else if (!finiteNonNegativeNumber(artifact.Vhat) || !nearlyEqual(artifact.Vhat, expectedVhat)) {
     return { artifact, usable: false, reason: "invalid" };
   }

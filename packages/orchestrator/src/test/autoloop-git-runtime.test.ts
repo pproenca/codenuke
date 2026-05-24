@@ -2,10 +2,8 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
 import { measure, type Files } from "@codenuke/measure";
 import { afterAll, describe, expect, it } from "vitest";
-
 import { runAutoloop } from "../main/runtime.js";
 
 interface EngineState {
@@ -20,7 +18,9 @@ const created: string[] = [];
 const Z95 = 1.96;
 
 afterAll(() => {
-  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) {
+    rmSync(path, { recursive: true, force: true });
+  }
 });
 
 function fixtureRoot(name = "codenuke-autoloop-git-"): string {
@@ -67,7 +67,10 @@ function nodeCommand(path: string): string {
   return `node ${JSON.stringify(path)}`;
 }
 
-function wilson(caught: number, total: number): { readonly p: number; readonly lo: number; readonly hi: number } {
+function wilson(
+  caught: number,
+  total: number,
+): { readonly p: number; readonly lo: number; readonly hi: number } {
   const p = caught / total;
   const z2 = Z95 * Z95;
   const denom = 1 + z2 / total;
@@ -143,8 +146,14 @@ function awkwardSourceFiles(): Files {
 function writeAwkwardSourceRepo(root: string): string {
   initRepo(root);
   write(root, "package.json", JSON.stringify({ name: "autoloop-git-fixture" }, null, 2));
-  for (const [path, contents] of Object.entries(awkwardSourceFiles())) write(root, path, contents);
-  write(root, "src/skip.test.ts", "export function skipTest() {\n  if (true) return 1;\n  return 2;\n}\n");
+  for (const [path, contents] of Object.entries(awkwardSourceFiles())) {
+    write(root, path, contents);
+  }
+  write(
+    root,
+    "src/skip.test.ts",
+    "export function skipTest() {\n  if (true) return 1;\n  return 2;\n}\n",
+  );
   write(root, "src/types.d.ts", "export interface Skip {\n  value: string;\n}\n");
   write(root, "src/readme.md", "# ignored\n");
   return commit(root, "baseline with awkward source paths");
@@ -160,7 +169,11 @@ function baseEnv(
   extra: Record<string, string | undefined> = {},
 ): Record<string, string | undefined> {
   const pass = passScript(root);
-  const program = write(root, ".codenuke/program.md", "Make a behavior-preserving source reduction.\n");
+  const program = write(
+    root,
+    ".codenuke/program.md",
+    "Make a behavior-preserving source reduction.\n",
+  );
   return {
     ...process.env,
     CN_REPO: root,
@@ -231,7 +244,11 @@ describe("runAutoloop git baseline and path discovery contract", () => {
     writeAdmissibleFence(root, baselineSha);
     const worktree = fixtureWorktree("codenuke-autoloop-invalid-state-wt-");
     const env = baseEnv(root, worktree, { CN_BASE: baselineSha });
-    write(root, ".codenuke/autoloop.state.json", JSON.stringify({ baselineTsc: 0, startL: 1, accepted: [], iter: 0 }, null, 2));
+    write(
+      root,
+      ".codenuke/autoloop.state.json",
+      JSON.stringify({ baselineTsc: 0, startL: 1, accepted: [], iter: 0 }, null, 2),
+    );
 
     const result = await runAutoloop(1, env, root);
 
@@ -287,7 +304,10 @@ writeFileSync(${JSON.stringify("src/space name.ts")}, "export const spaced = 1;\
 `.trimStart(),
     );
     const worktree = fixtureWorktree("codenuke-autoloop-diff-wt-");
-    const env = baseEnv(root, worktree, { CN_BASE: baselineSha, CN_PROPOSER: nodeCommand(proposer) });
+    const env = baseEnv(root, worktree, {
+      CN_BASE: baselineSha,
+      CN_PROPOSER: nodeCommand(proposer),
+    });
 
     const result = await runAutoloop(1, env, root);
 

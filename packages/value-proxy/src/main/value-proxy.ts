@@ -11,9 +11,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-
 import { loadConfig } from "@codenuke/config";
-
 import { type PermutationOptions, spearmanPValue, spearmanRho } from "./spearman.js";
 
 /** A scored candidate: the cheap `proxy` vs the expensive ground-truth `Vhat`. Extra fields are preserved. */
@@ -76,6 +74,16 @@ export interface ValidateProxyCommandResult {
 const finiteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+function candidateId(value: unknown, fallback: string): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return `${value}`;
+  }
+  return fallback;
+}
+
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -94,14 +102,30 @@ export function validateValueProxy(
   const base = { candidates: candidates.length, minimumCandidates, minimumRho, alpha };
 
   if (candidates.length < minimumCandidates) {
-    return { passed: false, reason: "too-small-corpus", ...base, rho: null, pValue: null, pMethod: null, rows: candidates };
+    return {
+      passed: false,
+      reason: "too-small-corpus",
+      ...base,
+      rho: null,
+      pValue: null,
+      pMethod: null,
+      rows: candidates,
+    };
   }
 
   const proxy = candidates.map((candidate) => candidate.proxy);
   const negVhat = candidates.map((candidate) => -candidate.Vhat);
   const rho = spearmanRho(proxy, negVhat);
   if (!Number.isFinite(rho)) {
-    return { passed: false, reason: "undefined-rank-correlation", ...base, rho: null, pValue: null, pMethod: null, rows: candidates };
+    return {
+      passed: false,
+      reason: "undefined-rank-correlation",
+      ...base,
+      rho: null,
+      pValue: null,
+      pMethod: null,
+      rows: candidates,
+    };
   }
 
   const { p: pValue, method: pMethod } = spearmanPValue(proxy, negVhat, options);
@@ -124,12 +148,15 @@ export function parseValidationOptions(env: Env): {
   const minimumCandidates = env.CN_MIN_CANDIDATES == null ? 6 : Number(env.CN_MIN_CANDIDATES);
   const alpha = env.CN_ALPHA == null ? 0.05 : Number(env.CN_ALPHA);
 
-  if (!Number.isFinite(minimumRho) || minimumRho < -1 || minimumRho > 1)
+  if (!Number.isFinite(minimumRho) || minimumRho < -1 || minimumRho > 1) {
     throw new Error("CN_MIN_RHO must be a finite number between -1 and 1");
-  if (!Number.isInteger(minimumCandidates) || minimumCandidates < 2)
+  }
+  if (!Number.isInteger(minimumCandidates) || minimumCandidates < 2) {
     throw new Error("CN_MIN_CANDIDATES must be an integer >= 2");
-  if (!Number.isFinite(alpha) || alpha <= 0 || alpha > 1)
+  }
+  if (!Number.isFinite(alpha) || alpha <= 0 || alpha > 1) {
     throw new Error("CN_ALPHA must be a finite number in (0, 1]");
+  }
 
   return { minimumRho, minimumCandidates, alpha };
 }
@@ -143,16 +170,20 @@ export function parseCandidates(parsed: unknown): Candidate[] {
   const rows = Array.isArray(parsed)
     ? parsed
     : (parsed as { candidates?: unknown } | null)?.candidates;
-  if (!Array.isArray(rows)) throw new Error("expected an array or { candidates: [...] }");
+  if (!Array.isArray(rows)) {
+    throw new Error("expected an array or { candidates: [...] }");
+  }
 
   return rows.map((row, index) => {
     const record = (row ?? {}) as Record<string, unknown>;
-    const id = String(record.id ?? `candidate-${index + 1}`);
-    if (id.length === 0) throw new Error(`candidate ${index + 1} must include a non-empty id`);
+    const id = candidateId(record.id, `candidate-${index + 1}`);
+    if (id.length === 0) {
+      throw new Error(`candidate ${index + 1} must include a non-empty id`);
+    }
     if (!finiteNumber(record.proxy) || !finiteNumber(record.Vhat)) {
       throw new Error(`candidate ${id} must include finite proxy and Vhat numbers`);
     }
-    return { ...record, id } as Candidate;
+    return Object.assign({}, record, { id }) as Candidate;
   });
 }
 
@@ -168,9 +199,17 @@ export function runValidation(parsedInput: unknown, env: Env): ValidationReport 
     options = parseValidationOptions(env);
   } catch (error) {
     return {
-      passed: false, reason: "invalid-config", candidates: 0,
-      minimumCandidates: 6, minimumRho: 0.6, alpha: 0.05,
-      rho: null, pValue: null, pMethod: null, rows: [], error: messageOf(error),
+      passed: false,
+      reason: "invalid-config",
+      candidates: 0,
+      minimumCandidates: 6,
+      minimumRho: 0.6,
+      alpha: 0.05,
+      rho: null,
+      pValue: null,
+      pMethod: null,
+      rows: [],
+      error: messageOf(error),
     };
   }
 
@@ -179,16 +218,25 @@ export function runValidation(parsedInput: unknown, env: Env): ValidationReport 
     candidates = parseCandidates(parsedInput);
   } catch (error) {
     return {
-      passed: false, reason: "malformed-input", candidates: 0,
-      minimumCandidates: options.minimumCandidates, minimumRho: options.minimumRho, alpha: options.alpha,
-      rho: null, pValue: null, pMethod: null, rows: [], error: messageOf(error),
+      passed: false,
+      reason: "malformed-input",
+      candidates: 0,
+      minimumCandidates: options.minimumCandidates,
+      minimumRho: options.minimumRho,
+      alpha: options.alpha,
+      rho: null,
+      pValue: null,
+      pMethod: null,
+      rows: [],
+      error: messageOf(error),
     };
   }
 
   return validateValueProxy(candidates, options);
 }
 
-export const defaultValueProxyInputPath = (repo: string): string => `${repo}/.codenuke/value-proxy.json`;
+export const defaultValueProxyInputPath = (repo: string): string =>
+  `${repo}/.codenuke/value-proxy.json`;
 
 export const valueProxyValidationOutputPath = (repo: string): string =>
   `${repo}/.codenuke/value-proxy-validation.json`;
@@ -212,7 +260,9 @@ export function formatValueProxyValidationSummary(report: ValidationReport): str
 
 const ensureParent = (path: string): void => {
   const parent = path.split("/").slice(0, -1).join("/");
-  if (parent) mkdirSync(parent, { recursive: true });
+  if (parent) {
+    mkdirSync(parent, { recursive: true });
+  }
 };
 
 function writeReport(path: string, report: ValueProxyValidationArtifact): void {
@@ -284,7 +334,9 @@ export async function runValidateProxyCommand(
     out.push(`value proxy validation input invalid: ${report.error}`);
   } else {
     out.push(formatValueProxyValidationSummary(report));
-    if (!report.passed && report.reason) out.push(`reason: ${report.reason}`);
+    if (!report.passed && report.reason) {
+      out.push(`reason: ${report.reason}`);
+    }
   }
   out.push(`-> ${outputPath}`);
   return { exitCode: report.passed ? 0 : 1, stdout: `${out.join("\n")}\n`, stderr: "" };

@@ -2,10 +2,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { describe, expect, it } from "vitest";
-
 import * as calibrate from "@codenuke/calibrate";
+import { describe, expect, it } from "vitest";
 
 interface CalibrationScales {
   readonly sL: number;
@@ -69,7 +67,7 @@ interface RuntimeApi {
 function runtime<K extends keyof RuntimeApi>(name: K): RuntimeApi[K] {
   const value = (calibrate as Record<string, unknown>)[name];
   if (typeof value !== "function") {
-    throw new Error(`@codenuke/calibrate must export runtime helper ${String(name)}`);
+    throw new Error(`@codenuke/calibrate must export runtime helper ${name}`);
   }
   return value as RuntimeApi[K];
 }
@@ -104,10 +102,18 @@ function commit(root: string, message: string): void {
   git(root, ["commit", "-m", message]);
 }
 
-async function runCalibrate(root: string): Promise<{ readonly result: RuntimeResult; readonly artifact: CalibrationArtifact }> {
+async function runCalibrate(
+  root: string,
+): Promise<{ readonly result: RuntimeResult; readonly artifact: CalibrationArtifact }> {
   const runCalibrateCommand = runtime("runCalibrateCommand");
-  const result = await runCalibrateCommand([], { CN_REPO: root, CN_SRC: "src", CN_BASE: "HEAD" }, root);
-  const artifact = JSON.parse(readFileSync(join(root, ".codenuke/calibration.json"), "utf8")) as CalibrationArtifact;
+  const result = await runCalibrateCommand(
+    [],
+    { CN_REPO: root, CN_SRC: "src", CN_BASE: "HEAD" },
+    root,
+  );
+  const artifact = JSON.parse(
+    readFileSync(join(root, ".codenuke/calibration.json"), "utf8"),
+  ) as CalibrationArtifact;
   return { result, artifact };
 }
 
@@ -158,7 +164,9 @@ describe("calibrate runtime source discovery", () => {
 
     const snapshot = snapshotFromGitOutput({
       ref: "abc123",
-      treeOutput: ["src/index.ts", "src/index.test.ts", "src/-dash.ts", "src/missing.ts", ""].join("\0"),
+      treeOutput: ["src/index.ts", "src/index.test.ts", "src/-dash.ts", "src/missing.ts", ""].join(
+        "\0",
+      ),
       readFileAtRef(ref, path) {
         reads.push({ ref, path });
         return path === "src/missing.ts" ? null : `content:${ref}:${path}`;
@@ -229,7 +237,12 @@ describe("calibrate runtime git command safety", () => {
       srcDir: "packages/app/src",
     });
 
-    expect(plan.resolveBaseline).toEqual(["rev-parse", "--verify", "--end-of-options", "feature/reduce-1"]);
+    expect(plan.resolveBaseline).toEqual([
+      "rev-parse",
+      "--verify",
+      "--end-of-options",
+      "feature/reduce-1",
+    ]);
     expect(plan.listCommits).toEqual([
       "rev-list",
       "--first-parent",
@@ -255,7 +268,10 @@ describe("calibrate runtime git command safety", () => {
       "1",
       "-commit;$(touch owned)",
     ]);
-    expect(plan.showAt("abc123", "src/$(touch owned).ts")).toEqual(["show", "abc123:src/$(touch owned).ts"]);
+    expect(plan.showAt("abc123", "src/$(touch owned).ts")).toEqual([
+      "show",
+      "abc123:src/$(touch owned).ts",
+    ]);
   });
 
   it("rejects option-like refs and unsafe pathspec input instead of preserving them", () => {
@@ -289,7 +305,11 @@ describe("runCalibrateCommand", () => {
     write(root, "package.json", JSON.stringify({ name: "calibrate-defaults-fixture" }));
     write(root, "src/index.ts", "export const value = 1;\n");
     commit(root, "initial");
-    write(root, "src/index.ts", "export const value = 1;\nexport const inc = (n: number) => n + 1;\n");
+    write(
+      root,
+      "src/index.ts",
+      "export const value = 1;\nexport const inc = (n: number) => n + 1;\n",
+    );
     commit(root, "add inc");
 
     const { result, artifact } = await runCalibrate(root);
@@ -297,7 +317,9 @@ describe("runCalibrateCommand", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(result.stdout.trim()).toBe("calibration @ HEAD commits=1 fallback=defaults sL=150 sCx=15 sDup=5");
+    expect(result.stdout.trim()).toBe(
+      "calibration @ HEAD commits=1 fallback=defaults sL=150 sCx=15 sDup=5",
+    );
     expect(artifact).toMatchObject({
       schemaVersion: 1,
       baseline: "HEAD",
@@ -314,7 +336,11 @@ describe("runCalibrateCommand", () => {
     write(root, "package.json", JSON.stringify({ name: "calibrate-derived-fixture" }));
     write(root, "src/index.ts", "export const value = 1;\n");
     commit(root, "initial");
-    write(root, "src/index.ts", "export const value = 1;\nexport const inc = (n: number) => n + 1;\n");
+    write(
+      root,
+      "src/index.ts",
+      "export const value = 1;\nexport const inc = (n: number) => n + 1;\n",
+    );
     commit(root, "add inc");
     write(
       root,
@@ -362,7 +388,11 @@ describe("runCalibrateCommand", () => {
     commit(root, "initial");
 
     const runCalibrateCommand = runtime("runCalibrateCommand");
-    const result = await runCalibrateCommand([], { CN_REPO: root, CN_SRC: "src", CN_BASE: "--glob=refs/heads/*" }, root);
+    const result = await runCalibrateCommand(
+      [],
+      { CN_REPO: root, CN_SRC: "src", CN_BASE: "--glob=refs/heads/*" },
+      root,
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");

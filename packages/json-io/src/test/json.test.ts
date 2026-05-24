@@ -3,9 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-import { readJson } from "../main/json";
 import { readJson as legacyReadJson } from "../../../../test-fixtures/legacy-loop/json.mjs";
+import { readJson } from "../main/json";
 
 let dir: string;
 beforeAll(() => {

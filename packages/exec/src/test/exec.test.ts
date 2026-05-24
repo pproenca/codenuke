@@ -40,10 +40,6 @@ import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-// NEW target substrate (implemented to satisfy this contract):
-import { commandAvailable, run, tryRun } from "../main/exec";
-
 // LEGACY oracle (the vulnerable original — dual-execution + the proof of CWE-78):
 import {
   commandAvailable as legacyAvailable,
@@ -51,6 +47,8 @@ import {
   runCommand as legacyRun,
   tryCommand as legacyTry,
 } from "../../../../test-fixtures/legacy-loop/shell.mjs";
+// NEW target substrate (implemented to satisfy this contract):
+import { commandAvailable, run, tryRun } from "../main/exec";
 
 // -----------------------------------------------------------------------------
 // Unique, collision-resistant sentinel naming. Every sentinel path lives under
@@ -65,10 +63,7 @@ const createdSentinels: string[] = [];
 /** Reserve a unique, currently-NON-EXISTENT sentinel path under tmpdir. */
 function reserveSentinel(tag: string): string {
   sentinelSeq += 1;
-  const p = join(
-    tmpdir(),
-    `codenuke-exec-sentinel-${RUN_ID}-${sentinelSeq}-${tag}`,
-  );
+  const p = join(tmpdir(), `codenuke-exec-sentinel-${RUN_ID}-${sentinelSeq}-${tag}`);
   createdSentinels.push(p);
   // Guarantee a clean slate: the whole point is to detect a side-effect that
   // would CREATE this path.
@@ -77,7 +72,9 @@ function reserveSentinel(tag: string): string {
 }
 
 afterAll(() => {
-  for (const p of createdSentinels) rmSync(p, { force: true });
+  for (const p of createdSentinels) {
+    rmSync(p, { force: true });
+  }
 });
 
 // Is git on PATH? codenuke needs git, so this should be true; we only guard so
@@ -108,15 +105,8 @@ describe("run() — functional equivalence with legacy runCommand on benign inpu
     try {
       // On macOS tmpdir is a symlink (/var -> /private/var); both substrates
       // report the resolved real path, so we compare against realpathSync(dir).
-      const modern = run(
-        "node",
-        ["-e", "process.stdout.write(process.cwd())"],
-        { cwd: dir },
-      );
-      const legacy = legacyRun(
-        'node -e "process.stdout.write(process.cwd())"',
-        { cwd: dir },
-      );
+      const modern = run("node", ["-e", "process.stdout.write(process.cwd())"], { cwd: dir });
+      const legacy = legacyRun('node -e "process.stdout.write(process.cwd())"', { cwd: dir });
       expect(modern).toBe(realpathSync(dir));
       expect(modern).toBe(legacy);
     } finally {
@@ -125,11 +115,9 @@ describe("run() — functional equivalence with legacy runCommand on benign inpu
   });
 
   it("honors the env option, passing variables through to the child", () => {
-    const modern = run(
-      "node",
-      ["-e", "process.stdout.write(process.env.CODENUKE_PROBE ?? '')"],
-      { env: { ...process.env, CODENUKE_PROBE: "from-env" } },
-    );
+    const modern = run("node", ["-e", "process.stdout.write(process.env.CODENUKE_PROBE ?? '')"], {
+      env: { ...process.env, CODENUKE_PROBE: "from-env" },
+    });
     expect(modern).toBe("from-env");
   });
 
@@ -156,7 +144,9 @@ describe("run() — git fixture (init + commit + rev-parse) through the arg-arra
   let repo: string;
 
   beforeAll(() => {
-    if (!GIT_AVAILABLE) return;
+    if (!GIT_AVAILABLE) {
+      return;
+    }
     repo = mkdtempSync(join(tmpdir(), "codenuke-exec-git-"));
     // Every git invocation goes through the NEW substrate — including the
     // identity passed via `-c` flags as ordinary positional args (no shell).
@@ -179,7 +169,9 @@ describe("run() — git fixture (init + commit + rev-parse) through the arg-arra
   });
 
   afterAll(() => {
-    if (repo) rmSync(repo, { recursive: true, force: true });
+    if (repo) {
+      rmSync(repo, { recursive: true, force: true });
+    }
   });
 
   it.skipIf(!GIT_AVAILABLE)(
@@ -250,9 +242,7 @@ describe("commandAvailable() — equivalence with legacy commandAvailable", () =
 
   it("is false for a nonsense command — matches the oracle", () => {
     expect(commandAvailable("definitely-not-a-codenuke-command")).toBe(false);
-    expect(
-      legacyAvailable("definitely-not-a-codenuke-command", { env: { PATH: "" } }),
-    ).toBe(false);
+    expect(legacyAvailable("definitely-not-a-codenuke-command", { env: { PATH: "" } })).toBe(false);
   });
 
   it("is false for the empty string — matches the oracle", () => {
@@ -347,20 +337,14 @@ describe("SECURITY — injection fuzz: every metacharacter payload is treated as
       // binary. We then echo argv[1] straight back to assert exact pass-through.
       // This isolates what we are characterizing — "the SUBSTRATE delivered the
       // payload as one literal argv element" — from node's option handling.
-      const out = run("node", [
-        "-e",
-        "process.stdout.write(process.argv[1] ?? '')",
-        "--",
-        payload,
-      ]);
+      const out = run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "--", payload]);
 
       // (i) Treated as DATA: the program received the payload byte-for-byte.
       expect(out, `payload [${tag}] must round-trip verbatim`).toBe(payload);
       // (ii) No shell ran it: the sentinel side-effect never happened.
-      expect(
-        existsSync(sentinel),
-        `payload [${tag}] must not create a side-effect file`,
-      ).toBe(false);
+      expect(existsSync(sentinel), `payload [${tag}] must not create a side-effect file`).toBe(
+        false,
+      );
     }
   });
 });
@@ -374,20 +358,12 @@ describe("SECURITY — no glob expansion: wildcards are passed literally", () =>
     // If a shell were involved, '*' would expand to every entry in cwd and
     // argv.length would balloon. With arg-arrays it is always exactly 2:
     // [nodeBinary, "*"].
-    const out = run("node", [
-      "-e",
-      "process.stdout.write(String(process.argv.length))",
-      "*",
-    ]);
+    const out = run("node", ["-e", "process.stdout.write(String(process.argv.length))", "*"]);
     expect(out).toBe("2");
   });
 
   it("passes '*' through verbatim as the argument value", () => {
-    const out = run("node", [
-      "-e",
-      "process.stdout.write(process.argv[1] ?? '')",
-      "*",
-    ]);
+    const out = run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "*"]);
     expect(out).toBe("*");
   });
 });

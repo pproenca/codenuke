@@ -1,3 +1,6 @@
+import { lstatSync, realpathSync } from "node:fs";
+import { resolve, sep } from "node:path";
+import { wilson } from "@codenuke/stats";
 /**
  * Behavior-fence mutation core. Migrated from the pure logic of
  * `legacy/codenuke/loop/fence.mjs` (a CLI script): AST mutation-site generation,
@@ -8,9 +11,6 @@
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-006, RULE-007, RULE-008, RULE-043
  */
 import ts from "typescript";
-import { lstatSync, realpathSync } from "node:fs";
-import { resolve, sep } from "node:path";
-import { wilson } from "@codenuke/stats";
 
 /** The operator-flip mutation table (RULE-007). */
 export const OPERATORS: Partial<Record<ts.SyntaxKind, string>> = {
@@ -68,20 +68,18 @@ export function collectSites(name: string, text: string): MutationSite[] {
       : name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".cjs")
         ? ts.ScriptKind.JS
         : ts.ScriptKind.TS;
-  const sf = ts.createSourceFile(
-    name,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-    kind,
-  );
+  const sf = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, kind);
   const sites: MutationSite[] = [];
   const push = (start: number, end: number, repl: string): void => {
     sites.push({ start, end, repl, op: `${text.slice(start, end)}→${repl}` });
   };
   (function visit(node: ts.Node): void {
     if (ts.isBinaryExpression(node) && OPERATORS[node.operatorToken.kind] !== undefined) {
-      push(node.operatorToken.getStart(sf), node.operatorToken.getEnd(), OPERATORS[node.operatorToken.kind]!);
+      push(
+        node.operatorToken.getStart(sf),
+        node.operatorToken.getEnd(),
+        OPERATORS[node.operatorToken.kind]!,
+      );
     } else if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
       const nm = node.expression.name.text;
       if (nm === "startsWith" || nm === "endsWith") {
@@ -94,7 +92,8 @@ export function collectSites(name: string, text: string): MutationSite[] {
     } else if (
       ts.isReturnStatement(node) &&
       node.expression &&
-      (node.expression.kind === ts.SyntaxKind.TrueKeyword || node.expression.kind === ts.SyntaxKind.FalseKeyword)
+      (node.expression.kind === ts.SyntaxKind.TrueKeyword ||
+        node.expression.kind === ts.SyntaxKind.FalseKeyword)
     ) {
       const isTrue = node.expression.kind === ts.SyntaxKind.TrueKeyword;
       push(node.expression.getStart(sf), node.expression.getEnd(), isTrue ? "false" : "true");
@@ -124,13 +123,17 @@ export function mulberry32(seed: number): () => number {
 export function shuffle<T>(arr: T[], rng: () => number): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = (rng() * (i + 1)) | 0;
-    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
 
 /** Deterministically sample up to `cap` sites with a seeded shuffle (RULE-008). */
-export function sampleSites(sites: readonly MutationSite[], cap: number, seed: number): MutationSite[] {
+export function sampleSites(
+  sites: readonly MutationSite[],
+  cap: number,
+  seed: number,
+): MutationSite[] {
   return shuffle([...sites], mulberry32(seed)).slice(0, cap);
 }
 
@@ -139,7 +142,9 @@ export const isAdmissible = (caught: number, total: number, threshold: number): 
   wilson(caught, total).lo >= threshold;
 
 const isSourceFile = (path: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !path.endsWith(".d.ts") && !/\.(test|spec|accept)\./u.test(path);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) &&
+  !path.endsWith(".d.ts") &&
+  !/\.(test|spec|accept)\./u.test(path);
 
 /** Legacy region → git pathspec mapping for fence audits. */
 export const regionPath = (srcDir: string, region: string): string =>
@@ -160,7 +165,15 @@ export function fenceGitCommandPlan(input: {
 } {
   return {
     resolveBaseline: ["rev-parse", "--verify", "--end-of-options", input.baseline],
-    filesInRegion: (ref) => ["ls-tree", "-r", "-z", "--name-only", ref, "--", regionPath(input.srcDir, input.region)],
+    filesInRegion: (ref) => [
+      "ls-tree",
+      "-r",
+      "-z",
+      "--name-only",
+      ref,
+      "--",
+      regionPath(input.srcDir, input.region),
+    ],
   };
 }
 
@@ -204,7 +217,10 @@ export const baselineRedResult = (): {
 /** Build the per-region sampled mutation plan (RULE-007/008). */
 export function createAuditPlan(input: {
   readonly regions: readonly string[];
-  readonly filesByRegion: Record<string, readonly { readonly rel: string; readonly text: string }[]>;
+  readonly filesByRegion: Record<
+    string,
+    readonly { readonly rel: string; readonly text: string }[]
+  >;
   readonly capPerRegion: number;
   readonly seed: number;
 }): Record<string, readonly PlannedMutation[]> {
@@ -213,7 +229,9 @@ export function createAuditPlan(input: {
   for (const region of input.regions) {
     const candidates: PlannedMutation[] = [];
     for (const file of input.filesByRegion[region] ?? []) {
-      for (const site of collectSites(file.rel, file.text)) candidates.push({ rel: file.rel, ...site });
+      for (const site of collectSites(file.rel, file.text)) {
+        candidates.push({ rel: file.rel, ...site });
+      }
     }
     shuffle(candidates, rng);
     plan[region] = candidates.slice(0, input.capPerRegion);
@@ -226,7 +244,9 @@ export function recordMutationResult(
   site: PlannedMutation,
   status: "green" | "fail" | "timeout",
 ): { readonly caught: boolean; readonly survivorSpec: PlannedMutation | null } {
-  return status === "green" ? { caught: false, survivorSpec: site } : { caught: true, survivorSpec: null };
+  return status === "green"
+    ? { caught: false, survivorSpec: site }
+    : { caught: true, survivorSpec: null };
 }
 
 /** Derive a fence region record from the sampled plan and test outcomes. */
@@ -239,8 +259,11 @@ export function regionRecordFromResults(input: {
   let caught = 0;
   input.plan.forEach((site, index) => {
     const result = recordMutationResult(site, input.statuses[index] ?? "green");
-    if (result.caught) caught += 1;
-    else if (result.survivorSpec) survivorSpecs.push(result.survivorSpec);
+    if (result.caught) {
+      caught += 1;
+    } else if (result.survivorSpec) {
+      survivorSpecs.push(result.survivorSpec);
+    }
   });
   const w = wilson(caught, input.plan.length);
   return {
@@ -262,13 +285,18 @@ export function mergeFilteredAuditArtifact(
 ): FenceArtifact {
   const regions: Record<string, RegionRecord> = { ...previous.regions };
   for (const region of filteredRegions) {
-    if (refresh.regions[region]) regions[region] = refresh.regions[region];
+    if (refresh.regions[region]) {
+      regions[region] = refresh.regions[region];
+    }
   }
   return { ...refresh, regions };
 }
 
 /** True when preserved filtered-audit regions still belong to the same measurement frame. */
-export function canReuseFilteredAuditArtifact(previous: FenceArtifact, refresh: FenceArtifact): boolean {
+export function canReuseFilteredAuditArtifact(
+  previous: FenceArtifact,
+  refresh: FenceArtifact,
+): boolean {
   return (
     previous.schemaVersion === 1 &&
     previous.baselineSha === refresh.baselineSha &&
@@ -284,7 +312,9 @@ const isUnsafeRel = (rel: string): boolean =>
 
 /** Resolve a worktree-relative source path and reject traversal/symlink escapes before I/O. */
 export function safeWorktreePath(worktreeRoot: string, rel: string): string {
-  if (isUnsafeRel(rel)) throw new Error(`unsafe survivor path before replay: ${rel}`);
+  if (isUnsafeRel(rel)) {
+    throw new Error(`unsafe survivor path before replay: ${rel}`);
+  }
   let root: string;
   try {
     root = realpathSync(worktreeRoot);
@@ -301,7 +331,9 @@ export function safeWorktreePath(worktreeRoot: string, rel: string): string {
   } catch {
     throw new Error(`source changed before replay: ${rel}`);
   }
-  if (stat.isSymbolicLink()) throw new Error(`unsafe survivor path before replay: ${rel}`);
+  if (stat.isSymbolicLink()) {
+    throw new Error(`unsafe survivor path before replay: ${rel}`);
+  }
   let realTarget: string;
   try {
     realTarget = realpathSync(target);
@@ -324,7 +356,9 @@ export function assertReplaySourcesUnchanged(input: {
 }): void {
   const specs = input.artifact.regions[input.region]?.survivorSpecs ?? [];
   for (const rel of new Set(specs.map((spec) => spec.rel))) {
-    if (input.worktreeRoot) safeWorktreePath(input.worktreeRoot, rel);
+    if (input.worktreeRoot) {
+      safeWorktreePath(input.worktreeRoot, rel);
+    }
     let baselineSource: string;
     let currentSource: string;
     try {
@@ -333,12 +367,16 @@ export function assertReplaySourcesUnchanged(input: {
     } catch {
       throw new Error(`source changed before replay: ${rel}`);
     }
-    if (baselineSource !== currentSource) throw new Error(`source changed before replay: ${rel}`);
+    if (baselineSource !== currentSource) {
+      throw new Error(`source changed before replay: ${rel}`);
+    }
   }
 }
 
 export function assertReplayBaselineGreen(status: "green" | "fail" | "timeout"): void {
-  if (status !== "green") throw new Error("worktree baseline not green");
+  if (status !== "green") {
+    throw new Error("worktree baseline not green");
+  }
 }
 
 /** Monotonic replay: fixed total, caught increases as prior survivors are killed (RULE-043). */
@@ -349,10 +387,14 @@ export function replaySurvivors(input: {
   readonly threshold: number;
 }): FenceArtifact {
   const previous = input.artifact.regions[input.region];
-  if (!previous) throw new Error(`no region ${input.region} in artifact`);
+  if (!previous) {
+    throw new Error(`no region ${input.region} in artifact`);
+  }
   const still: PlannedMutation[] = [];
   previous.survivorSpecs.forEach((spec, index) => {
-    if ((input.statuses[index] ?? "green") === "green") still.push(spec);
+    if ((input.statuses[index] ?? "green") === "green") {
+      still.push(spec);
+    }
   });
   const caught = previous.total - still.length;
   const w = wilson(caught, previous.total);

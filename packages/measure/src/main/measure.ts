@@ -29,7 +29,11 @@ const isTest = (name: string): boolean =>
   /\.(test|spec)\.[tj]sx?$/.test(name) || name.includes("__tests__");
 const isJsxLike = (name: string): boolean => /\.(t|j)sx$/u.test(name);
 const scriptKind = (name: string): ts.ScriptKind =>
-  name.endsWith(".jsx") ? ts.ScriptKind.JSX : isJsxLike(name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  name.endsWith(".jsx")
+    ? ts.ScriptKind.JSX
+    : isJsxLike(name)
+      ? ts.ScriptKind.TSX
+      : ts.ScriptKind.TS;
 
 const parse = (name: string, text: string): ts.SourceFile =>
   ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, scriptKind(name));
@@ -72,6 +76,8 @@ function complexity(sf: ts.SourceFile): number {
         }
         break;
       }
+      default:
+        break;
     }
     ts.forEachChild(node, walk);
   };
@@ -117,19 +123,31 @@ function tokenStream(name: string, text: string): Token[] {
 function duplicateMass(files: Files): number {
   const counts = new Map<string, number>();
   for (const [name, text] of Object.entries(files)) {
-    if (isTest(name)) continue;
+    if (isTest(name)) {
+      continue;
+    }
     const tokens = tokenStream(name, text);
     for (let i = 0; i + CLONE_WINDOW <= tokens.length; i += 1) {
       const window = tokens.slice(i, i + CLONE_WINDOW);
       const distinctContent = new Set<string>();
-      for (const token of window) if (token.content) distinctContent.add(token.text);
-      if (distinctContent.size < MIN_CONTENT) continue;
+      for (const token of window) {
+        if (token.content) {
+          distinctContent.add(token.text);
+        }
+      }
+      if (distinctContent.size < MIN_CONTENT) {
+        continue;
+      }
       const key = JSON.stringify(window.map((token) => token.key));
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
   }
   let mass = 0;
-  for (const count of counts.values()) if (count >= 2) mass += count - 1;
+  for (const count of counts.values()) {
+    if (count >= 2) {
+      mass += count - 1;
+    }
+  }
   return mass;
 }
 
@@ -141,7 +159,9 @@ export function measure(files: Files): Measurement {
   let L = 0;
   let comp = 0;
   for (const [name, text] of Object.entries(files)) {
-    if (isTest(name)) continue;
+    if (isTest(name)) {
+      continue;
+    }
     const sf = parse(name, text);
     L += astNodeCount(sf);
     comp += complexity(sf);

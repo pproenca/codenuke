@@ -1,12 +1,3 @@
-// Characterization tests for the orchestration-layer observable behavior in:
-// - legacy loop/autoloop.mjs
-// - legacy loop/doctor.mjs
-// - legacy bin/codenuke.mjs
-//
-// The runtime adapter should satisfy these through pure helpers around the side
-// effects, so these tests do not spawn git, codex, or shell commands.
-import { describe, expect, it } from "vitest";
-
 import {
   chooseRegion,
   cliHelpText,
@@ -26,6 +17,14 @@ import {
   selectMode,
   shouldRequireValueProxyValidation,
 } from "@codenuke/orchestrator";
+// Characterization tests for the orchestration-layer observable behavior in:
+// - legacy loop/autoloop.mjs
+// - legacy loop/doctor.mjs
+// - legacy bin/codenuke.mjs
+//
+// The runtime adapter should satisfy these through pure helpers around the side
+// effects, so these tests do not spawn git, codex, or shell commands.
+import { describe, expect, it } from "vitest";
 
 describe("chooseRegion / selectMode (RULE-039)", () => {
   const fence = {
@@ -41,7 +40,9 @@ describe("chooseRegion / selectMode (RULE-039)", () => {
   });
 
   it("falls back to an admissible region when none are blocked", () => {
-    const allClear = { regions: { a: { admissible: true, lo: 0.99 }, b: { admissible: true, lo: 0.95 } } };
+    const allClear = {
+      regions: { a: { admissible: true, lo: 0.99 }, b: { admissible: true, lo: 0.95 } },
+    };
     expect(chooseRegion(allClear, ["a", "b"], "a")).toBe("a");
   });
 
@@ -118,8 +119,12 @@ describe("readinessGaps / isReady (RULE-032)", () => {
   });
 
   it("distinguishes missing / stale / invalid for the fence", () => {
-    expect(readinessGaps({ ...ok, fence: { present: false, stale: false, usable: false } })).toContain("fence artifact missing");
-    expect(readinessGaps({ ...ok, fence: { present: true, stale: false, usable: false } })).toContain("fence artifact invalid");
+    expect(
+      readinessGaps({ ...ok, fence: { present: false, stale: false, usable: false } }),
+    ).toContain("fence artifact missing");
+    expect(
+      readinessGaps({ ...ok, fence: { present: true, stale: false, usable: false } }),
+    ).toContain("fence artifact invalid");
   });
 
   it("formats the doctor report and not-ready gaps exactly like the legacy command", () => {
@@ -219,9 +224,15 @@ describe("commandTarget — bin dispatch", () => {
     const help = cliHelpText();
     expect(help).toContain("codenuke loop — autonomous behavior-preserving code reduction");
     expect(help).toContain("usage (run from your repo root):");
-    expect(help).toContain("codenuke fence [cap=60] [seed=1337]   measure each region's behavior-fence fidelity");
-    expect(help).toContain("codenuke run [iterations=5]           run the loop (propose → score → keep/revert)");
-    expect(help).toContain("codenuke doctor                       report readiness or precise gaps");
+    expect(help).toContain(
+      "codenuke fence [cap=60] [seed=1337]   measure each region's behavior-fence fidelity",
+    );
+    expect(help).toContain(
+      "codenuke run [iterations=5]           run the loop (propose → score → keep/revert)",
+    );
+    expect(help).toContain(
+      "codenuke doctor                       report readiness or precise gaps",
+    );
     expect(help).toContain("config: codenuke.loop.json at the repo root, or CN_* env.");
     expect(help).toContain("First run 'fence' so the");
     expect(help).toContain("loop has a measured fence to gate on.");
@@ -383,20 +394,30 @@ describe("prompts and proposer failures (RULE-042, RULE-046, RULE-047)", () => {
       status: "crash-timeout",
       description: "proposer timeout after 900000ms",
     });
-    expect(proposerFailure({ timedOut: false, out: "info\nReached maximum budget\n", timeoutMs: 900000 })).toEqual({
+    expect(
+      proposerFailure({
+        timedOut: false,
+        out: "info\nReached maximum budget\n",
+        timeoutMs: 900000,
+      }),
+    ).toEqual({
       status: "crash-budget",
       description: "proposer budget exhausted: info Reached maximum budget",
     });
-    expect(proposerFailure({ timedOut: false, out: "fatal: denied\n", timeoutMs: 900000 })).toEqual({
-      status: "crash",
-      description: "proposer error: fatal: denied",
-    });
+    expect(proposerFailure({ timedOut: false, out: "fatal: denied\n", timeoutMs: 900000 })).toEqual(
+      {
+        status: "crash",
+        description: "proposer error: fatal: denied",
+      },
+    );
   });
 });
 
 describe("results.tsv formatting (RULE-038, RULE-040, RULE-041)", () => {
   it("uses the legacy tab-separated results header", () => {
-    expect(formatResultsHeader()).toBe("iter\tcommit\tdAST\tdCx\tbehavior\tmfence\tloss\tstatus\tdescription");
+    expect(formatResultsHeader()).toBe(
+      "iter\tcommit\tdAST\tdCx\tbehavior\tmfence\tloss\tstatus\tdescription",
+    );
   });
 
   it("formats keep, revert, crash, and raise rows with legacy column values", () => {

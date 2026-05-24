@@ -2,12 +2,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
-import { afterAll, describe, expect, it } from "vitest";
-
-import * as scorer from "@codenuke/scorer";
 import { measure, type Files } from "@codenuke/measure";
+import * as scorer from "@codenuke/scorer";
 import { wilson } from "@codenuke/stats";
+import { afterAll, describe, expect, it } from "vitest";
 
 interface ScorerState {
   readonly baselineSha: string;
@@ -49,13 +47,15 @@ interface RuntimeApi {
 const created: string[] = [];
 
 afterAll(() => {
-  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) {
+    rmSync(path, { recursive: true, force: true });
+  }
 });
 
 function runtime<K extends keyof RuntimeApi>(name: K): RuntimeApi[K] {
   const value = (scorer as unknown as Record<string, unknown>)[name];
   if (typeof value !== "function") {
-    throw new Error(`@codenuke/scorer must export runtime helper ${String(name)}`);
+    throw new Error(`@codenuke/scorer must export runtime helper ${name}`);
   }
   return value as RuntimeApi[K];
 }
@@ -114,27 +114,35 @@ function readState(path: string): ScorerState {
 
 function writePassingFence(root: string, baselineSha: string): void {
   const stats = wilson(99, 100);
-  write(root, ".codenuke/fence-fidelity.json", JSON.stringify({
-    schemaVersion: 1,
-    baseline: "HEAD",
-    baselineSha,
-    generatedAt: new Date().toISOString(),
-    method: "ast-aware",
-    threshold: 0.9,
-    capPerRegion: 60,
-    seed: 1337,
-    regions: {
-      src: {
-        caught: 99,
-        total: 100,
-        p: stats.p,
-        lo: stats.lo,
-        hi: stats.hi,
-        admissible: stats.lo >= 0.9,
-        survivorSpecs: [{ rel: "src/index.ts", start: 0, end: 1, repl: "x", op: "replace" }],
+  write(
+    root,
+    ".codenuke/fence-fidelity.json",
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        baseline: "HEAD",
+        baselineSha,
+        generatedAt: new Date().toISOString(),
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 99,
+            total: 100,
+            p: stats.p,
+            lo: stats.lo,
+            hi: stats.hi,
+            admissible: stats.lo >= 0.9,
+            survivorSpecs: [{ rel: "src/index.ts", start: 0, end: 1, repl: "x", op: "replace" }],
+          },
+        },
       },
-    },
-  }, null, 2));
+      null,
+      2,
+    ),
+  );
 }
 
 function awkwardSourceFiles(): Files {
@@ -148,8 +156,14 @@ function awkwardSourceFiles(): Files {
 function writeAwkwardSourceRepo(root: string): string {
   initRepo(root);
   write(root, "package.json", JSON.stringify({ name: "scorer-awkward-fixture" }, null, 2));
-  for (const [path, contents] of Object.entries(awkwardSourceFiles())) write(root, path, contents);
-  write(root, "src/skip.test.ts", "export function skipTest() {\n  if (true) return 1;\n  return 2;\n}\n");
+  for (const [path, contents] of Object.entries(awkwardSourceFiles())) {
+    write(root, path, contents);
+  }
+  write(
+    root,
+    "src/skip.test.ts",
+    "export function skipTest() {\n  if (true) return 1;\n  return 2;\n}\n",
+  );
   write(root, "src/types.d.ts", "export interface Skip {\n  value: string;\n}\n");
   write(root, "src/readme.md", "# ignored\n");
   return commit(root, "baseline with awkward source paths");
@@ -194,7 +208,9 @@ function initializedRepo(): {
 
 function parseJsonVerdict(stdout: string): Record<string, unknown> {
   const line = stdout.split(/\r?\n/u).find((entry) => entry.startsWith("@@JSON@@"));
-  if (!line) throw new Error(`missing @@JSON@@ verdict in stdout:\n${stdout}`);
+  if (!line) {
+    throw new Error(`missing @@JSON@@ verdict in stdout:\n${stdout}`);
+  }
   return JSON.parse(line.slice("@@JSON@@".length)) as Record<string, unknown>;
 }
 
@@ -210,8 +226,19 @@ describe("scorer runtime argv-vector and path-safety contract", () => {
       srcDir: "src",
     });
 
-    expect(plan.resolveBaseline).toEqual(["rev-parse", "--verify", "--end-of-options", "feature/reduce-1"]);
-    expect(plan.addWorktree(resolvedBaseline)).toEqual(["worktree", "add", "-f", "/tmp/codenuke-wt", resolvedBaseline]);
+    expect(plan.resolveBaseline).toEqual([
+      "rev-parse",
+      "--verify",
+      "--end-of-options",
+      "feature/reduce-1",
+    ]);
+    expect(plan.addWorktree(resolvedBaseline)).toEqual([
+      "worktree",
+      "add",
+      "-f",
+      "/tmp/codenuke-wt",
+      resolvedBaseline,
+    ]);
     expect(plan.targetTree(resolvedBaseline)).toEqual([
       "ls-tree",
       "-r",
@@ -297,11 +324,7 @@ describe("scorer runtime git source discovery", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(verdict.files).toEqual([
-      "line\nbreak.ts",
-      'quote "module".ts',
-      "space name.ts",
-    ]);
+    expect(verdict.files).toEqual(["line\nbreak.ts", 'quote "module".ts', "space name.ts"]);
     expect(verdict.touched).toEqual(["src"]);
   });
 });
@@ -310,7 +333,11 @@ describe("runScorerCommand init lifecycle", () => {
   it("creates an isolated worktree and writes baseline state with type errors, AST size, accepted, and iter", async () => {
     const root = fixtureRoot();
     initRepo(root);
-    write(root, "src/index.ts", "export function value() {\n  if (true) return 1;\n  return 2;\n}\n");
+    write(
+      root,
+      "src/index.ts",
+      "export function value() {\n  if (true) return 1;\n  return 2;\n}\n",
+    );
     commit(root, "baseline");
     const worktree = fixtureWorktree();
     const typecheck = script(
@@ -329,7 +356,12 @@ describe("runScorerCommand init lifecycle", () => {
     expect(result.stdout).toContain("verifying baseline (test + typecheck)");
     expect(result.stdout).toContain("baseline GREEN");
     expect(existsSync(worktree)).toBe(true);
-    expect(state).toMatchObject({ baselineSha: git(root, ["rev-parse", "--verify", "HEAD"]).trim(), baselineTsc: 1, accepted: [], iter: 0 });
+    expect(state).toMatchObject({
+      baselineSha: git(root, ["rev-parse", "--verify", "HEAD"]).trim(),
+      baselineTsc: 1,
+      accepted: [],
+      iter: 0,
+    });
     expect(state.startL).toBeGreaterThan(0);
   });
 
@@ -375,7 +407,9 @@ describe("runScorerCommand score lifecycle", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("no candidate (working tree clean) — proposer must edit first.");
+    expect(result.stdout).toContain(
+      "no candidate (working tree clean) — proposer must edit first.",
+    );
   });
 
   it("emits @@JSON@@ verdict with files, gates, touched/blocked, and null loss on gate failure", async () => {
@@ -406,7 +440,11 @@ describe("runScorerCommand score lifecycle", () => {
     const root = fixtureRoot("codenuke-scorer-branch-move-");
     initRepo(root);
     write(root, "package.json", JSON.stringify({ name: "scorer-branch-move-fixture" }, null, 2));
-    write(root, "src/index.ts", "export function value() {\n  if (true) return 1;\n  return 2;\n}\n");
+    write(
+      root,
+      "src/index.ts",
+      "export function value() {\n  if (true) return 1;\n  return 2;\n}\n",
+    );
     const baselineSha = commit(root, "baseline");
     git(root, ["branch", "moving-base", baselineSha]);
     const worktree = fixtureWorktree("codenuke-scorer-branch-move-wt-");
@@ -444,7 +482,7 @@ describe("runScorerCommand accept/revert/status/cleanup lifecycle", () => {
 
     const result = await runScorerCommand(["accept"], env, root);
     const state = readState(env.CN_STATE!);
-    const committedFiles = git(worktree, ["show", "--name-only", "--format=", state.accepted[0]!])
+    const committedFiles = git(worktree, ["show", "--name-only", "--format=", state.accepted[0]])
       .split(/\r?\n/u)
       .map((line) => line.trim())
       .filter(Boolean);
@@ -506,7 +544,9 @@ describe("runScorerCommand accept/revert/status/cleanup lifecycle", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain(`iterations=1 accepted=[${state.accepted[0]}]`);
-    expect(result.stdout).toMatch(/src astNodes: \d+ -> \d+  \(cumulative reduction \d+, \d+\.\d%\)/u);
+    expect(result.stdout).toMatch(
+      /src astNodes: \d+ -> \d+ {2}\(cumulative reduction \d+, \d+\.\d%\)/u,
+    );
   });
 
   it("cleanup removes the scorer state file and isolated worktree", async () => {
@@ -531,6 +571,8 @@ describe("runScorerCommand accept/revert/status/cleanup lifecycle", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(result.stdout).toBe("usage: scorer.mjs init|score [--json]|accept|revert|status|cleanup\n");
+    expect(result.stdout).toBe(
+      "usage: scorer.mjs init|score [--json]|accept|revert|status|cleanup\n",
+    );
   });
 });

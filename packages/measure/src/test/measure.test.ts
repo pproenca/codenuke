@@ -2,9 +2,8 @@
 // The migrated measure() keeps only the live quantities (L, complexity, dupMass);
 // the legacy oracle returns more fields, so we compare the shared three.
 import { describe, expect, it } from "vitest";
-
-import { measure } from "../main/measure";
 import { measure as legacyMeasure } from "../../../../test-fixtures/legacy-loop/measure.mjs";
+import { measure } from "../main/measure";
 
 type Files = Record<string, string>;
 const shared = (m: { L: number; complexity: number; dupMass: number }) => ({
@@ -38,13 +37,16 @@ const fileSets: Files[] = [
 
 describe("measure — characterization (RULE-003/004/005)", () => {
   it("excludes test files from all three quantities", () => {
-    const withTest = measure({ "a.ts": "export const x = 1;", "a.test.ts": "const y = 2; if (y) {}" });
+    const withTest = measure({
+      "a.ts": "export const x = 1;",
+      "a.test.ts": "const y = 2; if (y) {}",
+    });
     const without = measure({ "a.ts": "export const x = 1;" });
     expect(shared(withTest)).toEqual(shared(without));
   });
 
   it("counts decision points for cyclomatic complexity (oracle-pinned)", () => {
-    const files = { "branches.ts": fileSets[2]!["branches.ts"]! };
+    const files = { "branches.ts": fileSets[2]["branches.ts"] };
     const m = measure(files);
     expect(m.complexity).toBe(legacyMeasure(files).complexity);
     expect(m.complexity).toBeGreaterThan(1);

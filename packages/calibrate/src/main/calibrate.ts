@@ -7,7 +7,6 @@
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-010
  */
 import { mkdirSync, writeFileSync } from "node:fs";
-
 import { DEFAULT_CALIBRATION_SCALES, MIN_CALIBRATION_COMMITS } from "@codenuke/artifacts";
 import { loadConfig } from "@codenuke/config";
 import { run, tryRun } from "@codenuke/exec";
@@ -16,10 +15,12 @@ import { measure } from "@codenuke/measure";
 
 /** Median of a numeric list (0 for empty; mean of the two middle values for even length). */
 export function median(values: readonly number[]): number {
-  if (values.length === 0) return 0;
+  if (values.length === 0) {
+    return 0;
+  }
   const sorted = values.toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 /** Median of the strictly-positive values, falling back when there are none. */
@@ -65,9 +66,18 @@ export function deriveScales(deltas: readonly CommitDelta[]): DerivedCalibration
   const enoughHistory = sampled.length >= MIN_CALIBRATION_COMMITS;
   const scales: CalibrationScales = enoughHistory
     ? {
-        sL: positiveScale(sampled.map((d) => d.dL), DEFAULT_CALIBRATION_SCALES.sL),
-        sCx: positiveScale(sampled.map((d) => d.dCx), DEFAULT_CALIBRATION_SCALES.sCx),
-        sDup: positiveScale(sampled.map((d) => d.dDup), DEFAULT_CALIBRATION_SCALES.sDup),
+        sL: positiveScale(
+          sampled.map((d) => d.dL),
+          DEFAULT_CALIBRATION_SCALES.sL,
+        ),
+        sCx: positiveScale(
+          sampled.map((d) => d.dCx),
+          DEFAULT_CALIBRATION_SCALES.sCx,
+        ),
+        sDup: positiveScale(
+          sampled.map((d) => d.dDup),
+          DEFAULT_CALIBRATION_SCALES.sDup,
+        ),
       }
     : { ...DEFAULT_CALIBRATION_SCALES };
   return { scales, enoughHistory, commitsSampled: sampled.length };
@@ -91,7 +101,9 @@ export interface CalibrateCommandResult {
 }
 
 const isSourceFile = (path: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !path.endsWith(".d.ts") && !/\.(test|spec|accept)\./u.test(path);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) &&
+  !path.endsWith(".d.ts") &&
+  !/\.(test|spec|accept)\./u.test(path);
 
 const SAFE_REF = /^[A-Za-z0-9][A-Za-z0-9._/~^-]*$/u;
 const SAFE_PATH = /^[A-Za-z0-9._/-]+$/u;
@@ -131,7 +143,9 @@ export function snapshotFromGitOutput(input: {
   const files: Record<string, string> = {};
   for (const path of filesFromGitLsTree(input.treeOutput)) {
     const content = input.readFileAtRef(input.ref, path);
-    if (content !== null) files[path] = content;
+    if (content !== null) {
+      files[path] = content;
+    }
   }
   return files;
 }
@@ -182,7 +196,15 @@ export function calibrationGitCommandPlan(input: {
   const path = assertSafeSourcePath(sourcePath(input.srcDir));
   return {
     resolveBaseline: ["rev-parse", "--verify", "--end-of-options", baseline],
-    listCommits: ["rev-list", "--first-parent", "--max-count=80", "--end-of-options", baseline, "--", path],
+    listCommits: [
+      "rev-list",
+      "--first-parent",
+      "--max-count=80",
+      "--end-of-options",
+      baseline,
+      "--",
+      path,
+    ],
     filesAt: (ref) => ["ls-tree", "-r", "-z", "--name-only", ref, "--", path],
     showAt: (ref, filePath) => ["show", `${ref}:${filePath}`],
     parentLineFor: (commit) => ["rev-list", "--parents", "-n", "1", commit],
@@ -190,9 +212,13 @@ export function calibrationGitCommandPlan(input: {
 }
 
 function readFileAtRef(repo: string, ref: string, path: string): string | null {
-  const result = tryRun("git", calibrationGitCommandPlan({ baseline: ref, srcDir: "." }).showAt(ref, path), {
-    cwd: repo,
-  });
+  const result = tryRun(
+    "git",
+    calibrationGitCommandPlan({ baseline: ref, srcDir: "." }).showAt(ref, path),
+    {
+      cwd: repo,
+    },
+  );
   return result.ok ? result.out : null;
 }
 
@@ -229,7 +255,9 @@ export async function runCalibrateCommand(
         }),
       );
       const delta = deltaOf(before, after);
-      if (delta.dL > 0 || delta.dCx > 0 || delta.dDup > 0) deltas.push(delta);
+      if (delta.dL > 0 || delta.dCx > 0 || delta.dDup > 0) {
+        deltas.push(delta);
+      }
     }
 
     const derived = deriveScales(deltas);

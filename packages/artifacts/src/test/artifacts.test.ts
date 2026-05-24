@@ -7,14 +7,13 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
-
 import {
   calibrationArtifactStatus,
   fenceArtifactStatus,
   valueProxyValidationStatus,
 } from "@codenuke/artifacts";
 import { wilson } from "@codenuke/stats";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   calibrationArtifactStatus as legacyCalibration,
   fenceArtifactStatus as legacyFence,
@@ -23,13 +22,16 @@ import {
 
 const created: string[] = [];
 afterAll(() => {
-  for (const d of created) rmSync(d, { recursive: true, force: true });
+  for (const d of created) {
+    rmSync(d, { recursive: true, force: true });
+  }
 });
 
 function makeRepo(): { dir: string; head: string } {
   const dir = mkdtempSync(join(tmpdir(), "cn-artifacts-"));
   created.push(dir);
-  const git = (args: string[]) => execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+  const git = (args: string[]) =>
+    execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
   git(["init", "-q"]);
   git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init"]);
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }).trim();
@@ -48,10 +50,11 @@ const cfg = (dir: string) => ({
   thresholds: { fenceLB: 0.9 },
 });
 
-const both = <T>(fn: (c: ReturnType<typeof cfg>) => T, legacy: (c: ReturnType<typeof cfg>) => T, dir: string): [T, T] => [
-  fn(cfg(dir)),
-  legacy(cfg(dir)),
-];
+const both = <T>(
+  fn: (c: ReturnType<typeof cfg>) => T,
+  legacy: (c: ReturnType<typeof cfg>) => T,
+  dir: string,
+): [T, T] => [fn(cfg(dir)), legacy(cfg(dir))];
 
 const validCalibration = (head: string) => ({
   schemaVersion: 1,
@@ -75,7 +78,15 @@ function validFence(head: string) {
     capPerRegion: 60,
     seed: 1337,
     regions: {
-      alpha: { caught: 35, total: 35, p: a.p, lo: a.lo, hi: a.hi, admissible: a.lo >= 0.9, survivorSpecs: [] },
+      alpha: {
+        caught: 35,
+        total: 35,
+        p: a.p,
+        lo: a.lo,
+        hi: a.hi,
+        admissible: a.lo >= 0.9,
+        survivorSpecs: [],
+      },
       beta: {
         caught: 34,
         total: 35,
@@ -210,7 +221,10 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("invalid-scales for a non-positive scale", () => {
     const { dir, head } = makeRepo();
-    writeArtifact(dir, "calibration.json", { ...validCalibration(head), scales: { sL: -1, sCx: 12, sDup: 4 } });
+    writeArtifact(dir, "calibration.json", {
+      ...validCalibration(head),
+      scales: { sL: -1, sCx: 12, sDup: 4 },
+    });
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-scales");
@@ -218,7 +232,11 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 });
 
 describe("valueProxyValidationStatus — dual-execution", () => {
-  const rows = Array.from({ length: 6 }, (_, i) => ({ id: `c${i}`, proxy: i + 1, Vhat: (6 - i) * 10 }));
+  const rows = Array.from({ length: 6 }, (_, i) => ({
+    id: `c${i}`,
+    proxy: i + 1,
+    Vhat: (6 - i) * 10,
+  }));
   const valid = {
     schemaVersion: 1,
     passed: true,
@@ -261,7 +279,7 @@ describe("valueProxyValidationStatus — dual-execution", () => {
     const { dir } = makeRepo();
     writeArtifact(dir, "value-proxy-validation.json", {
       ...valid,
-      rows: rows.map((row) => ({ ...row, Vhat: row.proxy * 10 })),
+      rows: rows.map((row) => Object.assign({}, row, { Vhat: row.proxy * 10 })),
     });
     const status = valueProxyValidationStatus(cfg(dir));
     expect(status.usable).toBe(false);
@@ -270,7 +288,11 @@ describe("valueProxyValidationStatus — dual-execution", () => {
 
   it("invalid when passed is false", () => {
     const { dir } = makeRepo();
-    writeArtifact(dir, "value-proxy-validation.json", { ...valid, passed: false, reason: "low-rho" });
+    writeArtifact(dir, "value-proxy-validation.json", {
+      ...valid,
+      passed: false,
+      reason: "low-rho",
+    });
     const [a, b] = both(valueProxyValidationStatus, legacyValueProxy, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid");

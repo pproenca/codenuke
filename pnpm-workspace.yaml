@@ -1,5 +1,20 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+minimumReleaseAge: 2880
+
+minimumReleaseAgeExclude:
+  - "@oxfmt/*"
+  - "@oxlint/*"
+  - "@types/node"
+  - "oxfmt"
+  - "oxlint"
+  - "typescript"
+  - "vitest"
+
+nodeLinker: hoisted
+blockExoticSubdeps: true
+
 allowBuilds:
   esbuild: true

@@ -22,11 +22,11 @@ by construction**, not patched.
 
 ## The target API under test
 
-| Export             | Shape                                                       | Mirrors legacy      |
-| ------------------ | ---------------------------------------------------------- | ------------------- |
-| `run`              | `(file, args, options?) => string` (throws on nonzero)     | `runCommand`        |
-| `tryRun`           | `(file, args, options?) => { ok, out, timedOut }` (no throw)| `tryCommand`        |
-| `commandAvailable` | `(file, options?) => boolean`                              | `commandAvailable`  |
+| Export             | Shape                                                        | Mirrors legacy     |
+| ------------------ | ------------------------------------------------------------ | ------------------ |
+| `run`              | `(file, args, options?) => string` (throws on nonzero)       | `runCommand`       |
+| `tryRun`           | `(file, args, options?) => { ok, out, timedOut }` (no throw) | `tryCommand`       |
+| `commandAvailable` | `(file, options?) => boolean`                                | `commandAvailable` |
 
 `run` returns stdout as a string and throws like `execFileSync` on a nonzero
 exit. `tryRun` never throws, concatenates `stdout + stderr` into `out`, and sets

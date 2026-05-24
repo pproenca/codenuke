@@ -1,10 +1,8 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { describe, expect, it } from "vitest";
-
 import * as valueProxy from "@codenuke/value-proxy";
+import { describe, expect, it } from "vitest";
 
 interface Candidate {
   readonly id: string;
@@ -59,7 +57,7 @@ interface RuntimeApi {
 function runtime<K extends keyof RuntimeApi>(name: K): RuntimeApi[K] {
   const value = (valueProxy as Record<string, unknown>)[name];
   if (typeof value !== "function") {
-    throw new Error(`@codenuke/value-proxy must export runtime helper ${String(name)}`);
+    throw new Error(`@codenuke/value-proxy must export runtime helper ${name}`);
   }
   return value as RuntimeApi[K];
 }
@@ -76,7 +74,9 @@ function writeJson(root: string, path: string, value: unknown): string {
 }
 
 function readReport(root: string): ValidationReport {
-  return JSON.parse(readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8")) as ValidationReport;
+  return JSON.parse(
+    readFileSync(join(root, ".codenuke/value-proxy-validation.json"), "utf8"),
+  ) as ValidationReport;
 }
 
 function monotoneCorpus(n: number): Candidate[] {
@@ -93,7 +93,9 @@ describe("validate-proxy runtime paths and artifacts", () => {
     const valueProxyValidationOutputPath = runtime("valueProxyValidationOutputPath");
 
     expect(defaultValueProxyInputPath("/repo")).toBe("/repo/.codenuke/value-proxy.json");
-    expect(valueProxyValidationOutputPath("/repo")).toBe("/repo/.codenuke/value-proxy-validation.json");
+    expect(valueProxyValidationOutputPath("/repo")).toBe(
+      "/repo/.codenuke/value-proxy-validation.json",
+    );
   });
 
   it("writes the validation report with rebuild schemaVersion and the input path", () => {
@@ -209,7 +211,11 @@ describe("runValidateProxyCommand", () => {
 
   it("accepts an explicit JSON input while always writing the repo-local validation output", async () => {
     const root = fixtureRoot();
-    const explicitInput = writeJson(fixtureRoot("codenuke-value-proxy-input-"), "proxy.json", monotoneCorpus(6));
+    const explicitInput = writeJson(
+      fixtureRoot("codenuke-value-proxy-input-"),
+      "proxy.json",
+      monotoneCorpus(6),
+    );
     const runValidateProxyCommand = runtime("runValidateProxyCommand");
 
     const result = await runValidateProxyCommand([explicitInput], { CN_REPO: root }, root);
@@ -224,14 +230,12 @@ describe("runValidateProxyCommand", () => {
 
   it("writes and prints an invalid-config report before reading candidate JSON", async () => {
     const root = fixtureRoot();
-    writeJson(root, ".codenuke/value-proxy.json", { candidates: [{ id: "bad", proxy: null, Vhat: 10 }] });
+    writeJson(root, ".codenuke/value-proxy.json", {
+      candidates: [{ id: "bad", proxy: null, Vhat: 10 }],
+    });
     const runValidateProxyCommand = runtime("runValidateProxyCommand");
 
-    const result = await runValidateProxyCommand(
-      [],
-      { CN_REPO: root, CN_MIN_RHO: "2" },
-      root,
-    );
+    const result = await runValidateProxyCommand([], { CN_REPO: root, CN_MIN_RHO: "2" }, root);
     const report = readReport(root);
 
     expect(result.exitCode).toBe(1);
@@ -268,7 +272,9 @@ describe("runValidateProxyCommand", () => {
     const report = readReport(root);
 
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain("value proxy validation config invalid: CN_ALPHA must be a finite number in (0, 1]");
+    expect(result.stdout).toContain(
+      "value proxy validation config invalid: CN_ALPHA must be a finite number in (0, 1]",
+    );
     expect(report.reason).toBe("invalid-config");
     expect(report.error).toBe("CN_ALPHA must be a finite number in (0, 1]");
   });
@@ -276,7 +282,9 @@ describe("runValidateProxyCommand", () => {
   it("normalizes numeric candidate ids so produced reports pass artifact schema checks", async () => {
     const root = fixtureRoot();
     writeJson(root, ".codenuke/value-proxy.json", {
-      candidates: monotoneCorpus(6).map((candidate, index) => ({ ...candidate, id: index + 1 })),
+      candidates: monotoneCorpus(6).map((candidate, index) =>
+        Object.assign({}, candidate, { id: index + 1 }),
+      ),
     });
     const runValidateProxyCommand = runtime("runValidateProxyCommand");
 
@@ -289,7 +297,9 @@ describe("runValidateProxyCommand", () => {
 
   it("writes and prints a malformed-input report", async () => {
     const root = fixtureRoot();
-    writeJson(root, ".codenuke/value-proxy.json", { candidates: [{ id: "bad", proxy: null, Vhat: 10 }] });
+    writeJson(root, ".codenuke/value-proxy.json", {
+      candidates: [{ id: "bad", proxy: null, Vhat: 10 }],
+    });
     const runValidateProxyCommand = runtime("runValidateProxyCommand");
 
     const result = await runValidateProxyCommand(

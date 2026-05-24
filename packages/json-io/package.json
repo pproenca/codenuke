@@ -1,21 +1,19 @@
 {
   "name": "@codenuke/json",
   "version": "0.1.0",
+  "private": true,
   "description": "Safe JSON file read for codenuke (modernized slice of loop/json.mjs).",
-  "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=22"
-  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/json.d.ts",
       "import": "./dist/json.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm -s build",
@@ -26,5 +24,7 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   },
-  "private": true
+  "engines": {
+    "node": ">=22"
+  }
 }

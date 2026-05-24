@@ -60,7 +60,12 @@ export function tryRun(
   try {
     return { ok: true, out: run(file, args, options), timedOut: false };
   } catch (error) {
-    const e = error as { stdout?: Buffer | string; stderr?: Buffer | string; signal?: string; code?: string };
+    const e = error as {
+      stdout?: Buffer | string;
+      stderr?: Buffer | string;
+      signal?: string;
+      code?: string;
+    };
     return {
       ok: false,
       out: (e.stdout?.toString() ?? "") + (e.stderr?.toString() ?? ""),
@@ -78,7 +83,9 @@ export function tryRun(
  * false-positive `true` for such names. Mirrors the legacy `commandAvailable`.
  */
 export function commandAvailable(file: string, options: ExecOptions = {}): boolean {
-  if (!file) return false;
+  if (!file) {
+    return false;
+  }
   return tryRun("sh", ["-c", 'command -v -- "$1"', "sh", file], {
     stdio: ["ignore", "pipe", "ignore"],
     ...options,

@@ -1,21 +1,19 @@
 {
   "name": "@codenuke/changecost",
   "version": "0.1.0",
+  "private": true,
   "description": "Change-cost (𝒱̂) library — editCost/verifyCost/mean. Modernized pure core of loop/changecost.mjs.",
-  "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=22"
-  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/changecost.d.ts",
       "import": "./dist/changecost.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm -s build",
@@ -32,5 +30,7 @@
   "devDependencies": {
     "vitest": "^4.1.6"
   },
-  "private": true
+  "engines": {
+    "node": ">=22"
+  }
 }

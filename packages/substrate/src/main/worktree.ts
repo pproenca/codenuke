@@ -5,7 +5,15 @@
  *
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-045 (worktree lifecycle)
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import { run } from "@codenuke/exec";
 
@@ -18,14 +26,18 @@ export function excludeWorktreeHelper(worktree: string, path: string): void {
   } catch {
     /* no exclude file yet */
   }
-  if (!current.split(/\r?\n/u).includes(path)) appendFileSync(exclude, `${path}\n`);
+  if (!current.split(/\r?\n/u).includes(path)) {
+    appendFileSync(exclude, `${path}\n`);
+  }
 }
 
 /** Bounded directory walk for non-hoisted workspace `node_modules` dirs. */
 function nestedNodeModules(repo: string, maxDepth = 4): string[] {
   const found: string[] = [];
   const walk = (rel: string, depth: number): void => {
-    if (depth > maxDepth) return;
+    if (depth > maxDepth) {
+      return;
+    }
     let entries: import("node:fs").Dirent[];
     try {
       entries = readdirSync(rel ? `${repo}/${rel}` : repo, { withFileTypes: true });
@@ -33,10 +45,14 @@ function nestedNodeModules(repo: string, maxDepth = 4): string[] {
       return;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name === ".git") continue;
+      if (!entry.isDirectory() || entry.name === ".git") {
+        continue;
+      }
       const child = rel ? `${rel}/${entry.name}` : entry.name;
       if (entry.name === "node_modules") {
-        if (child !== "node_modules") found.push(child);
+        if (child !== "node_modules") {
+          found.push(child);
+        }
       } else {
         walk(child, depth + 1);
       }
@@ -46,7 +62,10 @@ function nestedNodeModules(repo: string, maxDepth = 4): string[] {
   return found;
 }
 
-const worktreeNodeModulesPaths = (repo: string): string[] => ["node_modules", ...nestedNodeModules(repo)];
+const worktreeNodeModulesPaths = (repo: string): string[] => [
+  "node_modules",
+  ...nestedNodeModules(repo),
+];
 
 /** Symlink the repo's node_modules (root + non-hoisted workspace) into a worktree. */
 export function linkWorktreeNodeModules(repo: string, worktree: string): void {
@@ -83,7 +102,9 @@ export function removeWorktree(repo: string, worktree: string): void {
     run("git", ["worktree", "remove", "--force", worktree], { cwd: repo });
     run("git", ["worktree", "prune"], { cwd: repo });
   } catch (error) {
-    if (existsSync(worktree)) throw error;
+    if (existsSync(worktree)) {
+      throw error;
+    }
   }
 }
 
@@ -93,13 +114,20 @@ export function resetAndCleanWorktree(
   options: { ref?: string; paths?: readonly string[]; all?: boolean } = {},
 ): void {
   run("git", ["-C", worktree, "reset", "--hard", options.ref ?? "HEAD"]);
-  for (const path of options.paths ?? []) run("git", ["-C", worktree, "clean", "-fdq", "--", path]);
-  if (options.all) run("git", ["-C", worktree, "clean", "-fdq"]);
+  for (const path of options.paths ?? []) {
+    run("git", ["-C", worktree, "clean", "-fdq", "--", path]);
+  }
+  if (options.all) {
+    run("git", ["-C", worktree, "clean", "-fdq"]);
+  }
 }
 
 /** Extract the path from a `git status --porcelain` line (handles rename `->`). */
 export const gitStatusPath = (line: string): string =>
-  line.slice(3).trim().replace(/^.* -> /u, "");
+  line
+    .slice(3)
+    .trim()
+    .replace(/^.* -> /u, "");
 
 /** True iff `path` is the root node_modules or sits under it. */
 export const isNodeModulesPath = (path: string): boolean =>
@@ -114,14 +142,19 @@ export function isHiddenBenchmarkDeletion(input: {
 }): boolean {
   const { benchmarkInsideRepo, benchmarkRel, path, status } = input;
   return (
-    benchmarkInsideRepo && path.startsWith(`${benchmarkRel}/`) && status.includes("D") && !status.includes("?")
+    benchmarkInsideRepo &&
+    path.startsWith(`${benchmarkRel}/`) &&
+    status.includes("D") &&
+    !status.includes("?")
   );
 }
 
 /** Parse `git status --porcelain` output into dirty paths, filtering ignored entries. */
 export function dirtyPathsFromPorcelain(
   output: string,
-  { ignoreEntry = () => false }: { ignoreEntry?: (e: { line: string; path: string; status: string }) => boolean } = {},
+  {
+    ignoreEntry = () => false,
+  }: { ignoreEntry?: (e: { line: string; path: string; status: string }) => boolean } = {},
 ): string[] {
   return output.split("\n").flatMap((line) => {
     const path = gitStatusPath(line);

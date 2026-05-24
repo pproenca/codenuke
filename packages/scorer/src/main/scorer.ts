@@ -9,7 +9,6 @@
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
-
 import { calibrationArtifactStatus, fenceArtifactStatus } from "@codenuke/artifacts";
 import { isSourceFile, loadConfig, regionOf, type Config } from "@codenuke/config";
 import { run, tryRun } from "@codenuke/exec";
@@ -144,19 +143,31 @@ export function decide(input: ScoreInputs): Verdict {
 }
 
 /** The human-readable verdict, prioritising the fence-gate message (matches legacy). */
-export function verdictLabel(v: Verdict): "KEEP" | "REJECT (G1′ fence)" | "REJECT (no gain)" | "REJECT (gate)" {
-  if (!v.gates.G1prime) return "REJECT (G1′ fence)";
-  if (v.keep) return "KEEP";
-  if (v.admissible) return "REJECT (no gain)";
+export function verdictLabel(
+  v: Verdict,
+): "KEEP" | "REJECT (G1′ fence)" | "REJECT (no gain)" | "REJECT (gate)" {
+  if (!v.gates.G1prime) {
+    return "REJECT (G1′ fence)";
+  }
+  if (v.keep) {
+    return "KEEP";
+  }
+  if (v.admissible) {
+    return "REJECT (no gain)";
+  }
   return "REJECT (gate)";
 }
 
 function assertSafeRef(ref: string): void {
-  if (!ref || ref.startsWith("-") || ref.includes("\0")) throw new Error("unsafe git ref for scorer");
+  if (!ref || ref.startsWith("-") || ref.includes("\0")) {
+    throw new Error("unsafe git ref for scorer");
+  }
 }
 
 function assertResolvedSha(ref: string): void {
-  if (!/^[0-9a-f]{40}$/u.test(ref)) throw new Error("resolved git SHA for scorer required");
+  if (!/^[0-9a-f]{40}$/u.test(ref)) {
+    throw new Error("resolved git SHA for scorer required");
+  }
 }
 
 function assertSafePathspec(value: string, label: "target" | "source"): void {
@@ -213,13 +224,22 @@ function writeState(path: string, state: ScorerState): void {
 }
 
 async function testsPass(config: Config, env: NodeJS.ProcessEnv): Promise<boolean> {
-  return (await runShellGroup(config.testCommand, { cwd: config.worktree, env, timeout: 300000 })).ok;
+  return (await runShellGroup(config.testCommand, { cwd: config.worktree, env, timeout: 300000 }))
+    .ok;
 }
 
 async function typeErrors(config: Config, env: NodeJS.ProcessEnv): Promise<number> {
-  if (!config.typeCheckCommand) return 0;
-  const result = await runShellGroup(config.typeCheckCommand, { cwd: config.worktree, env, timeout: 300000 });
-  if (result.ok) return 0;
+  if (!config.typeCheckCommand) {
+    return 0;
+  }
+  const result = await runShellGroup(config.typeCheckCommand, {
+    cwd: config.worktree,
+    env,
+    timeout: 300000,
+  });
+  if (result.ok) {
+    return 0;
+  }
   return result.out.split("\n").filter((line) => /error TS/u.test(line)).length || 1;
 }
 
@@ -236,7 +256,10 @@ const gitPathList = (output: string, srcDir: string): string[] =>
   output.split("\0").filter((value) => value.length > 0 && sourceInDir(value, srcDir));
 
 function targetL(config: Config, ref: string, plan: ScorerGitCommandPlan): number {
-  const files = gitPathList(run("git", plan.targetTree(ref), { cwd: config.worktree }), config.srcDir);
+  const files = gitPathList(
+    run("git", plan.targetTree(ref), { cwd: config.worktree }),
+    config.srcDir,
+  );
   const map: Files = Object.fromEntries(
     files.flatMap((file) => {
       const text = showAt(config, ref, file);
@@ -255,18 +278,31 @@ function changedSource(config: Config, plan: ScorerGitCommandPlan): string[] {
   ];
 }
 
-function changedMeasurement(config: Config, changed: readonly string[], ref: "HEAD" | "worktree"): Measurement {
+function changedMeasurement(
+  config: Config,
+  changed: readonly string[],
+  ref: "HEAD" | "worktree",
+): Measurement {
   const map: Files = Object.fromEntries(
     changed.map((file) => {
-      if (ref === "HEAD") return [file, showAt(config, "HEAD", file) ?? ""];
-      return [file, existsSync(`${config.worktree}/${file}`) ? readFileSync(`${config.worktree}/${file}`, "utf8") : ""];
+      if (ref === "HEAD") {
+        return [file, showAt(config, "HEAD", file) ?? ""];
+      }
+      return [
+        file,
+        existsSync(`${config.worktree}/${file}`)
+          ? readFileSync(`${config.worktree}/${file}`, "utf8")
+          : "",
+      ];
     }),
   );
   return measure(map);
 }
 
 function diffSize(config: Config): number {
-  const out = run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], { cwd: config.worktree });
+  const out = run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], {
+    cwd: config.worktree,
+  });
   return Number(out.match(/(\d+) insert/u)?.[1] ?? 0) + Number(out.match(/(\d+) delet/u)?.[1] ?? 0);
 }
 
@@ -278,10 +314,18 @@ function formatFenceText(input: {
   readonly fenceStatus: ReturnType<typeof fenceArtifactStatus>;
   readonly fenceRegions: Record<string, { lo?: number } | undefined>;
 }): string {
-  if (input.gates.G1prime) return `clear (mfence=${(input.mfence * 100).toFixed(0)}%)`;
-  if (input.fenceStatus.stale) return "STALE AUDIT (fail-closed)";
-  if (input.fenceStatus.artifact && !input.fenceStatus.usable) return "INVALID AUDIT (fail-closed)";
-  if (!input.fenceStatus.artifact) return "NO AUDIT (fail-closed)";
+  if (input.gates.G1prime) {
+    return `clear (mfence=${(input.mfence * 100).toFixed(0)}%)`;
+  }
+  if (input.fenceStatus.stale) {
+    return "STALE AUDIT (fail-closed)";
+  }
+  if (input.fenceStatus.artifact && !input.fenceStatus.usable) {
+    return "INVALID AUDIT (fail-closed)";
+  }
+  if (!input.fenceStatus.artifact) {
+    return "NO AUDIT (fail-closed)";
+  }
   return `blocked: ${input.blocked
     .map((region) => `${region}[lo=${((input.fenceRegions[region]?.lo ?? 0) * 100).toFixed(0)}%]`)
     .join(", ")}`;
@@ -298,12 +342,18 @@ async function scoreCandidate(
   readonly blocked: readonly string[];
   readonly files: readonly string[];
   readonly fenceStatus: ReturnType<typeof fenceArtifactStatus>;
-  readonly fenceRegions: Record<string, { admissible?: boolean; p?: number; lo?: number } | undefined>;
+  readonly fenceRegions: Record<
+    string,
+    { admissible?: boolean; p?: number; lo?: number } | undefined
+  >;
 }> {
   const artifactConfig = { ...config, baseline: state.baselineSha };
   const fenceStatus = fenceArtifactStatus(artifactConfig);
   const fence = fenceStatus.usable ? fenceStatus.artifact : null;
-  const fenceRegions = (fence?.regions ?? {}) as Record<string, { admissible?: boolean; p?: number; lo?: number } | undefined>;
+  const fenceRegions = (fence?.regions ?? {}) as Record<
+    string,
+    { admissible?: boolean; p?: number; lo?: number } | undefined
+  >;
   const touched = [...new Set(changed.map((path) => regionOf(path, config.srcDir)))];
   const blocked = touched.filter((region) => fenceRegions[region]?.admissible !== true);
   const calibration = calibrationArtifactStatus(artifactConfig);
@@ -334,12 +384,18 @@ async function scoreCandidate(
 }
 
 function requireState(config: Config): ScorerState | RuntimeResult {
-  if (existsSync(config.state)) return readState(config.state);
+  if (existsSync(config.state)) {
+    return readState(config.state);
+  }
   return { exitCode: 1, stdout: "run `codenuke init` first\n", stderr: "" };
 }
 
 /** Run the manual immutable-scorer command lifecycle (RULE-044). */
-export async function runScorerCommand(args: readonly string[], env: Env, cwd: string): Promise<RuntimeResult> {
+export async function runScorerCommand(
+  args: readonly string[],
+  env: Env,
+  cwd: string,
+): Promise<RuntimeResult> {
   const cmd = args[0];
   const config = loadConfig(env, cwd);
   const runEnv = env as NodeJS.ProcessEnv;
@@ -367,16 +423,24 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
     const startL = targetL(config, baselineSha, plan);
     writeState(config.state, { baselineSha, baselineTsc, startL, accepted: [], iter: 0 });
     out.push(`baseline GREEN ✓  typeErrors=${baselineTsc}  ${config.target} astNodes=${startL}`);
-    out.push(`proposer edits ${config.worktree}/${config.target} to reduce code (preserve behavior), then 'score'.`);
+    out.push(
+      `proposer edits ${config.worktree}/${config.target} to reduce code (preserve behavior), then 'score'.`,
+    );
     return { exitCode: 0, stdout: lines(out), stderr: "" };
   }
 
   if (cmd === "score") {
     const state = requireState(config);
-    if ("exitCode" in state) return state;
+    if ("exitCode" in state) {
+      return state;
+    }
     const changed = changedSource(config, plan);
     if (changed.length === 0) {
-      return { exitCode: 0, stdout: "no candidate (working tree clean) — proposer must edit first.\n", stderr: "" };
+      return {
+        exitCode: 0,
+        stdout: "no candidate (working tree clean) — proposer must edit first.\n",
+        stderr: "",
+      };
     }
     const scored = await scoreCandidate(config, runEnv, state, changed);
     const v = scored.verdict;
@@ -419,12 +483,20 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
 
   if (cmd === "accept") {
     const state = requireState(config);
-    if ("exitCode" in state) return state;
+    if ("exitCode" in state) {
+      return state;
+    }
     const changed = changedSource(config, plan);
-    if (changed.length === 0) return { exitCode: 0, stdout: "nothing to accept.\n", stderr: "" };
+    if (changed.length === 0) {
+      return { exitCode: 0, stdout: "nothing to accept.\n", stderr: "" };
+    }
     const scored = await scoreCandidate(config, runEnv, state, changed);
     if (!scored.verdict.keep) {
-      return { exitCode: 1, stdout: `candidate not accepted: ${verdictLabel(scored.verdict)}\n`, stderr: "" };
+      return {
+        exitCode: 1,
+        stdout: `candidate not accepted: ${verdictLabel(scored.verdict)}\n`,
+        stderr: "",
+      };
     }
     run("git", plan.addChangedSource(changed), { cwd: config.worktree, env });
     run(
@@ -442,14 +514,23 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
       ],
       { cwd: config.worktree, env },
     );
-    const commit = run("git", ["rev-parse", "--short", "HEAD"], { cwd: config.worktree, env }).trim();
-    writeState(config.state, { ...state, iter: state.iter + 1, accepted: [...state.accepted, commit] });
+    const commit = run("git", ["rev-parse", "--short", "HEAD"], {
+      cwd: config.worktree,
+      env,
+    }).trim();
+    writeState(config.state, {
+      ...state,
+      iter: state.iter + 1,
+      accepted: [...state.accepted, commit],
+    });
     return { exitCode: 0, stdout: `accepted (iteration ${state.iter + 1}).\n`, stderr: "" };
   }
 
   if (cmd === "revert") {
     const state = requireState(config);
-    if ("exitCode" in state) return state;
+    if ("exitCode" in state) {
+      return state;
+    }
     tryRun("git", ["checkout", "--", config.srcDir], { cwd: config.worktree, env });
     tryRun("git", plan.cleanSource, { cwd: config.worktree, env });
     return { exitCode: 0, stdout: "candidate reverted.\n", stderr: "" };
@@ -457,7 +538,9 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
 
   if (cmd === "status") {
     const state = requireState(config);
-    if ("exitCode" in state) return state;
+    if ("exitCode" in state) {
+      return state;
+    }
     const headSha = run("git", ["rev-parse", "--verify", "HEAD"], { cwd: config.worktree }).trim();
     const now = targetL(config, headSha, plan);
     const cut = state.startL - now;
@@ -481,5 +564,9 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
     return { exitCode: 0, stdout: "worktree removed.\n", stderr: "" };
   }
 
-  return { exitCode: 0, stdout: "usage: scorer.mjs init|score [--json]|accept|revert|status|cleanup\n", stderr: "" };
+  return {
+    exitCode: 0,
+    stdout: "usage: scorer.mjs init|score [--json]|accept|revert|status|cleanup\n",
+    stderr: "",
+  };
 }

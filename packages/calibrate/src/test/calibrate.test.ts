@@ -1,8 +1,7 @@
+import { deltaOf, deriveScales, median, positiveScale } from "@codenuke/calibrate";
 // Characterization tests for the pure calibration math (loop/calibrate.mjs has no
 // exports — it's a CLI script — so values are derived by reasoning from its logic).
 import { describe, expect, it } from "vitest";
-
-import { deltaOf, deriveScales, median, positiveScale } from "@codenuke/calibrate";
 
 describe("median (RULE-010)", () => {
   it("odd / even / single / empty", () => {
@@ -25,7 +24,9 @@ describe("positiveScale (RULE-010)", () => {
 
 describe("deltaOf (RULE-010)", () => {
   it("absolute per-axis difference", () => {
-    expect(deltaOf({ L: 100, complexity: 10, dupMass: 5 }, { L: 80, complexity: 14, dupMass: 5 })).toEqual({
+    expect(
+      deltaOf({ L: 100, complexity: 10, dupMass: 5 }, { L: 80, complexity: 14, dupMass: 5 }),
+    ).toEqual({
       dL: 20,
       dCx: 4,
       dDup: 0,

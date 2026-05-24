@@ -4,9 +4,16 @@
  *
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-011 (𝒱̂), RULE-012 (editCost), RULE-013 (verifyCost)
  */
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import ts from "typescript";
 import { fenceArtifactStatus } from "@codenuke/artifacts";
 import { isSourceFile, isUnderSourceDir, loadConfig, regionOf } from "@codenuke/config";
 import { run } from "@codenuke/exec";
@@ -18,6 +25,7 @@ import {
   resetAndCleanWorktree,
 } from "@codenuke/substrate";
 import { runCodexAgent, runShellGroup } from "@codenuke/substrate";
+import ts from "typescript";
 
 type Env = Record<string, string | undefined>;
 
@@ -41,9 +49,13 @@ export function tokenize(name: string, text: string): string[] {
     const kids = node.getChildren(sf);
     if (kids.length === 0) {
       const t = node.getText(sf);
-      if (t !== "") tokens.push(t);
+      if (t !== "") {
+        tokens.push(t);
+      }
     } else {
-      for (const k of kids) walk(k);
+      for (const k of kids) {
+        walk(k);
+      }
     }
   })(sf);
   return tokens;
@@ -53,18 +65,22 @@ export function tokenize(name: string, text: string): string[] {
 export function lcsEditSize(a: readonly string[], b: readonly string[]): number {
   const n = a.length;
   const m = b.length;
-  if (n === 0) return m;
-  if (m === 0) return n;
+  if (n === 0) {
+    return m;
+  }
+  if (m === 0) {
+    return n;
+  }
   let prev = Array.from({ length: m + 1 }, () => 0);
   for (let i = 1; i <= n; i++) {
     const cur = Array.from({ length: m + 1 }, () => 0);
     const ai = a[i - 1];
     for (let j = 1; j <= m; j++) {
-      cur[j] = ai === b[j - 1] ? prev[j - 1]! + 1 : prev[j]! >= cur[j - 1]! ? prev[j]! : cur[j - 1]!;
+      cur[j] = ai === b[j - 1] ? prev[j - 1] + 1 : prev[j] >= cur[j - 1] ? prev[j] : cur[j - 1];
     }
     prev = cur;
   }
-  return n - prev[m]! + (m - prev[m]!);
+  return n - prev[m] + (m - prev[m]);
 }
 
 export interface EditCostResult {
@@ -113,19 +129,35 @@ export interface GitCommandPlan {
   readonly resetAndCleanPaths: (paths: readonly string[]) => readonly string[];
 }
 
+function metadataString(value: unknown, fallback: string): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value == null) {
+    return fallback;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return `${value}`;
+  }
+  return fallback;
+}
+
 /** Formatting-invariant token edit size over changed counted source files (RULE-012). */
 export function editCost(
   beforeMap: Record<string, string>,
   afterMap: Record<string, string>,
   srcDir = "src",
 ): EditCostResult {
-  const counted = (p: string): boolean => (srcDir === "." || p.startsWith(`${srcDir}/`)) && isSourceFile(p);
+  const counted = (p: string): boolean =>
+    (srcDir === "." || p.startsWith(`${srcDir}/`)) && isSourceFile(p);
   const files = new Set([...Object.keys(beforeMap), ...Object.keys(afterMap)].filter(counted));
   let tokens = 0;
   let touched = 0;
   const perFile: Record<string, number> = {};
   for (const f of files) {
-    if (beforeMap[f] === afterMap[f]) continue;
+    if (beforeMap[f] === afterMap[f]) {
+      continue;
+    }
     const d = lcsEditSize(
       beforeMap[f] != null ? tokenize(f, beforeMap[f]) : [],
       afterMap[f] != null ? tokenize(f, afterMap[f]) : [],
@@ -144,7 +176,9 @@ export function verifyCost(
   touchedRegions: readonly string[],
   fenceArtifact: { regions?: Record<string, { p?: number }> } | null,
 ): number {
-  if (touchedRegions.length === 0) return 0;
+  if (touchedRegions.length === 0) {
+    return 0;
+  }
   const fid = (r: string): number => fenceArtifact?.regions?.[r]?.p ?? 0;
   return touchedRegions.reduce((s, r) => s + (1 - fid(r)), 0) / touchedRegions.length;
 }
@@ -158,7 +192,10 @@ export const meanChangeCost = (costs: readonly number[]): number | null =>
   costs.length ? costs.reduce((s, c) => s + c, 0) / costs.length : null;
 
 /** The implementer prompt for a benchmark change (pure string). */
-export function buildImplementerPrompt(delta: { prompt: string; acceptPath: string }, srcDir: string): string {
+export function buildImplementerPrompt(
+  delta: { prompt: string; acceptPath: string },
+  srcDir: string,
+): string {
   return `Implement this change-request (cwd is the repo root).
 
 ## Request
@@ -167,26 +204,30 @@ ${delta.prompt}
 The hidden acceptance test will be installed at ${delta.acceptPath} after implementation and run with the full suite. Edit ONLY non-test source under ${srcDir}/. Implement for real (no test-specific hacks). When done, stop.`;
 }
 
-export const defaultChangeCostOutputPath = (repo: string): string => `${repo}/.codenuke/changecost.json`;
+export const defaultChangeCostOutputPath = (repo: string): string =>
+  `${repo}/.codenuke/changecost.json`;
 
 export function parseChangeCostBeta(env: Env): number {
   const beta = Number(env.CN_BETA ?? 60);
-  if (!Number.isFinite(beta) || beta < 0) throw new Error("CN_BETA must be a finite non-negative number");
+  if (!Number.isFinite(beta) || beta < 0) {
+    throw new Error("CN_BETA must be a finite non-negative number");
+  }
   return beta;
 }
 
-export const changeCostRef = (
-  args: readonly string[],
-  env: Env,
-  defaultBaseline: string,
-): string => args[0] ?? env.CN_BASE ?? defaultBaseline;
+export const changeCostRef = (args: readonly string[], env: Env, defaultBaseline: string): string =>
+  args[0] ?? env.CN_BASE ?? defaultBaseline;
 
-export function createChangeCostArtifact(input: Omit<ChangeCostArtifact, "schemaVersion">): ChangeCostArtifact {
+export function createChangeCostArtifact(
+  input: Omit<ChangeCostArtifact, "schemaVersion">,
+): ChangeCostArtifact {
   return { schemaVersion: 1, ...input };
 }
 
 function assertSafeRef(ref: string): void {
-  if (!ref || ref.startsWith("-") || ref.includes("\0")) throw new Error("unsafe git ref for changecost");
+  if (!ref || ref.startsWith("-") || ref.includes("\0")) {
+    throw new Error("unsafe git ref for changecost");
+  }
 }
 
 const pathSegments = (value: string): string[] => value.split(/[\\/]+/u).filter(Boolean);
@@ -226,22 +267,30 @@ export function changeCostGitCommandPlan(input: {
 }
 
 export function safeWorktreePath(worktreeRoot: string, rel: string): string {
-  if (isAbsolute(rel) || rel.includes("\0") || rel.includes("\\")) throw new Error("unsafe worktree path");
+  if (isAbsolute(rel) || rel.includes("\0") || rel.includes("\\")) {
+    throw new Error("unsafe worktree path");
+  }
   const root = resolve(worktreeRoot);
   const path = resolve(root, rel);
   const back = relative(root, path);
-  if (escapesRoot(back)) throw new Error("unsafe worktree path");
+  if (escapesRoot(back)) {
+    throw new Error("unsafe worktree path");
+  }
   const parts = pathSegments(back);
   let current = root;
   for (const part of parts) {
     current = join(current, part);
-    if (existsSync(current) && lstatSync(current).isSymbolicLink()) throw new Error("unsafe worktree path");
+    if (existsSync(current) && lstatSync(current).isSymbolicLink()) {
+      throw new Error("unsafe worktree path");
+    }
   }
   return path;
 }
 
 export function discoverBenchmarks(benchmarkDir: string): readonly BenchmarkDelta[] {
-  if (!existsSync(benchmarkDir)) return [];
+  if (!existsSync(benchmarkDir)) {
+    return [];
+  }
   return readdirSync(benchmarkDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => {
@@ -253,12 +302,13 @@ export function discoverBenchmarks(benchmarkDir: string): readonly BenchmarkDelt
         region?: unknown;
         acceptPath?: unknown;
       };
+      const id = metadataString(meta.id, entry.name);
       return {
-        id: String(meta.id ?? entry.name),
-        title: String(meta.title ?? meta.id ?? entry.name),
-        prompt: String(meta.prompt ?? ""),
+        id,
+        title: metadataString(meta.title, id),
+        prompt: metadataString(meta.prompt, ""),
         region: typeof meta.region === "string" ? meta.region : undefined,
-        acceptPath: String(meta.acceptPath ?? "accept.test.ts"),
+        acceptPath: metadataString(meta.acceptPath, "accept.test.ts"),
         dir,
         acceptTest: readFileSync(join(dir, "accept.test.ts"), "utf8"),
       };
@@ -273,12 +323,14 @@ export function dirtyPathsFromPorcelainZ(
   const fields = output.split("\0").filter(Boolean);
   const paths: string[] = [];
   for (let i = 0; i < fields.length; i++) {
-    const entry = fields[i]!;
+    const entry = fields[i];
     const status = entry.slice(0, 2);
     const path = entry.slice(3);
     const isRenameOrCopy = status.includes("R") || status.includes("C");
     const renameSource = isRenameOrCopy ? fields[++i] : undefined;
-    for (const candidate of [path, renameSource].filter((value): value is string => Boolean(value))) {
+    for (const candidate of [path, renameSource].filter((value): value is string =>
+      Boolean(value),
+    )) {
       if (
         !isHiddenBenchmarkDeletion({
           benchmarkInsideRepo: options.benchmarkInsideRepo,
@@ -295,7 +347,11 @@ export function dirtyPathsFromPorcelainZ(
   return paths;
 }
 
-function snapshotWorktree(worktree: string, srcDir: string, includeUntracked = false): Record<string, string> {
+function snapshotWorktree(
+  worktree: string,
+  srcDir: string,
+  includeUntracked = false,
+): Record<string, string> {
   const lsArgs = includeUntracked
     ? ["-C", worktree, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", srcDir]
     : ["-C", worktree, "ls-files", "-z", "--", srcDir];
@@ -318,7 +374,11 @@ function formatChangeCostSummary(artifact: ChangeCostArtifact, out: string): str
   return `\n=== Vhat(${artifact.ref}) = ${value} over ${artifact.done}/${artifact.total} changes ===  -> ${out}\n`;
 }
 
-export async function runChangeCostCommand(args: readonly string[], env: Env, cwd: string): Promise<RuntimeResult> {
+export async function runChangeCostCommand(
+  args: readonly string[],
+  env: Env,
+  cwd: string,
+): Promise<RuntimeResult> {
   const stdout: string[] = [];
   const stderr: string[] = [];
   const log = (line = ""): void => {
@@ -344,7 +404,9 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
   const benchmarkDeltas = discoverBenchmarks(config.benchmarkDir);
 
   if (benchmarkDeltas.length === 0) {
-    log(`no benchmark in ${config.benchmarkDir} (add change-requests: <id>/meta.json + accept.test.ts)`);
+    log(
+      `no benchmark in ${config.benchmarkDir} (add change-requests: <id>/meta.json + accept.test.ts)`,
+    );
     return { exitCode: 1, stdout: stdout.join(""), stderr: stderr.join("") };
   }
 
@@ -371,7 +433,9 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
       benchmarkRel,
     });
   const hideBenchmarkFromWorktree = (): void => {
-    if (benchmarkInsideRepo) rmSync(safeWorktreePath(worktree, benchmarkRel), { recursive: true, force: true });
+    if (benchmarkInsideRepo) {
+      rmSync(safeWorktreePath(worktree, benchmarkRel), { recursive: true, force: true });
+    }
   };
   const green = async (): Promise<boolean> =>
     (await runShellGroup(config.testCommand, { cwd: worktree, env: env as NodeJS.ProcessEnv })).ok;
@@ -390,7 +454,9 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
     const baseline = snapshotWorktree(worktree, config.srcDir);
     const fenceStatus = fenceArtifactStatus(config);
     const fence = fenceStatus.usable ? fenceStatus.artifact : null;
-    log(`evaluate_changecost @ ${ref}  β=${beta}  implementer=${env.CN_IMPLEMENTER ? "scripted" : "codex exec"}`);
+    log(
+      `evaluate_changecost @ ${ref}  β=${beta}  implementer=${env.CN_IMPLEMENTER ? "scripted" : "codex exec"}`,
+    );
 
     const results: ChangeCostResult[] = [];
     for (const delta of benchmarkDeltas) {
@@ -415,7 +481,9 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
         continue;
       }
 
-      const disallowed = dirtyPaths().filter((path) => !(isUnderSourceDir(path, config.srcDir) && isSourceFile(path)));
+      const disallowed = dirtyPaths().filter(
+        (path) => !(isUnderSourceDir(path, config.srcDir) && isSourceFile(path)),
+      );
       if (disallowed.length > 0) {
         log(`  implementer touched outside source surface: ${disallowed.join(",")}`);
         results.push({ id: delta.id, status: "impl-bad-surface", disallowed });
@@ -435,7 +503,9 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
       }
 
       const e = editCost(baseline, snapshotWorktree(worktree, config.srcDir, true), config.srcDir);
-      const regions = [...new Set(Object.keys(e.perFile).map((path) => regionOf(path, config.srcDir)))];
+      const regions = [
+        ...new Set(Object.keys(e.perFile).map((path) => regionOf(path, config.srcDir))),
+      ];
       const verifyFrac = fence ? verifyCost(regions, fence) : 1;
       const cost = costOf(e.tokens, verifyFrac, beta);
       log(
@@ -467,11 +537,17 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, JSON.stringify(artifact, null, 2));
     const cleanupFailure = cleanupFailureMessage();
-    if (cleanupFailure) return { exitCode: 1, stdout: stdout.join(""), stderr: cleanupFailure };
+    if (cleanupFailure) {
+      return { exitCode: 1, stdout: stdout.join(""), stderr: cleanupFailure };
+    }
     stdout.push(formatChangeCostSummary(artifact, out));
     return { exitCode: 0, stdout: stdout.join(""), stderr: stderr.join("") };
   } catch (error) {
     const cleanupFailure = cleanupFailureMessage();
-    return { exitCode: 1, stdout: stdout.join(""), stderr: `${(error as Error).message}\n${cleanupFailure}` };
+    return {
+      exitCode: 1,
+      stdout: stdout.join(""),
+      stderr: `${(error as Error).message}\n${cleanupFailure}`,
+    };
   }
 }

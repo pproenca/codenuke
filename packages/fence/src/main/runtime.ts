@@ -7,12 +7,10 @@
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-006..009, RULE-043
  */
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
-
 import { fenceArtifactStatus } from "@codenuke/artifacts";
 import { loadConfig, type Config } from "@codenuke/config";
 import { run } from "@codenuke/exec";
 import { linkWorktreeNodeModules, removeWorktree, runShellGroup } from "@codenuke/substrate";
-
 import {
   applyMutant,
   assertReplayBaselineGreen,
@@ -45,15 +43,20 @@ const TIMEOUT_MS = 45000;
 
 const writeArtifact = (path: string, value: unknown): void => {
   const parent = path.split("/").slice(0, -1).join("/");
-  if (parent) mkdirSync(parent, { recursive: true });
+  if (parent) {
+    mkdirSync(parent, { recursive: true });
+  }
   writeFileSync(path, JSON.stringify(value, null, 2));
 };
 
-const output = (lines: readonly string[]): string => `${lines.join("\n")}${lines.length ? "\n" : ""}`;
+const output = (lines: readonly string[]): string =>
+  `${lines.join("\n")}${lines.length ? "\n" : ""}`;
 
 async function runTests(config: Config, cwd: string, env: NodeJS.ProcessEnv): Promise<TestStatus> {
   const result = await runShellGroup(config.testCommand, { cwd, env, timeout: TIMEOUT_MS });
-  if (result.ok) return "green";
+  if (result.ok) {
+    return "green";
+  }
   return result.timedOut ? "timeout" : "fail";
 }
 
@@ -66,7 +69,7 @@ function filesIn(config: Config, region: string, baselineSha: string): string[] 
   );
 }
 
-function readJson<T>(path: string): T | null {
+function readJson<T>(path: string, _shape?: (value: unknown) => value is T): T | null {
   try {
     return JSON.parse(readFileSync(path, "utf8")) as T;
   } catch {
@@ -76,7 +79,9 @@ function readJson<T>(path: string): T | null {
 
 function cleanup(config: Config, worktree: string): string | null {
   removeWorktree(config.repo, worktree);
-  if (!existsSync(worktree)) return null;
+  if (!existsSync(worktree)) {
+    return null;
+  }
   try {
     rmSync(worktree, { recursive: true, force: true });
     run("git", ["worktree", "prune"], { cwd: config.repo });
@@ -110,7 +115,7 @@ async function auditFence(
     const auditPlan = fenceGitCommandPlan({
       baseline: config.baseline,
       srcDir: config.srcDir,
-      region: regions[0]!,
+      region: regions[0],
     });
     const baselineSha = run("git", auditPlan.resolveBaseline, { cwd: config.repo }).trim();
     removeWorktree(config.repo, worktree);
@@ -136,7 +141,10 @@ async function auditFence(
       filesByRegion[region] = [];
       for (const rel of filesIn(config, region, baselineSha)) {
         try {
-          filesByRegion[region].push({ rel, text: readFileSync(safeWorktreePath(worktree, rel), "utf8") });
+          filesByRegion[region].push({
+            rel,
+            text: readFileSync(safeWorktreePath(worktree, rel), "utf8"),
+          });
         } catch {
           /* source vanished between git listing and worktree read */
         }
@@ -145,10 +153,11 @@ async function auditFence(
 
     const plan = createAuditPlan({ regions, filesByRegion, capPerRegion: cap, seed });
     for (const region of regions) {
-      const candidateCount = filesByRegion[region]?.reduce(
-        (count, file) => count + collectSites(file.rel, file.text).length,
-        0,
-      ) ?? 0;
+      const candidateCount =
+        filesByRegion[region]?.reduce(
+          (count, file) => count + collectSites(file.rel, file.text).length,
+          0,
+        ) ?? 0;
       out.push(`  ${region}: ${candidateCount} sites -> sampling ${plan[region]?.length ?? 0}`);
     }
 
@@ -165,7 +174,9 @@ async function auditFence(
     if (previousArtifact && canReuseFilteredAuditArtifact(previousArtifact, artifact)) {
       artifact = { ...artifact, regions: previousArtifact.regions ?? {} };
     } else if (previousArtifact) {
-      out.push("  filtered refresh: previous artifact not reusable for this baseline/cap/seed; dropping stale regions");
+      out.push(
+        "  filtered refresh: previous artifact not reusable for this baseline/cap/seed; dropping stale regions",
+      );
     }
 
     let done = 0;
@@ -183,7 +194,9 @@ async function auditFence(
           writeFileSync(path, original);
         }
         done += 1;
-        if (done % 10 === 0) out.push(`  [${done}/${total} ${((Date.now() - t0) / 1000) | 0}s]`);
+        if (done % 10 === 0) {
+          out.push(`  [${done}/${total} ${((Date.now() - t0) / 1000) | 0}s]`);
+        }
       }
       const record = regionRecordFromResults({
         plan: plan[region] ?? [],
@@ -200,7 +213,11 @@ async function auditFence(
       writeArtifact(config.fenceArtifact, artifact);
     }
 
-    if (filteredRegions && previousArtifact && canReuseFilteredAuditArtifact(previousArtifact, artifact)) {
+    if (
+      filteredRegions &&
+      previousArtifact &&
+      canReuseFilteredAuditArtifact(previousArtifact, artifact)
+    ) {
       artifact = mergeFilteredAuditArtifact(previousArtifact, artifact, filteredRegions);
       writeArtifact(config.fenceArtifact, artifact);
     }
@@ -234,24 +251,37 @@ async function replayFence(
   const config = loadConfig(env, cwd);
   const region = args[0];
   const worktree = args[1] ?? config.worktree;
-  if (!region) return { exitCode: 1, stdout: "", stderr: "usage: fence replay <region> [worktree]\n" };
+  if (!region) {
+    return { exitCode: 1, stdout: "", stderr: "usage: fence replay <region> [worktree]\n" };
+  }
   const status = fenceArtifactStatus(config);
   if (!status.usable || status.artifact?.schemaVersion !== 1) {
-    return { exitCode: 1, stdout: "", stderr: `fence artifact not usable for replay: ${status.reason ?? "invalid-schema"}\n` };
+    return {
+      exitCode: 1,
+      stdout: "",
+      stderr: `fence artifact not usable for replay: ${status.reason ?? "invalid-schema"}\n`,
+    };
   }
   const artifact = status.artifact as unknown as FenceArtifact;
-  if (!artifact.regions?.[region]) return { exitCode: 1, stdout: "", stderr: `no region ${region} in artifact\n` };
+  if (!artifact.regions?.[region]) {
+    return { exitCode: 1, stdout: "", stderr: `no region ${region} in artifact\n` };
+  }
   try {
     assertReplaySourcesUnchanged({
       artifact,
       region,
-      readBaseline: (rel) => run("git", ["show", `${artifact.baselineSha}:${rel}`], { cwd: config.repo }),
+      readBaseline: (rel) =>
+        run("git", ["show", `${artifact.baselineSha}:${rel}`], { cwd: config.repo }),
       readWorktree: (rel) => readFileSync(safeWorktreePath(worktree, rel), "utf8"),
       worktreeRoot: worktree,
     });
     assertReplayBaselineGreen(await runTests(config, worktree, env as NodeJS.ProcessEnv));
   } catch (error) {
-    return { exitCode: 1, stdout: "", stderr: `${error instanceof Error ? error.message : String(error)} — abort replay\n` };
+    return {
+      exitCode: 1,
+      stdout: "",
+      stderr: `${error instanceof Error ? error.message : String(error)} — abort replay\n`,
+    };
   }
 
   const previous = artifact.regions[region];
@@ -272,9 +302,14 @@ async function replayFence(
       writeFileSync(path, original);
     }
   }
-  const next = replaySurvivors({ artifact, region, statuses, threshold: config.thresholds.fenceLB });
+  const next = replaySurvivors({
+    artifact,
+    region,
+    statuses,
+    threshold: config.thresholds.fenceLB,
+  });
   writeArtifact(config.fenceArtifact, next);
-  const record: RegionRecord = next.regions[region]!;
+  const record: RegionRecord = next.regions[region];
   return {
     exitCode: 0,
     stdout: `${region}: ${record.caught}/${record.total} = ${(record.p * 100).toFixed(0)}%  CI95 [${(record.lo * 100).toFixed(1)}, ${(record.hi * 100).toFixed(1)}]  ${record.admissible ? "ADMISSIBLE ✓" : "BLOCKED ✗"}\n`,
@@ -286,6 +321,8 @@ export async function runFenceCommand(
   env: Env = process.env,
   cwd = process.cwd(),
 ): Promise<FenceCommandResult> {
-  if (args[0] === "replay") return replayFence(args.slice(1), env, cwd);
+  if (args[0] === "replay") {
+    return replayFence(args.slice(1), env, cwd);
+  }
   return auditFence(args, env, cwd);
 }

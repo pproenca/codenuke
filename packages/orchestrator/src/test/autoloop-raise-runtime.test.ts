@@ -2,9 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
 import { afterAll, describe, expect, it } from "vitest";
-
 import { runAutoloop } from "../main/runtime.js";
 
 interface RuntimeResult {
@@ -29,7 +27,9 @@ const created: string[] = [];
 const Z95 = 1.96;
 
 afterAll(() => {
-  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) {
+    rmSync(path, { recursive: true, force: true });
+  }
 });
 
 function fixtureRoot(): string {
@@ -76,8 +76,13 @@ function nodeCommand(path: string): string {
   return `node ${JSON.stringify(path)}`;
 }
 
-function wilson(caught: number, total: number): { readonly p: number; readonly lo: number; readonly hi: number } {
-  if (total === 0) return { p: 0, lo: 0, hi: 1 };
+function wilson(
+  caught: number,
+  total: number,
+): { readonly p: number; readonly lo: number; readonly hi: number } {
+  if (total === 0) {
+    return { p: 0, lo: 0, hi: 1 };
+  }
   const p = caught / total;
   const z2 = Z95 * Z95;
   const denom = 1 + z2 / total;
@@ -137,7 +142,13 @@ function writeCalibration(root: string, baselineSha: string): void {
 function writeFenceArtifact(
   root: string,
   baselineSha: string,
-  survivor: { readonly rel: string; readonly start: number; readonly end: number; readonly repl: string; readonly op: string },
+  survivor: {
+    readonly rel: string;
+    readonly start: number;
+    readonly end: number;
+    readonly repl: string;
+    readonly op: string;
+  },
 ): void {
   const stats = wilson(0, 1);
   write(
@@ -174,18 +185,31 @@ function writeFenceArtifact(
 function readRows(root: string): ResultRow[] {
   const text = readFileSync(join(root, ".codenuke/results.tsv"), "utf8").trim();
   const [header, ...rows] = text.split(/\r?\n/u);
-  const columns = header!.split("\t") as (keyof ResultRow)[];
+  const columns = header.split("\t") as (keyof ResultRow)[];
   return rows.map((row) => {
     const values = row.split("\t");
-    return Object.fromEntries(columns.map((column, index) => [column, values[index] ?? ""])) as unknown as ResultRow;
+    return Object.fromEntries(
+      columns.map((column, index) => [column, values[index] ?? ""]),
+    ) as unknown as ResultRow;
   });
 }
 
 function readFence(root: string): {
-  readonly regions: Record<string, { readonly caught: number; readonly total: number; readonly lo: number; readonly survivorSpecs: unknown[] }>;
+  readonly regions: Record<
+    string,
+    {
+      readonly caught: number;
+      readonly total: number;
+      readonly lo: number;
+      readonly survivorSpecs: unknown[];
+    }
+  >;
 } {
   return JSON.parse(readFileSync(join(root, ".codenuke/fence-fidelity.json"), "utf8")) as {
-    regions: Record<string, { caught: number; total: number; lo: number; survivorSpecs: unknown[] }>;
+    regions: Record<
+      string,
+      { caught: number; total: number; lo: number; survivorSpecs: unknown[] }
+    >;
   };
 }
 
@@ -244,7 +268,10 @@ function setupRaiseFixture(extra: {
   };
 }
 
-async function runRaise(extra: { readonly proposerScript: string; readonly survivorRel?: string }): Promise<
+async function runRaise(extra: {
+  readonly proposerScript: string;
+  readonly survivorRel?: string;
+}): Promise<
   RuntimeResult & {
     readonly root: string;
     readonly worktree: string;
@@ -253,7 +280,12 @@ async function runRaise(extra: { readonly proposerScript: string; readonly survi
 > {
   const fixture = setupRaiseFixture(extra);
   const result = await runAutoloop(1, fixture.env, fixture.root);
-  return { ...result, root: fixture.root, worktree: fixture.worktree, baselineSha: fixture.baselineSha };
+  return {
+    ...result,
+    root: fixture.root,
+    worktree: fixture.worktree,
+    baselineSha: fixture.baselineSha,
+  };
 }
 
 const addKillingTest = `
@@ -277,8 +309,12 @@ describe("runAutoloop raise replay (RULE-042/RULE-043)", () => {
     expect(fence.regions.api?.caught).toBe(1);
     expect(fence.regions.api?.total).toBe(1);
     expect(fence.regions.api?.survivorSpecs).toHaveLength(0);
-    expect(git(result.worktree, ["rev-parse", "--verify", "HEAD"]).trim()).not.toBe(result.baselineSha);
-    expect(git(result.worktree, ["show", "--name-only", "--format=", "HEAD"]).split(/\r?\n/u)).toContain("tests/api/rules.test.ts");
+    expect(git(result.worktree, ["rev-parse", "--verify", "HEAD"]).trim()).not.toBe(
+      result.baselineSha,
+    );
+    expect(
+      git(result.worktree, ["show", "--name-only", "--format=", "HEAD"]).split(/\r?\n/u),
+    ).toContain("tests/api/rules.test.ts");
     expect(git(result.worktree, ["status", "--porcelain"])).toBe("");
   });
 

@@ -1,9 +1,8 @@
+import { decide, verdictLabel, type ScoreInputs } from "@codenuke/scorer";
 // Characterization tests for the pure keep/revert decision (RULE-035 + 001/002 +
 // gates). loop/scorer.mjs computes this inline (no export); values are reasoned
 // exactly from the formulas in BUSINESS_RULES.md.
 import { describe, expect, it } from "vitest";
-
-import { decide, verdictLabel, type ScoreInputs } from "@codenuke/scorer";
 
 const W = { dL: 1.0, dCx: 1.8, dDup: 0.35, scaleL: 150, scaleCx: 15, scaleDup: 5, r3: 1.0 };
 

@@ -1,12 +1,18 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import { describe, expect, it } from "vitest";
-
 import { run } from "@codenuke/exec";
 import * as fence from "@codenuke/fence";
+import { describe, expect, it } from "vitest";
 import { runFenceCommand } from "../main/runtime.js";
 
 interface PlannedMutation {
@@ -68,7 +74,10 @@ interface RuntimeApi {
   };
   readonly createAuditPlan: (input: {
     readonly regions: readonly string[];
-    readonly filesByRegion: Record<string, readonly { readonly rel: string; readonly text: string }[]>;
+    readonly filesByRegion: Record<
+      string,
+      readonly { readonly rel: string; readonly text: string }[]
+    >;
     readonly capPerRegion: number;
     readonly seed: number;
   }) => Record<string, readonly PlannedMutation[]>;
@@ -86,7 +95,10 @@ interface RuntimeApi {
     refresh: FenceArtifact,
     filteredRegions: readonly string[],
   ) => FenceArtifact;
-  readonly canReuseFilteredAuditArtifact: (previous: FenceArtifact, refresh: FenceArtifact) => boolean;
+  readonly canReuseFilteredAuditArtifact: (
+    previous: FenceArtifact,
+    refresh: FenceArtifact,
+  ) => boolean;
   readonly safeWorktreePath: (worktreeRoot: string, rel: string) => string;
   readonly assertReplaySourcesUnchanged: (input: {
     readonly artifact: FenceArtifact;
@@ -107,7 +119,7 @@ interface RuntimeApi {
 function runtime<K extends keyof RuntimeApi>(name: K): RuntimeApi[K] {
   const value = (fence as Record<string, unknown>)[name];
   if (typeof value !== "function") {
-    throw new Error(`@codenuke/fence must export runtime helper ${String(name)}`);
+    throw new Error(`@codenuke/fence must export runtime helper ${name}`);
   }
   return value as RuntimeApi[K];
 }
@@ -271,7 +283,7 @@ describe("fence runtime region discovery", () => {
     const head = run("git", plan.resolveBaseline, { cwd: root }).trim();
 
     expect(filesFromGitLsTree(run("git", plan.filesInRegion(head), { cwd: root }))).toEqual([
-      "src/api/\"quoted\".tsx",
+      'src/api/"quoted".tsx',
       "src/api/has space.ts",
       "src/api/index.ts",
       "src/api/line\nbreak.ts",
@@ -360,10 +372,20 @@ describe("fence runtime audit plan and survivor classification", () => {
       seed: 1337,
     });
 
-    expect(plan.api.map((site) => site.op)).toEqual(["===→!==", "startsWith→endsWith", "true→false"]);
+    expect(plan.api.map((site) => site.op)).toEqual([
+      "===→!==",
+      "startsWith→endsWith",
+      "true→false",
+    ]);
     expect(plan.api).toEqual([
       { rel: "src/api/rules.ts", start: 149, end: 152, repl: "!==", op: "===→!==" },
-      { rel: "src/api/rules.ts", start: 251, end: 261, repl: "endsWith", op: "startsWith→endsWith" },
+      {
+        rel: "src/api/rules.ts",
+        start: 251,
+        end: 261,
+        repl: "endsWith",
+        op: "startsWith→endsWith",
+      },
       { rel: "src/api/rules.ts", start: 300, end: 304, repl: "false", op: "true→false" },
     ]);
   });
@@ -377,11 +399,16 @@ describe("fence runtime audit plan and survivor classification", () => {
       survivor({ rel: "src/api/rules.ts", start: 149, end: 152, repl: "!==", op: "===→!==" }),
     ];
 
-    expect(recordMutationResult(plan[0], "green")).toEqual({ caught: false, survivorSpec: plan[0] });
+    expect(recordMutationResult(plan[0], "green")).toEqual({
+      caught: false,
+      survivorSpec: plan[0],
+    });
     expect(recordMutationResult(plan[1], "fail")).toEqual({ caught: true, survivorSpec: null });
     expect(recordMutationResult(plan[2], "timeout")).toEqual({ caught: true, survivorSpec: null });
 
-    expect(regionRecordFromResults({ plan, statuses: ["green", "fail", "timeout"], threshold: 0.9 })).toEqual({
+    expect(
+      regionRecordFromResults({ plan, statuses: ["green", "fail", "timeout"], threshold: 0.9 }),
+    ).toEqual({
       caught: 2,
       total: 3,
       p: 0.6666666666666666,
@@ -406,7 +433,7 @@ describe("fence runtime filtered refresh", () => {
           caught: 35,
           total: 35,
           p: 1,
-          lo: 0.900, // exact value is irrelevant to the merge behavior
+          lo: 0.9, // exact value is irrelevant to the merge behavior
           hi: 1,
           admissible: true,
           survivorSpecs: [],
@@ -449,13 +476,18 @@ describe("fence runtime filtered refresh", () => {
     });
 
     expect(canReuseFilteredAuditArtifact(previous, matchingRefresh)).toBe(true);
-    expect(canReuseFilteredAuditArtifact(previous, artifact({ baselineSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }))).toBe(false);
+    expect(
+      canReuseFilteredAuditArtifact(
+        previous,
+        artifact({ baselineSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }),
+      ),
+    ).toBe(false);
     expect(canReuseFilteredAuditArtifact(previous, artifact({ threshold: 0.8 }))).toBe(false);
     expect(canReuseFilteredAuditArtifact(previous, artifact({ capPerRegion: 10 }))).toBe(false);
     expect(canReuseFilteredAuditArtifact(previous, artifact({ seed: 42 }))).toBe(false);
-    expect(
-      canReuseFilteredAuditArtifact({ ...previous, schemaVersion: 0 }, matchingRefresh),
-    ).toBe(false);
+    expect(canReuseFilteredAuditArtifact({ ...previous, schemaVersion: 0 }, matchingRefresh)).toBe(
+      false,
+    );
   });
 });
 
@@ -468,13 +500,17 @@ describe("fence runtime audit cleanup", () => {
     const testScript = join(root, "scripts", "green.mjs");
     initRepo(root);
     write(root, "src/api/rules.ts", "export const allows = (value: number) => value < 10;\n");
-    write(root, "scripts/green.mjs", [
-      'import { appendFileSync, mkdirSync } from "node:fs";',
-      'import { dirname } from "node:path";',
-      "mkdirSync(dirname(process.env.CN_BASELINE_MARKER), { recursive: true });",
-      "appendFileSync(process.env.CN_BASELINE_MARKER, `${process.cwd()}\\n`);",
-      "",
-    ].join("\n"));
+    write(
+      root,
+      "scripts/green.mjs",
+      [
+        'import { appendFileSync, mkdirSync } from "node:fs";',
+        'import { dirname } from "node:path";',
+        "mkdirSync(dirname(process.env.CN_BASELINE_MARKER), { recursive: true });",
+        "appendFileSync(process.env.CN_BASELINE_MARKER, `${process.cwd()}\\n`);",
+        "",
+      ].join("\n"),
+    );
     write(root, "artifact-parent-is-file", "not a directory\n");
     git(root, ["add", "."]);
     git(root, ["commit", "-m", "fixtures"]);
@@ -503,7 +539,9 @@ describe("fence runtime audit cleanup", () => {
       expect.soft(readFileSync(marker, "utf8")).toContain(fenceWorktree);
       expect.soft(settled.status).toBe("fulfilled");
       expect.soft(settled.status === "fulfilled" ? settled.result.exitCode : undefined).toBe(1);
-      expect.soft(settled.status === "fulfilled" ? (settled.result.stderr ?? "") : "").toContain("artifact-parent-is-file");
+      expect
+        .soft(settled.status === "fulfilled" ? (settled.result.stderr ?? "") : "")
+        .toContain("artifact-parent-is-file");
       expect.soft(existsSync(fenceWorktree)).toBe(false);
     } finally {
       removeFixtureWorktree(root, fenceWorktree);
@@ -520,8 +558,12 @@ describe("fence runtime replay guards and monotonicity", () => {
     symlinkSync("/tmp", join(root, "src", "api", "escape.ts"));
 
     expect(safeWorktreePath(root, "src/api/rules.ts")).toMatch(/src\/api\/rules\.ts$/u);
-    expect(() => safeWorktreePath(root, "../outside.ts")).toThrow("unsafe survivor path before replay: ../outside.ts");
-    expect(() => safeWorktreePath(root, "src/api/escape.ts")).toThrow("unsafe survivor path before replay: src/api/escape.ts");
+    expect(() => safeWorktreePath(root, "../outside.ts")).toThrow(
+      "unsafe survivor path before replay: ../outside.ts",
+    );
+    expect(() => safeWorktreePath(root, "src/api/escape.ts")).toThrow(
+      "unsafe survivor path before replay: src/api/escape.ts",
+    );
   });
 
   it("aborts replay when a survivor source file changed or escapes the worktree", () => {

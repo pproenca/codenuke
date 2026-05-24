@@ -6,7 +6,6 @@
  */
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-
 import { runCalibrateCommand } from "@codenuke/calibrate";
 import { runChangeCostCommand } from "@codenuke/changecost";
 import { runFenceCommand } from "@codenuke/fence/runtime";
@@ -16,13 +15,16 @@ import { runScorerCommand } from "@codenuke/scorer";
 import { runValidateProxyCommand } from "@codenuke/value-proxy";
 
 async function packageVersion(): Promise<string> {
-  const moduleUrl = import.meta.url ?? pathToFileURL(realpathSync(process.argv[1] ?? process.cwd())).href;
+  const moduleUrl =
+    import.meta.url ?? pathToFileURL(realpathSync(process.argv[1] ?? process.cwd())).href;
   const packageJson = fileURLToPath(new URL("../package.json", moduleUrl));
   return (JSON.parse(readFileSync(packageJson, "utf8")) as { version: string }).version;
 }
 
 function parseIterations(value: string | undefined): number | string {
-  if (value == null) return 5;
+  if (value == null) {
+    return 5;
+  }
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0) {
     return `error: iterations must be a non-negative integer, received ${value}\n`;
@@ -44,31 +46,41 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   if (cmd === "doctor") {
     const result = await runDoctor(process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (cmd === "fence") {
     const result = await runFenceCommand(rest, process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (cmd === "calibrate") {
     const result = await runCalibrateCommand(rest, process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (cmd === "changecost") {
     const result = await runChangeCostCommand(rest, process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (cmd === "validate-proxy") {
     const result = await runValidateProxyCommand(rest, process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (target?.module === "scorer") {
@@ -78,7 +90,9 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
       process.cwd(),
     );
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (cmd === "run" || cmd === "loop") {
@@ -89,7 +103,9 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     }
     const result = await runAutoloop(iterations, process.env, process.cwd());
     process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+    }
     return result.exitCode;
   }
   if (target) {
@@ -106,6 +122,6 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   return 0;
 }
 
-main().then((code) => {
+void main().then((code) => {
   process.exitCode = code;
 });

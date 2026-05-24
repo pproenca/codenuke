@@ -2,9 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
 import { afterAll, describe, expect, it } from "vitest";
-
 import { runAutoloop } from "../main/runtime.js";
 
 interface ResultRow {
@@ -23,7 +21,9 @@ const created: string[] = [];
 const Z95 = 1.96;
 
 afterAll(() => {
-  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) {
+    rmSync(path, { recursive: true, force: true });
+  }
 });
 
 function fixtureRoot(name = "codenuke-autoloop-reduce-"): string {
@@ -70,7 +70,10 @@ function nodeCommand(path: string): string {
   return `node ${JSON.stringify(path)}`;
 }
 
-function wilson(caught: number, total: number): { readonly p: number; readonly lo: number; readonly hi: number } {
+function wilson(
+  caught: number,
+  total: number,
+): { readonly p: number; readonly lo: number; readonly hi: number } {
   const p = caught / total;
   const z2 = Z95 * Z95;
   const denom = 1 + z2 / total;
@@ -121,7 +124,9 @@ function writeAdmissibleFence(root: string, baselineSha: string): void {
             lo: stats.lo,
             hi: stats.hi,
             admissible: true,
-            survivorSpecs: [{ rel: "src/api/rules.ts", start: 0, end: 1, repl: "x", op: "replace" }],
+            survivorSpecs: [
+              { rel: "src/api/rules.ts", start: 0, end: 1, repl: "x", op: "replace" },
+            ],
           },
           cli: {
             caught: 99,
@@ -130,7 +135,9 @@ function writeAdmissibleFence(root: string, baselineSha: string): void {
             lo: stats.lo,
             hi: stats.hi,
             admissible: true,
-            survivorSpecs: [{ rel: "src/cli/index.ts", start: 0, end: 1, repl: "x", op: "replace" }],
+            survivorSpecs: [
+              { rel: "src/cli/index.ts", start: 0, end: 1, repl: "x", op: "replace" },
+            ],
           },
         },
       },
@@ -143,10 +150,12 @@ function writeAdmissibleFence(root: string, baselineSha: string): void {
 function readRows(root: string): ResultRow[] {
   const text = readFileSync(join(root, ".codenuke/results.tsv"), "utf8").trim();
   const [header, ...rows] = text.split(/\r?\n/u);
-  const columns = header!.split("\t") as (keyof ResultRow)[];
+  const columns = header.split("\t") as (keyof ResultRow)[];
   return rows.map((row) => {
     const values = row.split("\t");
-    return Object.fromEntries(columns.map((column, index) => [column, values[index] ?? ""])) as unknown as ResultRow;
+    return Object.fromEntries(
+      columns.map((column, index) => [column, values[index] ?? ""]),
+    ) as unknown as ResultRow;
   });
 }
 
@@ -174,7 +183,11 @@ function setupReduceFixture(extra: {
   write(root, "src/cli/index.ts", "export function cliValue() {\n  return 20;\n}\n");
   write(root, "scripts/test-command.mjs", "process.exit(0);\n");
   const proposerCommand = write(root, "scripts/proposer.mjs", extra.proposerScript.trimStart());
-  const program = write(root, ".codenuke/program.md", "Make one behavior-preserving source reduction.\n");
+  const program = write(
+    root,
+    ".codenuke/program.md",
+    "Make one behavior-preserving source reduction.\n",
+  );
   const baselineSha = commit(root, "baseline");
   writeCalibration(root, baselineSha);
   writeAdmissibleFence(root, baselineSha);
@@ -221,7 +234,9 @@ writeFileSync("docs/notes.md", "not source\\n");
     expect.soft(row?.status).toBe("revert");
     expect.soft(row?.description).toContain("outside reduce source surface");
     expect.soft(row?.description).toContain("docs/notes.md");
-    expect.soft(git(fixture.worktree, ["rev-parse", "--verify", "HEAD"]).trim()).toBe(fixture.baselineSha);
+    expect
+      .soft(git(fixture.worktree, ["rev-parse", "--verify", "HEAD"]).trim())
+      .toBe(fixture.baselineSha);
     expect.soft(git(fixture.worktree, ["status", "--porcelain"])).toBe("");
     expect.soft(existsSync(join(fixture.worktree, "docs/notes.md"))).toBe(false);
   });
@@ -273,7 +288,9 @@ writeFileSync(marker, JSON.stringify({ region: process.env.CN_REGION, target: pr
 
     const result = await runAutoloop(1, fixture.env, fixture.root);
     expectRows(fixture.root, result.stdout);
-    const marker = JSON.parse(readFileSync(join(fixture.root, ".codenuke/reduce-target-marker.txt"), "utf8")) as {
+    const marker = JSON.parse(
+      readFileSync(join(fixture.root, ".codenuke/reduce-target-marker.txt"), "utf8"),
+    ) as {
       readonly region?: string;
       readonly target?: string;
     };

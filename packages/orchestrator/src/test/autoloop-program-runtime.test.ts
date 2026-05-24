@@ -2,16 +2,16 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
 import { afterAll, describe, expect, it } from "vitest";
-
 import { runAutoloop } from "../main/runtime.js";
 
 const created: string[] = [];
 const Z95 = 1.96;
 
 afterAll(() => {
-  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) {
+    rmSync(path, { recursive: true, force: true });
+  }
 });
 
 function fixtureRoot(): string {
@@ -58,7 +58,10 @@ function nodeCommand(path: string): string {
   return `node ${JSON.stringify(path)}`;
 }
 
-function wilson(caught: number, total: number): { readonly p: number; readonly lo: number; readonly hi: number } {
+function wilson(
+  caught: number,
+  total: number,
+): { readonly p: number; readonly lo: number; readonly hi: number } {
   const p = caught / total;
   const z2 = Z95 * Z95;
   const denom = 1 + z2 / total;
@@ -109,7 +112,9 @@ function writeAdmissibleFence(root: string, baselineSha: string): void {
             lo: stats.lo,
             hi: stats.hi,
             admissible: true,
-            survivorSpecs: [{ rel: "src/api/rules.ts", start: 0, end: 1, repl: "x", op: "replace" }],
+            survivorSpecs: [
+              { rel: "src/api/rules.ts", start: 0, end: 1, repl: "x", op: "replace" },
+            ],
           },
         },
       },

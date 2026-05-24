@@ -1,7 +1,6 @@
+import { codexArgs, runProcessGroup, runShellGroup } from "@codenuke/substrate";
 // codexArgs: dual-execution vs legacy. Process management: integration.
 import { describe, expect, it } from "vitest";
-
-import { codexArgs, runProcessGroup, runShellGroup } from "@codenuke/substrate";
 import { codexArgs as legacyCodexArgs } from "../../../../test-fixtures/legacy-loop/agent-adapter.mjs";
 
 describe("codexArgs — dual-execution vs legacy", () => {
@@ -40,7 +39,9 @@ describe("runProcessGroup — integration", () => {
   });
 
   it("kills the group and flags timedOut on timeout", async () => {
-    const r = await runProcessGroup("node", ["-e", "setInterval(() => {}, 1000)"], { timeout: 200 });
+    const r = await runProcessGroup("node", ["-e", "setInterval(() => {}, 1000)"], {
+      timeout: 200,
+    });
     expect(r.timedOut).toBe(true);
     expect(r.ok).toBe(false);
   });

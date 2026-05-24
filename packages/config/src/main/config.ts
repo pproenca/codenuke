@@ -13,8 +13,8 @@
  */
 import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readJson } from "@codenuke/json";
 import { commandAvailable } from "@codenuke/exec";
+import { readJson } from "@codenuke/json";
 
 const IGNORED_SOURCE_DIRS = new Set([".codenuke", ".git", "coverage", "dist", "node_modules"]);
 
@@ -63,7 +63,8 @@ export const slug = (value: unknown): string =>
     .replace(/[^A-Za-z0-9_.-]+/g, "-") || "root";
 
 /** A test file (RULE-033): `.test`/`.spec` of a JS/TS extension, excluding `.d.ts`. */
-const isTestPath = (p: string): boolean => /\.(test|spec)\.[jt]sx?$/.test(p) && !p.endsWith(".d.ts");
+const isTestPath = (p: string): boolean =>
+  /\.(test|spec)\.[jt]sx?$/.test(p) && !p.endsWith(".d.ts");
 
 /** A source file (RULE-033): JS/TS extension, not a declaration, not a test/accept file. */
 export const isSourceFile = (p: string): boolean =>
@@ -77,8 +78,12 @@ export const programPathFromModuleUrl = (moduleUrl: string): string =>
   fileURLToPath(new URL("./program.md", moduleUrl));
 
 const runtimeModuleUrl = (moduleUrl: string | undefined): string => {
-  if (moduleUrl) return moduleUrl;
-  if (process.argv[1]) return pathToFileURL(realpathSync(process.argv[1])).href;
+  if (moduleUrl) {
+    return moduleUrl;
+  }
+  if (process.argv[1]) {
+    return pathToFileURL(realpathSync(process.argv[1])).href;
+  }
   const cwdUrl = pathToFileURL(`${realpathSync(process.cwd())}/`).href;
   return cwdUrl.endsWith("/") ? cwdUrl : `${cwdUrl}/`;
 };
@@ -96,22 +101,34 @@ export function stripSourcePrefix(target: string, srcDir: string): string {
 
 /** Which region a path belongs to (RULE-034): the first path segment under `srcDir`. */
 export const regionOf = (p: string, srcDir = "src"): string => {
-  if (srcDir === ".") return p.includes("/") ? p.split("/")[0]! : ".";
+  if (srcDir === ".") {
+    return p.includes("/") ? p.split("/")[0] : ".";
+  }
   const rel = p.startsWith(`${srcDir}/`) ? p.slice(srcDir.length + 1) : p;
-  return rel.includes("/") ? rel.split("/")[0]! : srcDir;
+  return rel.includes("/") ? rel.split("/")[0] : srcDir;
 };
 
 function detectTestCommand(repo: string, env: Env): string {
-  if (existsSync(`${repo}/node_modules/.bin/vitest`)) return "node_modules/.bin/vitest run --reporter=dot";
-  if (existsSync(`${repo}/node_modules/.bin/jest`)) return "node_modules/.bin/jest";
-  if (existsSync(`${repo}/node_modules/.bin/mocha`)) return "node_modules/.bin/mocha";
-  if (existsSync(`${repo}/node_modules/.bin/ava`)) return "node_modules/.bin/ava";
+  if (existsSync(`${repo}/node_modules/.bin/vitest`)) {
+    return "node_modules/.bin/vitest run --reporter=dot";
+  }
+  if (existsSync(`${repo}/node_modules/.bin/jest`)) {
+    return "node_modules/.bin/jest";
+  }
+  if (existsSync(`${repo}/node_modules/.bin/mocha`)) {
+    return "node_modules/.bin/mocha";
+  }
+  if (existsSync(`${repo}/node_modules/.bin/ava`)) {
+    return "node_modules/.bin/ava";
+  }
   const pkg = readJson<{ packageManager?: string }>(`${repo}/package.json`);
   const usesBun =
     existsSync(`${repo}/bun.lock`) ||
     existsSync(`${repo}/bun.lockb`) ||
-    String(pkg?.packageManager ?? "").startsWith("bun@");
-  if (usesBun && commandAvailable("bun", { cwd: repo, env })) return "bun test";
+    (pkg?.packageManager?.startsWith("bun@") ?? false);
+  if (usesBun && commandAvailable("bun", { cwd: repo, env })) {
+    return "bun test";
+  }
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
@@ -172,14 +189,16 @@ function detectTestLayout(repo: string, srcDir: string): { roots: string[]; desc
   return {
     roots: [root],
     description:
-      root === "." ? "co-located **/*.(test|spec).[jt]s(x) files" : `${root}/**/*.(test|spec).[jt]s(x)`,
+      root === "."
+        ? "co-located **/*.(test|spec).[jt]s(x) files"
+        : `${root}/**/*.(test|spec).[jt]s(x)`,
   };
 }
 
-const cleanDir = (dir: string): string => String(dir).replace(/^\.\//, "").replace(/\/+$/, "") || ".";
+const cleanDir = (dir: string): string => dir.replace(/^\.\//, "").replace(/\/+$/, "") || ".";
 
 function includeBase(pattern: string): string {
-  const beforeGlob = String(pattern).split(/[*?{]/u)[0] ?? "";
+  const beforeGlob = pattern.split(/[*?{]/u)[0] ?? "";
   const cleaned = cleanDir(beforeGlob);
   if (/\.[A-Za-z0-9]+$/.test(cleaned)) {
     const parts = cleaned.split("/");
@@ -190,9 +209,15 @@ function includeBase(pattern: string): string {
 }
 
 function packageHintPaths(value: unknown): string[] {
-  if (typeof value === "string") return [value];
-  if (Array.isArray(value)) return value.flatMap(packageHintPaths);
-  if (value && typeof value === "object") return Object.values(value).flatMap(packageHintPaths);
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(packageHintPaths);
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(packageHintPaths);
+  }
   return [];
 }
 
@@ -202,8 +227,12 @@ function detectSrcDir(repo: string): string {
   );
   const tsconfigCandidates: string[] = [];
   const rootDir = tsconfig?.compilerOptions?.rootDir;
-  if (rootDir) tsconfigCandidates.push(cleanDir(rootDir));
-  for (const pattern of tsconfig?.include ?? []) tsconfigCandidates.push(includeBase(pattern));
+  if (rootDir) {
+    tsconfigCandidates.push(cleanDir(rootDir));
+  }
+  for (const pattern of tsconfig?.include ?? []) {
+    tsconfigCandidates.push(includeBase(pattern));
+  }
   const tsconfigSource = tsconfigCandidates
     .map((candidate) => ({ candidate, count: sourceFileCount(`${repo}/${candidate}`) }))
     .filter(({ count }) => count > 0)
@@ -217,16 +246,22 @@ function detectSrcDir(repo: string): string {
   const pkg = readJson<{ source?: unknown }>(`${repo}/package.json`);
   for (const hint of [pkg?.source].flatMap(packageHintPaths)) {
     const candidate = includeBase(hint);
-    if (candidate !== "." && hasSourceFile(`${repo}/${candidate}`)) return candidate;
+    if (candidate !== "." && hasSourceFile(`${repo}/${candidate}`)) {
+      return candidate;
+    }
   }
-  if (conventionalSource) return conventionalSource.candidate;
+  if (conventionalSource) {
+    return conventionalSource.candidate;
+  }
   return hasSourceFile(repo) ? "." : "src";
 }
 
 /** Source regions: immediate subdirectories of `srcDir` with non-test source (RULE-034). */
 function detectRegions(repo: string, srcDir: string): string[] {
   const root = `${repo}/${srcDir}`;
-  if (!existsSync(root)) return [];
+  if (!existsSync(root)) {
+    return [];
+  }
   try {
     const nested = readdirSync(root)
       .filter((name) => !IGNORED_SOURCE_DIRS.has(name))
@@ -238,7 +273,9 @@ function detectRegions(repo: string, srcDir: string): string[] {
         }
       })
       .toSorted();
-    if (nested.length > 0) return nested;
+    if (nested.length > 0) {
+      return nested;
+    }
     return hasSourceFile(root) ? [srcDir] : [];
   } catch {
     return [];
@@ -246,10 +283,12 @@ function detectRegions(repo: string, srcDir: string): string[] {
 }
 
 const normalizeRegions = (regions: string[]): string[] =>
-  regions.map((region) => String(region).trim()).filter(Boolean);
+  regions.map((region) => region.trim()).filter(Boolean);
 
 function weightOverrides(source: string, value: unknown): Record<string, number> {
-  if (value === undefined) return {};
+  if (value === undefined) {
+    return {};
+  }
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${source} must be a JSON object of finite numeric weights`);
   }
@@ -264,7 +303,9 @@ function weightOverrides(source: string, value: unknown): Record<string, number>
 }
 
 function envWeightOverrides(value: string | undefined): Record<string, number> {
-  if (value == null) return {};
+  if (value == null) {
+    return {};
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
@@ -305,14 +346,14 @@ function numericSetting(
 /** Resolve the full configuration for a repo (RULE-033/034 + scoring defaults). */
 export function loadConfig(env: Env = process.env, cwd: string = process.cwd()): Config {
   const cwdFileCfg = readJson<Record<string, unknown>>(`${cwd}/codenuke.loop.json`) ?? {};
-  const configuredRepo = (env.CN_REPO ?? (cwdFileCfg.repo as string | undefined) ?? cwd) as string;
+  const configuredRepo = env.CN_REPO ?? (cwdFileCfg.repo as string | undefined) ?? cwd;
   const repoFileCfg =
     configuredRepo === cwd
       ? cwdFileCfg
       : (readJson<Record<string, unknown>>(`${configuredRepo}/codenuke.loop.json`) ?? {});
   const fileCfg = env.CN_REPO ? repoFileCfg : { ...repoFileCfg, ...cwdFileCfg };
   const pick = (envKey: string, cfgKey: string, dflt: string): string =>
-    (env[envKey] ?? (fileCfg[cfgKey] as string | undefined) ?? dflt) as string;
+    env[envKey] ?? (fileCfg[cfgKey] as string | undefined) ?? dflt;
 
   const repo = pick("CN_REPO", "repo", cwd);
   const srcDir = pick("CN_SRC", "srcDir", detectSrcDir(repo));
@@ -321,13 +362,17 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
   const baseline = pick("CN_BASE", "baseline", "HEAD");
   const tag = pick("CN_TAG", "tag", "run");
   const region = slug(stripSourcePrefix(target, srcDir) || target);
-  const envRegions = env.CN_REGIONS == null ? undefined : normalizeRegions(env.CN_REGIONS.split(","));
+  const envRegions =
+    env.CN_REGIONS == null ? undefined : normalizeRegions(env.CN_REGIONS.split(","));
   const fileRegions = Array.isArray(fileCfg.regions)
     ? normalizeRegions(fileCfg.regions as string[])
     : undefined;
   const regions = envRegions ?? fileRegions ?? detectRegions(repo, srcDir);
   const wt = pick("CN_WORKTREE", "worktree", `/tmp/codenuke-${slug(tag)}-${region}`);
-  const fenceLB = numericSetting("fenceLB", env.CN_FENCE_LB ?? fileCfg.fenceLB ?? 0.9, { min: 0, max: 1 });
+  const fenceLB = numericSetting("fenceLB", env.CN_FENCE_LB ?? fileCfg.fenceLB ?? 0.9, {
+    min: 0,
+    max: 1,
+  });
   const proposerTimeoutMs = numericSetting(
     "proposerTimeoutMs",
     env.CN_TIMEOUT ?? fileCfg.proposerTimeoutMs ?? 900000,
@@ -347,14 +392,16 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
     worktree: wt,
     testCommand: pick("CN_TEST", "testCommand", detectTestCommand(repo, env)),
     typeCheckCommand:
-      (env.CN_TYPECHECK as string | undefined) ??
-      (fileCfg.typeCheckCommand as string | undefined) ??
-      detectTypeCheck(repo),
+      env.CN_TYPECHECK ?? (fileCfg.typeCheckCommand as string | undefined) ?? detectTypeCheck(repo),
     state: pick("CN_STATE", "state", `/tmp/codenuke-${slug(tag)}-${region}.state.json`),
     promptFile: `/tmp/codenuke-${slug(tag)}-${region}.prompt.txt`,
     fenceArtifact: pick("CN_FENCE", "fenceArtifact", `${repo}/.codenuke/fence-fidelity.json`),
     results: pick("CN_RESULTS", "results", `${repo}/.codenuke/results.tsv`),
-    program: pick("CN_PROGRAM", "program", programPathFromModuleUrl(runtimeModuleUrl(import.meta.url))),
+    program: pick(
+      "CN_PROGRAM",
+      "program",
+      programPathFromModuleUrl(runtimeModuleUrl(import.meta.url)),
+    ),
     benchmarkDir: pick("CN_BENCH", "benchmarkDir", `${repo}/codenuke.benchmark`),
     thresholds: { fenceLB },
     weights: {

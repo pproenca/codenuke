@@ -1,8 +1,7 @@
 // Characterization + dual-execution tests for legacy/codenuke/loop/guards.mjs.
 import { describe, expect, it } from "vitest";
-
-import { finiteNumber } from "../main/guards";
 import { finiteNumber as legacyFiniteNumber } from "../../../../test-fixtures/legacy-loop/guards.mjs";
+import { finiteNumber } from "../main/guards";
 
 describe("finiteNumber", () => {
   it("accepts only real finite numbers", () => {
@@ -19,9 +18,27 @@ describe("finiteNumber", () => {
 
   it("matches legacy across a broad value set (dual-execution)", () => {
     const cases: unknown[] = [
-      0, 1, -1, 3.14, 1e9, -0, Number.MAX_SAFE_INTEGER, Number.MIN_VALUE,
-      Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY,
-      "1", "", "abc", null, undefined, {}, [], true, false, 1n,
+      0,
+      1,
+      -1,
+      3.14,
+      1e9,
+      -0,
+      Number.MAX_SAFE_INTEGER,
+      Number.MIN_VALUE,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      "1",
+      "",
+      "abc",
+      null,
+      undefined,
+      {},
+      [],
+      true,
+      false,
+      1n,
     ];
     for (const value of cases) {
       expect(finiteNumber(value)).toBe(legacyFiniteNumber(value));

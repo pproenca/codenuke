@@ -2,21 +2,23 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
-
 import { changeCostArtifactStatus } from "@codenuke/artifacts";
 import { wilson } from "@codenuke/stats";
+import { afterAll, describe, expect, it } from "vitest";
 
 const created: string[] = [];
 
 afterAll(() => {
-  for (const dir of created) rmSync(dir, { recursive: true, force: true });
+  for (const dir of created) {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 function makeRepo(): { dir: string; head: string } {
   const dir = mkdtempSync(join(tmpdir(), "cn-changecost-artifact-"));
   created.push(dir);
-  const git = (args: string[]) => execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
+  const git = (args: string[]) =>
+    execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
   git(["init", "-q"]);
   git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init"]);
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }).trim();
@@ -111,6 +113,13 @@ function validChangeCostArtifact() {
     ],
   };
 }
+
+const updateResult = (
+  artifact: ReturnType<typeof validChangeCostArtifact>,
+  id: string,
+  update: Record<string, unknown>,
+) =>
+  artifact.results.map((result) => (result.id === id ? Object.assign({}, result, update) : result));
 
 function expectInvalid(artifact: unknown): void {
   const { dir, head } = makeRepo();
@@ -225,7 +234,7 @@ describe("changeCostArtifactStatus", () => {
     const artifact = validChangeCostArtifact();
     expectInvalid({
       ...artifact,
-      results: artifact.results.map((result) => (result.id === "add-parser" ? { ...result, cost: 31 } : result)),
+      results: updateResult(artifact, "add-parser", { cost: 31 }),
     });
   });
 
@@ -234,9 +243,7 @@ describe("changeCostArtifactStatus", () => {
     expectInvalid({
       ...artifact,
       Vhat: 32,
-      results: artifact.results.map((result) =>
-        result.id === "add-parser" ? { ...result, verifyFrac: 0, cost: 18 } : result,
-      ),
+      results: updateResult(artifact, "add-parser", { verifyFrac: 0, cost: 18 }),
     });
   });
 
@@ -245,9 +252,9 @@ describe("changeCostArtifactStatus", () => {
     for (const invalid of [
       { ...artifact, beta: "60" },
       { ...artifact, Vhat: "38" },
-      { ...artifact, results: artifact.results.map((result) => (result.id === "add-parser" ? { ...result, verifyFrac: -0.1 } : result)) },
-      { ...artifact, results: artifact.results.map((result) => (result.id === "add-parser" ? { ...result, verifyFrac: 1.1 } : result)) },
-      { ...artifact, results: artifact.results.map((result) => (result.id === "add-parser" ? { ...result, editTokens: 18.5 } : result)) },
+      { ...artifact, results: updateResult(artifact, "add-parser", { verifyFrac: -0.1 }) },
+      { ...artifact, results: updateResult(artifact, "add-parser", { verifyFrac: 1.1 }) },
+      { ...artifact, results: updateResult(artifact, "add-parser", { editTokens: 18.5 }) },
     ]) {
       expectInvalid(invalid);
     }
@@ -258,7 +265,7 @@ describe("changeCostArtifactStatus", () => {
     expectInvalid({
       ...artifact,
       results: artifact.results.map((result) =>
-        result.id === "wire-cache" ? { ...result, status: "skipped" } : result,
+        result.id === "wire-cache" ? Object.assign({}, result, { status: "skipped" }) : result,
       ),
     });
   });

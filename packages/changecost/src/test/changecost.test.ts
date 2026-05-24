@@ -1,7 +1,14 @@
+import {
+  buildImplementerPrompt,
+  costOf,
+  editCost,
+  lcsEditSize,
+  meanChangeCost,
+  tokenize,
+  verifyCost,
+} from "@codenuke/changecost";
 // Dual-execution + characterization tests for the pure core of loop/changecost.mjs.
 import { describe, expect, it } from "vitest";
-
-import { buildImplementerPrompt, costOf, editCost, lcsEditSize, meanChangeCost, tokenize, verifyCost } from "@codenuke/changecost";
 import {
   buildImplementerPrompt as lPrompt,
   editCost as lEdit,
@@ -17,7 +24,9 @@ describe("tokenize / lcsEditSize / editCost / verifyCost — dual-execution (RUL
       ["b.tsx", "const C = () => <div>{x}</div>;"],
       ["c.ts", "function f(a: number, b: number) { return a && b ? 1 : 0; }"],
     ];
-    for (const [n, t] of samples) expect(tokenize(n, t)).toEqual(lTok(n, t));
+    for (const [n, t] of samples) {
+      expect(tokenize(n, t)).toEqual(lTok(n, t));
+    }
   });
 
   it("lcsEditSize matches legacy", () => {
@@ -25,16 +34,35 @@ describe("tokenize / lcsEditSize / editCost / verifyCost — dual-execution (RUL
       [[], []],
       [["a"], []],
       [[], ["a", "b"]],
-      [["a", "b", "c"], ["a", "x", "c"]],
-      [["a", "b"], ["a", "b"]],
-      [["a", "b", "c", "d"], ["d", "c", "b", "a"]],
+      [
+        ["a", "b", "c"],
+        ["a", "x", "c"],
+      ],
+      [
+        ["a", "b"],
+        ["a", "b"],
+      ],
+      [
+        ["a", "b", "c", "d"],
+        ["d", "c", "b", "a"],
+      ],
     ];
-    for (const [a, b] of cases) expect(lcsEditSize(a, b)).toBe(lLcs(a, b));
+    for (const [a, b] of cases) {
+      expect(lcsEditSize(a, b)).toBe(lLcs(a, b));
+    }
   });
 
   it("editCost matches legacy across change scenarios", () => {
-    const before = { "src/a.ts": "export const x = 1;", "src/b.ts": "export const y = 2;", "src/a.test.ts": "if (1) {}" };
-    const after = { "src/a.ts": "export const x = 1 + 0;", "src/b.ts": "export const y = 2;", "src/c.ts": "export const z = 3;" };
+    const before = {
+      "src/a.ts": "export const x = 1;",
+      "src/b.ts": "export const y = 2;",
+      "src/a.test.ts": "if (1) {}",
+    };
+    const after = {
+      "src/a.ts": "export const x = 1 + 0;",
+      "src/b.ts": "export const y = 2;",
+      "src/c.ts": "export const z = 3;",
+    };
     expect(editCost(before, after, "src")).toEqual(lEdit(before, after, "src"));
     expect(editCost({}, after, "src")).toEqual(lEdit({}, after, "src"));
     expect(editCost(before, {}, ".")).toEqual(lEdit(before, {}, "."));

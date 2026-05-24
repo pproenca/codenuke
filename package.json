@@ -1,29 +1,35 @@
 {
   "name": "codenuke-workspace",
   "version": "0.0.0",
+  "private": true,
   "description": "Autonomous behavior-preserving code reduction.",
   "license": "MIT",
-  "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.1.2",
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
+    "build": "pnpm -r --filter './packages/*' --filter './apps/*' run build",
     "codenuke": "pnpm --filter codenuke codenuke",
     "codenuke:build": "pnpm --filter codenuke codenuke:build",
-    "lint": "oxlint apps packages",
-    "lint:fix": "oxlint apps packages --fix",
+    "format": "oxfmt --write --threads=1",
+    "format:check": "oxfmt --check --threads=1",
+    "format:diff": "oxfmt --write --threads=1 && git --no-pager diff",
+    "format:fix": "oxfmt --write --threads=1",
+    "lint": "oxlint --type-aware --report-unused-disable-directives-severity error apps packages",
+    "lint:fix": "oxlint --type-aware --report-unused-disable-directives-severity error apps packages --fix && pnpm format",
     "security:opengrep": "semgrep scan --config security/opengrep/codenuke.yml --error",
     "test": "pnpm -r --filter './packages/*' --filter './apps/*' --if-present run test",
-    "typecheck": "pnpm -r --filter './packages/*' --filter './apps/*' run typecheck",
-    "build": "pnpm -r --filter './packages/*' --filter './apps/*' run build"
+    "typecheck": "pnpm -r --filter './packages/*' --filter './apps/*' run typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.1",
+    "oxfmt": "0.51.0",
     "oxlint": "1.66.0",
+    "oxlint-tsgolint": "0.23.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
-  }
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "packageManager": "pnpm@11.2.2+sha512.36e6621fad506178936455e70247b8808ef4ec25797a9f437a93281a020484e2607f6a469a22e982987c3dbb8866e3071514ab10a4a1749e06edcd1ec118436f"
 }

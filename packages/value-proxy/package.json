@@ -1,12 +1,13 @@
 {
   "name": "@codenuke/value-proxy",
   "version": "0.1.0",
+  "private": true,
   "description": "Value-proxy validation (Spearman ρ + permutation test) for codenuke — modernized slice of loop/value-proxy.mjs.",
-  "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=22"
-  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/value-proxy.d.ts",
@@ -17,9 +18,6 @@
       "import": "./dist/spearman.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm -s build",
@@ -34,5 +32,7 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   },
-  "private": true
+  "engines": {
+    "node": ">=22"
+  }
 }

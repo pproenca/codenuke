@@ -1,9 +1,15 @@
+import {
+  applyMutant,
+  collectSites,
+  isAdmissible,
+  mulberry32,
+  sampleSites,
+  shuffle,
+} from "@codenuke/fence";
 // Characterization tests for the pure fence mutation core (loop/fence.mjs is a CLI
 // script with no exports; values reasoned from its logic). The audit/replay loops
 // that spawn the test suite per mutant are engine-level orchestration.
 import { describe, expect, it } from "vitest";
-
-import { applyMutant, collectSites, isAdmissible, mulberry32, sampleSites, shuffle } from "@codenuke/fence";
 
 describe("collectSites — mutation operators (RULE-007)", () => {
   it("flips relational/equality/logical operators", () => {
@@ -16,7 +22,10 @@ describe("collectSites — mutation operators (RULE-007)", () => {
   });
 
   it("swaps startsWith ↔ endsWith and flips return true/false", () => {
-    const sites = collectSites("a.ts", "function f(s: string) { if (s.startsWith('x')) return true; return false; }");
+    const sites = collectSites(
+      "a.ts",
+      "function f(s: string) { if (s.startsWith('x')) return true; return false; }",
+    );
     const ops = sites.map((s) => s.op);
     expect(ops).toContain("startsWith→endsWith");
     expect(ops).toContain("true→false");

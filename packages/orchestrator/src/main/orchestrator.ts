@@ -15,21 +15,33 @@ interface FenceLike {
 }
 
 const LONG_RUN_ITERATIONS = 5;
-const RESULT_COLUMNS = ["iter", "commit", "dAST", "dCx", "behavior", "mfence", "loss", "status", "description"] as const;
+const RESULT_COLUMNS = [
+  "iter",
+  "commit",
+  "dAST",
+  "dCx",
+  "behavior",
+  "mfence",
+  "loss",
+  "status",
+  "description",
+] as const;
 
 /**
  * Pick the region to work on (RULE-039): prefer fence-blocked regions, the one
  * closest to clearing the bar (highest `lo`) first; else any admissible region;
  * else the default region. (Raising is prioritised over reducing.)
  */
-export function chooseRegion(fence: FenceLike, candidates: readonly string[], defaultRegion: string): string {
+export function chooseRegion(
+  fence: FenceLike,
+  candidates: readonly string[],
+  defaultRegion: string,
+): string {
   const blocked = [...candidates]
     .filter((key) => fence.regions[key]?.admissible !== true)
     .toSorted((a, b) => (fence.regions[b]?.lo ?? 0) - (fence.regions[a]?.lo ?? 0));
   return (
-    blocked[0] ??
-    candidates.find((key) => fence.regions[key]?.admissible === true) ??
-    defaultRegion
+    blocked[0] ?? candidates.find((key) => fence.regions[key]?.admissible === true) ?? defaultRegion
   );
 }
 
@@ -40,11 +52,15 @@ export const selectMode = (region: { admissible?: boolean } | undefined): "reduc
 function targetRegionFilter(target: string, srcDir: string): string | null {
   const normalizedTarget = target.replace(/\/+$/u, "");
   const normalizedSrc = srcDir.replace(/\/+$/u, "");
-  if (normalizedTarget === normalizedSrc || normalizedTarget === "." || normalizedTarget === `${normalizedSrc}`) {
+  if (
+    normalizedTarget === normalizedSrc ||
+    normalizedTarget === "." ||
+    normalizedTarget === normalizedSrc
+  ) {
     return null;
   }
   const rel = stripSourcePrefix(normalizedTarget, normalizedSrc);
-  return rel ? rel.split("/")[0] ?? null : null;
+  return rel ? (rel.split("/")[0] ?? null) : null;
 }
 
 /** In-scope fence regions after applying the configured target filter (RULE-039). */
@@ -57,7 +73,9 @@ export function inScopeRegions(
   const fenced = fence.regions ?? {};
   const filter = targetRegionFilter(target, srcDir);
   const detected = detectedRegions.filter((regionKey) => fenced[regionKey]);
-  if (filter) return detected.filter((regionKey) => regionKey === filter);
+  if (filter) {
+    return detected.filter((regionKey) => regionKey === filter);
+  }
   return detected.length > 0 ? detected : Object.keys(fenced);
 }
 
@@ -82,17 +100,35 @@ export interface ReadinessChecks {
 /** Assemble the doctor readiness-gap list, in the legacy order (RULE-032). */
 export function readinessGaps(c: ReadinessChecks): string[] {
   const gaps: string[] = [];
-  if (!c.baselineExists) gaps.push(`baseline ${c.baseline} not found`);
-  if (!c.baselineGreen) gaps.push("baseline test command is not green");
-  if (!c.typecheckOk) gaps.push("typecheck command is not green");
-  if (!c.hasRegions) gaps.push("no source regions detected");
-  if (!c.fence.present) gaps.push("fence artifact missing");
-  else if (c.fence.stale) gaps.push("fence artifact stale");
-  else if (!c.fence.usable) gaps.push("fence artifact invalid");
-  if (!c.calibration.present) gaps.push("calibration missing");
-  else if (c.calibration.stale) gaps.push("calibration stale");
-  else if (!c.calibration.usable) gaps.push("calibration invalid");
-  if (!c.proposerAvailable) gaps.push("proposer unavailable");
+  if (!c.baselineExists) {
+    gaps.push(`baseline ${c.baseline} not found`);
+  }
+  if (!c.baselineGreen) {
+    gaps.push("baseline test command is not green");
+  }
+  if (!c.typecheckOk) {
+    gaps.push("typecheck command is not green");
+  }
+  if (!c.hasRegions) {
+    gaps.push("no source regions detected");
+  }
+  if (!c.fence.present) {
+    gaps.push("fence artifact missing");
+  } else if (c.fence.stale) {
+    gaps.push("fence artifact stale");
+  } else if (!c.fence.usable) {
+    gaps.push("fence artifact invalid");
+  }
+  if (!c.calibration.present) {
+    gaps.push("calibration missing");
+  } else if (c.calibration.stale) {
+    gaps.push("calibration stale");
+  } else if (!c.calibration.usable) {
+    gaps.push("calibration invalid");
+  }
+  if (!c.proposerAvailable) {
+    gaps.push("proposer unavailable");
+  }
   return gaps;
 }
 
@@ -100,7 +136,9 @@ export function readinessGaps(c: ReadinessChecks): string[] {
 export const isReady = (gaps: readonly string[]): boolean => gaps.length === 0;
 
 /** Which engine module a CLI command routes to (the `bin/codenuke.mjs` dispatch table). */
-export function commandTarget(command: string | undefined): { module: string; passCommand: boolean } | null {
+export function commandTarget(
+  command: string | undefined,
+): { module: string; passCommand: boolean } | null {
   switch (command) {
     case undefined:
       return { module: "help", passCommand: false };
@@ -201,8 +239,11 @@ export function formatDoctorReport(input: DoctorReportInput): string[] {
     `calibration: ${calibrationState} (${input.calibrationArtifact})`,
     `proposer: ${checks.proposerAvailable ? "available" : "missing"}`,
   ];
-  if (gaps.length > 0) lines.push("not ready:", ...gaps.map((gap) => `- ${gap}`));
-  else lines.push("ready");
+  if (gaps.length > 0) {
+    lines.push("not ready:", ...gaps.map((gap) => `- ${gap}`));
+  } else {
+    lines.push("ready");
+  }
   return lines;
 }
 
@@ -259,7 +300,9 @@ export function runStartupFailure(input: RunStartupInput): { exitCode: 1; messag
       message: `calibration artifact is ${label} for baseline ${input.baseline}; run \`codenuke calibrate\` first, then \`codenuke doctor\`.`,
     };
   }
-  if (!shouldRequireValueProxyValidation(input.iterations ?? LONG_RUN_ITERATIONS)) return null;
+  if (!shouldRequireValueProxyValidation(input.iterations ?? LONG_RUN_ITERATIONS)) {
+    return null;
+  }
   if (!input.valueProxy.present) {
     return {
       exitCode: 1,
@@ -269,14 +312,17 @@ export function runStartupFailure(input: RunStartupInput): { exitCode: 1; messag
   if (!input.valueProxy.usable) {
     return {
       exitCode: 1,
-      message: "value proxy validation is not passing; run `codenuke changecost` and `codenuke validate-proxy` before long unattended runs.",
+      message:
+        "value proxy validation is not passing; run `codenuke changecost` and `codenuke validate-proxy` before long unattended runs.",
     };
   }
   return null;
 }
 
 const isSourceFile = (path: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !path.endsWith(".d.ts") && !/\.(test|spec|accept)\./u.test(path);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) &&
+  !path.endsWith(".d.ts") &&
+  !/\.(test|spec|accept)\./u.test(path);
 
 const isUnderSourceDir = (path: string, srcDir: string): boolean =>
   srcDir === "." || path === srcDir || path.startsWith(`${srcDir}/`);
@@ -298,12 +344,18 @@ const isRootToolingPath = (path: string): boolean => {
   const parts = path.split("/");
   const first = parts[0] ?? "";
   const name = parts.at(-1) ?? "";
-  return ROOT_TOOLING_DIRS.has(first) || /\.config\.[cm]?[jt]s$/u.test(name) || /^config\.[cm]?[jt]s$/u.test(name);
+  return (
+    ROOT_TOOLING_DIRS.has(first) ||
+    /\.config\.[cm]?[jt]s$/u.test(name) ||
+    /^config\.[cm]?[jt]s$/u.test(name)
+  );
 };
 
 /** Reduce moves may only edit source under the configured source dir (RULE-025). */
 export const isAllowedReducePath = (path: string, srcDir: string): boolean =>
-  isUnderSourceDir(path, srcDir) && isSourceFile(path) && (srcDir !== "." || !isRootToolingPath(path));
+  isUnderSourceDir(path, srcDir) &&
+  isSourceFile(path) &&
+  (srcDir !== "." || !isRootToolingPath(path));
 
 const underTestRoot = (path: string, root: string): boolean =>
   root === "." || path === root || path.startsWith(`${root}/`);
@@ -328,7 +380,10 @@ export function raisePrompt(
 ): string {
   const shown = specs
     .slice(0, 12)
-    .map((spec) => `  - ${spec.rel} line ${spec.line}: operator \`${spec.op}\` is undetected by any test`)
+    .map(
+      (spec) =>
+        `  - ${spec.rel} line ${spec.line}: operator \`${spec.op}\` is undetected by any test`,
+    )
     .join("\n");
   return `You are the fence-raising proposer. The region ${regionTarget} is fence-BLOCKED: its tests miss some behavior changes (mutation survivors). ADD characterization tests where this repo's test command will discover them: ${testLayoutDescription}. Do NOT change any source — only add/extend tests.\n\nSurviving mutations:\n${shown}\n\nRead the source, understand what each operator decides, and assert the real current outputs for inputs exercising both sides. Make the tests pass against current code. Then stop. Do not run commands; just write tests.`;
 }
@@ -344,7 +399,10 @@ export function proposerFailure(input: {
     return { status: "crash-timeout", description: `proposer timeout after ${input.timeoutMs}ms` };
   }
   if (/Reached maximum budget|maximum budget/iu.test(input.out)) {
-    return { status: "crash-budget", description: `proposer budget exhausted: ${compactTail(input.out)}` };
+    return {
+      status: "crash-budget",
+      description: `proposer budget exhausted: ${compactTail(input.out)}`,
+    };
   }
   return { status: "crash", description: `proposer error: ${compactTail(input.out)}` };
 }

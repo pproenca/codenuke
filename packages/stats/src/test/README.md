@@ -4,10 +4,10 @@ These tests pin the **observable behavior** of the legacy module
 `legacy/codenuke/loop/stats.mjs` so a rewrite can be proven equivalent. They
 cover only the two LIVE exports being migrated:
 
-| Export   | Rule              | What it does                                          |
-| -------- | ----------------- | ----------------------------------------------------- |
-| `wilson` | RULE-006 (P0)     | Wilson score interval for a binomial proportion `k/n` |
-| `ranks`  | RULE-014          | Tie-averaged ranks, preserving input order            |
+| Export   | Rule          | What it does                                          |
+| -------- | ------------- | ----------------------------------------------------- |
+| `wilson` | RULE-006 (P0) | Wilson score interval for a binomial proportion `k/n` |
+| `ranks`  | RULE-014      | Tie-averaged ranks, preserving input order            |
 
 The legacy module is the **oracle**: every expected value was computed by
 running the legacy code, not by reading a spec. If spec and legacy disagree, the

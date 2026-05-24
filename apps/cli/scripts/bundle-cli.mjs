@@ -32,7 +32,9 @@ const workspaceAliasPlugin = {
   setup(build) {
     build.onResolve({ filter: /^@codenuke(?:\/[a-z-]+)+(?:\/runtime)?$/ }, (args) => {
       const target = aliases.get(args.path);
-      if (!target) return undefined;
+      if (!target) {
+        return undefined;
+      }
       return { path: resolve(repoRoot, target) };
     });
   },

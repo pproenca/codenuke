@@ -44,7 +44,9 @@ export function wilson(k: number, n: number, z: number = Z_95): WilsonInterval {
   if (!Number.isFinite(z) || z < 0) {
     throw new RangeError(`wilson: expected finite non-negative z, received z=${z}`);
   }
-  if (n === 0) return { p: 0, lo: 0, hi: 1 };
+  if (n === 0) {
+    return { p: 0, lo: 0, hi: 1 };
+  }
 
   const p = k / n;
   const z2 = z * z;

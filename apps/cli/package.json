@@ -1,13 +1,9 @@
 {
   "name": "codenuke",
   "version": "0.4.0",
+  "private": false,
   "description": "Autonomous behavior-preserving code reduction.",
   "license": "MIT",
-  "private": false,
-  "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
   "bin": {
     "codenuke": "dist/cli.cjs"
   },
@@ -20,16 +16,20 @@
     "SECURITY.md",
     "CHANGELOG.md"
   ],
+  "type": "module",
   "scripts": {
+    "build": "node scripts/bundle-cli.mjs",
     "codenuke": "node dist/cli.cjs",
     "codenuke:build": "pnpm -s build && node dist/cli.cjs",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "node scripts/bundle-cli.mjs",
-    "prepack": "pnpm -s build"
+    "prepack": "pnpm -s build",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.1",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
   }
 }

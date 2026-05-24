@@ -1,21 +1,19 @@
 {
   "name": "@codenuke/substrate",
   "version": "0.1.0",
+  "private": true,
   "description": "Execution substrate: git worktree lifecycle + proposer process management for codenuke — modernized slice of loop/worktree.mjs + agent-adapter.mjs.",
-  "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=22"
-  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm -s build",
@@ -26,9 +24,11 @@
     "@codenuke/exec": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.6",
-    "@types/node": "^22.0.0"
+    "vitest": "^4.1.6"
   },
-  "private": true
+  "engines": {
+    "node": ">=22"
+  }
 }

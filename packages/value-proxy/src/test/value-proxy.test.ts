@@ -30,7 +30,13 @@
 // =============================================================================
 
 import { describe, expect, it } from "vitest";
-
+// LEGACY oracle (for dual-execution differential testing). The legacy file
+// exports exactly these three symbols and nothing else.
+import {
+  spearmanPValue as legacySpearmanPValue,
+  spearmanRho as legacySpearmanRho,
+  validateValueProxy as legacyValidateValueProxy,
+} from "../../../../test-fixtures/legacy-loop/value-proxy.mjs";
 // NEW target (implemented after this contract is approved):
 import { spearmanPValue, spearmanRho } from "../main/spearman";
 import {
@@ -39,14 +45,6 @@ import {
   runValidation,
   validateValueProxy,
 } from "../main/value-proxy";
-
-// LEGACY oracle (for dual-execution differential testing). The legacy file
-// exports exactly these three symbols and nothing else.
-import {
-  spearmanPValue as legacySpearmanPValue,
-  spearmanRho as legacySpearmanRho,
-  validateValueProxy as legacyValidateValueProxy,
-} from "../../../../test-fixtures/legacy-loop/value-proxy.mjs";
 
 // -----------------------------------------------------------------------------
 // Seeded deterministic PRNG — replicates the legacy mulberry32 EXACTLY.
@@ -119,24 +117,20 @@ describe("Spearman permutation p-value — carried forward from legacy suite", (
 });
 
 describe("value proxy validation — carried forward from legacy suite", () => {
-  it(
-    "passes when a large enough corpus tracks change-cost significantly",
-    () => {
-      const report = validateValueProxy(monotoneCorpus(9));
+  it("passes when a large enough corpus tracks change-cost significantly", () => {
+    const report = validateValueProxy(monotoneCorpus(9));
 
-      expect(report).toMatchObject({
-        passed: true,
-        reason: null,
-        rho: 1,
-        minimumRho: 0.6,
-        alpha: 0.05,
-        pMethod: "exact",
-        candidates: 9,
-      });
-      expect(report.pValue).toBeLessThanOrEqual(0.05);
-    },
-    15000,
-  );
+    expect(report).toMatchObject({
+      passed: true,
+      reason: null,
+      rho: 1,
+      minimumRho: 0.6,
+      alpha: 0.05,
+      pMethod: "exact",
+      candidates: 9,
+    });
+    expect(report.pValue).toBeLessThanOrEqual(0.05);
+  }, 15000);
 
   it("fails closed by default for the legacy n=3 trap under the reimagined minimum of 6", () => {
     const report = validateValueProxy([
@@ -170,7 +164,7 @@ describe("value proxy validation — carried forward from legacy suite", () => {
 
   it("reports low-rho before significance when the effect size is wrong", () => {
     const report = validateValueProxy(
-      monotoneCorpus(9).map((c) => ({ ...c, Vhat: -c.Vhat })), // flip -> anti-correlated
+      monotoneCorpus(9).map((candidate) => Object.assign({}, candidate, { Vhat: -candidate.Vhat })), // flip -> anti-correlated
     );
 
     expect(report).toMatchObject({ passed: false, reason: "low-rho", candidates: 9 });
@@ -202,9 +196,7 @@ describe("spearmanRho (RULE-014) — exact known cases and edges", () => {
   });
 
   it("throws on unequal lengths with the legacy message", () => {
-    expect(() => spearmanRho([1, 2], [1, 2, 3])).toThrow(
-      "spearman inputs must have equal length",
-    );
+    expect(() => spearmanRho([1, 2], [1, 2, 3])).toThrow("spearman inputs must have equal length");
   });
 
   it("returns NaN for a degenerate (zero-variance) input vector", () => {
@@ -352,7 +344,9 @@ describe("validateValueProxy (RULE-027/028/029) — reason branches and report s
   });
 
   it("low-rho: ρ below minimumRho is rejected before significance is even checked", () => {
-    const rows = monotoneCorpus(9).map((c) => ({ ...c, Vhat: -c.Vhat })); // anti-correlated
+    const rows = monotoneCorpus(9).map((candidate) =>
+      Object.assign({}, candidate, { Vhat: -candidate.Vhat }),
+    ); // anti-correlated
     const report = validateValueProxy(rows);
     expect(report).toMatchObject({
       passed: false,
@@ -429,7 +423,7 @@ describe("validateValueProxy (RULE-027/028/029) — reason branches and report s
 
   it("respects custom thresholds passed via options (and proves negVhat mapping)", () => {
     // With minimumRho raised above the achieved ρ, the SAME corpus flips to low-rho.
-    const rows = monotoneCorpus(6).map((c) => ({ ...c, Vhat: c.Vhat })); // perfect ρ=1
+    const rows = monotoneCorpus(6); // perfect ρ=1
     const strict = validateValueProxy(rows, { minimumRho: 0.99, alpha: 0.05 });
     expect(strict.minimumRho).toBe(0.99);
     expect(strict.rho).toBe(1);
@@ -542,15 +536,18 @@ describe("parseCandidates — shape acceptance, id defaulting, finiteness checks
   });
 
   it("throws the legacy message when the shape is neither", () => {
-    expect(() => parseCandidates({ foo: 1 })).toThrow(
-      "expected an array or { candidates: [...] }",
-    );
+    expect(() => parseCandidates({ foo: 1 })).toThrow("expected an array or { candidates: [...] }");
     expect(() => parseCandidates(42)).toThrow("expected an array or { candidates: [...] }");
     expect(() => parseCandidates(null)).toThrow("expected an array or { candidates: [...] }");
   });
 
   it("defaults a missing id to candidate-<n> (1-based)", () => {
-    expect(parseCandidates([{ proxy: 1, Vhat: 2 }, { proxy: 3, Vhat: 4 }])).toEqual([
+    expect(
+      parseCandidates([
+        { proxy: 1, Vhat: 2 },
+        { proxy: 3, Vhat: 4 },
+      ]),
+    ).toEqual([
       { proxy: 1, Vhat: 2, id: "candidate-1" },
       { proxy: 3, Vhat: 4, id: "candidate-2" },
     ]);
@@ -575,9 +572,9 @@ describe("parseCandidates — shape acceptance, id defaulting, finiteness checks
   });
 
   it("treats Infinity and string numerics as non-finite (finiteNumber semantics)", () => {
-    expect(() => parseCandidates([{ id: "inf", proxy: Number.POSITIVE_INFINITY, Vhat: 1 }])).toThrow(
-      "candidate inf must include finite proxy and Vhat numbers",
-    );
+    expect(() =>
+      parseCandidates([{ id: "inf", proxy: Number.POSITIVE_INFINITY, Vhat: 1 }]),
+    ).toThrow("candidate inf must include finite proxy and Vhat numbers");
     // finiteNumber requires typeof === "number"; a numeric STRING is rejected.
     expect(() => parseCandidates([{ id: "str", proxy: "1", Vhat: 2 }])).toThrow(
       "candidate str must include finite proxy and Vhat numbers",
@@ -620,7 +617,9 @@ describe("runValidation — pure orchestration without file I/O", () => {
   });
 
   it("returns reason 'low-rho' when proxy rank does not track change-cost", () => {
-    const parsed = monotoneCorpus(6).map((candidate) => ({ ...candidate, Vhat: -candidate.Vhat }));
+    const parsed = monotoneCorpus(6).map((candidate) =>
+      Object.assign({}, candidate, { Vhat: -candidate.Vhat }),
+    );
     const report = runValidation(parsed, {});
     expect(report).toMatchObject({
       passed: false,

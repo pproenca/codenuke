@@ -23,15 +23,13 @@
 // =============================================================================
 
 import { describe, expect, it } from "vitest";
-
-// NEW target (not yet written — implemented to satisfy this contract):
-import { ranks, wilson } from "../main/stats";
-
 // LEGACY oracle (for dual-execution differential testing):
 import {
   ranks as legacyRanks,
   wilson as legacyWilson,
 } from "../../../../test-fixtures/legacy-loop/stats.mjs";
+// NEW target (not yet written — implemented to satisfy this contract):
+import { ranks, wilson } from "../main/stats";
 
 // -----------------------------------------------------------------------------
 // Seeded deterministic PRNG (mulberry32) so the property/diff tests are 100%

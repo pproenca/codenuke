@@ -1,11 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-
-import { describe, expect, it } from "vitest";
-
 import * as changecost from "@codenuke/changecost";
+import { describe, expect, it } from "vitest";
 
 interface BenchmarkDelta {
   readonly id: string;
@@ -62,7 +67,9 @@ interface RuntimeApi {
     env: Record<string, string | undefined>,
     defaultBaseline: string,
   ) => string;
-  readonly createChangeCostArtifact: (input: Omit<ChangeCostArtifact, "schemaVersion">) => ChangeCostArtifact;
+  readonly createChangeCostArtifact: (
+    input: Omit<ChangeCostArtifact, "schemaVersion">,
+  ) => ChangeCostArtifact;
   readonly changeCostGitCommandPlan: (input: {
     readonly repo: string;
     readonly worktree: string;
@@ -84,7 +91,7 @@ interface RuntimeApi {
 function runtime<K extends keyof RuntimeApi>(name: K): RuntimeApi[K] {
   const value = (changecost as Record<string, unknown>)[name];
   if (typeof value !== "function") {
-    throw new Error(`@codenuke/changecost must export runtime helper ${String(name)}`);
+    throw new Error(`@codenuke/changecost must export runtime helper ${name}`);
   }
   return value as RuntimeApi[K];
 }
@@ -143,10 +150,16 @@ function writeBenchmark(
 }
 
 function readArtifact(root: string): ChangeCostArtifact {
-  return JSON.parse(readFileSync(join(root, ".codenuke/changecost.json"), "utf8")) as ChangeCostArtifact;
+  return JSON.parse(
+    readFileSync(join(root, ".codenuke/changecost.json"), "utf8"),
+  ) as ChangeCostArtifact;
 }
 
-function baseEnv(root: string, worktree: string, extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+function baseEnv(
+  root: string,
+  worktree: string,
+  extra: Record<string, string | undefined> = {},
+): Record<string, string | undefined> {
   return {
     ...process.env,
     CN_REPO: root,
@@ -163,8 +176,18 @@ function baseEnv(root: string, worktree: string, extra: Record<string, string | 
 describe("changecost runtime discovery, metadata, and config", () => {
   it("discovers benchmark directories from meta.json plus accept.test.ts and sorts by id", () => {
     const root = fixtureRoot();
-    writeBenchmark(root, "zeta", { title: "Zeta", prompt: "Last.", acceptPath: "tests/z.accept.test.ts" }, "z();\n");
-    writeBenchmark(root, "alpha", { title: "Alpha", prompt: "First.", acceptPath: "tests/a.accept.test.ts" }, "a();\n");
+    writeBenchmark(
+      root,
+      "zeta",
+      { title: "Zeta", prompt: "Last.", acceptPath: "tests/z.accept.test.ts" },
+      "z();\n",
+    );
+    writeBenchmark(
+      root,
+      "alpha",
+      { title: "Alpha", prompt: "First.", acceptPath: "tests/a.accept.test.ts" },
+      "a();\n",
+    );
     write(root, "codenuke.benchmark/not-a-directory.txt", "ignored\n");
     const discoverBenchmarks = runtime("discoverBenchmarks");
 
@@ -202,7 +225,9 @@ describe("changecost runtime discovery, metadata, and config", () => {
     expect(changeCostRef(["feature/ref"], { CN_BASE: "main" }, "HEAD")).toBe("feature/ref");
     expect(parseChangeCostBeta({})).toBe(60);
     expect(parseChangeCostBeta({ CN_BETA: "12.5" })).toBe(12.5);
-    expect(() => parseChangeCostBeta({ CN_BETA: "NaN" })).toThrow("CN_BETA must be a finite non-negative number");
+    expect(() => parseChangeCostBeta({ CN_BETA: "NaN" })).toThrow(
+      "CN_BETA must be a finite non-negative number",
+    );
 
     expect(
       createChangeCostArtifact({
@@ -258,8 +283,19 @@ describe("changecost runtime argv-vector and path-safety contract", () => {
       srcDir: "packages/app/src",
     });
 
-    expect(plan.resolveRef).toEqual(["rev-parse", "--verify", "--end-of-options", "feature/changecost"]);
-    expect(plan.addWorktree).toEqual(["worktree", "add", "-f", "/tmp/codenuke-wt-changecost", "feature/changecost"]);
+    expect(plan.resolveRef).toEqual([
+      "rev-parse",
+      "--verify",
+      "--end-of-options",
+      "feature/changecost",
+    ]);
+    expect(plan.addWorktree).toEqual([
+      "worktree",
+      "add",
+      "-f",
+      "/tmp/codenuke-wt-changecost",
+      "feature/changecost",
+    ]);
     expect(plan.snapshotFiles).toEqual(["ls-files", "-z", "--", "packages/app/src"]);
     expect(plan.statusPorcelain).toEqual(["status", "--porcelain", "-z"]);
     expect(plan.resetAndCleanAll).toEqual(["reset", "--hard", "--"]);
@@ -293,7 +329,9 @@ describe("changecost runtime argv-vector and path-safety contract", () => {
     const changeCostGitCommandPlan = runtime("changeCostGitCommandPlan");
     const worktree = fixtureRoot("codenuke-changecost-safe-wt-");
 
-    expect(safeWorktreePath(worktree, "tests/value.accept.test.ts")).toBe(join(worktree, "tests/value.accept.test.ts"));
+    expect(safeWorktreePath(worktree, "tests/value.accept.test.ts")).toBe(
+      join(worktree, "tests/value.accept.test.ts"),
+    );
     expect(() => safeWorktreePath(worktree, "/tmp/outside.ts")).toThrow("unsafe worktree path");
     expect(() => safeWorktreePath(worktree, "../outside.ts")).toThrow("unsafe worktree path");
     expect(() => safeWorktreePath(worktree, "..\\outside.ts")).toThrow("unsafe worktree path");
@@ -313,7 +351,9 @@ describe("changecost runtime argv-vector and path-safety contract", () => {
     const outside = fixtureRoot("codenuke-changecost-outside-");
     symlinkSync(outside, join(worktree, "tests"));
 
-    expect(() => safeWorktreePath(worktree, "tests/value.accept.test.ts")).toThrow("unsafe worktree path");
+    expect(() => safeWorktreePath(worktree, "tests/value.accept.test.ts")).toThrow(
+      "unsafe worktree path",
+    );
   });
 
   it("parses porcelain-z rename records including both destination and source paths", () => {
@@ -377,8 +417,16 @@ describe("runChangeCostCommand benchmark execution", () => {
     initRepo(root);
     const baselineSource = "export const a = 1;\nexport const b = 10;\n";
     write(root, "src/index.ts", baselineSource);
-    writeBenchmark(root, "one", { title: "Change one", prompt: "Set a to 2.", acceptPath: "tests/one.accept.test.ts" });
-    writeBenchmark(root, "two", { title: "Change two", prompt: "Set b to 20.", acceptPath: "tests/two.accept.test.ts" });
+    writeBenchmark(root, "one", {
+      title: "Change one",
+      prompt: "Set a to 2.",
+      acceptPath: "tests/one.accept.test.ts",
+    });
+    writeBenchmark(root, "two", {
+      title: "Change two",
+      prompt: "Set b to 20.",
+      acceptPath: "tests/two.accept.test.ts",
+    });
     commit(root, "benchmark");
     const worktree = join(tmpdir(), `codenuke-changecost-done-${Date.now()}`);
     const capture = join(root, "deltas.log");
@@ -396,8 +444,16 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
     );
     const testCommand = `node -e "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1);if(fs.existsSync('tests/two.accept.test.ts')&&!src.includes('b = 20'))process.exit(1);process.exit(0)"`;
     const editCost = runtimePure("editCost");
-    const oneEdit = editCost({ "src/index.ts": baselineSource }, { "src/index.ts": baselineSource.replace("a = 1", "a = 2") }, "src");
-    const twoEdit = editCost({ "src/index.ts": baselineSource }, { "src/index.ts": baselineSource.replace("b = 10", "b = 20") }, "src");
+    const oneEdit = editCost(
+      { "src/index.ts": baselineSource },
+      { "src/index.ts": baselineSource.replace("a = 1", "a = 2") },
+      "src",
+    );
+    const twoEdit = editCost(
+      { "src/index.ts": baselineSource },
+      { "src/index.ts": baselineSource.replace("b = 10", "b = 20") },
+      "src",
+    );
     const runChangeCostCommand = runtime("runChangeCostCommand");
 
     const result = await runChangeCostCommand(
@@ -440,7 +496,7 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
       verifyFrac: 1,
       cost: twoEdit.tokens + 10,
     });
-    expect(artifact.Vhat).toBe(((oneEdit.tokens + 10) + (twoEdit.tokens + 10)) / 2);
+    expect(artifact.Vhat).toBe((oneEdit.tokens + 10 + (twoEdit.tokens + 10)) / 2);
     expect(existsSync(`${worktree}-changecost`)).toBe(false);
   });
 
@@ -479,7 +535,7 @@ writeFileSync("src/added.ts", "export const added = 2;\\n");
       filesTouched: 1,
       regions: ["src"],
     });
-    expect(artifact.results[0]!.editTokens).toBeGreaterThan(0);
+    expect(artifact.results[0].editTokens).toBeGreaterThan(0);
   });
 
   it("records not-done when the hidden acceptance test stays red after implementation", async () => {
@@ -591,8 +647,10 @@ renameSync("package.json", "src/package.ts");
   });
 });
 
-function runtimePure<K extends "editCost">(name: K): typeof changecost.editCost {
+function runtimePure(name: "editCost"): typeof changecost.editCost {
   const value = (changecost as Record<string, unknown>)[name];
-  if (typeof value !== "function") throw new Error(`@codenuke/changecost must export ${name}`);
+  if (typeof value !== "function") {
+    throw new Error(`@codenuke/changecost must export ${name}`);
+  }
   return value as typeof changecost.editCost;
 }

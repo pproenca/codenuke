@@ -6,19 +6,19 @@ This is the **second strangler-fig slice** (the first, `@codenuke/stats`, is
 already migrated; this module reuses its `ranks`).
 
 The legacy module is the **oracle**: every literal expected value was computed
-by *running the legacy code*, not by reading a spec. If spec and legacy ever
+by _running the legacy code_, not by reading a spec. If spec and legacy ever
 disagree, the test follows the legacy and the discrepancy is flagged separately.
 
 ## Rules under test
 
-| Symbol                   | Rule(s)            | What it does                                                          |
-| ------------------------ | ------------------ | -------------------------------------------------------------------- |
-| `spearmanRho`            | RULE-014           | Rank correlation via tie-averaged `ranks` (Pearson on ranks)        |
-| `spearmanPValue`         | RULE-015           | One-sided permutation test: `exact` \| `sampled` \| `degenerate`     |
-| `validateValueProxy`     | RULE-027/028/029   | Effect-size + significance + corpus-size gate -> validation report  |
-| `parseValidationOptions` | RULE-029           | Mirrors legacy `validationOptionsFromEnv` (defaults + bound checks)  |
-| `parseCandidates`        | RULE-029           | Mirrors legacy `readCandidates` on ALREADY-PARSED JSON (no file I/O) |
-| `runValidation`          | RULE-027/028/029   | Pure orchestrator: returns `invalid-config` / `malformed-input` variants |
+| Symbol                   | Rule(s)          | What it does                                                             |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------ |
+| `spearmanRho`            | RULE-014         | Rank correlation via tie-averaged `ranks` (Pearson on ranks)             |
+| `spearmanPValue`         | RULE-015         | One-sided permutation test: `exact` \| `sampled` \| `degenerate`         |
+| `validateValueProxy`     | RULE-027/028/029 | Effect-size + significance + corpus-size gate -> validation report       |
+| `parseValidationOptions` | RULE-029         | Mirrors legacy `validationOptionsFromEnv` (defaults + bound checks)      |
+| `parseCandidates`        | RULE-029         | Mirrors legacy `readCandidates` on ALREADY-PARSED JSON (no file I/O)     |
+| `runValidation`          | RULE-027/028/029 | Pure orchestrator: returns `invalid-config` / `malformed-input` variants |
 
 ## Imports — new target AND legacy oracle
 
@@ -119,4 +119,7 @@ reproducible.
    (`p === 1`, `rho === 1`, clamps, `ge/(samples+1)`).
 4. If the new behavior is not yet implemented in the target, mark it
    `it.todo(...)` / `it.skip(... "pending RULE-NNN")` rather than deleting it.
+
+```
+
 ```

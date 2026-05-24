@@ -47,7 +47,7 @@ function pearson(left: readonly number[], right: readonly number[]): number {
     rightSquares += rightDelta * rightDelta;
   }
   const denominator = Math.sqrt(leftSquares * rightSquares);
-  return denominator === 0 ? NaN : numerator / denominator;
+  return denominator === 0 ? Number.NaN : numerator / denominator;
 }
 
 /**
@@ -58,8 +58,12 @@ function pearson(left: readonly number[], right: readonly number[]): number {
  * @throws {Error} if the inputs differ in length
  */
 export function spearmanRho(left: readonly number[], right: readonly number[]): number {
-  if (left.length !== right.length) throw new Error("spearman inputs must have equal length");
-  if (left.length < 2) return NaN;
+  if (left.length !== right.length) {
+    throw new Error("spearman inputs must have equal length");
+  }
+  if (left.length < 2) {
+    return Number.NaN;
+  }
   return pearson(ranks(left), ranks(right));
 }
 
@@ -67,7 +71,9 @@ function factorial(n: number): number {
   // n ≥ 171 overflows to Infinity — intentionally safe: Infinity > any finite
   // exactCap, so it routes to the sampled path and never drives enumeration.
   let f = 1;
-  for (let i = 2; i <= n; i += 1) f *= i;
+  for (let i = 2; i <= n; i += 1) {
+    f *= i;
+  }
   return f;
 }
 
@@ -90,7 +96,9 @@ function* permute(values: readonly number[]): Generator<number[]> {
   }
   for (let i = 0; i < values.length; i += 1) {
     const rest = [...values.slice(0, i), ...values.slice(i + 1)];
-    for (const tail of permute(rest)) yield [values[i], ...tail];
+    for (const tail of permute(rest)) {
+      yield [values[i], ...tail];
+    }
   }
 }
 
@@ -111,10 +119,14 @@ export function spearmanPValue(
   options: PermutationOptions = {},
 ): PValueResult {
   const n = left.length;
-  if (n !== right.length) throw new Error("spearman inputs must have equal length");
+  if (n !== right.length) {
+    throw new Error("spearman inputs must have equal length");
+  }
 
   const observed = spearmanRho(left, right);
-  if (!Number.isFinite(observed)) return { p: 1, method: "degenerate", permutations: 0 };
+  if (!Number.isFinite(observed)) {
+    return { p: 1, method: "degenerate", permutations: 0 };
+  }
 
   const eps = 1e-9;
   // 9!. Deliberately NOT env-configurable: a large exactCap on a big n would force
@@ -124,7 +136,9 @@ export function spearmanPValue(
     let ge = 0;
     let count = 0;
     for (const perm of permute(right)) {
-      if (spearmanRho(left, perm) >= observed - eps) ge += 1;
+      if (spearmanRho(left, perm) >= observed - eps) {
+        ge += 1;
+      }
       count += 1;
     }
     return { p: ge / count, method: "exact", permutations: count };
@@ -139,7 +153,9 @@ export function spearmanPValue(
       const j = Math.floor(rng() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    if (spearmanRho(left, pool) >= observed - eps) ge += 1;
+    if (spearmanRho(left, pool) >= observed - eps) {
+      ge += 1;
+    }
   }
   return { p: ge / (draws + 1), method: "sampled", permutations: draws };
 }

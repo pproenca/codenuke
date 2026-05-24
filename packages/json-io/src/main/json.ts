@@ -9,7 +9,10 @@
  */
 import { readFileSync } from "node:fs";
 
-export function readJson<T = unknown>(path: string): T | null {
+export function readJson<T = unknown>(
+  path: string,
+  _shape?: (value: unknown) => value is T,
+): T | null {
   try {
     return JSON.parse(readFileSync(path, "utf8")) as T;
   } catch {

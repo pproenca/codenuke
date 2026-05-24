@@ -43,7 +43,9 @@ export function runProcessGroup(
     let timedOut = false;
     const killGroup = (signal: NodeJS.Signals): void => {
       try {
-        if (child.pid != null) process.kill(-child.pid, signal);
+        if (child.pid != null) {
+          process.kill(-child.pid, signal);
+        }
       } catch {
         /* already dead */
       }
@@ -52,7 +54,9 @@ export function runProcessGroup(
       timedOut = true;
       killGroup("SIGTERM");
       setTimeout(() => {
-        if (!done) killGroup("SIGKILL");
+        if (!done) {
+          killGroup("SIGKILL");
+        }
       }, 1000).unref();
     }, timeout);
     timer.unref();
@@ -66,11 +70,16 @@ export function runProcessGroup(
     child.on("close", (code) => {
       done = true;
       clearTimeout(timer);
-      if (code !== 0 && !timedOut) killGroup("SIGTERM");
+      if (code !== 0 && !timedOut) {
+        killGroup("SIGTERM");
+      }
       resolve({ ok: code === 0 && !timedOut, out: Buffer.concat(out).toString(), timedOut });
     });
-    if (opts.input != null) child.stdin.end(opts.input);
-    else child.stdin.end();
+    if (opts.input != null) {
+      child.stdin.end(opts.input);
+    } else {
+      child.stdin.end();
+    }
   });
 }
 
@@ -79,7 +88,10 @@ export const runShellGroup = (cmd: string, opts: ProcessOptions = {}): Promise<P
   runProcessGroup(cmd, [], { ...opts, shell: true });
 
 /** Build the `codex exec` CLI args from environment (sandbox, model, reasoning effort). */
-export function codexArgs(cwd: string, options: { env?: NodeJS.ProcessEnv; outputPath?: string } = {}): string[] {
+export function codexArgs(
+  cwd: string,
+  options: { env?: NodeJS.ProcessEnv; outputPath?: string } = {},
+): string[] {
   const env = options.env ?? process.env;
   const args = ["exec", "--cd", cwd];
   const sandbox = env.CN_CODEX_SANDBOX?.trim();
@@ -88,9 +100,15 @@ export function codexArgs(cwd: string, options: { env?: NodeJS.ProcessEnv; outpu
   } else {
     args.push("--sandbox", sandbox && sandbox.length > 0 ? sandbox : "workspace-write");
   }
-  if (env.CN_MODEL) args.push("--model", env.CN_MODEL);
-  if (env.CN_REASONING_EFFORT) args.push("-c", `model_reasoning_effort="${env.CN_REASONING_EFFORT}"`);
-  if (options.outputPath) args.push("--output-last-message", options.outputPath);
+  if (env.CN_MODEL) {
+    args.push("--model", env.CN_MODEL);
+  }
+  if (env.CN_REASONING_EFFORT) {
+    args.push("-c", `model_reasoning_effort="${env.CN_REASONING_EFFORT}"`);
+  }
+  if (options.outputPath) {
+    args.push("--output-last-message", options.outputPath);
+  }
   args.push("-");
   return args;
 }

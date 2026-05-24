@@ -51,18 +51,18 @@ Configuration is resolved from `CN_*` environment variables, then `codenuke.loop
 
 Common settings:
 
-| JSON key | Environment | Default |
-|---|---|---|
-| `repo` | `CN_REPO` | current directory |
-| `srcDir` | `CN_SRC` | detected source directory |
-| `target` | `CN_TARGET` | all detected source regions |
-| `baseline` | `CN_BASE` | `HEAD` |
-| `testCommand` | `CN_TEST` | detected test runner |
-| `typeCheckCommand` | `CN_TYPECHECK` | detected `tsc`, otherwise disabled |
-| `tag` | `CN_TAG` | `run` |
-| `fenceLB` | `CN_FENCE_LB` | `0.90` |
-| `proposerTimeoutMs` | `CN_TIMEOUT` | `900000` |
-| `proposerBudgetUsd` | `CN_BUDGET` | `8` |
+| JSON key            | Environment    | Default                            |
+| ------------------- | -------------- | ---------------------------------- |
+| `repo`              | `CN_REPO`      | current directory                  |
+| `srcDir`            | `CN_SRC`       | detected source directory          |
+| `target`            | `CN_TARGET`    | all detected source regions        |
+| `baseline`          | `CN_BASE`      | `HEAD`                             |
+| `testCommand`       | `CN_TEST`      | detected test runner               |
+| `typeCheckCommand`  | `CN_TYPECHECK` | detected `tsc`, otherwise disabled |
+| `tag`               | `CN_TAG`       | `run`                              |
+| `fenceLB`           | `CN_FENCE_LB`  | `0.90`                             |
+| `proposerTimeoutMs` | `CN_TIMEOUT`   | `900000`                           |
+| `proposerBudgetUsd` | `CN_BUDGET`    | `8`                                |
 
 `CN_PROPOSER` replaces the default Codex proposer with a trusted shell command run in the isolated worktree.
 

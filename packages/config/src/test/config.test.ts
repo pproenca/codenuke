@@ -6,8 +6,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it } from "vitest";
-
 import {
   isSourceFile,
   isUnderSourceDir,
@@ -17,6 +15,7 @@ import {
   slug,
   stripSourcePrefix,
 } from "@codenuke/config";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   isSourceFile as legacyIsSourceFile,
   isUnderSourceDir as legacyIsUnderSourceDir,
@@ -28,7 +27,9 @@ import {
 type Env = Record<string, string | undefined>;
 const created: string[] = [];
 afterAll(() => {
-  for (const d of created) rmSync(d, { recursive: true, force: true });
+  for (const d of created) {
+    rmSync(d, { recursive: true, force: true });
+  }
 });
 
 function thrownBy(fn: () => unknown): unknown {
@@ -53,7 +54,11 @@ function makeRepo(files: Record<string, string>): string {
 
 // Fixed env so process.env and the install-relative `program` default don't leak in.
 const env = (over: Env = {}): Env => ({ CN_PROGRAM: "/fixed/program.md", ...over });
-const envWithoutProgram = (over: Env = {}): Env => ({ PATH: process.env.PATH, CN_PROGRAM: undefined, ...over });
+const envWithoutProgram = (over: Env = {}): Env => ({
+  PATH: process.env.PATH,
+  CN_PROGRAM: undefined,
+  ...over,
+});
 
 const fixtures: { name: string; files: Record<string, string>; env?: Env }[] = [
   {
@@ -65,7 +70,10 @@ const fixtures: { name: string; files: Record<string, string>; env?: Env }[] = [
       "src/alpha/a.test.ts": "import { a } from './a'; if (a) {}",
     },
   },
-  { name: "lib/ conventional, no src", files: { "package.json": "{}", "lib/x.ts": "export const x = 1;" } },
+  {
+    name: "lib/ conventional, no src",
+    files: { "package.json": "{}", "lib/x.ts": "export const x = 1;" },
+  },
   {
     name: "tsconfig rootDir",
     files: {
@@ -79,7 +87,12 @@ const fixtures: { name: string; files: Record<string, string>; env?: Env }[] = [
     files: {
       "package.json": "{}",
       "src/a.ts": "export const a = 1;",
-      "codenuke.loop.json": JSON.stringify({ srcDir: "src", fenceLB: 0.85, weights: { dL: 2 }, regions: ["a", "b"] }),
+      "codenuke.loop.json": JSON.stringify({
+        srcDir: "src",
+        fenceLB: 0.85,
+        weights: { dL: 2 },
+        regions: ["a", "b"],
+      }),
     },
   },
   {
@@ -261,12 +274,22 @@ describe("program.md runtime data", () => {
 
 describe("pure helpers — dual-execution vs legacy", () => {
   const paths = [
-    "src/a.ts", "src/a.test.ts", "a.d.ts", "src/x/y.tsx", "lib/z.accept.ts",
-    "main.mjs", "x.json", "deep/nested/mod/file.js", "top.ts", "a.spec.tsx",
+    "src/a.ts",
+    "src/a.test.ts",
+    "a.d.ts",
+    "src/x/y.tsx",
+    "lib/z.accept.ts",
+    "main.mjs",
+    "x.json",
+    "deep/nested/mod/file.js",
+    "top.ts",
+    "a.spec.tsx",
   ];
 
   it("isSourceFile matches legacy", () => {
-    for (const p of paths) expect(isSourceFile(p)).toBe(legacyIsSourceFile(p));
+    for (const p of paths) {
+      expect(isSourceFile(p)).toBe(legacyIsSourceFile(p));
+    }
   });
 
   it("regionOf matches legacy across srcDir values", () => {
