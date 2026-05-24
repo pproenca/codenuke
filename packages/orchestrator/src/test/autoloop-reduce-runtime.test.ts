@@ -218,6 +218,29 @@ function setupReduceFixture(extra: {
 }
 
 describe("runAutoloop reduce runtime follow-ups", () => {
+  it("streams iteration, proposer, and result-row progress through the optional reporter", async () => {
+    const fixture = setupReduceFixture({
+      proposerScript: "process.exit(0);\n",
+    });
+    const progress: string[] = [];
+
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      reporter: { emit: (line) => progress.push(line) },
+    });
+
+    expect.soft(result.exitCode).toBe(0);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        "run: resolving startup state",
+        expect.stringContaining("--- iter 1/1 [reduce] api fence"),
+        "  proposer start: provider=shell mode=reduce region=api target=src/api/",
+        expect.stringContaining("  proposer result: provider=shell status=ok"),
+        "  -> NOOP  no scorable src change",
+        "\n=== done: 0 kept, 0 fence-raises ===",
+      ]),
+    );
+  });
+
   it("rejects reduce proposer edits outside the configured source surface and cleans the worktree", async () => {
     const fixture = setupReduceFixture({
       proposerScript: `

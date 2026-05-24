@@ -24,6 +24,10 @@ export interface RuntimeResult {
   readonly stderr: string;
 }
 
+export interface ScorerCommandOptions {
+  readonly reporter?: { emit(line: string): void };
+}
+
 export interface Weights {
   readonly dL: number;
   readonly dCx: number;
@@ -223,19 +227,38 @@ function writeState(path: string, state: ScorerState): void {
   writeFileSync(path, JSON.stringify(state, null, 2));
 }
 
-async function testsPass(config: Config, env: NodeJS.ProcessEnv): Promise<boolean> {
-  return (await runShellGroup(config.testCommand, { cwd: config.worktree, env, timeout: 300000 }))
-    .ok;
+async function testsPass(
+  config: Config,
+  env: NodeJS.ProcessEnv,
+  reporter?: ScorerCommandOptions["reporter"],
+): Promise<boolean> {
+  reporter?.emit("scorer: running tests");
+  return (
+    await runShellGroup(config.testCommand, {
+      cwd: config.worktree,
+      env,
+      timeout: 300000,
+      progress: reporter,
+      progressLabel: "test command",
+    })
+  ).ok;
 }
 
-async function typeErrors(config: Config, env: NodeJS.ProcessEnv): Promise<number> {
+async function typeErrors(
+  config: Config,
+  env: NodeJS.ProcessEnv,
+  reporter?: ScorerCommandOptions["reporter"],
+): Promise<number> {
   if (!config.typeCheckCommand) {
     return 0;
   }
+  reporter?.emit("scorer: running typecheck");
   const result = await runShellGroup(config.typeCheckCommand, {
     cwd: config.worktree,
     env,
     timeout: 300000,
+    progress: reporter,
+    progressLabel: "typecheck command",
   });
   if (result.ok) {
     return 0;
@@ -336,6 +359,7 @@ async function scoreCandidate(
   env: NodeJS.ProcessEnv,
   state: ScorerState,
   changed: readonly string[],
+  reporter?: ScorerCommandOptions["reporter"],
 ): Promise<{
   readonly verdict: Verdict;
   readonly touched: readonly string[];
@@ -363,12 +387,12 @@ async function scoreCandidate(
   const verdict = decide({
     before: changedMeasurement(config, changed, "HEAD"),
     after: changedMeasurement(config, changed, "worktree"),
-    testsPass: await testsPass(config, env),
+    testsPass: await testsPass(config, env, reporter),
     fenceUsable: fenceStatus.usable,
     blockedRegions: blocked,
     touchedFidelities: touched.map((region) => fenceRegions[region]?.p ?? 0),
     diffsize: diffSize(config),
-    typeErrors: await typeErrors(config, env),
+    typeErrors: await typeErrors(config, env, reporter),
     baselineTypeErrors: state.baselineTsc,
     weights: config.weights,
     scales,
@@ -395,8 +419,11 @@ export async function runScorerCommand(
   args: readonly string[],
   env: Env,
   cwd: string,
+  options: ScorerCommandOptions = {},
 ): Promise<RuntimeResult> {
   const cmd = args[0];
+  const reporter = options.reporter;
+  reporter?.emit(`scorer: ${cmd ?? "usage"} start`);
   const config = loadConfig(env, cwd);
   const runEnv = env as NodeJS.ProcessEnv;
   const plan = scorerGitCommandPlan({
@@ -407,19 +434,22 @@ export async function runScorerCommand(
   });
 
   if (cmd === "init") {
+    reporter?.emit("scorer: resolving baseline");
     const baselineSha = run("git", plan.resolveBaseline, { cwd: config.repo }).trim();
     const out: string[] = [];
+    reporter?.emit(`scorer: creating worktree ${config.worktree}`);
     removeWorktree(config.repo, config.worktree);
     run("git", plan.addWorktree(baselineSha), { cwd: config.repo, env });
     linkWorktreeNodeModules(config.repo, config.worktree);
     out.push(`verifying baseline (test${config.typeCheckCommand ? " + typecheck" : ""})...`);
-    const green = await testsPass(config, runEnv);
-    const baselineTsc = await typeErrors(config, runEnv);
+    const green = await testsPass(config, runEnv, reporter);
+    const baselineTsc = await typeErrors(config, runEnv, reporter);
     if (!green) {
       out.push(`baseline tests RED (cmd: ${config.testCommand}) — abort`);
       removeWorktree(config.repo, config.worktree);
       return { exitCode: 1, stdout: lines(out), stderr: "" };
     }
+    reporter?.emit("scorer: measuring baseline target");
     const startL = targetL(config, baselineSha, plan);
     writeState(config.state, { baselineSha, baselineTsc, startL, accepted: [], iter: 0 });
     out.push(`baseline GREEN ✓  typeErrors=${baselineTsc}  ${config.target} astNodes=${startL}`);
@@ -430,11 +460,13 @@ export async function runScorerCommand(
   }
 
   if (cmd === "score") {
+    reporter?.emit("scorer: loading state");
     const state = requireState(config);
     if ("exitCode" in state) {
       return state;
     }
     const changed = changedSource(config, plan);
+    reporter?.emit(`scorer: changed source files=${changed.length}`);
     if (changed.length === 0) {
       return {
         exitCode: 0,
@@ -442,7 +474,8 @@ export async function runScorerCommand(
         stderr: "",
       };
     }
-    const scored = await scoreCandidate(config, runEnv, state, changed);
+    reporter?.emit("scorer: scoring candidate");
+    const scored = await scoreCandidate(config, runEnv, state, changed, reporter);
     const v = scored.verdict;
     const fenceTxt = formatFenceText({
       gates: v.gates,
@@ -455,7 +488,7 @@ export async function runScorerCommand(
     const out = [
       "",
       `  candidate: ${scored.files.join(", ")}`,
-      `  gates: G1 ${gateMark(v.gates.G1)}  G1′ ${gateMark(v.gates.G1prime)} (${fenceTxt})  G3 ${gateMark(v.gates.G3)} (types ${await typeErrors(config, runEnv)}/${state.baselineTsc})  G4↓ ${gateMark(v.gates.G4)}`,
+      `  gates: G1 ${gateMark(v.gates.G1)}  G1′ ${gateMark(v.gates.G1prime)} (${fenceTxt})  G3 ${gateMark(v.gates.G3)} (types ${await typeErrors(config, runEnv, reporter)}/${state.baselineTsc})  G4↓ ${gateMark(v.gates.G4)}`,
       `  ΔAST=${v.dL} ΔCx=${v.dCx} ΔDup=${v.dDup}  gain=${v.gain.toFixed(3)} risk=${v.risk.toFixed(3)} loss=${v.loss == null ? "+Inf" : v.loss.toFixed(3)}`,
       `  VERDICT: ${verdictLabel(v)}`,
     ];
@@ -482,15 +515,18 @@ export async function runScorerCommand(
   }
 
   if (cmd === "accept") {
+    reporter?.emit("scorer: loading state");
     const state = requireState(config);
     if ("exitCode" in state) {
       return state;
     }
     const changed = changedSource(config, plan);
+    reporter?.emit(`scorer: changed source files=${changed.length}`);
     if (changed.length === 0) {
       return { exitCode: 0, stdout: "nothing to accept.\n", stderr: "" };
     }
-    const scored = await scoreCandidate(config, runEnv, state, changed);
+    reporter?.emit("scorer: scoring candidate before accept");
+    const scored = await scoreCandidate(config, runEnv, state, changed, reporter);
     if (!scored.verdict.keep) {
       return {
         exitCode: 1,
@@ -498,6 +534,7 @@ export async function runScorerCommand(
         stderr: "",
       };
     }
+    reporter?.emit("scorer: committing accepted candidate");
     run("git", plan.addChangedSource(changed), { cwd: config.worktree, env });
     run(
       "git",
@@ -527,6 +564,7 @@ export async function runScorerCommand(
   }
 
   if (cmd === "revert") {
+    reporter?.emit("scorer: reverting candidate source changes");
     const state = requireState(config);
     if ("exitCode" in state) {
       return state;
@@ -537,6 +575,7 @@ export async function runScorerCommand(
   }
 
   if (cmd === "status") {
+    reporter?.emit("scorer: reading worktree status");
     const state = requireState(config);
     if ("exitCode" in state) {
       return state;
@@ -555,6 +594,7 @@ export async function runScorerCommand(
   }
 
   if (cmd === "cleanup") {
+    reporter?.emit("scorer: cleaning scorer state and worktree");
     try {
       rmSync(config.state);
     } catch {

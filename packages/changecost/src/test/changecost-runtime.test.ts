@@ -85,6 +85,7 @@ interface RuntimeApi {
     args: readonly string[],
     env: Record<string, string | undefined>,
     cwd: string,
+    options?: { readonly reporter?: { emit(line: string): void } },
   ) => Promise<RuntimeResult>;
 }
 
@@ -498,6 +499,51 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
     });
     expect(artifact.Vhat).toBe((oneEdit.tokens + 10 + (twoEdit.tokens + 10)) / 2);
     expect(existsSync(`${worktree}-changecost`)).toBe(false);
+  });
+
+  it("streams per-delta progress through the optional reporter", async () => {
+    const root = fixtureRoot();
+    initRepo(root);
+    write(root, "src/index.ts", "export const a = 1;\n");
+    writeBenchmark(root, "one", {
+      title: "Change one",
+      prompt: "Set a to 2.",
+      acceptPath: "tests/one.accept.test.ts",
+    });
+    commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-progress-${Date.now()}`);
+    const implementer = write(
+      root,
+      "implementer.mjs",
+      `
+import { readFileSync, writeFileSync } from "node:fs";
+const path = "src/index.ts";
+writeFileSync(path, readFileSync(path, "utf8").replace("a = 1", "a = 2"));
+`,
+    );
+    const testCommand = `node -e "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1)"`;
+    const progress: string[] = [];
+    const runChangeCostCommand = runtime("runChangeCostCommand");
+
+    const result = await runChangeCostCommand(
+      ["HEAD"],
+      baseEnv(root, worktree, {
+        CN_TEST: testCommand,
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+      }),
+      root,
+      { reporter: { emit: (line) => progress.push(line) } },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        `changecost: preparing worktree ${worktree}-changecost`,
+        "changecost: implementer 1/1 for one",
+        "changecost: running acceptance test for one",
+        "changecost: writing change-cost artifact",
+      ]),
+    );
   });
 
   it("includes untracked source additions in runtime edit cost", async () => {

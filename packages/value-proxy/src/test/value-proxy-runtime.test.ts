@@ -51,6 +51,7 @@ interface RuntimeApi {
     args: readonly string[],
     env: Record<string, string | undefined>,
     cwd: string,
+    options?: { readonly reporter?: { emit(line: string): void } },
   ) => Promise<RuntimeResult>;
 }
 
@@ -207,6 +208,27 @@ describe("runValidateProxyCommand", () => {
     });
     expect(report.pValue).toBeCloseTo(1 / 720, 12);
     expect(report.rows).toEqual(monotoneCorpus(6));
+  });
+
+  it("streams validation progress through the optional reporter", async () => {
+    const root = fixtureRoot();
+    writeJson(root, ".codenuke/value-proxy.json", { candidates: monotoneCorpus(6) });
+    const progress: string[] = [];
+    const runValidateProxyCommand = runtime("runValidateProxyCommand");
+
+    const result = await runValidateProxyCommand([], { CN_REPO: root }, root, {
+      reporter: { emit: (line) => progress.push(line) },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        "validate-proxy: resolving config",
+        "validate-proxy: reading candidates from " + join(root, ".codenuke/value-proxy.json"),
+        "validate-proxy: computing rank correlation",
+        "validate-proxy: writing validation artifact",
+      ]),
+    );
   });
 
   it("accepts an explicit JSON input while always writing the repo-local validation output", async () => {

@@ -61,6 +61,7 @@ interface RuntimeApi {
     args: readonly string[],
     env: Record<string, string | undefined>,
     cwd: string,
+    options?: { readonly reporter?: { emit(line: string): void } },
   ) => Promise<RuntimeResult>;
 }
 
@@ -328,6 +329,35 @@ describe("runCalibrateCommand", () => {
       scales: { sL: 150, sCx: 15, sDup: 5 },
     });
     expect(Date.parse(artifact.generatedAt)).not.toBeNaN();
+  });
+
+  it("streams calibration progress through the optional reporter", async () => {
+    const root = fixtureRoot("codenuke-calibrate-progress-");
+    initRepo(root);
+    write(root, "package.json", JSON.stringify({ name: "calibrate-progress-fixture" }));
+    write(root, "src/index.ts", "export const value = 1;\n");
+    commit(root, "initial");
+    write(root, "src/index.ts", "export const value = 1;\nexport const next = 2;\n");
+    commit(root, "add next");
+    const progress: string[] = [];
+    const runCalibrateCommand = runtime("runCalibrateCommand");
+
+    const result = await runCalibrateCommand(
+      [],
+      { CN_REPO: root, CN_SRC: "src", CN_BASE: "HEAD" },
+      root,
+      { reporter: { emit: (line) => progress.push(line) } },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        "calibrate: resolving config",
+        "calibrate: sampling 1 commit pairs",
+        "calibrate: writing calibration artifact",
+        "calibration @ HEAD commits=1 fallback=defaults sL=150 sCx=15 sDup=5",
+      ]),
+    );
   });
 
   it("writes derived median scales when at least 3 useful first-parent deltas exist", async () => {

@@ -100,6 +100,10 @@ export interface CalibrateCommandResult {
   readonly stderr: string;
 }
 
+export interface CalibrateCommandOptions {
+  readonly reporter?: { emit(line: string): void };
+}
+
 const isSourceFile = (path: string): boolean =>
   /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) &&
   !path.endsWith(".d.ts") &&
@@ -226,18 +230,27 @@ export async function runCalibrateCommand(
   _args: readonly string[] = [],
   env: Env = process.env,
   cwd = process.cwd(),
+  options: CalibrateCommandOptions = {},
 ): Promise<CalibrateCommandResult> {
   try {
+    options.reporter?.emit("calibrate: resolving config");
     const config = loadConfig(env, cwd);
     const plan = calibrationGitCommandPlan({ baseline: config.baseline, srcDir: config.srcDir });
+    options.reporter?.emit(`calibrate: listing commits from ${config.baseline}`);
     const revListOutput = run("git", plan.listCommits, { cwd: config.repo });
     const pairs = firstParentCommitPairs({
       revListOutput,
       parentLineFor: (commit) => run("git", plan.parentLineFor(commit), { cwd: config.repo }),
     });
+    options.reporter?.emit(`calibrate: sampling ${pairs.length} commit pairs`);
 
     const deltas: CommitDelta[] = [];
+    let sampled = 0;
     for (const { parent, commit } of pairs) {
+      sampled += 1;
+      if (sampled === 1 || sampled === pairs.length || sampled % 10 === 0) {
+        options.reporter?.emit(`calibrate: measuring commit pair ${sampled}/${pairs.length}`);
+      }
       const parentFiles = run("git", plan.filesAt(parent), { cwd: config.repo });
       const commitFiles = run("git", plan.filesAt(commit), { cwd: config.repo });
       const before = measure(
@@ -270,11 +283,14 @@ export async function runCalibrateCommand(
       scales: derived.scales,
     });
     mkdirSync(`${config.repo}/.codenuke`, { recursive: true });
+    options.reporter?.emit("calibrate: writing calibration artifact");
     writeFileSync(`${config.repo}/.codenuke/calibration.json`, JSON.stringify(artifact, null, 2));
 
+    const summary = `calibration @ ${config.baseline} commits=${derived.commitsSampled}${derived.enoughHistory ? "" : " fallback=defaults"} sL=${derived.scales.sL} sCx=${derived.scales.sCx} sDup=${derived.scales.sDup}`;
+    options.reporter?.emit(summary);
     return {
       exitCode: 0,
-      stdout: `calibration @ ${config.baseline} commits=${derived.commitsSampled}${derived.enoughHistory ? "" : " fallback=defaults"} sL=${derived.scales.sL} sCx=${derived.scales.sCx} sDup=${derived.scales.sDup}\n`,
+      stdout: `${summary}\n`,
       stderr: "",
     };
   } catch (error) {

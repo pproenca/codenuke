@@ -71,6 +71,10 @@ export interface ValidateProxyCommandResult {
   readonly stderr: string;
 }
 
+export interface ValidateProxyCommandOptions {
+  readonly reporter?: { emit(line: string): void };
+}
+
 const finiteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
@@ -274,7 +278,9 @@ export async function runValidateProxyCommand(
   args: readonly string[] = [],
   env: Env = process.env,
   cwd = process.cwd(),
+  options: ValidateProxyCommandOptions = {},
 ): Promise<ValidateProxyCommandResult> {
+  options.reporter?.emit("validate-proxy: resolving config");
   const config = loadConfig(env, cwd);
   const inputPath = args[0] ?? defaultValueProxyInputPath(config.repo);
   const outputPath = valueProxyValidationOutputPath(config.repo);
@@ -284,20 +290,28 @@ export async function runValidateProxyCommand(
     out.push(
       `value proxy candidates missing at ${inputPath}; write candidate rows with {id, proxy, Vhat} from score/changecost runs first.`,
     );
+    for (const line of out) {
+      options.reporter?.emit(line);
+    }
     return { exitCode: 1, stdout: `${out.join("\n")}\n`, stderr: "" };
   }
 
+  options.reporter?.emit("validate-proxy: validating configuration");
   const optionsReport = runValidation([], env);
   if (optionsReport.reason === "invalid-config") {
     const report = createValueProxyValidationArtifact({ inputPath, report: optionsReport });
     writeReport(outputPath, report);
     out.push(`value proxy validation config invalid: ${report.error}`);
     out.push(`-> ${outputPath}`);
+    for (const line of out) {
+      options.reporter?.emit(line);
+    }
     return { exitCode: 1, stdout: `${out.join("\n")}\n`, stderr: "" };
   }
 
   let parsed: unknown;
   try {
+    options.reporter?.emit(`validate-proxy: reading candidates from ${inputPath}`);
     parsed = JSON.parse(readFileSync(inputPath, "utf8"));
   } catch (error) {
     const report = createValueProxyValidationArtifact({
@@ -319,13 +333,18 @@ export async function runValidateProxyCommand(
     writeReport(outputPath, report);
     out.push(`value proxy validation input invalid: ${report.error}`);
     out.push(`-> ${outputPath}`);
+    for (const line of out) {
+      options.reporter?.emit(line);
+    }
     return { exitCode: 1, stdout: `${out.join("\n")}\n`, stderr: "" };
   }
 
+  options.reporter?.emit("validate-proxy: computing rank correlation");
   const report = createValueProxyValidationArtifact({
     inputPath,
     report: runValidation(parsed, env),
   });
+  options.reporter?.emit("validate-proxy: writing validation artifact");
   writeReport(outputPath, report);
 
   if (report.reason === "invalid-config") {
@@ -339,5 +358,8 @@ export async function runValidateProxyCommand(
     }
   }
   out.push(`-> ${outputPath}`);
+  for (const line of out) {
+    options.reporter?.emit(line);
+  }
   return { exitCode: report.passed ? 0 : 1, stdout: `${out.join("\n")}\n`, stderr: "" };
 }

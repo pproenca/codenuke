@@ -25,7 +25,7 @@ import {
 } from "@codenuke/artifacts";
 import { loadConfig, regionOf, slug, type Config } from "@codenuke/config";
 import { commandAvailable, run, tryRun } from "@codenuke/exec";
-import { runFenceCommand } from "@codenuke/fence/runtime";
+import { runFenceCommand, textReporter } from "@codenuke/fence/runtime";
 import { measure, type Files, type Measurement } from "@codenuke/measure";
 import { decide, type CalibrationScales, type Verdict } from "@codenuke/scorer";
 import {
@@ -36,6 +36,7 @@ import {
   resetAndCleanWorktree,
   runShellGroup,
   unlinkWorktreeNodeModules,
+  type ProgressReporter,
 } from "@codenuke/substrate";
 import {
   chooseRegion,
@@ -54,6 +55,10 @@ import {
 import { selectProposerAdapter, type ProposerMode, type ProposerResult } from "./proposer.js";
 
 type Env = Record<string, string | undefined>;
+
+interface CommandOptions {
+  readonly reporter?: ProgressReporter;
+}
 
 interface CommandResult {
   readonly exitCode: number;
@@ -90,12 +95,29 @@ interface FenceRegionRuntime {
 const COMMAND_TIMEOUT = 300000;
 
 const lines = (values: readonly string[]): string => `${values.join("\n")}\n`;
+
+function recordLine(out: string[], reporter: ProgressReporter | undefined, line = ""): void {
+  out.push(line);
+  reporter?.emit(line);
+}
+
 const shellOk = async (
   cmd: string,
   cwd: string,
   env: NodeJS.ProcessEnv,
   timeout = COMMAND_TIMEOUT,
-): Promise<boolean> => (await runShellGroup(cmd, { cwd, env, timeout })).ok;
+  reporter?: ProgressReporter,
+  label = "shell command",
+): Promise<boolean> =>
+  (
+    await runShellGroup(cmd, {
+      cwd,
+      env,
+      timeout,
+      progress: reporter,
+      progressLabel: label,
+    })
+  ).ok;
 
 function isResolvedSha(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{40}$/u.test(value);
@@ -183,6 +205,7 @@ function valueProxyReadiness(status: ValueProxyStatus): {
 async function isolatedChecks(
   config: Config,
   env: NodeJS.ProcessEnv,
+  reporter?: ProgressReporter,
 ): Promise<{
   baselineExists: boolean;
   baselineGreen: boolean;
@@ -198,12 +221,29 @@ async function isolatedChecks(
   }
   const baselineSha = resolved.out.trim();
   try {
+    reporter?.emit(`doctor: checking baseline worktree ${baselineSha.slice(0, 12)}`);
     removeWorktree(config.repo, worktree);
     run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
     linkWorktreeNodeModules(config.repo, worktree);
-    const baselineGreen = await shellOk(config.testCommand, worktree, env);
+    reporter?.emit("doctor: running test command");
+    const baselineGreen = await shellOk(
+      config.testCommand,
+      worktree,
+      env,
+      COMMAND_TIMEOUT,
+      reporter,
+      "test command",
+    );
+    reporter?.emit("doctor: running typecheck command");
     const typecheckOk = config.typeCheckCommand
-      ? await shellOk(config.typeCheckCommand, worktree, env)
+      ? await shellOk(
+          config.typeCheckCommand,
+          worktree,
+          env,
+          COMMAND_TIMEOUT,
+          reporter,
+          "typecheck command",
+        )
       : true;
     return { baselineExists: true, baselineGreen, typecheckOk };
   } catch {
@@ -217,9 +257,12 @@ async function isolatedChecks(
 export async function runDoctor(
   env: Env = process.env,
   cwd = process.cwd(),
+  options: CommandOptions = {},
 ): Promise<CommandResult> {
+  options.reporter?.emit("doctor: resolving config");
   const config = loadConfig(env, cwd);
-  const isolated = await isolatedChecks(config, env as NodeJS.ProcessEnv);
+  const isolated = await isolatedChecks(config, env as NodeJS.ProcessEnv, options.reporter);
+  options.reporter?.emit("doctor: checking artifacts and proposer");
   const fenceStatus = fenceArtifactStatus(config);
   const calibrationStatus = calibrationArtifactStatus(config);
   const proposerProvider = selectProposerAdapter(env as NodeJS.ProcessEnv).provider;
@@ -246,6 +289,9 @@ export async function runDoctor(
     fenceArtifact: config.fenceArtifact,
     calibrationArtifact: `${config.repo}/.codenuke/calibration.json`,
   });
+  for (const line of report) {
+    options.reporter?.emit(line);
+  }
   return {
     exitCode: report.includes("ready") && !report.includes("not ready:") ? 0 : 2,
     stdout: lines(report),
@@ -267,7 +313,11 @@ function targetL(config: Config, ref: string): number {
   return measure(map).L;
 }
 
-async function typeErrors(config: Config, env: NodeJS.ProcessEnv): Promise<number> {
+async function typeErrors(
+  config: Config,
+  env: NodeJS.ProcessEnv,
+  reporter?: ProgressReporter,
+): Promise<number> {
   if (!config.typeCheckCommand) {
     return 0;
   }
@@ -275,6 +325,8 @@ async function typeErrors(config: Config, env: NodeJS.ProcessEnv): Promise<numbe
     cwd: config.worktree,
     env,
     timeout: COMMAND_TIMEOUT,
+    progress: reporter,
+    progressLabel: "typecheck command",
   });
   if (result.ok) {
     return 0;
@@ -287,16 +339,24 @@ async function initializeWorktree(
   env: NodeJS.ProcessEnv,
   out: string[],
   baselineSha: string,
+  reporter?: ProgressReporter,
 ): Promise<void> {
   if (existsSync(config.state)) {
     return;
   }
-  out.push(`initializing worktree @ ${config.baseline}...`);
+  recordLine(out, reporter, `initializing worktree @ ${config.baseline}...`);
   removeWorktree(config.repo, config.worktree);
   run("git", ["worktree", "add", "-f", config.worktree, baselineSha], { cwd: config.repo, env });
   linkWorktreeNodeModules(config.repo, config.worktree);
-  const green = await shellOk(config.testCommand, config.worktree, env);
-  const baselineTsc = await typeErrors(config, env);
+  const green = await shellOk(
+    config.testCommand,
+    config.worktree,
+    env,
+    COMMAND_TIMEOUT,
+    reporter,
+    "test command",
+  );
+  const baselineTsc = await typeErrors(config, env, reporter);
   if (!green) {
     removeWorktree(config.repo, config.worktree);
     throw new Error(`baseline tests RED (cmd: ${config.testCommand}) — abort`);
@@ -304,7 +364,7 @@ async function initializeWorktree(
   const startL = targetL(config, baselineSha);
   writeState(config.state, { baselineSha, baselineTsc, startL, accepted: [], iter: 0 });
   tryRun("git", ["checkout", "-B", config.branch], { cwd: config.worktree, env });
-  out.push(`trajectory branch: ${config.branch}`);
+  recordLine(out, reporter, `trajectory branch: ${config.branch}`);
 }
 
 function changedSource(config: Config): string[] {
@@ -348,6 +408,7 @@ async function scoreCandidate(
   config: Config,
   env: NodeJS.ProcessEnv,
   state: EngineState,
+  reporter?: ProgressReporter,
 ): Promise<ScoreResult | null> {
   const changed = changedSource(config);
   if (changed.length === 0) {
@@ -371,12 +432,19 @@ async function scoreCandidate(
   const verdict = decide({
     before,
     after,
-    testsPass: await shellOk(config.testCommand, config.worktree, env),
+    testsPass: await shellOk(
+      config.testCommand,
+      config.worktree,
+      env,
+      COMMAND_TIMEOUT,
+      reporter,
+      "test command",
+    ),
     fenceUsable: fenceStatus.usable,
     blockedRegions: blocked,
     touchedFidelities: touched.map((region) => fenceRegions[region]?.p ?? 0),
     diffsize: diffSize(config),
-    typeErrors: await typeErrors(config, env),
+    typeErrors: await typeErrors(config, env, reporter),
     baselineTypeErrors: state.baselineTsc,
     weights: config.weights,
     scales,
@@ -507,6 +575,7 @@ async function runProposer(
   prompt: string,
   regionKey: string,
   mode: ProposerMode,
+  reporter?: ProgressReporter,
 ): Promise<ProposerResult> {
   const target = regionTarget(config, regionKey);
   return selectProposerAdapter(env).propose({
@@ -520,6 +589,7 @@ async function runProposer(
     timeoutMs: config.proposerTimeoutMs,
     budgetUsd: config.proposerBudgetUsd,
     env,
+    progress: reporter,
   });
 }
 
@@ -547,9 +617,14 @@ function proposerResultLine(result: ProposerResult): string {
   return `  proposer result: provider=${result.provider} status=${result.ok ? "ok" : "failed"}${result.threadId ? ` thread=${result.threadId}` : ""}${result.summary ? ` summary=${result.summary}` : ""}`;
 }
 
-function logRow(config: Config, out: string[], row: Parameters<typeof formatResultRow>[0]): void {
+function logRow(
+  config: Config,
+  out: string[],
+  reporter: ProgressReporter | undefined,
+  row: Parameters<typeof formatResultRow>[0],
+): void {
   appendFileSync(config.results, `${formatResultRow(row)}\n`);
-  out.push(`  -> ${row.status.toUpperCase()}  ${row.description}`);
+  recordLine(out, reporter, `  -> ${row.status.toUpperCase()}  ${row.description}`);
 }
 
 /** Run the modernized autonomous loop, including reduce scoring and raise replay. */
@@ -557,9 +632,12 @@ export async function runAutoloop(
   iterations: number,
   env: Env = process.env,
   cwd = process.cwd(),
+  options: CommandOptions = {},
 ): Promise<CommandResult> {
+  const reporter = options.reporter;
   const config = loadConfig(env, cwd);
   const out: string[] = [];
+  reporter?.emit("run: resolving startup state");
   let existingState: EngineState | null;
   try {
     existingState = existsSync(config.state) ? readState(config.state) : null;
@@ -620,14 +698,16 @@ export async function runAutoloop(
 
   mkdirParent(config.results);
   try {
-    await initializeWorktree(config, env as NodeJS.ProcessEnv, out, startupBaselineSha);
+    await initializeWorktree(config, env as NodeJS.ProcessEnv, out, startupBaselineSha, reporter);
   } catch (error) {
     return { exitCode: 1, stdout: `${error instanceof Error ? error.message : String(error)}\n` };
   }
   if (!existsSync(config.results)) {
     writeFileSync(config.results, `${formatResultsHeader()}\n`);
   }
-  out.push(
+  recordLine(
+    out,
+    reporter,
     `\n=== autoloop: ${iterations} iters, proposer=${selectProposerAdapter(env as NodeJS.ProcessEnv).provider}, regions=${config.regions.join(",") || config.region}, branch=${config.branch} ===`,
   );
   let kept = 0;
@@ -647,7 +727,9 @@ export async function runAutoloop(
     const activeRegion = chooseRegion({ regions: regionMap }, scoped, config.region);
     const region = regionMap[activeRegion];
     const mode = selectMode(region);
-    out.push(
+    recordLine(
+      out,
+      reporter,
       `\n--- iter ${i}/${iterations} [${mode}] ${activeRegion} fence ${
         region
           ? `${((region.p ?? 0) * 100).toFixed(0)}% lo=${((region.lo ?? 0) * 100).toFixed(0)}%`
@@ -657,7 +739,7 @@ export async function runAutoloop(
     if (mode === "raise") {
       const specs = region?.survivorSpecs ?? [];
       if (specs.length === 0) {
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -673,7 +755,9 @@ export async function runAutoloop(
       const loBefore = region?.lo ?? 0;
       hideBenchmark(config, bench.benchmarkRel, bench.benchmarkInsideRepo);
       unlinkWorktreeNodeModules(config.repo, config.worktree);
-      out.push(
+      recordLine(
+        out,
+        reporter,
         proposerStatusLine({
           provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
           mode: "raise-fence",
@@ -695,8 +779,9 @@ export async function runAutoloop(
         ),
         activeRegion,
         "raise-fence",
+        reporter,
       );
-      out.push(proposerResultLine(proposal));
+      recordLine(out, reporter, proposerResultLine(proposal));
       if (!proposal.ok) {
         const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
         restoreBenchmark(
@@ -707,7 +792,7 @@ export async function runAutoloop(
         );
         restoreRuntimeDeps(config);
         cleanPaths(config, []);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -734,7 +819,7 @@ export async function runAutoloop(
         );
         restoreRuntimeDeps(config);
         cleanPaths(config, []);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -759,7 +844,7 @@ export async function runAutoloop(
         );
         restoreRuntimeDeps(config);
         cleanPaths(config, disallowed);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -780,9 +865,18 @@ export async function runAutoloop(
         env as NodeJS.ProcessEnv,
       );
       restoreRuntimeDeps(config);
-      if (!(await shellOk(config.testCommand, config.worktree, env as NodeJS.ProcessEnv))) {
+      if (
+        !(await shellOk(
+          config.testCommand,
+          config.worktree,
+          env as NodeJS.ProcessEnv,
+          COMMAND_TIMEOUT,
+          reporter,
+          "test command",
+        ))
+      ) {
         cleanPaths(config, []);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -815,10 +909,12 @@ export async function runAutoloop(
         cwd: config.worktree,
         env,
       }).trim();
-      const replay = await runFenceCommand(["replay", activeRegion, config.worktree], env, cwd);
+      const replay = await runFenceCommand(["replay", activeRegion, config.worktree], env, cwd, {
+        reporter: reporter ? textReporter((line) => reporter.emit(line)) : undefined,
+      });
       if (replay.exitCode !== 0) {
         discardTipCommit(config);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -843,7 +939,7 @@ export async function runAutoloop(
       )[activeRegion];
       if (!replayRegion) {
         discardTipCommit(config);
-        logRow(config, out, {
+        logRow(config, out, reporter, {
           iter: i,
           commit: "-",
           dAST: 0,
@@ -862,7 +958,7 @@ export async function runAutoloop(
       if (!keptCommit) {
         discardTipCommit(config);
       }
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit: keptCommit ? commit : "-",
         dAST: 0,
@@ -894,7 +990,9 @@ export async function runAutoloop(
         stdout: lines([...out, error instanceof Error ? error.message : String(error)]),
       };
     }
-    out.push(
+    recordLine(
+      out,
+      reporter,
       proposerStatusLine({
         provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
         mode: "reduce",
@@ -908,8 +1006,9 @@ export async function runAutoloop(
       reducePrompt(regionTarget(config, activeRegion), program),
       activeRegion,
       "reduce",
+      reporter,
     );
-    out.push(proposerResultLine(proposal));
+    recordLine(out, reporter, proposerResultLine(proposal));
     if (!proposal.ok) {
       const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
       restoreBenchmark(
@@ -920,7 +1019,7 @@ export async function runAutoloop(
       );
       restoreRuntimeDeps(config);
       cleanPaths(config, []);
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit: "-",
         dAST: 0,
@@ -947,7 +1046,7 @@ export async function runAutoloop(
       );
       restoreRuntimeDeps(config);
       cleanPaths(config, disallowed);
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit: "-",
         dAST: 0,
@@ -968,10 +1067,10 @@ export async function runAutoloop(
     );
     restoreRuntimeDeps(config);
     const state = readState(config.state);
-    const score = await scoreCandidate(config, env as NodeJS.ProcessEnv, state);
+    const score = await scoreCandidate(config, env as NodeJS.ProcessEnv, state, reporter);
     if (!score) {
       cleanPaths(config, []);
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit: "-",
         dAST: 0,
@@ -1012,7 +1111,7 @@ export async function runAutoloop(
         accepted: [...state.accepted, commit],
       });
       kept += 1;
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit,
         dAST: score.dL,
@@ -1025,7 +1124,7 @@ export async function runAutoloop(
       });
     } else {
       cleanPaths(config, []);
-      logRow(config, out, {
+      logRow(config, out, reporter, {
         iter: i,
         commit: "-",
         dAST: score.dL,
@@ -1039,7 +1138,7 @@ export async function runAutoloop(
       });
     }
   }
-  out.push(`\n=== done: ${kept} kept, ${raised} fence-raises ===`);
+  recordLine(out, reporter, `\n=== done: ${kept} kept, ${raised} fence-raises ===`);
   if (existsSync(config.state)) {
     const state = readState(config.state);
     const headSha = run("git", ["rev-parse", "--verify", "--end-of-options", "HEAD"], {
@@ -1047,11 +1146,13 @@ export async function runAutoloop(
     }).trim();
     const now = targetL(config, headSha);
     const cut = state.startL - now;
-    out.push(`iterations=${state.iter} accepted=[${state.accepted.join(", ")}]`);
-    out.push(
+    recordLine(out, reporter, `iterations=${state.iter} accepted=[${state.accepted.join(", ")}]`);
+    recordLine(
+      out,
+      reporter,
       `${config.target} astNodes: ${state.startL} -> ${now}  (cumulative reduction ${cut}, ${state.startL ? ((cut / state.startL) * 100).toFixed(1) : "0"}%)`,
     );
   }
-  out.push(`branch ${config.branch} | results: ${config.results}`);
+  recordLine(out, reporter, `branch ${config.branch} | results: ${config.results}`);
   return { exitCode: 0, stdout: lines(out) };
 }

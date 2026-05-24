@@ -201,7 +201,13 @@ function recordEvent(
   reporter?.emit(event);
 }
 
-async function runTests(config: Config, cwd: string, env: NodeJS.ProcessEnv): Promise<TestStatus> {
+async function runTests(
+  config: Config,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  reporter?: RuntimeReporter,
+): Promise<TestStatus> {
+  reporter?.emit({ type: "message", message: "  running test command" });
   const result = await runShellGroup(config.testCommand, { cwd, env, timeout: TIMEOUT_MS });
   if (result.ok) {
     return "green";
@@ -303,7 +309,7 @@ async function auditFence(
       total: 6,
       label: "checking baseline tests",
     });
-    if ((await runTests(config, worktree, env as NodeJS.ProcessEnv)) !== "green") {
+    if ((await runTests(config, worktree, env as NodeJS.ProcessEnv, options.reporter)) !== "green") {
       const red = baselineRedResult();
       writeArtifact(config.fenceArtifact, red.artifact);
       for (const message of red.stdout) {
@@ -406,7 +412,7 @@ async function auditFence(
         writeFileSync(path, applyMutant(original, site));
         let status: TestStatus = "fail";
         try {
-          status = await runTests(config, worktree, env as NodeJS.ProcessEnv);
+          status = await runTests(config, worktree, env as NodeJS.ProcessEnv, options.reporter);
           statuses.push(status);
         } finally {
           writeFileSync(path, original);
@@ -496,10 +502,12 @@ async function replayFence(
   args: readonly string[],
   env: Env,
   cwd: string,
+  options: FenceCommandOptions = {},
 ): Promise<FenceCommandResult> {
   const config = loadConfig(env, cwd);
   const region = args[0];
   const worktree = args[1] ?? config.worktree;
+  const out: string[] = [];
   if (!region) {
     return { exitCode: 1, stdout: "", stderr: "usage: fence replay <region> [worktree]\n" };
   }
@@ -515,7 +523,19 @@ async function replayFence(
   if (!artifact.regions?.[region]) {
     return { exitCode: 1, stdout: "", stderr: `no region ${region} in artifact\n` };
   }
+  recordEvent(out, options.reporter, {
+    type: "phase",
+    index: 1,
+    total: 4,
+    label: `replaying fence survivors for ${region}`,
+  });
   try {
+    recordEvent(out, options.reporter, {
+      type: "phase",
+      index: 2,
+      total: 4,
+      label: "checking replay baseline",
+    });
     assertReplaySourcesUnchanged({
       artifact,
       region,
@@ -524,7 +544,7 @@ async function replayFence(
       readWorktree: (rel) => readFileSync(safeWorktreePath(worktree, rel), "utf8"),
       worktreeRoot: worktree,
     });
-    assertReplayBaselineGreen(await runTests(config, worktree, env as NodeJS.ProcessEnv));
+    assertReplayBaselineGreen(await runTests(config, worktree, env as NodeJS.ProcessEnv, options.reporter));
   } catch (error) {
     return {
       exitCode: 1,
@@ -535,6 +555,12 @@ async function replayFence(
 
   const previous = artifact.regions[region];
   const statuses: TestStatus[] = [];
+  recordEvent(out, options.reporter, {
+    type: "phase",
+    index: 3,
+    total: 4,
+    label: `replaying survivors: 0/${previous.survivorSpecs.length} complete`,
+  });
   for (const site of previous.survivorSpecs) {
     const path = safeWorktreePath(worktree, site.rel);
     let original: string;
@@ -546,10 +572,16 @@ async function replayFence(
     }
     writeFileSync(path, applyMutant(original, site));
     try {
-      statuses.push(await runTests(config, worktree, env as NodeJS.ProcessEnv));
+      statuses.push(await runTests(config, worktree, env as NodeJS.ProcessEnv, options.reporter));
     } finally {
       writeFileSync(path, original);
     }
+    recordEvent(out, options.reporter, {
+      type: "phase",
+      index: 3,
+      total: 4,
+      label: `replaying survivors: ${statuses.length}/${previous.survivorSpecs.length} complete`,
+    });
   }
   const next = replaySurvivors({
     artifact,
@@ -559,10 +591,17 @@ async function replayFence(
   });
   writeArtifact(config.fenceArtifact, next);
   const record: RegionRecord = next.regions[region];
-  return {
-    exitCode: 0,
-    stdout: `${region}: ${record.caught}/${record.total} = ${(record.p * 100).toFixed(0)}%  CI95 [${(record.lo * 100).toFixed(1)}, ${(record.hi * 100).toFixed(1)}]  ${record.admissible ? "ADMISSIBLE ✓" : "BLOCKED ✗"}\n`,
-  };
+  recordEvent(out, options.reporter, {
+    type: "phase",
+    index: 4,
+    total: 4,
+    label: "writing replayed fence artifact",
+  });
+  recordEvent(out, options.reporter, {
+    type: "message",
+    message: `${region}: ${record.caught}/${record.total} = ${(record.p * 100).toFixed(0)}%  CI95 [${(record.lo * 100).toFixed(1)}, ${(record.hi * 100).toFixed(1)}]  ${record.admissible ? "ADMISSIBLE ✓" : "BLOCKED ✗"}`,
+  });
+  return { exitCode: 0, stdout: `${out.at(-1) ?? ""}\n` };
 }
 
 export async function runFenceCommand(
@@ -572,7 +611,7 @@ export async function runFenceCommand(
   options: FenceCommandOptions = {},
 ): Promise<FenceCommandResult> {
   if (args[0] === "replay") {
-    return replayFence(args.slice(1), env, cwd);
+    return replayFence(args.slice(1), env, cwd, options);
   }
   return auditFence(args, env, cwd, options);
 }

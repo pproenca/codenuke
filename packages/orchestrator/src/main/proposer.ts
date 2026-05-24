@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { runCodexAgent, runShellGroup } from "@codenuke/substrate";
+import type { ProgressReporter } from "@codenuke/substrate";
 import type { CodexOptions, RunResult, ThreadOptions, TurnOptions } from "@openai/codex-sdk";
 
 export type ProposerMode = "reduce" | "raise-fence";
@@ -17,6 +18,7 @@ export interface ProposerRequest {
   readonly budgetUsd: string;
   readonly threadId?: string;
   readonly env: NodeJS.ProcessEnv;
+  readonly progress?: ProgressReporter;
 }
 
 export interface ProposerResult {
@@ -173,6 +175,8 @@ export class ShellProposerAdapter implements ProposerAdapter {
       cwd: request.worktree,
       timeout: request.timeoutMs,
       env: proposerEnv(request),
+      progress: request.progress,
+      progressLabel: "shell proposer",
     });
     return { ...result, provider: this.provider };
   }
@@ -188,6 +192,8 @@ export class CodexCliProposerAdapter implements ProposerAdapter {
       timeout: request.timeoutMs,
       env: proposerEnv(request),
       outputPath: `${request.promptFile}.last.txt`,
+      progress: request.progress,
+      progressLabel: "codex proposer",
     });
     return { ...result, provider: this.provider };
   }

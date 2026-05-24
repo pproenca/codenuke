@@ -41,6 +41,7 @@ interface RuntimeApi {
     args: readonly string[],
     env: Record<string, string | undefined>,
     cwd: string,
+    options?: { readonly reporter?: { emit(line: string): void } },
   ) => Promise<RuntimeResult>;
 }
 
@@ -326,6 +327,31 @@ describe("scorer runtime git source discovery", () => {
     expect(result.stderr).toBe("");
     expect(verdict.files).toEqual(["line\nbreak.ts", 'quote "module".ts', "space name.ts"]);
     expect(verdict.touched).toEqual(["src"]);
+  });
+
+  it("streams score progress separately while keeping JSON stdout parseable", async () => {
+    const { root, worktree, env, baselineSha } = initializedRepo();
+    const runScorerCommand = runtime("runScorerCommand");
+    expect((await runScorerCommand(["init"], env, root)).exitCode).toBe(0);
+    writePassingFence(root, baselineSha);
+    write(worktree, "src/index.ts", "export const value = 1;\n");
+    const progress: string[] = [];
+
+    const result = await runScorerCommand(["score", "--json"], env, root, {
+      reporter: { emit: (line) => progress.push(line) },
+    });
+    const verdict = parseJsonVerdict(result.stdout);
+
+    expect(result.exitCode).toBe(0);
+    expect(verdict.files).toEqual(["index.ts"]);
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        "scorer: score start",
+        "scorer: changed source files=1",
+        "scorer: scoring candidate",
+      ]),
+    );
+    expect(progress.join("\n")).not.toContain("@@JSON@@");
   });
 });
 

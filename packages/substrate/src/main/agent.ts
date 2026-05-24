@@ -15,13 +15,22 @@ export interface ProcessResult {
   readonly timedOut: boolean;
 }
 
+export interface ProgressReporter {
+  emit(line: string): void;
+}
+
 export interface ProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
   readonly shell?: boolean;
   readonly timeout?: number;
   readonly input?: string;
+  readonly progress?: ProgressReporter;
+  readonly progressLabel?: string;
+  readonly heartbeatMs?: number;
 }
+
+const DEFAULT_HEARTBEAT_MS = 15000;
 
 /** Run a command in its own process group; returns captured output, kills the group on timeout. */
 export function runProcessGroup(
@@ -30,6 +39,7 @@ export function runProcessGroup(
   opts: ProcessOptions = {},
 ): Promise<ProcessResult> {
   return new Promise((resolve) => {
+    const label = opts.progressLabel ?? (opts.shell ? "shell command" : command);
     const child = spawn(command, [...args], {
       cwd: opts.cwd,
       detached: true,
@@ -39,8 +49,10 @@ export function runProcessGroup(
     });
     const out: Buffer[] = [];
     const timeout = opts.timeout ?? 300000;
+    const startedAt = Date.now();
     let done = false;
     let timedOut = false;
+    opts.progress?.emit(`process start: ${label}`);
     const killGroup = (signal: NodeJS.Signals): void => {
       try {
         if (child.pid != null) {
@@ -50,8 +62,15 @@ export function runProcessGroup(
         /* already dead */
       }
     };
+    const heartbeat = setInterval(() => {
+      if (!done) {
+        opts.progress?.emit(`process still running: ${label} elapsed=${Date.now() - startedAt}ms`);
+      }
+    }, opts.heartbeatMs ?? DEFAULT_HEARTBEAT_MS);
+    heartbeat.unref();
     const timer = setTimeout(() => {
       timedOut = true;
+      opts.progress?.emit(`process timeout: ${label} after ${timeout}ms`);
       killGroup("SIGTERM");
       setTimeout(() => {
         if (!done) {
@@ -65,14 +84,20 @@ export function runProcessGroup(
     child.on("error", (error) => {
       done = true;
       clearTimeout(timer);
+      clearInterval(heartbeat);
+      opts.progress?.emit(`process error: ${label} ${String(error)}`);
       resolve({ ok: false, out: String(error), timedOut: false });
     });
     child.on("close", (code) => {
       done = true;
       clearTimeout(timer);
+      clearInterval(heartbeat);
       if (code !== 0 && !timedOut) {
         killGroup("SIGTERM");
       }
+      opts.progress?.emit(
+        `process exit: ${label} status=${code === 0 && !timedOut ? "ok" : timedOut ? "timeout" : "failed"} elapsed=${Date.now() - startedAt}ms`,
+      );
       resolve({ ok: code === 0 && !timedOut, out: Buffer.concat(out).toString(), timedOut });
     });
     if (opts.input != null) {
@@ -85,7 +110,11 @@ export function runProcessGroup(
 
 /** Opt-in shell path for an operator-configured `CN_PROPOSER` command string. */
 export const runShellGroup = (cmd: string, opts: ProcessOptions = {}): Promise<ProcessResult> =>
-  runProcessGroup(cmd, [], { ...opts, shell: true });
+  runProcessGroup(cmd, [], {
+    ...opts,
+    shell: true,
+    progressLabel: opts.progressLabel ?? "shell command",
+  });
 
 /** Build the `codex exec` CLI args from environment (sandbox, model, reasoning effort). */
 export function codexArgs(
@@ -116,12 +145,23 @@ export function codexArgs(
 /** Run the codex proposer with the prompt on stdin (arg-array, no shell). */
 export function runCodexAgent(
   prompt: string,
-  opts: { cwd: string; env?: NodeJS.ProcessEnv; timeout?: number; outputPath?: string },
+  opts: {
+    cwd: string;
+    env?: NodeJS.ProcessEnv;
+    timeout?: number;
+    outputPath?: string;
+    progress?: ProgressReporter;
+    progressLabel?: string;
+    heartbeatMs?: number;
+  },
 ): Promise<ProcessResult> {
   return runProcessGroup("codex", codexArgs(opts.cwd, opts), {
     cwd: opts.cwd,
     env: opts.env,
     timeout: opts.timeout,
     input: prompt,
+    progress: opts.progress,
+    progressLabel: opts.progressLabel ?? "codex proposer",
+    heartbeatMs: opts.heartbeatMs,
   });
 }

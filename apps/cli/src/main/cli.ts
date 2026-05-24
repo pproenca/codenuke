@@ -32,6 +32,53 @@ function parseIterations(value: string | undefined): number | string {
   return parsed;
 }
 
+type LineReporter = { emit(line: string): void };
+
+function splitLines(value: string): string[] {
+  return value
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+function alreadyStreamed(stdout: string, streamed: readonly string[]): boolean {
+  const expected = splitLines(stdout);
+  if (expected.length === 0) {
+    return true;
+  }
+  const actual = splitLines(streamed.join("\n"));
+  let offset = 0;
+  for (const line of expected) {
+    const next = actual.slice(offset).findIndex((candidate) => candidate === line);
+    if (next < 0) {
+      return false;
+    }
+    offset += next + 1;
+  }
+  return true;
+}
+
+function liveReporter(stream: NodeJS.WriteStream, streamed: string[]): LineReporter {
+  return {
+    emit(line) {
+      streamed.push(line);
+      stream.write(`${line}\n`);
+    },
+  };
+}
+
+function writeBufferedResult(
+  result: { readonly stdout: string; readonly stderr?: string },
+  streamed: readonly string[],
+): void {
+  if (!alreadyStreamed(result.stdout, streamed)) {
+    process.stdout.write(result.stdout);
+  }
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
+}
+
 async function main(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   const [cmd, ...rest] = argv;
   const target = commandTarget(cmd);
@@ -44,63 +91,65 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     return 0;
   }
   if (cmd === "doctor") {
-    const result = await runDoctor(process.env, process.cwd());
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    const streamed: string[] = [];
+    const result = await runDoctor(process.env, process.cwd(), {
+      reporter: liveReporter(process.stdout, streamed),
+    });
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (cmd === "fence") {
-    let liveLines = 0;
+    const streamed: string[] = [];
     const liveReporter = textReporter((line) => {
-      liveLines += 1;
+      streamed.push(line);
       process.stdout.write(`${line}\n`);
     });
     const result = await runFenceCommand(rest, process.env, process.cwd(), {
-      reporter: rest[0] === "replay" ? undefined : liveReporter,
+      reporter: liveReporter,
     });
-    if (liveLines === 0) {
-      process.stdout.write(result.stdout);
-    }
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (cmd === "calibrate") {
-    const result = await runCalibrateCommand(rest, process.env, process.cwd());
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    const streamed: string[] = [];
+    const result = await runCalibrateCommand(rest, process.env, process.cwd(), {
+      reporter: liveReporter(process.stdout, streamed),
+    });
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (cmd === "changecost") {
-    const result = await runChangeCostCommand(rest, process.env, process.cwd());
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    const streamed: string[] = [];
+    const result = await runChangeCostCommand(rest, process.env, process.cwd(), {
+      reporter: liveReporter(process.stdout, streamed),
+    });
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (cmd === "validate-proxy") {
-    const result = await runValidateProxyCommand(rest, process.env, process.cwd());
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    const streamed: string[] = [];
+    const result = await runValidateProxyCommand(rest, process.env, process.cwd(), {
+      reporter: liveReporter(process.stdout, streamed),
+    });
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (target?.module === "scorer") {
+    const isJson = cmd === "score" && rest.includes("--json");
+    const streamed: string[] = [];
     const result = await runScorerCommand(
       [cmd, ...rest].filter((value): value is string => value != null),
       process.env,
       process.cwd(),
+      { reporter: liveReporter(isJson ? process.stderr : process.stdout, streamed) },
     );
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
+    if (isJson) {
+      process.stdout.write(result.stdout);
+      if (result.stderr) {
+        process.stderr.write(result.stderr);
+      }
+    } else {
+      writeBufferedResult(result, streamed);
     }
     return result.exitCode;
   }
@@ -110,11 +159,11 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
       process.stderr.write(iterations);
       return 2;
     }
-    const result = await runAutoloop(iterations, process.env, process.cwd());
-    process.stdout.write(result.stdout);
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
+    const streamed: string[] = [];
+    const result = await runAutoloop(iterations, process.env, process.cwd(), {
+      reporter: liveReporter(process.stdout, streamed),
+    });
+    writeBufferedResult(result, streamed);
     return result.exitCode;
   }
   if (target) {

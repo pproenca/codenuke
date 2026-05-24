@@ -54,6 +54,36 @@ describe("runProcessGroup — integration", () => {
     );
     expect(r.out).toContain("echoed");
   });
+
+  it("emits process start and exit progress without streaming child output", async () => {
+    const progress: string[] = [];
+    const r = await runProcessGroup("node", ["-e", "process.stdout.write('secret-child-output')"], {
+      progress: { emit: (line) => progress.push(line) },
+      progressLabel: "short task",
+    });
+
+    expect(r.ok).toBe(true);
+    expect(r.out).toContain("secret-child-output");
+    expect(progress).toEqual([
+      expect.stringContaining("process start: short task"),
+      expect.stringContaining("process exit: short task status=ok"),
+    ]);
+    expect(progress.join("\n")).not.toContain("secret-child-output");
+  });
+
+  it("emits heartbeat progress for a delayed command", async () => {
+    const progress: string[] = [];
+    const r = await runProcessGroup("node", ["-e", "setTimeout(() => {}, 80)"], {
+      heartbeatMs: 10,
+      progress: { emit: (line) => progress.push(line) },
+      progressLabel: "slow task",
+      timeout: 1000,
+    });
+
+    expect(r.ok).toBe(true);
+    expect(progress.some((line) => line.includes("process still running: slow task"))).toBe(true);
+    expect(progress.at(-1)).toContain("process exit: slow task status=ok");
+  });
 });
 
 describe("runShellGroup — opt-in shell path (operator-configured proposer)", () => {

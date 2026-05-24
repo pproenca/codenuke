@@ -703,4 +703,58 @@ describe("fence runtime replay guards and monotonicity", () => {
       before.regions.api.survivorSpecs.length,
     );
   });
+
+  it("streams replay progress through the optional reporter", async () => {
+    const root = fixtureRoot("codenuke-fence-replay-progress-");
+    const testScript = join(root, "scripts", "test.mjs");
+    initRepo(root);
+    write(root, "src/api/rules.ts", "export const lt = (a: number, b: number) => a < b;\n");
+    write(
+      root,
+      "scripts/test.mjs",
+      [
+        'import { readFileSync } from "node:fs";',
+        'const source = readFileSync("src/api/rules.ts", "utf8");',
+        'if (source.includes("a > b")) process.exit(1);',
+        "",
+      ].join("\n"),
+    );
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "fixtures"]);
+    const baselineSha = git(root, ["rev-parse", "--verify", "HEAD"]).trim();
+    write(
+      root,
+      ".codenuke/fence-fidelity.json",
+      JSON.stringify(artifact({ baselineSha }), null, 2),
+    );
+    const events: RuntimeEvent[] = [];
+
+    const result = await runFenceCommand(
+      ["replay", "api", root],
+      {
+        ...process.env,
+        CN_REPO: root,
+        CN_SRC: "src",
+        CN_REGIONS: "api",
+        CN_BASE: "HEAD",
+        CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
+        CN_TEST: nodeCommand(testScript),
+      },
+      root,
+      { reporter: { emit: (event) => events.push(event) } },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toMatch(/^api: \d\/1 = /u);
+    expect(result.stdout).not.toContain("[1/4]");
+    expect(events.map((event) => event.type)).toEqual(
+      expect.arrayContaining(["phase", "message"]),
+    );
+    expect(
+      events.some(
+        (event) =>
+          event.type === "phase" && event.label === "replaying survivors: 1/1 complete",
+      ),
+    ).toBe(true);
+  });
 });

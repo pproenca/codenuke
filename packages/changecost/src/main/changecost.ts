@@ -35,6 +35,10 @@ export interface RuntimeResult {
   readonly stderr: string;
 }
 
+export interface ChangeCostCommandOptions {
+  readonly reporter?: { emit(line: string): void };
+}
+
 /** Leaf-token stream of a source file (formatting-invariant edit unit). */
 export function tokenize(name: string, text: string): string[] {
   const sf = ts.createSourceFile(
@@ -378,17 +382,20 @@ export async function runChangeCostCommand(
   args: readonly string[],
   env: Env,
   cwd: string,
+  options: ChangeCostCommandOptions = {},
 ): Promise<RuntimeResult> {
   const stdout: string[] = [];
   const stderr: string[] = [];
   const log = (line = ""): void => {
     stdout.push(`${line}\n`);
+    options.reporter?.emit(line);
   };
 
   let config: ReturnType<typeof loadConfig>;
   let ref: string;
   let beta: number;
   try {
+    options.reporter?.emit("changecost: resolving config");
     config = loadConfig(env, cwd);
     ref = changeCostRef(args, env, config.baseline);
     beta = parseChangeCostBeta(env);
@@ -438,13 +445,22 @@ export async function runChangeCostCommand(
     }
   };
   const green = async (): Promise<boolean> =>
-    (await runShellGroup(config.testCommand, { cwd: worktree, env: env as NodeJS.ProcessEnv })).ok;
+    (
+      await runShellGroup(config.testCommand, {
+        cwd: worktree,
+        env: env as NodeJS.ProcessEnv,
+        progress: options.reporter,
+        progressLabel: "test command",
+      })
+    ).ok;
 
   try {
+    options.reporter?.emit(`changecost: preparing worktree ${worktree}`);
     cleanupWorktree();
     run("git", plan.addWorktree, { cwd: config.repo, env });
     linkWorktreeNodeModules(config.repo, worktree);
 
+    options.reporter?.emit("changecost: checking baseline tests");
     if (!(await green())) {
       log("baseline RED — abort");
       cleanupWorktree();
@@ -457,21 +473,33 @@ export async function runChangeCostCommand(
     log(
       `evaluate_changecost @ ${ref}  β=${beta}  implementer=${env.CN_IMPLEMENTER ? "scripted" : "codex exec"}`,
     );
+    options.reporter?.emit(`changecost: ${benchmarkDeltas.length} benchmark deltas`);
 
     const results: ChangeCostResult[] = [];
-    for (const delta of benchmarkDeltas) {
+    for (const [index, delta] of benchmarkDeltas.entries()) {
       log();
       log(`--- δ ${delta.id}: ${delta.title} ---`);
+      options.reporter?.emit(
+        `changecost: implementer ${index + 1}/${benchmarkDeltas.length} for ${delta.id}`,
+      );
       hideBenchmarkFromWorktree();
       const runEnv = { ...process.env, ...env, CN_DELTA: delta.id } as NodeJS.ProcessEnv;
       const prompt = buildImplementerPrompt(delta, config.srcDir);
       const impl = env.CN_IMPLEMENTER
-        ? await runShellGroup(env.CN_IMPLEMENTER, { cwd: worktree, timeout: 300000, env: runEnv })
+        ? await runShellGroup(env.CN_IMPLEMENTER, {
+            cwd: worktree,
+            timeout: 300000,
+            env: runEnv,
+            progress: options.reporter,
+            progressLabel: "change implementer",
+          })
         : await runCodexAgent(prompt, {
             cwd: worktree,
             timeout: 300000,
             env: runEnv,
             outputPath: `${config.promptFile}.last.txt`,
+            progress: options.reporter,
+            progressLabel: "change implementer",
           });
 
       if (!impl.ok) {
@@ -495,6 +523,7 @@ export async function runChangeCostCommand(
       mkdirSync(dirname(acceptAbs), { recursive: true });
       writeFileSync(acceptAbs, delta.acceptTest);
 
+      options.reporter?.emit(`changecost: running acceptance test for ${delta.id}`);
       if (!(await green())) {
         log("  acceptance/suite RED — not done");
         results.push({ id: delta.id, status: "not-done" });
@@ -535,12 +564,15 @@ export async function runChangeCostCommand(
       results,
     });
     mkdirSync(dirname(out), { recursive: true });
+    options.reporter?.emit("changecost: writing change-cost artifact");
     writeFileSync(out, JSON.stringify(artifact, null, 2));
     const cleanupFailure = cleanupFailureMessage();
     if (cleanupFailure) {
       return { exitCode: 1, stdout: stdout.join(""), stderr: cleanupFailure };
     }
-    stdout.push(formatChangeCostSummary(artifact, out));
+    const summary = formatChangeCostSummary(artifact, out);
+    stdout.push(summary);
+    options.reporter?.emit(summary.trim());
     return { exitCode: 0, stdout: stdout.join(""), stderr: stderr.join("") };
   } catch (error) {
     const cleanupFailure = cleanupFailureMessage();
