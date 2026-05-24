@@ -32,6 +32,7 @@ export interface TryResult {
 }
 
 type NodeExecOptions = Parameters<typeof execFileSync>[2];
+const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024;
 
 /**
  * Run `file` with `args` (no shell). Returns stdout as a string; throws on a
@@ -39,7 +40,7 @@ type NodeExecOptions = Parameters<typeof execFileSync>[2];
  */
 export function run(file: string, args: readonly string[], options: ExecOptions = {}): string {
   const result = execFileSync(file, [...args], {
-    maxBuffer: 1 << 30,
+    maxBuffer: DEFAULT_MAX_BUFFER,
     stdio: ["ignore", "pipe", "pipe"],
     ...options,
     shell: false,

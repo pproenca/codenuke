@@ -122,8 +122,11 @@ function validFenceRegions(regions: Record<string, Record<string, unknown>>, thr
 /** Fence artifact status: missing / stale / invalid / usable (RULE-022). */
 export function fenceArtifactStatus(config: ArtifactConfig): ArtifactStatus {
   const artifact = readJson<Record<string, unknown>>(config.fenceArtifact);
-  if (!artifact?.regions || !isRecord(artifact.regions)) {
+  if (!artifact?.regions) {
     return { artifact: null, usable: false, stale: false, reason: "missing" };
+  }
+  if (!isRecord(artifact.regions)) {
+    return { artifact, usable: false, stale: false, reason: "invalid-regions" };
   }
 
   const baselineSha = resolveRef(config.repo, config.baseline);

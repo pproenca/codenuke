@@ -21,8 +21,8 @@ git diff --check
 rm -rf /tmp/codenuke-pack /tmp/codenuke-cli-install
 mkdir -p /tmp/codenuke-pack /tmp/codenuke-cli-install
 pnpm build
-npm pack ./apps/cli --pack-destination /tmp/codenuke-pack
-npm install --prefix /tmp/codenuke-cli-install /tmp/codenuke-pack/codenuke-0.4.0.tgz
+tarball="$(npm pack ./apps/cli --pack-destination /tmp/codenuke-pack)"
+npm install --prefix /tmp/codenuke-cli-install "/tmp/codenuke-pack/$tarball"
 /tmp/codenuke-cli-install/node_modules/.bin/codenuke --version
 /tmp/codenuke-cli-install/node_modules/.bin/codenuke
 ```
@@ -34,8 +34,8 @@ Expected version: `0.4.0`.
 Create and inspect the single tarball:
 
 ```bash
-npm pack ./apps/cli --json
-tar -tf codenuke-0.4.0.tgz | sed -n '1,80p'
+tarball="$(npm pack ./apps/cli)"
+tar -tf "$tarball" | sed -n '1,80p'
 ```
 
 Publish the CLI app package:

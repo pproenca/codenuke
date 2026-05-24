@@ -137,6 +137,14 @@ describe("run() — functional equivalence with legacy runCommand on benign inpu
     expect(run("node", ["-e", "process.stdout.write('ok')"])).toBe("ok");
     expect(() => run("node", ["-e", "process.exit(3)"])).toThrow();
   });
+
+  it("uses a bounded default output buffer and allows explicit opt-in for larger output", () => {
+    const bytes = 17 * 1024 * 1024;
+    const script = `process.stdout.write('x'.repeat(${bytes}))`;
+
+    expect(() => run("node", ["-e", script])).toThrow();
+    expect(run("node", ["-e", script], { maxBuffer: 18 * 1024 * 1024 })).toHaveLength(bytes);
+  });
 });
 
 // =============================================================================

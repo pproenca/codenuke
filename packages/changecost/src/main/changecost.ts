@@ -189,13 +189,18 @@ function assertSafeRef(ref: string): void {
   if (!ref || ref.startsWith("-") || ref.includes("\0")) throw new Error("unsafe git ref for changecost");
 }
 
+const pathSegments = (value: string): string[] => value.split(/[\\/]+/u).filter(Boolean);
+const hasParentTraversal = (value: string): boolean => pathSegments(value).includes("..");
+const escapesRoot = (relativePath: string): boolean =>
+  isAbsolute(relativePath) || pathSegments(relativePath)[0] === "..";
+
 function assertSafeSourcePath(srcDir: string): void {
   if (
     !srcDir ||
     isAbsolute(srcDir) ||
     srcDir.includes("\0") ||
     srcDir.includes("\\") ||
-    srcDir.split(/[\\/]+/u).includes("..") ||
+    hasParentTraversal(srcDir) ||
     srcDir.startsWith(":")
   ) {
     throw new Error("unsafe source path for changecost");
@@ -225,10 +230,8 @@ export function safeWorktreePath(worktreeRoot: string, rel: string): string {
   const root = resolve(worktreeRoot);
   const path = resolve(root, rel);
   const back = relative(root, path);
-  if (back === ".." || back.startsWith("../") || back.startsWith("..\\") || isAbsolute(back)) {
-    throw new Error("unsafe worktree path");
-  }
-  const parts = back.split(/[\\/]+/u).filter(Boolean);
+  if (escapesRoot(back)) throw new Error("unsafe worktree path");
+  const parts = pathSegments(back);
   let current = root;
   for (const part of parts) {
     current = join(current, part);

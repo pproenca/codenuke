@@ -143,7 +143,7 @@ describe("fenceArtifactStatus — dual-execution", () => {
     expect(a.reason).toBe("invalid-regions");
   });
 
-  it("missing when regions is array-shaped", () => {
+  it("invalid-regions when regions is array-shaped", () => {
     const { dir, head } = makeRepo();
     const art = validFence(head);
     writeArtifact(dir, "fence-fidelity.json", { ...art, regions: Object.values(art.regions) });
@@ -151,7 +151,7 @@ describe("fenceArtifactStatus — dual-execution", () => {
     const status = fenceArtifactStatus(cfg(dir));
 
     expect(status.usable).toBe(false);
-    expect(status.reason).toBe("missing");
+    expect(status.reason).toBe("invalid-regions");
   });
 });
 
