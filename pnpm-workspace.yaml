@@ -1,20 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
-
-minimumReleaseAge: 2880
-
-minimumReleaseAgeExclude:
-  - "@oxfmt/*"
-  - "@oxlint/*"
-  - "@types/node"
-  - "oxfmt"
-  - "oxlint"
-  - "typescript"
-  - "vitest"
-
-nodeLinker: hoisted
-blockExoticSubdeps: true
-
 allowBuilds:
+  '@parcel/watcher': false
   esbuild: true
+  msgpackr-extract: false

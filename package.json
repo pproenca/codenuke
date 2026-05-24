@@ -1,36 +1,25 @@
 {
-  "name": "codenuke-workspace",
+  "name": "codenuke-reimagined",
   "version": "0.0.0",
   "private": true,
-  "description": "Autonomous behavior-preserving code reduction.",
+  "description": "Autonomous behavior-preserving code reduction — Effect-TS reimagining.",
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "pnpm -r --filter './packages/*' --filter './apps/*' run build",
-    "codenuke": "pnpm --filter codenuke codenuke",
-    "codenuke:build": "pnpm --filter codenuke codenuke:build",
-    "dogfood": "node scripts/dogfood.mjs",
-    "format": "oxfmt --write --threads=1",
-    "format:check": "oxfmt --check --threads=1",
-    "format:diff": "oxfmt --write --threads=1 && git --no-pager diff",
-    "format:fix": "oxfmt --write --threads=1",
-    "lint": "oxlint --type-aware --report-unused-disable-directives-severity error apps packages scripts",
-    "lint:fix": "oxlint --type-aware --report-unused-disable-directives-severity error apps packages scripts --fix && pnpm format",
-    "security:opengrep": "semgrep scan --config security/opengrep/codenuke.yml --error",
-    "test": "pnpm -r --filter './packages/*' --filter './apps/*' --if-present run test",
-    "typecheck": "pnpm -r --filter './packages/*' --filter './apps/*' run typecheck"
+    "build": "pnpm -r --if-present run build",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.29.0",
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.1",
-    "oxfmt": "0.51.0",
-    "oxlint": "1.66.0",
-    "oxlint-tsgolint": "0.23.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6"
-  },
-  "engines": {
-    "node": ">=22.19.0"
-  },
-  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
+    "fast-check": "^4.8.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
 }

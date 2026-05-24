@@ -1,8 +1,5 @@
 node_modules/
 dist/
-coverage/
-.codenuke/
-.clawpatch/
 *.tsbuildinfo
-*.tgz
-.DS_Store
+.codenuke/
+coverage/

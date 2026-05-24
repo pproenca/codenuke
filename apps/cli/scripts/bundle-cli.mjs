@@ -1,60 +1,23 @@
-#!/usr/bin/env node
-import { chmodSync, copyFileSync, mkdirSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+// Bundles the CLI + all @codenuke/* workspace packages into a single
+// dist/cli.cjs via esbuild's JS API. We use the API (not the `esbuild` CLI
+// shim) because esbuild's install.js replaces bin/esbuild with the native
+// binary, which pnpm's `.bin` shim then tries to run through node — so the
+// shim is unreliable under pnpm. The JS API execs the native binary directly.
 import { build } from "esbuild";
 
-const appRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
-const repoRoot = resolve(appRoot, "../..");
-const dist = resolve(appRoot, "dist");
-
-const aliases = new Map([
-  ["@codenuke/artifacts", "packages/artifacts/src/main/artifacts.ts"],
-  ["@codenuke/calibrate", "packages/calibrate/src/main/calibrate.ts"],
-  ["@codenuke/changecost", "packages/changecost/src/main/changecost.ts"],
-  ["@codenuke/config", "packages/config/src/main/config.ts"],
-  ["@codenuke/exec", "packages/exec/src/main/exec.ts"],
-  ["@codenuke/fence", "packages/fence/src/main/fence.ts"],
-  ["@codenuke/fence/runtime", "packages/fence/src/main/runtime.ts"],
-  ["@codenuke/guards", "packages/guards/src/main/guards.ts"],
-  ["@codenuke/json", "packages/json-io/src/main/json.ts"],
-  ["@codenuke/measure", "packages/measure/src/main/measure.ts"],
-  ["@codenuke/orchestrator", "packages/orchestrator/src/main/orchestrator.ts"],
-  ["@codenuke/orchestrator/runtime", "packages/orchestrator/src/main/runtime.ts"],
-  ["@codenuke/scorer", "packages/scorer/src/main/scorer.ts"],
-  ["@codenuke/stats", "packages/stats/src/main/stats.ts"],
-  ["@codenuke/substrate", "packages/substrate/src/main/index.ts"],
-  ["@codenuke/value-proxy", "packages/value-proxy/src/main/value-proxy.ts"],
-]);
-
-const workspaceAliasPlugin = {
-  name: "workspace-alias",
-  setup(build) {
-    build.onResolve({ filter: /^@codenuke(?:\/[a-z-]+)+(?:\/runtime)?$/ }, (args) => {
-      const target = aliases.get(args.path);
-      if (!target) {
-        return undefined;
-      }
-      return { path: resolve(repoRoot, target) };
-    });
-  },
-};
-
-rmSync(dist, { recursive: true, force: true });
-mkdirSync(dist, { recursive: true });
-
 await build({
-  entryPoints: [resolve(appRoot, "src/main/cli.ts")],
-  outfile: resolve(dist, "cli.cjs"),
+  entryPoints: ["src/main.ts"],
   bundle: true,
   platform: "node",
   format: "cjs",
   target: "node22",
-  define: { "import.meta.url": "undefined" },
-  plugins: [workspaceAliasPlugin],
+  outfile: "dist/cli.cjs",
+  // @openai/codex-sdk wraps the codex CLI (spawns it, dynamic requires); keep it
+  // external so it loads from node_modules at runtime rather than being inlined.
+  // It is declared as a runtime dependency of the published CLI package.
   external: ["@openai/codex-sdk"],
+  // src/main.ts already carries the `#!/usr/bin/env node` shebang; esbuild
+  // preserves it, so we must NOT add a second one via banner (a shebang is
+  // only valid on line 1 — a duplicate on line 2 breaks `node cli.cjs`).
   logLevel: "info",
 });
-
-copyFileSync(resolve(repoRoot, "packages/config/src/main/program.md"), resolve(dist, "program.md"));
-chmodSync(resolve(dist, "cli.cjs"), 0o755);
