@@ -50,11 +50,11 @@ const cfg = (dir: string) => ({
   thresholds: { fenceLB: 0.9 },
 });
 
-const both = <T>(
-  fn: (c: ReturnType<typeof cfg>) => T,
+const both = async <T>(
+  fn: (c: ReturnType<typeof cfg>) => T | Promise<T>,
   legacy: (c: ReturnType<typeof cfg>) => T,
   dir: string,
-): [T, T] => [fn(cfg(dir)), legacy(cfg(dir))];
+): Promise<[T, T]> => [await fn(cfg(dir)), legacy(cfg(dir))];
 
 const validCalibration = (head: string) => ({
   schemaVersion: 1,
@@ -101,74 +101,74 @@ function validFence(head: string) {
 }
 
 describe("fenceArtifactStatus — dual-execution", () => {
-  it("missing when no file", () => {
+  it("missing when no file", async () => {
     const { dir } = makeRepo();
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("missing");
   });
 
-  it("usable for a valid artifact (anti-tamper recomputation passes)", () => {
+  it("usable for a valid artifact (anti-tamper recomputation passes)", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "fence-fidelity.json", validFence(head));
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.usable).toBe(true);
   });
 
-  it("stale-baseline-sha when the recorded sha differs", () => {
+  it("stale-baseline-sha when the recorded sha differs", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "fence-fidelity.json", { ...validFence(head), baselineSha: "0".repeat(40) });
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("stale-baseline-sha");
   });
 
-  it("stale-baseline-sha when the configured baseline cannot be resolved", () => {
+  it("stale-baseline-sha when the configured baseline cannot be resolved", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "fence-fidelity.json", validFence(head));
 
-    const status = fenceArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
+    const status = await fenceArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
 
     expect(status.usable).toBe(false);
     expect(status.stale).toBe(true);
     expect(status.reason).toBe("stale-baseline-sha");
   });
 
-  it("invalid-metadata for a wrong method", () => {
+  it("invalid-metadata for a wrong method", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "fence-fidelity.json", { ...validFence(head), method: "line-based" });
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-metadata");
   });
 
-  it("invalid-regions when p is tampered (recomputation mismatch)", () => {
+  it("invalid-regions when p is tampered (recomputation mismatch)", async () => {
     const { dir, head } = makeRepo();
     const art = validFence(head);
     (art.regions.alpha as { p: number }).p = 0.5; // hand-edited, no longer matches wilson()
     writeArtifact(dir, "fence-fidelity.json", art);
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-regions");
   });
 
-  it("invalid-regions when admissible disagrees with lo>=threshold", () => {
+  it("invalid-regions when admissible disagrees with lo>=threshold", async () => {
     const { dir, head } = makeRepo();
     const art = validFence(head);
     (art.regions.alpha as { admissible: boolean }).admissible = false; // lo>=0.9 but claims false
     writeArtifact(dir, "fence-fidelity.json", art);
-    const [a, b] = both(fenceArtifactStatus, legacyFence, dir);
+    const [a, b] = await both(fenceArtifactStatus, legacyFence, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-regions");
   });
 
-  it("invalid-regions when regions is array-shaped", () => {
+  it("invalid-regions when regions is array-shaped", async () => {
     const { dir, head } = makeRepo();
     const art = validFence(head);
     writeArtifact(dir, "fence-fidelity.json", { ...art, regions: Object.values(art.regions) });
 
-    const status = fenceArtifactStatus(cfg(dir));
+    const status = await fenceArtifactStatus(cfg(dir));
 
     expect(status.usable).toBe(false);
     expect(status.reason).toBe("invalid-regions");
@@ -176,56 +176,56 @@ describe("fenceArtifactStatus — dual-execution", () => {
 });
 
 describe("calibrationArtifactStatus — dual-execution", () => {
-  it("missing when no file", () => {
+  it("missing when no file", async () => {
     const { dir } = makeRepo();
-    const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
+    const [a, b] = await both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("missing");
   });
 
-  it("usable for a valid artifact", () => {
+  it("usable for a valid artifact", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "calibration.json", validCalibration(head));
-    const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
+    const [a, b] = await both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.usable).toBe(true);
   });
 
-  it("stale-baseline-sha when calibration baseline cannot be resolved", () => {
+  it("stale-baseline-sha when calibration baseline cannot be resolved", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "calibration.json", validCalibration(head));
 
-    const status = calibrationArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
+    const status = await calibrationArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
 
     expect(status.usable).toBe(false);
     expect(status.stale).toBe(true);
     expect(status.reason).toBe("stale-baseline-sha");
   });
 
-  it("invalid-metadata for an otherwise valid unversioned artifact", () => {
+  it("invalid-metadata for an otherwise valid unversioned artifact", async () => {
     const { dir, head } = makeRepo();
     const { schemaVersion: _schemaVersion, ...unversioned } = validCalibration(head);
     writeArtifact(dir, "calibration.json", unversioned);
-    const status = calibrationArtifactStatus(cfg(dir));
+    const status = await calibrationArtifactStatus(cfg(dir));
     expect(status.usable).toBe(false);
     expect(status.reason).toBe("invalid-metadata");
   });
 
-  it("invalid-provenance for <3 commits with non-default scales", () => {
+  it("invalid-provenance for <3 commits with non-default scales", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "calibration.json", { ...validCalibration(head), commitsSampled: 2 });
-    const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
+    const [a, b] = await both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-provenance");
   });
 
-  it("invalid-scales for a non-positive scale", () => {
+  it("invalid-scales for a non-positive scale", async () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "calibration.json", {
       ...validCalibration(head),
       scales: { sL: -1, sCx: 12, sDup: 4 },
     });
-    const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
+    const [a, b] = await both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-scales");
   });
@@ -251,22 +251,22 @@ describe("valueProxyValidationStatus — dual-execution", () => {
     rows,
   };
 
-  it("missing when no file", () => {
+  it("missing when no file", async () => {
     const { dir } = makeRepo();
-    const [a, b] = both(valueProxyValidationStatus, legacyValueProxy, dir);
+    const [a, b] = await both(valueProxyValidationStatus, legacyValueProxy, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("missing");
   });
 
-  it("usable for a valid passing report", () => {
+  it("usable for a valid passing report", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, "value-proxy-validation.json", valid);
-    const [a, b] = both(valueProxyValidationStatus, legacyValueProxy, dir);
+    const [a, b] = await both(valueProxyValidationStatus, legacyValueProxy, dir);
     expect(a).toEqual(b);
     expect(a.usable).toBe(true);
   });
 
-  it("invalid for an otherwise valid unversioned passing report", () => {
+  it("invalid for an otherwise valid unversioned passing report", async () => {
     const { dir } = makeRepo();
     const { schemaVersion: _schemaVersion, ...unversioned } = valid;
     writeArtifact(dir, "value-proxy-validation.json", unversioned);
@@ -275,7 +275,7 @@ describe("valueProxyValidationStatus — dual-execution", () => {
     expect(status.reason).toBe("invalid");
   });
 
-  it("invalid when reported proxy statistics do not match the candidate rows", () => {
+  it("invalid when reported proxy statistics do not match the candidate rows", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, "value-proxy-validation.json", {
       ...valid,
@@ -286,22 +286,22 @@ describe("valueProxyValidationStatus — dual-execution", () => {
     expect(status.reason).toBe("invalid");
   });
 
-  it("invalid when passed is false", () => {
+  it("invalid when passed is false", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, "value-proxy-validation.json", {
       ...valid,
       passed: false,
       reason: "low-rho",
     });
-    const [a, b] = both(valueProxyValidationStatus, legacyValueProxy, dir);
+    const [a, b] = await both(valueProxyValidationStatus, legacyValueProxy, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid");
   });
 
-  it("invalid when rho is below minimumRho", () => {
+  it("invalid when rho is below minimumRho", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, "value-proxy-validation.json", { ...valid, rho: 0.5 });
-    const [a, b] = both(valueProxyValidationStatus, legacyValueProxy, dir);
+    const [a, b] = await both(valueProxyValidationStatus, legacyValueProxy, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid");
   });

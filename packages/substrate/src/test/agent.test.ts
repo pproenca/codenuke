@@ -1,4 +1,4 @@
-import { codexArgs, runProcessGroup, runShellGroup } from "@codenuke/substrate";
+import { codexArgs, runProcessGroup } from "@codenuke/substrate";
 // codexArgs: dual-execution vs legacy. Process management: integration.
 import { describe, expect, it } from "vitest";
 import { codexArgs as legacyCodexArgs } from "../../../../test-fixtures/legacy-loop/agent-adapter.mjs";
@@ -86,10 +86,14 @@ describe("runProcessGroup — integration", () => {
   });
 });
 
-describe("runShellGroup — opt-in shell path (operator-configured proposer)", () => {
-  it("runs a shell command string", async () => {
-    const r = await runShellGroup("printf hello");
+describe("runProcessGroup — shell-free contract", () => {
+  it("does not interpret metacharacters through a shell", async () => {
+    const r = await runProcessGroup("node", [
+      "-e",
+      "process.stdout.write(process.argv[1] ?? '')",
+      "$(printf injected)",
+    ]);
     expect(r.ok).toBe(true);
-    expect(r.out).toContain("hello");
+    expect(r.out).toBe("$(printf injected)");
   });
 });

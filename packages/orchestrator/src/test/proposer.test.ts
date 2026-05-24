@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CodexCliProposerAdapter,
   CodexSdkProposerAdapter,
-  ShellProposerAdapter,
   codexOptions,
   selectProposerAdapter,
   type ProposerRequest,
@@ -42,11 +41,11 @@ function request(repo: string): ProposerRequest {
 }
 
 describe("proposer adapter selection", () => {
-  it("preserves shell override and keeps Codex CLI as the default", () => {
-    expect(selectProposerAdapter({ CN_PROPOSER: "node proposer.mjs" })).toBeInstanceOf(
-      ShellProposerAdapter,
+  it("uses the SDK by default, keeps CLI rollback, and rejects shell proposer strings", () => {
+    expect(() => selectProposerAdapter({ CN_PROPOSER: "node proposer.mjs" })).toThrow(
+      /CN_PROPOSER/,
     );
-    expect(selectProposerAdapter({})).toBeInstanceOf(CodexCliProposerAdapter);
+    expect(selectProposerAdapter({})).toBeInstanceOf(CodexSdkProposerAdapter);
     expect(selectProposerAdapter({ CN_CODEX_PROVIDER: "cli" })).toBeInstanceOf(
       CodexCliProposerAdapter,
     );
@@ -76,14 +75,31 @@ describe("CodexSdkProposerAdapter", () => {
     const started: unknown[] = [];
     const resumed: string[] = [];
     const prompts: string[] = [];
+    const streamed = (text: string) => ({
+      async *events() {
+        yield {
+          type: "item.completed",
+          item: { id: "m", type: "agent_message", text },
+        } as const;
+        yield {
+          type: "turn.completed",
+          usage: {
+            input_tokens: 10,
+            cached_input_tokens: 2,
+            output_tokens: 3,
+            reasoning_output_tokens: 1,
+          },
+        } as const;
+      },
+    });
     const adapter = new CodexSdkProposerAdapter(async () => ({
       startThread(options) {
         started.push(options);
         return {
           id: "thread-started",
-          async run(input) {
+          async runStreamed(input: string) {
             prompts.push(typeof input === "string" ? input : JSON.stringify(input));
-            return { items: [], finalResponse: "changed one file", usage: null };
+            return { events: streamed("changed one file").events() };
           },
         };
       },
@@ -92,9 +108,9 @@ describe("CodexSdkProposerAdapter", () => {
         started.push(options);
         return {
           id,
-          async run(input) {
+          async runStreamed(input: string) {
             prompts.push(typeof input === "string" ? input : JSON.stringify(input));
-            return { items: [], finalResponse: "changed one more file", usage: null };
+            return { events: streamed("changed one more file").events() };
           },
         };
       },
@@ -138,8 +154,12 @@ describe("CodexSdkProposerAdapter", () => {
       startThread() {
         return {
           id: "thread-started",
-          async run() {
-            throw new Error("sdk denied");
+          async runStreamed() {
+            return {
+              events: (async function* () {
+                yield { type: "turn.failed", error: { message: "sdk denied" } } as const;
+              })(),
+            };
           },
         };
       },

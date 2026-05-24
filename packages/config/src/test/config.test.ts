@@ -15,6 +15,7 @@ import {
   slug,
   stripSourcePrefix,
 } from "@codenuke/config";
+import { commandDisplay } from "@codenuke/exec";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   isSourceFile as legacyIsSourceFile,
@@ -59,6 +60,18 @@ const envWithoutProgram = (over: Env = {}): Env => ({
   CN_PROGRAM: undefined,
   ...over,
 });
+
+function legacyComparable(config: ReturnType<typeof loadConfig>): Omit<ReturnType<typeof loadConfig>, "testCommand" | "typeCheckCommand" | "implementerCommand"> & {
+  readonly testCommand: string;
+  readonly typeCheckCommand: string | null;
+} {
+  const { implementerCommand: _implementerCommand, testCommand, typeCheckCommand, ...rest } = config;
+  return {
+    ...rest,
+    testCommand: commandDisplay(testCommand),
+    typeCheckCommand: typeCheckCommand ? commandDisplay(typeCheckCommand) : null,
+  };
+}
 
 const fixtures: { name: string; files: Record<string, string>; env?: Env }[] = [
   {
@@ -115,7 +128,7 @@ describe("loadConfig — dual-execution equivalence over repo fixtures", () => {
     it(`matches legacy: ${name}`, () => {
       const dir = makeRepo(files);
       const e = env(over);
-      expect(loadConfig(e, dir)).toEqual(legacyLoadConfig(e, dir));
+      expect(legacyComparable(loadConfig(e, dir))).toEqual(legacyLoadConfig(e, dir));
     });
   }
 
@@ -125,8 +138,10 @@ describe("loadConfig — dual-execution equivalence over repo fixtures", () => {
       CN_SRC: "src",
       CN_TARGET: "src/a",
       CN_REGIONS: "a, b , c",
-      CN_TEST: "custom test cmd",
-      CN_TYPECHECK: "tsc --noEmit",
+      CN_TEST_FILE: "custom-test",
+      CN_TEST_ARGS_JSON: JSON.stringify(["--cmd"]),
+      CN_TYPECHECK_FILE: "tsc",
+      CN_TYPECHECK_ARGS_JSON: JSON.stringify(["--noEmit"]),
       CN_BASE: "main",
       CN_TAG: "exp1",
       CN_FENCE_LB: "0.95",
@@ -134,7 +149,11 @@ describe("loadConfig — dual-execution equivalence over repo fixtures", () => {
       CN_BUDGET: "12",
       CN_TIMEOUT: "60000",
     });
-    expect(loadConfig(e, dir)).toEqual(legacyLoadConfig(e, dir));
+    const config = loadConfig(e, dir);
+    expect(config.testCommand).toEqual({ file: "custom-test", args: ["--cmd"] });
+    expect(config.typeCheckCommand).toEqual({ file: "tsc", args: ["--noEmit"] });
+    expect(config.baseline).toBe("main");
+    expect(config.proposerBudgetUsd).toBe("12");
   });
 });
 

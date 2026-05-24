@@ -149,9 +149,10 @@ function initRepo(root: string): void {
   git(root, ["config", "commit.gpgsign", "false"]);
 }
 
-function nodeCommand(script: string): string {
-  return `node ${JSON.stringify(script)}`;
-}
+const nodeCommandEnv = (script: string): Record<string, string> => ({
+  CN_TEST_FILE: process.execPath,
+  CN_TEST_ARGS_JSON: JSON.stringify([script]),
+});
 
 function removeFixtureWorktree(root: string, worktree: string): void {
   try {
@@ -266,7 +267,7 @@ describe("fence runtime region discovery", () => {
     ]);
   });
 
-  it("parses real git ls-tree -z output with spaces, quotes, and embedded newlines", () => {
+  it("parses real git ls-tree -z output with spaces, quotes, and embedded newlines", async () => {
     const filesFromGitLsTree = runtime("filesFromGitLsTree");
     const fenceGitCommandPlan = runtime("fenceGitCommandPlan");
     const root = fixtureRoot("codenuke-fence-ls-tree-");
@@ -280,9 +281,9 @@ describe("fence runtime region discovery", () => {
     git(root, ["add", "."]);
     git(root, ["commit", "-m", "fixtures"]);
     const plan = fenceGitCommandPlan({ baseline: "HEAD", srcDir: "src", region: "api" });
-    const head = run("git", plan.resolveBaseline, { cwd: root }).trim();
+    const head = (await run("git", plan.resolveBaseline, { cwd: root })).trim();
 
-    expect(filesFromGitLsTree(run("git", plan.filesInRegion(head), { cwd: root }))).toEqual([
+    expect(filesFromGitLsTree(await run("git", plan.filesInRegion(head), { cwd: root }))).toEqual([
       'src/api/"quoted".tsx',
       "src/api/has space.ts",
       "src/api/index.ts",
@@ -516,7 +517,7 @@ describe("fence runtime audit cleanup", () => {
           CN_BASE: "HEAD",
           CN_WORKTREE: worktree,
           CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
-          CN_TEST: nodeCommand(testScript),
+          ...nodeCommandEnv(testScript),
         },
         root,
         { reporter: { emit: (event) => events.push(event) } },
@@ -587,7 +588,7 @@ describe("fence runtime audit cleanup", () => {
           CN_BASE: "HEAD",
           CN_WORKTREE: worktree,
           CN_FENCE: join(root, "artifact-parent-is-file", "fence-fidelity.json"),
-          CN_TEST: nodeCommand(testScript),
+          ...nodeCommandEnv(testScript),
           CN_BASELINE_MARKER: marker,
         },
         root,
@@ -738,7 +739,7 @@ describe("fence runtime replay guards and monotonicity", () => {
         CN_REGIONS: "api",
         CN_BASE: "HEAD",
         CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
-        CN_TEST: nodeCommand(testScript),
+        ...nodeCommandEnv(testScript),
       },
       root,
       { reporter: { emit: (event) => events.push(event) } },

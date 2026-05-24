@@ -11,10 +11,10 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, isAbsolute } from "node:path";
 import { calibrationArtifactStatus, fenceArtifactStatus } from "@codenuke/artifacts";
 import { isSourceFile, loadConfig, regionOf, type Config } from "@codenuke/config";
-import { run, tryRun } from "@codenuke/exec";
+import { commandDisplay, run, tryRun, tryRunCommand } from "@codenuke/exec";
 import type { Measurement } from "@codenuke/measure";
 import { measure, type Files } from "@codenuke/measure";
-import { linkWorktreeNodeModules, removeWorktree, runShellGroup } from "@codenuke/substrate";
+import { linkWorktreeNodeModules, removeWorktree } from "@codenuke/substrate";
 
 type Env = Record<string, string | undefined>;
 
@@ -234,7 +234,7 @@ async function testsPass(
 ): Promise<boolean> {
   reporter?.emit("scorer: running tests");
   return (
-    await runShellGroup(config.testCommand, {
+    await tryRunCommand(config.testCommand, {
       cwd: config.worktree,
       env,
       timeout: 300000,
@@ -253,7 +253,7 @@ async function typeErrors(
     return 0;
   }
   reporter?.emit("scorer: running typecheck");
-  const result = await runShellGroup(config.typeCheckCommand, {
+  const result = await tryRunCommand(config.typeCheckCommand, {
     cwd: config.worktree,
     env,
     timeout: 300000,
@@ -266,8 +266,8 @@ async function typeErrors(
   return result.out.split("\n").filter((line) => /error TS/u.test(line)).length || 1;
 }
 
-function showAt(config: Config, ref: string, path: string): string | null {
-  const result = tryRun("git", ["show", `${ref}:${path}`], { cwd: config.worktree });
+async function showAt(config: Config, ref: string, path: string): Promise<string | null> {
+  const result = await tryRun("git", ["show", `${ref}:${path}`], { cwd: config.worktree });
   return result.ok ? result.out : null;
 }
 
@@ -278,38 +278,39 @@ function sourceInDir(path: string, srcDir: string): boolean {
 const gitPathList = (output: string, srcDir: string): string[] =>
   output.split("\0").filter((value) => value.length > 0 && sourceInDir(value, srcDir));
 
-function targetL(config: Config, ref: string, plan: ScorerGitCommandPlan): number {
+async function targetL(config: Config, ref: string, plan: ScorerGitCommandPlan): Promise<number> {
   const files = gitPathList(
-    run("git", plan.targetTree(ref), { cwd: config.worktree }),
+    await run("git", plan.targetTree(ref), { cwd: config.worktree }),
     config.srcDir,
   );
-  const map: Files = Object.fromEntries(
-    files.flatMap((file) => {
-      const text = showAt(config, ref, file);
+  const entries = await Promise.all(
+    files.map(async (file) => {
+      const text = await showAt(config, ref, file);
       return text == null ? [] : [[file, text]];
     }),
   );
+  const map: Files = Object.fromEntries(entries.flat());
   return measure(map).L;
 }
 
-function changedSource(config: Config, plan: ScorerGitCommandPlan): string[] {
+async function changedSource(config: Config, plan: ScorerGitCommandPlan): Promise<string[]> {
   return [
     ...new Set([
-      ...gitPathList(run("git", plan.changedSource, { cwd: config.worktree }), config.srcDir),
-      ...gitPathList(run("git", plan.untrackedSource, { cwd: config.worktree }), config.srcDir),
+      ...gitPathList(await run("git", plan.changedSource, { cwd: config.worktree }), config.srcDir),
+      ...gitPathList(await run("git", plan.untrackedSource, { cwd: config.worktree }), config.srcDir),
     ]),
   ];
 }
 
-function changedMeasurement(
+async function changedMeasurement(
   config: Config,
   changed: readonly string[],
   ref: "HEAD" | "worktree",
-): Measurement {
-  const map: Files = Object.fromEntries(
-    changed.map((file) => {
+): Promise<Measurement> {
+  const entries = await Promise.all(
+    changed.map(async (file) => {
       if (ref === "HEAD") {
-        return [file, showAt(config, "HEAD", file) ?? ""];
+        return [file, (await showAt(config, "HEAD", file)) ?? ""];
       }
       return [
         file,
@@ -319,11 +320,12 @@ function changedMeasurement(
       ];
     }),
   );
+  const map: Files = Object.fromEntries(entries);
   return measure(map);
 }
 
-function diffSize(config: Config): number {
-  const out = run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], {
+async function diffSize(config: Config): Promise<number> {
+  const out = await run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], {
     cwd: config.worktree,
   });
   return Number(out.match(/(\d+) insert/u)?.[1] ?? 0) + Number(out.match(/(\d+) delet/u)?.[1] ?? 0);
@@ -334,7 +336,7 @@ function formatFenceText(input: {
   readonly mfence: number;
   readonly touched: readonly string[];
   readonly blocked: readonly string[];
-  readonly fenceStatus: ReturnType<typeof fenceArtifactStatus>;
+  readonly fenceStatus: Awaited<ReturnType<typeof fenceArtifactStatus>>;
   readonly fenceRegions: Record<string, { lo?: number } | undefined>;
 }): string {
   if (input.gates.G1prime) {
@@ -365,14 +367,14 @@ async function scoreCandidate(
   readonly touched: readonly string[];
   readonly blocked: readonly string[];
   readonly files: readonly string[];
-  readonly fenceStatus: ReturnType<typeof fenceArtifactStatus>;
+  readonly fenceStatus: Awaited<ReturnType<typeof fenceArtifactStatus>>;
   readonly fenceRegions: Record<
     string,
     { admissible?: boolean; p?: number; lo?: number } | undefined
   >;
 }> {
   const artifactConfig = { ...config, baseline: state.baselineSha };
-  const fenceStatus = fenceArtifactStatus(artifactConfig);
+  const fenceStatus = await fenceArtifactStatus(artifactConfig);
   const fence = fenceStatus.usable ? fenceStatus.artifact : null;
   const fenceRegions = (fence?.regions ?? {}) as Record<
     string,
@@ -380,18 +382,18 @@ async function scoreCandidate(
   >;
   const touched = [...new Set(changed.map((path) => regionOf(path, config.srcDir)))];
   const blocked = touched.filter((region) => fenceRegions[region]?.admissible !== true);
-  const calibration = calibrationArtifactStatus(artifactConfig);
+  const calibration = await calibrationArtifactStatus(artifactConfig);
   const scales = calibration.usable
     ? ((calibration.artifact?.scales ?? null) as CalibrationScales | null)
     : null;
   const verdict = decide({
-    before: changedMeasurement(config, changed, "HEAD"),
-    after: changedMeasurement(config, changed, "worktree"),
+    before: await changedMeasurement(config, changed, "HEAD"),
+    after: await changedMeasurement(config, changed, "worktree"),
     testsPass: await testsPass(config, env, reporter),
     fenceUsable: fenceStatus.usable,
     blockedRegions: blocked,
     touchedFidelities: touched.map((region) => fenceRegions[region]?.p ?? 0),
-    diffsize: diffSize(config),
+    diffsize: await diffSize(config),
     typeErrors: await typeErrors(config, env, reporter),
     baselineTypeErrors: state.baselineTsc,
     weights: config.weights,
@@ -435,22 +437,22 @@ export async function runScorerCommand(
 
   if (cmd === "init") {
     reporter?.emit("scorer: resolving baseline");
-    const baselineSha = run("git", plan.resolveBaseline, { cwd: config.repo }).trim();
+    const baselineSha = (await run("git", plan.resolveBaseline, { cwd: config.repo })).trim();
     const out: string[] = [];
     reporter?.emit(`scorer: creating worktree ${config.worktree}`);
-    removeWorktree(config.repo, config.worktree);
-    run("git", plan.addWorktree(baselineSha), { cwd: config.repo, env });
-    linkWorktreeNodeModules(config.repo, config.worktree);
+    await removeWorktree(config.repo, config.worktree);
+    await run("git", plan.addWorktree(baselineSha), { cwd: config.repo, env });
+    await linkWorktreeNodeModules(config.repo, config.worktree);
     out.push(`verifying baseline (test${config.typeCheckCommand ? " + typecheck" : ""})...`);
     const green = await testsPass(config, runEnv, reporter);
     const baselineTsc = await typeErrors(config, runEnv, reporter);
     if (!green) {
-      out.push(`baseline tests RED (cmd: ${config.testCommand}) — abort`);
-      removeWorktree(config.repo, config.worktree);
+      out.push(`baseline tests RED (cmd: ${commandDisplay(config.testCommand)}) — abort`);
+      await removeWorktree(config.repo, config.worktree);
       return { exitCode: 1, stdout: lines(out), stderr: "" };
     }
     reporter?.emit("scorer: measuring baseline target");
-    const startL = targetL(config, baselineSha, plan);
+    const startL = await targetL(config, baselineSha, plan);
     writeState(config.state, { baselineSha, baselineTsc, startL, accepted: [], iter: 0 });
     out.push(`baseline GREEN ✓  typeErrors=${baselineTsc}  ${config.target} astNodes=${startL}`);
     out.push(
@@ -465,7 +467,7 @@ export async function runScorerCommand(
     if ("exitCode" in state) {
       return state;
     }
-    const changed = changedSource(config, plan);
+    const changed = await changedSource(config, plan);
     reporter?.emit(`scorer: changed source files=${changed.length}`);
     if (changed.length === 0) {
       return {
@@ -520,7 +522,7 @@ export async function runScorerCommand(
     if ("exitCode" in state) {
       return state;
     }
-    const changed = changedSource(config, plan);
+    const changed = await changedSource(config, plan);
     reporter?.emit(`scorer: changed source files=${changed.length}`);
     if (changed.length === 0) {
       return { exitCode: 0, stdout: "nothing to accept.\n", stderr: "" };
@@ -535,8 +537,8 @@ export async function runScorerCommand(
       };
     }
     reporter?.emit("scorer: committing accepted candidate");
-    run("git", plan.addChangedSource(changed), { cwd: config.worktree, env });
-    run(
+    await run("git", plan.addChangedSource(changed), { cwd: config.worktree, env });
+    await run(
       "git",
       [
         "-c",
@@ -551,10 +553,10 @@ export async function runScorerCommand(
       ],
       { cwd: config.worktree, env },
     );
-    const commit = run("git", ["rev-parse", "--short", "HEAD"], {
+    const commit = (await run("git", ["rev-parse", "--short", "HEAD"], {
       cwd: config.worktree,
       env,
-    }).trim();
+    })).trim();
     writeState(config.state, {
       ...state,
       iter: state.iter + 1,
@@ -569,8 +571,8 @@ export async function runScorerCommand(
     if ("exitCode" in state) {
       return state;
     }
-    tryRun("git", ["checkout", "--", config.srcDir], { cwd: config.worktree, env });
-    tryRun("git", plan.cleanSource, { cwd: config.worktree, env });
+    await tryRun("git", ["checkout", "--", config.srcDir], { cwd: config.worktree, env });
+    await tryRun("git", plan.cleanSource, { cwd: config.worktree, env });
     return { exitCode: 0, stdout: "candidate reverted.\n", stderr: "" };
   }
 
@@ -580,8 +582,8 @@ export async function runScorerCommand(
     if ("exitCode" in state) {
       return state;
     }
-    const headSha = run("git", ["rev-parse", "--verify", "HEAD"], { cwd: config.worktree }).trim();
-    const now = targetL(config, headSha, plan);
+    const headSha = (await run("git", ["rev-parse", "--verify", "HEAD"], { cwd: config.worktree })).trim();
+    const now = await targetL(config, headSha, plan);
     const cut = state.startL - now;
     return {
       exitCode: 0,
@@ -600,7 +602,7 @@ export async function runScorerCommand(
     } catch {
       /* already absent */
     }
-    removeWorktree(config.repo, config.worktree);
+    await removeWorktree(config.repo, config.worktree);
     return { exitCode: 0, stdout: "worktree removed.\n", stderr: "" };
   }
 

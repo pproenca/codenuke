@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { runAutoloop } from "../main/runtime.js";
+import { nodeCommandEnv, scriptedProposerAdapter } from "./proposer-fixture.js";
 
 interface ResultRow {
   readonly iter: string;
@@ -64,10 +65,6 @@ function commit(root: string, message: string): string {
   git(root, ["add", "-A"]);
   git(root, ["commit", "-m", message]);
   return git(root, ["rev-parse", "--verify", "HEAD"]).trim();
-}
-
-function nodeCommand(path: string): string {
-  return `node ${JSON.stringify(path)}`;
 }
 
 function wilson(
@@ -174,6 +171,7 @@ function setupReduceFixture(extra: {
   readonly worktree: string;
   readonly env: Record<string, string | undefined>;
   readonly baselineSha: string;
+  readonly proposerAdapter: ReturnType<typeof scriptedProposerAdapter>;
 } {
   const root = fixtureRoot();
   const worktree = fixtureWorktree();
@@ -208,12 +206,11 @@ function setupReduceFixture(extra: {
       CN_STATE: join(root, ".codenuke/autoloop.state.json"),
       CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
       CN_RESULTS: join(root, ".codenuke/results.tsv"),
-      CN_TEST: nodeCommand(join(root, "scripts/test-command.mjs")),
-      CN_TYPECHECK: "",
+      ...nodeCommandEnv("CN_TEST", join(root, "scripts/test-command.mjs")),
       CN_PROGRAM: program,
-      CN_PROPOSER: nodeCommand(proposerCommand),
       ...extra.env,
     },
+    proposerAdapter: scriptedProposerAdapter(proposerCommand),
   };
 }
 
@@ -226,6 +223,7 @@ describe("runAutoloop reduce runtime follow-ups", () => {
 
     const result = await runAutoloop(1, fixture.env, fixture.root, {
       reporter: { emit: (line) => progress.push(line) },
+      proposerAdapter: fixture.proposerAdapter,
     });
 
     expect.soft(result.exitCode).toBe(0);
@@ -233,8 +231,8 @@ describe("runAutoloop reduce runtime follow-ups", () => {
       expect.arrayContaining([
         "run: resolving startup state",
         expect.stringContaining("--- iter 1/1 [reduce] api fence"),
-        "  proposer start: provider=shell mode=reduce region=api target=src/api/",
-        expect.stringContaining("  proposer result: provider=shell status=ok"),
+        "  proposer start: provider=codex-sdk mode=reduce region=api target=src/api/",
+        expect.stringContaining("  proposer result: provider=codex-sdk status=ok"),
         "  -> NOOP  no scorable src change",
         "\n=== done: 0 kept, 0 fence-raises ===",
       ]),
@@ -250,12 +248,14 @@ writeFileSync("docs/notes.md", "not source\\n");
 `,
     });
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
     const [row] = expectRows(fixture.root, result.stdout);
 
     expect.soft(result.exitCode).toBe(0);
-    expect.soft(result.stdout).toContain("proposer start: provider=shell mode=reduce");
-    expect.soft(result.stdout).toContain("proposer result: provider=shell status=ok");
+    expect.soft(result.stdout).toContain("proposer start: provider=codex-sdk mode=reduce");
+    expect.soft(result.stdout).toContain("proposer result: provider=codex-sdk status=ok");
     expect.soft(row?.status).toBe("revert");
     expect.soft(row?.description).toContain("outside reduce source surface");
     expect.soft(row?.description).toContain("docs/notes.md");
@@ -274,7 +274,9 @@ process.exit(1);
 `,
     });
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
     const [row] = expectRows(fixture.root, result.stdout);
 
     expect.soft(result.exitCode).toBe(0);
@@ -290,7 +292,9 @@ process.exit(1);
       env: { CN_TIMEOUT: "50" },
     });
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
     const [row] = expectRows(fixture.root, result.stdout);
 
     expect.soft(result.exitCode).toBe(0);
@@ -311,7 +315,9 @@ writeFileSync(marker, JSON.stringify({ region: process.env.CN_REGION, target: pr
       env: { CN_TARGET: "src/api" },
     });
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
     expectRows(fixture.root, result.stdout);
     const marker = JSON.parse(
       readFileSync(join(fixture.root, ".codenuke/reduce-target-marker.txt"), "utf8"),

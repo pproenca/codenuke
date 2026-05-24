@@ -16,7 +16,7 @@ import {
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fenceArtifactStatus } from "@codenuke/artifacts";
 import { isSourceFile, isUnderSourceDir, loadConfig, regionOf } from "@codenuke/config";
-import { run } from "@codenuke/exec";
+import { commandDisplay, run, tryRunCommand, type TryResult } from "@codenuke/exec";
 import {
   isHiddenBenchmarkDeletion,
   isNodeModulesPath,
@@ -24,7 +24,6 @@ import {
   removeWorktree,
   resetAndCleanWorktree,
 } from "@codenuke/substrate";
-import { runCodexAgent, runShellGroup } from "@codenuke/substrate";
 import ts from "typescript";
 
 type Env = Record<string, string | undefined>;
@@ -351,15 +350,15 @@ export function dirtyPathsFromPorcelainZ(
   return paths;
 }
 
-function snapshotWorktree(
+async function snapshotWorktree(
   worktree: string,
   srcDir: string,
   includeUntracked = false,
-): Record<string, string> {
+): Promise<Record<string, string>> {
   const lsArgs = includeUntracked
     ? ["-C", worktree, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", srcDir]
     : ["-C", worktree, "ls-files", "-z", "--", srcDir];
-  const files = run("git", lsArgs)
+  const files = (await run("git", lsArgs))
     .split("\0")
     .filter((path) => path.length > 0 && isSourceFile(path));
   const snapshot: Record<string, string> = {};
@@ -371,6 +370,65 @@ function snapshotWorktree(
     }
   }
   return snapshot;
+}
+
+async function runCodexImplementer(input: {
+  readonly prompt: string;
+  readonly worktree: string;
+  readonly env: NodeJS.ProcessEnv;
+  readonly timeoutMs: number;
+}): Promise<TryResult> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const startedAt = Date.now();
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, input.timeoutMs);
+  timer.unref();
+  try {
+    const { Codex } = await import("@openai/codex-sdk");
+    const codex = new Codex({
+      env: Object.fromEntries(
+        Object.entries(input.env).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string",
+        ),
+      ),
+    });
+    const thread = codex.startThread({ workingDirectory: input.worktree, sandboxMode: "workspace-write", approvalPolicy: "never" });
+    const streamed = await thread.runStreamed(input.prompt, { signal: controller.signal });
+    let finalResponse = "";
+    for await (const event of streamed.events) {
+      if (event.type === "item.completed" && event.item.type === "agent_message") {
+        finalResponse = event.item.text;
+      }
+      if (event.type === "turn.failed") {
+        throw new Error(event.error.message);
+      }
+      if (event.type === "error") {
+        throw new Error(event.message);
+      }
+    }
+    return {
+      ok: true,
+      out: finalResponse,
+      timedOut,
+      elapsedMs: Date.now() - startedAt,
+      exitCode: 0,
+      signal: null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      out: error instanceof Error ? error.message : String(error),
+      timedOut,
+      elapsedMs: Date.now() - startedAt,
+      exitCode: null,
+      signal: null,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function formatChangeCostSummary(artifact: ChangeCostArtifact, out: string): string {
@@ -424,18 +482,18 @@ export async function runChangeCostCommand(
     srcDir: config.srcDir,
   });
 
-  const cleanupWorktree = (): void => removeWorktree(config.repo, worktree);
-  const cleanupFailureMessage = (): string => {
+  const cleanupWorktree = async (): Promise<void> => removeWorktree(config.repo, worktree);
+  const cleanupFailureMessage = async (): Promise<string> => {
     try {
-      cleanupWorktree();
+      await cleanupWorktree();
       return "";
     } catch (error) {
       return `cleanup failed: ${(error as Error).message}\n`;
     }
   };
-  const cleanWT = (): void => resetAndCleanWorktree(worktree, { all: true });
-  const dirtyPaths = (): string[] =>
-    dirtyPathsFromPorcelainZ(run("git", ["-C", worktree, ...plan.statusPorcelain]), {
+  const cleanWT = async (): Promise<void> => resetAndCleanWorktree(worktree, { all: true });
+  const dirtyPaths = async (): Promise<string[]> =>
+    dirtyPathsFromPorcelainZ(await run("git", ["-C", worktree, ...plan.statusPorcelain]), {
       benchmarkInsideRepo,
       benchmarkRel,
     });
@@ -446,7 +504,7 @@ export async function runChangeCostCommand(
   };
   const green = async (): Promise<boolean> =>
     (
-      await runShellGroup(config.testCommand, {
+      await tryRunCommand(config.testCommand, {
         cwd: worktree,
         env: env as NodeJS.ProcessEnv,
         progress: options.reporter,
@@ -456,22 +514,22 @@ export async function runChangeCostCommand(
 
   try {
     options.reporter?.emit(`changecost: preparing worktree ${worktree}`);
-    cleanupWorktree();
-    run("git", plan.addWorktree, { cwd: config.repo, env });
-    linkWorktreeNodeModules(config.repo, worktree);
+    await cleanupWorktree();
+    await run("git", plan.addWorktree, { cwd: config.repo, env });
+    await linkWorktreeNodeModules(config.repo, worktree);
 
     options.reporter?.emit("changecost: checking baseline tests");
     if (!(await green())) {
       log("baseline RED — abort");
-      cleanupWorktree();
+      await cleanupWorktree();
       return { exitCode: 1, stdout: stdout.join(""), stderr: stderr.join("") };
     }
 
-    const baseline = snapshotWorktree(worktree, config.srcDir);
-    const fenceStatus = fenceArtifactStatus(config);
+    const baseline = await snapshotWorktree(worktree, config.srcDir);
+    const fenceStatus = await fenceArtifactStatus(config);
     const fence = fenceStatus.usable ? fenceStatus.artifact : null;
     log(
-      `evaluate_changecost @ ${ref}  β=${beta}  implementer=${env.CN_IMPLEMENTER ? "scripted" : "codex exec"}`,
+      `evaluate_changecost @ ${ref}  β=${beta}  implementer=${config.implementerCommand ? commandDisplay(config.implementerCommand) : "codex sdk"}`,
     );
     options.reporter?.emit(`changecost: ${benchmarkDeltas.length} benchmark deltas`);
 
@@ -485,37 +543,35 @@ export async function runChangeCostCommand(
       hideBenchmarkFromWorktree();
       const runEnv = { ...process.env, ...env, CN_DELTA: delta.id } as NodeJS.ProcessEnv;
       const prompt = buildImplementerPrompt(delta, config.srcDir);
-      const impl = env.CN_IMPLEMENTER
-        ? await runShellGroup(env.CN_IMPLEMENTER, {
+      const impl = config.implementerCommand
+        ? await tryRunCommand(config.implementerCommand, {
             cwd: worktree,
             timeout: 300000,
             env: runEnv,
             progress: options.reporter,
             progressLabel: "change implementer",
           })
-        : await runCodexAgent(prompt, {
-            cwd: worktree,
-            timeout: 300000,
+        : await runCodexImplementer({
+            prompt,
+            worktree,
+            timeoutMs: 300000,
             env: runEnv,
-            outputPath: `${config.promptFile}.last.txt`,
-            progress: options.reporter,
-            progressLabel: "change implementer",
           });
 
       if (!impl.ok) {
         log("  implementer error");
         results.push({ id: delta.id, status: "impl-fail" });
-        cleanWT();
+        await cleanWT();
         continue;
       }
 
-      const disallowed = dirtyPaths().filter(
+      const disallowed = (await dirtyPaths()).filter(
         (path) => !(isUnderSourceDir(path, config.srcDir) && isSourceFile(path)),
       );
       if (disallowed.length > 0) {
         log(`  implementer touched outside source surface: ${disallowed.join(",")}`);
         results.push({ id: delta.id, status: "impl-bad-surface", disallowed });
-        cleanWT();
+        await cleanWT();
         continue;
       }
 
@@ -527,11 +583,11 @@ export async function runChangeCostCommand(
       if (!(await green())) {
         log("  acceptance/suite RED — not done");
         results.push({ id: delta.id, status: "not-done" });
-        cleanWT();
+        await cleanWT();
         continue;
       }
 
-      const e = editCost(baseline, snapshotWorktree(worktree, config.srcDir, true), config.srcDir);
+      const e = editCost(baseline, await snapshotWorktree(worktree, config.srcDir, true), config.srcDir);
       const regions = [
         ...new Set(Object.keys(e.perFile).map((path) => regionOf(path, config.srcDir))),
       ];
@@ -549,7 +605,7 @@ export async function runChangeCostCommand(
         verifyFrac,
         cost,
       });
-      cleanWT();
+      await cleanWT();
     }
 
     const doneCosts = results.flatMap((result) =>
@@ -566,7 +622,7 @@ export async function runChangeCostCommand(
     mkdirSync(dirname(out), { recursive: true });
     options.reporter?.emit("changecost: writing change-cost artifact");
     writeFileSync(out, JSON.stringify(artifact, null, 2));
-    const cleanupFailure = cleanupFailureMessage();
+    const cleanupFailure = await cleanupFailureMessage();
     if (cleanupFailure) {
       return { exitCode: 1, stdout: stdout.join(""), stderr: cleanupFailure };
     }
@@ -575,7 +631,7 @@ export async function runChangeCostCommand(
     options.reporter?.emit(summary.trim());
     return { exitCode: 0, stdout: stdout.join(""), stderr: stderr.join("") };
   } catch (error) {
-    const cleanupFailure = cleanupFailureMessage();
+    const cleanupFailure = await cleanupFailureMessage();
     return {
       exitCode: 1,
       stdout: stdout.join(""),

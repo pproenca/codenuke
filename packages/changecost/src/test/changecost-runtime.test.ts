@@ -169,10 +169,19 @@ function baseEnv(
     CN_BENCH: join(root, "codenuke.benchmark"),
     CN_WORKTREE: worktree,
     CN_TAG: `changecost-${Date.now()}`,
-    CN_TEST: 'node -e "process.exit(0)"',
+    CN_TEST_FILE: process.execPath,
+    CN_TEST_ARGS_JSON: JSON.stringify(["-e", "process.exit(0)"]),
     ...extra,
   };
 }
+
+const nodeEnv = (
+  prefix: "CN_TEST" | "CN_IMPLEMENTER",
+  args: readonly string[],
+): Record<string, string> => ({
+  [`${prefix}_FILE`]: process.execPath,
+  [`${prefix}_ARGS_JSON`]: JSON.stringify(args),
+});
 
 describe("changecost runtime discovery, metadata, and config", () => {
   it("discovers benchmark directories from meta.json plus accept.test.ts and sorts by id", () => {
@@ -400,7 +409,7 @@ describe("runChangeCostCommand fail-closed paths", () => {
 
     const result = await runChangeCostCommand(
       [],
-      baseEnv(root, worktree, { CN_TEST: 'node -e "process.exit(1)"' }),
+      baseEnv(root, worktree, nodeEnv("CN_TEST", ["-e", "process.exit(1)"])),
       root,
     );
 
@@ -443,7 +452,7 @@ if (process.env.CN_DELTA === "one") writeFileSync(path, source.replace("a = 1", 
 if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10", "b = 20"));
 `,
     );
-    const testCommand = `node -e "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1);if(fs.existsSync('tests/two.accept.test.ts')&&!src.includes('b = 20'))process.exit(1);process.exit(0)"`;
+    const testCommand = "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1);if(fs.existsSync('tests/two.accept.test.ts')&&!src.includes('b = 20'))process.exit(1);process.exit(0)";
     const editCost = runtimePure("editCost");
     const oneEdit = editCost(
       { "src/index.ts": baselineSource },
@@ -460,8 +469,8 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
     const result = await runChangeCostCommand(
       ["HEAD"],
       baseEnv(root, worktree, {
-        CN_TEST: testCommand,
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_TEST", ["-e", testCommand]),
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
         CN_BETA: "10",
       }),
       root,
@@ -470,7 +479,7 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("evaluate_changecost @ HEAD  \u03b2=10  implementer=scripted");
+    expect(result.stdout).toContain(`evaluate_changecost @ HEAD  \u03b2=10  implementer=${process.execPath}`);
     expect(readFileSync(capture, "utf8").trim().split("\n")).toEqual(["one", "two"]);
     expect(artifact).toMatchObject({
       schemaVersion: 1,
@@ -521,15 +530,15 @@ const path = "src/index.ts";
 writeFileSync(path, readFileSync(path, "utf8").replace("a = 1", "a = 2"));
 `,
     );
-    const testCommand = `node -e "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1)"`;
+    const testCommand = "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');if(fs.existsSync('tests/one.accept.test.ts')&&!src.includes('a = 2'))process.exit(1)";
     const progress: string[] = [];
     const runChangeCostCommand = runtime("runChangeCostCommand");
 
     const result = await runChangeCostCommand(
       ["HEAD"],
       baseEnv(root, worktree, {
-        CN_TEST: testCommand,
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_TEST", ["-e", testCommand]),
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
       }),
       root,
       { reporter: { emit: (line) => progress.push(line) } },
@@ -561,14 +570,14 @@ import { writeFileSync } from "node:fs";
 writeFileSync("src/added.ts", "export const added = 2;\\n");
 `,
     );
-    const testCommand = `node -e "const fs=require('fs');process.exit(fs.existsSync('tests/value.accept.test.ts')&&!fs.existsSync('src/added.ts')?1:0)"`;
+    const testCommand = "const fs=require('fs');process.exit(fs.existsSync('tests/value.accept.test.ts')&&!fs.existsSync('src/added.ts')?1:0)";
     const runChangeCostCommand = runtime("runChangeCostCommand");
 
     const result = await runChangeCostCommand(
       [],
       baseEnv(root, worktree, {
-        CN_TEST: testCommand,
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_TEST", ["-e", testCommand]),
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
       }),
       root,
     );
@@ -592,14 +601,14 @@ writeFileSync("src/added.ts", "export const added = 2;\\n");
     commit(root, "benchmark");
     const worktree = join(tmpdir(), `codenuke-changecost-notdone-${Date.now()}`);
     const implementer = write(root, "implementer.mjs", "process.exit(0);\n");
-    const testCommand = `node -e "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');process.exit(fs.existsSync('tests/value.accept.test.ts') && !src.includes('value = 2') ? 1 : 0)"`;
+    const testCommand = "const fs=require('fs');const src=fs.readFileSync('src/index.ts','utf8');process.exit(fs.existsSync('tests/value.accept.test.ts') && !src.includes('value = 2') ? 1 : 0)";
     const runChangeCostCommand = runtime("runChangeCostCommand");
 
     const result = await runChangeCostCommand(
       [],
       baseEnv(root, worktree, {
-        CN_TEST: testCommand,
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_TEST", ["-e", testCommand]),
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
       }),
       root,
     );
@@ -639,7 +648,7 @@ writeFileSync("package.json", "{\\"name\\":\\"mutated\\"}\\n");
     const result = await runChangeCostCommand(
       [],
       baseEnv(root, worktree, {
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
       }),
       root,
     );
@@ -676,7 +685,7 @@ renameSync("package.json", "src/package.ts");
     const result = await runChangeCostCommand(
       [],
       baseEnv(root, worktree, {
-        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+        ...nodeEnv("CN_IMPLEMENTER", [implementer]),
       }),
       root,
     );

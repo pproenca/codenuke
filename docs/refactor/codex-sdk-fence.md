@@ -46,16 +46,15 @@ and returns it at the end. During the expensive phase, the user cannot tell
 whether codenuke is creating a worktree, running baseline tests, scanning files,
 or repeatedly executing the test command for sampled mutants.
 
-The current proposer path is also subprocess-shaped. `runProposer` writes the
-prompt file, then either runs a trusted `CN_PROPOSER` shell string or calls the
-Codex CLI substrate. That keeps behavior simple, but it hides useful agent
-state:
+The previous proposer path was subprocess-shaped. `runProposer` wrote the prompt
+file, then either ran a trusted `CN_PROPOSER` shell string or called the Codex
+CLI substrate. That kept behavior simple, but it hid useful agent state:
 
 - no durable Codex thread id
 - no explicit resume model for interrupted proposer turns
 - no structured proposer result beyond process success/failure
 - no clean place to display "Codex is working on raise-fence for region X"
-- no adapter seam that can support both shell proposer and Codex SDK proposer
+- no adapter boundary that can support both Codex CLI rollback and Codex SDK proposer
 
 The target is not "make fence an agent." The target is:
 
@@ -73,7 +72,7 @@ Deterministic codenuke code owns:
 - mutation site discovery, sampling, replay, and Wilson lower-bound math
 - `.codenuke/fence-fidelity.json`, calibration, value-proxy, and result rows
 - test, typecheck, artifact validation, and keep/revert gates
-- trusted-repo warnings for configured shell commands
+- trusted-repo warnings for configured external argv commands
 
 Codex SDK proposer owns:
 
@@ -109,12 +108,16 @@ export interface ProposerRequest {
 
 export interface ProposerResult {
   readonly ok: boolean;
-  readonly provider: "shell" | "codex-cli" | "codex-sdk";
+  readonly provider: "codex-cli" | "codex-sdk";
   readonly threadId?: string;
   readonly summary?: string;
-  readonly output?: string;
+  readonly out: string;
   readonly timedOut?: boolean;
   readonly error?: string;
+  readonly usage?: Usage | null;
+  readonly elapsedMs?: number;
+  readonly commandEvents?: readonly CommandExecutionItem[];
+  readonly fileChanges?: readonly FileChangeItem[];
 }
 
 export interface ProposerAdapter {
@@ -122,25 +125,23 @@ export interface ProposerAdapter {
 }
 ```
 
-Keep three adapters during migration:
+Keep two adapters during migration:
 
 ```text
-ShellProposerAdapter     CN_PROPOSER trusted shell string
-CodexCliProposerAdapter  current codex exec substrate behavior
+CodexCliProposerAdapter  temporary CN_CODEX_PROVIDER=cli rollback
 CodexSdkProposerAdapter  new @openai/codex-sdk behavior
 ```
 
 Selection should be explicit:
 
 ```text
-CN_PROPOSER              use shell adapter
 CN_CODEX_PROVIDER=cli    use Codex CLI adapter
 CN_CODEX_PROVIDER=sdk    use Codex SDK adapter
-default                  keep current Codex CLI adapter until the SDK path is proven
+default                  use Codex SDK adapter
 ```
 
-Do not remove the shell adapter. It is a documented trusted escape hatch and is
-useful for tests, local experiments, and non-Codex proposer implementations.
+`CN_PROPOSER` is intentionally rejected. Tests and local experiments should use
+the in-process proposer adapter boundary instead of reintroducing shell strings.
 
 ## Thread State
 
@@ -285,14 +286,15 @@ reporter and assert important events without depending on every line of prose.
    fields and show a capped survivor preview for blocked regions.
 
 3. Extract proposer adapter.
-   Move the current `runProposer` behavior behind `ProposerAdapter`. Preserve
-   `CN_PROPOSER` behavior exactly and keep the current Codex CLI path as the
-   default.
+   Move `runProposer` behavior behind `ProposerAdapter`. Reject `CN_PROPOSER`
+   shell strings and keep the direct Codex CLI path only behind
+   `CN_CODEX_PROVIDER=cli`.
 
-4. Add Codex SDK adapter behind an opt-in flag.
+4. Make the Codex SDK adapter the default.
    Add the SDK dependency only when the packaging and runtime surface are clear.
-   The adapter should start or resume a thread, run one prompt, and return a
-   typed result. It should not score, stage, commit, or clean paths.
+   The adapter should start or resume a thread, run one prompt with
+   `runStreamed()`, and return a typed result with usage and event telemetry. It
+   should not score, stage, commit, or clean paths.
 
 5. Persist SDK thread ids.
    Store thread ids per mode and region. Log whether a turn is new or resumed.
@@ -302,10 +304,10 @@ reporter and assert important events without depending on every line of prose.
    Print provider, mode, region, thread id, prompt path, and result summary
    around reduce and raise-fence proposer turns.
 
-7. Decide the default provider after dogfooding.
-   Switch the default from Codex CLI to Codex SDK only after local dogfood runs
-   prove equivalent keep/revert behavior and package smoke proves the SDK ships
-   cleanly.
+7. Report command and SDK cost.
+   Surface token usage, elapsed wall time, command counts, file changes,
+   timeout state, and budget exhaustion in loop output and result rows where
+   applicable.
 
 ## Acceptance Rules
 
@@ -319,8 +321,9 @@ The refactor is healthy only if these remain true:
   source tree.
 - Codex SDK success never bypasses source/test path guards.
 - Scorer behavior is unchanged for the same candidate tree and artifacts.
-- `CN_PROPOSER` remains a trusted shell-string escape hatch.
-- The Codex CLI adapter remains available until SDK dogfood has passed.
+- `CN_PROPOSER` shell strings remain rejected.
+- The Codex CLI adapter remains available only as `CN_CODEX_PROVIDER=cli`
+  rollback for one compatibility window.
 - Long-running proposer thread ids are observable in logs and persisted state.
 
 Stop and redesign if:

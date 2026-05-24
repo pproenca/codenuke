@@ -105,8 +105,18 @@ function script(root: string, name: string, contents: string): string {
   return write(root, `scripts/${name}.mjs`, contents);
 }
 
-function nodeCommand(path: string): string {
-  return `node ${JSON.stringify(path)}`;
+function nodeCommandEnv(
+  prefix: "CN_TEST" | "CN_TYPECHECK",
+  path: string,
+): Record<string, string> {
+  return {
+    [`${prefix}_FILE`]: process.execPath,
+    [`${prefix}_ARGS_JSON`]: JSON.stringify([path]),
+  };
+}
+
+function nodeCommandDisplay(path: string): string {
+  return `${process.execPath} ${path}`;
 }
 
 function readState(path: string): ScorerState {
@@ -186,8 +196,7 @@ function baseEnv(
     CN_WORKTREE: worktree,
     CN_STATE: join(root, ".codenuke/scorer.state.json"),
     CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
-    CN_TEST: nodeCommand(pass),
-    CN_TYPECHECK: "",
+    ...nodeCommandEnv("CN_TEST", pass),
     ...extra,
   };
 }
@@ -371,7 +380,7 @@ describe("runScorerCommand init lifecycle", () => {
       "typecheck-red.mjs",
       'console.log("src/index.ts(1,1): error TS2322: baseline"); process.exit(1);\n',
     );
-    const env = baseEnv(root, worktree, { CN_TYPECHECK: nodeCommand(typecheck) });
+    const env = baseEnv(root, worktree, nodeCommandEnv("CN_TYPECHECK", typecheck));
     const runScorerCommand = runtime("runScorerCommand");
 
     const result = await runScorerCommand(["init"], env, root);
@@ -398,14 +407,16 @@ describe("runScorerCommand init lifecycle", () => {
     commit(root, "baseline");
     const worktree = fixtureWorktree();
     const fail = script(root, "fail.mjs", "process.exit(1);\n");
-    const env = baseEnv(root, worktree, { CN_TEST: nodeCommand(fail) });
+    const env = baseEnv(root, worktree, nodeCommandEnv("CN_TEST", fail));
     const runScorerCommand = runtime("runScorerCommand");
 
     const result = await runScorerCommand(["init"], env, root);
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain(`baseline tests RED (cmd: ${nodeCommand(fail)}) — abort`);
+    expect(result.stdout).toContain(
+      `baseline tests RED (cmd: ${nodeCommandDisplay(fail)}) — abort`,
+    );
     expect(existsSync(env.CN_STATE!)).toBe(false);
     expect(existsSync(worktree)).toBe(false);
   });

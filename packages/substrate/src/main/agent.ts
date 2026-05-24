@@ -1,9 +1,7 @@
 /**
- * Proposer process management. Migrated from `legacy/codenuke/loop/agent-adapter.mjs`.
- * Spawns the proposer in its own detached process group so a timeout kills the whole
- * tree (SIGTERM → SIGKILL after 1s). The default codex path uses an arg-array (no
- * shell); `runShellGroup` is the explicit opt-in for an operator-configured
- * `CN_PROPOSER` command string (trusted config, per the trusted-repos-only decision).
+ * Codex CLI rollback process management. Spawns the child in its own detached
+ * process group so a timeout kills the whole tree (SIGTERM -> SIGKILL after 1s).
+ * This module never enables shell interpretation.
  *
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-046 (proposer isolation), RULE-047
  */
@@ -13,6 +11,9 @@ export interface ProcessResult {
   readonly ok: boolean;
   readonly out: string;
   readonly timedOut: boolean;
+  readonly elapsedMs: number;
+  readonly exitCode: number | null;
+  readonly signal: NodeJS.Signals | null;
 }
 
 export interface ProgressReporter {
@@ -22,7 +23,6 @@ export interface ProgressReporter {
 export interface ProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
-  readonly shell?: boolean;
   readonly timeout?: number;
   readonly input?: string;
   readonly progress?: ProgressReporter;
@@ -39,12 +39,12 @@ export function runProcessGroup(
   opts: ProcessOptions = {},
 ): Promise<ProcessResult> {
   return new Promise((resolve) => {
-    const label = opts.progressLabel ?? (opts.shell ? "shell command" : command);
+    const label = opts.progressLabel ?? command;
     const child = spawn(command, [...args], {
       cwd: opts.cwd,
       detached: true,
       env: opts.env ?? process.env,
-      shell: opts.shell ?? false,
+      shell: false,
       stdio: ["pipe", "pipe", "pipe"],
     });
     const out: Buffer[] = [];
@@ -86,9 +86,16 @@ export function runProcessGroup(
       clearTimeout(timer);
       clearInterval(heartbeat);
       opts.progress?.emit(`process error: ${label} ${String(error)}`);
-      resolve({ ok: false, out: String(error), timedOut: false });
+      resolve({
+        ok: false,
+        out: String(error),
+        timedOut: false,
+        elapsedMs: Date.now() - startedAt,
+        exitCode: null,
+        signal: null,
+      });
     });
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       done = true;
       clearTimeout(timer);
       clearInterval(heartbeat);
@@ -98,7 +105,14 @@ export function runProcessGroup(
       opts.progress?.emit(
         `process exit: ${label} status=${code === 0 && !timedOut ? "ok" : timedOut ? "timeout" : "failed"} elapsed=${Date.now() - startedAt}ms`,
       );
-      resolve({ ok: code === 0 && !timedOut, out: Buffer.concat(out).toString(), timedOut });
+      resolve({
+        ok: code === 0 && !timedOut,
+        out: Buffer.concat(out).toString(),
+        timedOut,
+        elapsedMs: Date.now() - startedAt,
+        exitCode: code,
+        signal,
+      });
     });
     if (opts.input != null) {
       child.stdin.end(opts.input);
@@ -107,14 +121,6 @@ export function runProcessGroup(
     }
   });
 }
-
-/** Opt-in shell path for an operator-configured `CN_PROPOSER` command string. */
-export const runShellGroup = (cmd: string, opts: ProcessOptions = {}): Promise<ProcessResult> =>
-  runProcessGroup(cmd, [], {
-    ...opts,
-    shell: true,
-    progressLabel: opts.progressLabel ?? "shell command",
-  });
 
 /** Build the `codex exec` CLI args from environment (sandbox, model, reasoning effort). */
 export function codexArgs(

@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { measure, type Files } from "@codenuke/measure";
 import { afterAll, describe, expect, it } from "vitest";
 import { runAutoloop, runDoctor } from "../main/runtime.js";
+import { nodeCommandEnv, scriptedProposerAdapter } from "./proposer-fixture.js";
 
 interface EngineState {
   readonly baselineSha: string;
@@ -61,10 +62,6 @@ function commit(root: string, message: string): string {
   git(root, ["add", "-A"]);
   git(root, ["commit", "-m", message]);
   return git(root, ["rev-parse", "--verify", "HEAD"]).trim();
-}
-
-function nodeCommand(path: string): string {
-  return `node ${JSON.stringify(path)}`;
 }
 
 function wilson(
@@ -186,8 +183,7 @@ function baseEnv(
     CN_STATE: join(root, ".codenuke/autoloop.state.json"),
     CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
     CN_RESULTS: join(root, ".codenuke/results.tsv"),
-    CN_TEST: nodeCommand(pass),
-    CN_TYPECHECK: "",
+    ...nodeCommandEnv("CN_TEST", pass),
     CN_PROGRAM: program,
     ...extra,
   };
@@ -209,8 +205,7 @@ describe("runAutoloop git baseline and path discovery contract", () => {
         CN_SRC: "src",
         CN_TARGET: "src/api",
         CN_REGIONS: "api",
-        CN_TEST: `${JSON.stringify(process.execPath)} ${JSON.stringify(testCommand)}`,
-        CN_TYPECHECK: "",
+        ...nodeCommandEnv("CN_TEST", testCommand),
         CN_CODEX_PROVIDER: "sdk",
       },
       root,
@@ -332,10 +327,11 @@ writeFileSync(${JSON.stringify("src/space name.ts")}, "export const spaced = 1;\
     const worktree = fixtureWorktree("codenuke-autoloop-diff-wt-");
     const env = baseEnv(root, worktree, {
       CN_BASE: baselineSha,
-      CN_PROPOSER: nodeCommand(proposer),
     });
 
-    const result = await runAutoloop(1, env, root);
+    const result = await runAutoloop(1, env, root, {
+      proposerAdapter: scriptedProposerAdapter(proposer),
+    });
 
     expect.soft(result.exitCode).toBe(0);
     expect.soft(result.stdout).toContain("line\nbreak.ts");

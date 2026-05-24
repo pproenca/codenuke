@@ -139,14 +139,14 @@ export const sourcePath = (srcDir: string): string => (srcDir === "." ? "." : sr
 export const filesFromGitLsTree = (output: string): string[] =>
   output.split("\0").filter((path) => path.length > 0 && isSourceFile(path));
 
-export function snapshotFromGitOutput(input: {
+export async function snapshotFromGitOutput(input: {
   readonly ref: string;
   readonly treeOutput: string;
-  readonly readFileAtRef: (ref: string, path: string) => string | null;
-}): Record<string, string> {
+  readonly readFileAtRef: (ref: string, path: string) => Promise<string | null>;
+}): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   for (const path of filesFromGitLsTree(input.treeOutput)) {
-    const content = input.readFileAtRef(input.ref, path);
+    const content = await input.readFileAtRef(input.ref, path);
     if (content !== null) {
       files[path] = content;
     }
@@ -154,18 +154,21 @@ export function snapshotFromGitOutput(input: {
   return files;
 }
 
-export function firstParentCommitPairs(input: {
+export async function firstParentCommitPairs(input: {
   readonly revListOutput: string;
-  readonly parentLineFor: (commit: string) => string;
-}): readonly { readonly parent: string; readonly commit: string }[] {
-  return input.revListOutput
+  readonly parentLineFor: (commit: string) => Promise<string>;
+}): Promise<readonly { readonly parent: string; readonly commit: string }[]> {
+  const commits = input.revListOutput
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean)
-    .flatMap((commit) => {
-      const parent = input.parentLineFor(commit).trim().split(/\s+/u)[1];
+    .filter(Boolean);
+  const pairs = await Promise.all(
+    commits.map(async (commit) => {
+      const parent = (await input.parentLineFor(commit)).trim().split(/\s+/u)[1];
       return parent ? [{ parent, commit }] : [];
-    });
+    }),
+  );
+  return pairs.flat();
 }
 
 export function createCalibrationArtifact(input: {
@@ -215,8 +218,8 @@ export function calibrationGitCommandPlan(input: {
   };
 }
 
-function readFileAtRef(repo: string, ref: string, path: string): string | null {
-  const result = tryRun(
+async function readFileAtRef(repo: string, ref: string, path: string): Promise<string | null> {
+  const result = await tryRun(
     "git",
     calibrationGitCommandPlan({ baseline: ref, srcDir: "." }).showAt(ref, path),
     {
@@ -237,8 +240,8 @@ export async function runCalibrateCommand(
     const config = loadConfig(env, cwd);
     const plan = calibrationGitCommandPlan({ baseline: config.baseline, srcDir: config.srcDir });
     options.reporter?.emit(`calibrate: listing commits from ${config.baseline}`);
-    const revListOutput = run("git", plan.listCommits, { cwd: config.repo });
-    const pairs = firstParentCommitPairs({
+    const revListOutput = await run("git", plan.listCommits, { cwd: config.repo });
+    const pairs = await firstParentCommitPairs({
       revListOutput,
       parentLineFor: (commit) => run("git", plan.parentLineFor(commit), { cwd: config.repo }),
     });
@@ -251,17 +254,17 @@ export async function runCalibrateCommand(
       if (sampled === 1 || sampled === pairs.length || sampled % 10 === 0) {
         options.reporter?.emit(`calibrate: measuring commit pair ${sampled}/${pairs.length}`);
       }
-      const parentFiles = run("git", plan.filesAt(parent), { cwd: config.repo });
-      const commitFiles = run("git", plan.filesAt(commit), { cwd: config.repo });
+      const parentFiles = await run("git", plan.filesAt(parent), { cwd: config.repo });
+      const commitFiles = await run("git", plan.filesAt(commit), { cwd: config.repo });
       const before = measure(
-        snapshotFromGitOutput({
+        await snapshotFromGitOutput({
           ref: parent,
           treeOutput: parentFiles,
           readFileAtRef: (ref, path) => readFileAtRef(config.repo, ref, path),
         }),
       );
       const after = measure(
-        snapshotFromGitOutput({
+        await snapshotFromGitOutput({
           ref: commit,
           treeOutput: commitFiles,
           readFileAtRef: (ref, path) => readFileAtRef(config.repo, ref, path),
@@ -274,7 +277,7 @@ export async function runCalibrateCommand(
     }
 
     const derived = deriveScales(deltas);
-    const baselineSha = run("git", plan.resolveBaseline, { cwd: config.repo }).trim();
+    const baselineSha = (await run("git", plan.resolveBaseline, { cwd: config.repo })).trim();
     const artifact = createCalibrationArtifact({
       baseline: config.baseline,
       baselineSha,

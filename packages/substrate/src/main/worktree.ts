@@ -18,8 +18,8 @@ import { dirname } from "node:path";
 import { run } from "@codenuke/exec";
 
 /** Append `path` to the worktree's git `info/exclude` (idempotent). */
-export function excludeWorktreeHelper(worktree: string, path: string): void {
-  const exclude = run("git", ["rev-parse", "--git-path", "info/exclude"], { cwd: worktree }).trim();
+export async function excludeWorktreeHelper(worktree: string, path: string): Promise<void> {
+  const exclude = (await run("git", ["rev-parse", "--git-path", "info/exclude"], { cwd: worktree })).trim();
   let current = "";
   try {
     current = readFileSync(exclude, "utf8");
@@ -68,7 +68,7 @@ const worktreeNodeModulesPaths = (repo: string): string[] => [
 ];
 
 /** Symlink the repo's node_modules (root + non-hoisted workspace) into a worktree. */
-export function linkWorktreeNodeModules(repo: string, worktree: string): void {
+export async function linkWorktreeNodeModules(repo: string, worktree: string): Promise<void> {
   for (const rel of worktreeNodeModulesPaths(repo)) {
     try {
       mkdirSync(dirname(`${worktree}/${rel}`), { recursive: true });
@@ -78,7 +78,7 @@ export function linkWorktreeNodeModules(repo: string, worktree: string): void {
     }
   }
   try {
-    excludeWorktreeHelper(worktree, "node_modules");
+    await excludeWorktreeHelper(worktree, "node_modules");
   } catch {
     /* exclude best-effort */
   }
@@ -96,11 +96,11 @@ export function unlinkWorktreeNodeModules(repo: string, worktree: string): void 
 }
 
 /** Remove a worktree and prune git's bookkeeping. */
-export function removeWorktree(repo: string, worktree: string): void {
+export async function removeWorktree(repo: string, worktree: string): Promise<void> {
   unlinkWorktreeNodeModules(repo, worktree);
   try {
-    run("git", ["worktree", "remove", "--force", worktree], { cwd: repo });
-    run("git", ["worktree", "prune"], { cwd: repo });
+    await run("git", ["worktree", "remove", "--force", worktree], { cwd: repo });
+    await run("git", ["worktree", "prune"], { cwd: repo });
   } catch (error) {
     if (existsSync(worktree)) {
       throw error;
@@ -109,16 +109,16 @@ export function removeWorktree(repo: string, worktree: string): void {
 }
 
 /** Reset a worktree to `ref` and optionally clean paths. Uses `@codenuke/exec` directly. */
-export function resetAndCleanWorktree(
+export async function resetAndCleanWorktree(
   worktree: string,
   options: { ref?: string; paths?: readonly string[]; all?: boolean } = {},
-): void {
-  run("git", ["-C", worktree, "reset", "--hard", options.ref ?? "HEAD"]);
+): Promise<void> {
+  await run("git", ["-C", worktree, "reset", "--hard", options.ref ?? "HEAD"]);
   for (const path of options.paths ?? []) {
-    run("git", ["-C", worktree, "clean", "-fdq", "--", path]);
+    await run("git", ["-C", worktree, "clean", "-fdq", "--", path]);
   }
   if (options.all) {
-    run("git", ["-C", worktree, "clean", "-fdq"]);
+    await run("git", ["-C", worktree, "clean", "-fdq"]);
   }
 }
 

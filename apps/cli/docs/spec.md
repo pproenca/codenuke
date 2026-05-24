@@ -17,7 +17,7 @@ The loop runs from the target repository root:
 
 1. Resolve config from environment, `codenuke.loop.json`, and auto-detection.
 2. Create an isolated git worktree at the configured baseline.
-3. Run the trusted proposer command in that worktree.
+3. Run the Codex SDK proposer in that worktree.
 4. Enforce the allowed edit surface.
 5. Run tests, optional typecheck, measurements, and fence checks.
 6. Keep the candidate only when gates pass and `loss < 0`; otherwise revert.
@@ -53,8 +53,39 @@ The scorer applies gates before value:
 
 If any gate fails, the candidate is rejected. If gates pass, `loss = risk - gain`; keep iff `loss < 0`.
 
+## Command Configuration
+
+Repo commands are argv specs:
+
+```ts
+type CommandSpec = {
+  readonly file: string;
+  readonly args?: readonly string[];
+  readonly timeoutMs?: number;
+  readonly env?: Record<string, string>;
+};
+```
+
+`testCommand`, `typeCheckCommand`, and the optional changecost implementer command
+use this shape in `codenuke.loop.json`. Environment overrides use
+`CN_TEST_FILE` / `CN_TEST_ARGS_JSON`, `CN_TYPECHECK_FILE` /
+`CN_TYPECHECK_ARGS_JSON`, and `CN_IMPLEMENTER_FILE` /
+`CN_IMPLEMENTER_ARGS_JSON`.
+
+Legacy `CN_TEST`, `CN_TYPECHECK`, `CN_PROPOSER`, and `CN_IMPLEMENTER` shell
+strings are rejected with migration errors. The Codex SDK proposer is the
+default; `CN_CODEX_PROVIDER=cli` remains a temporary rollback to the direct
+Codex CLI adapter.
+
 ## Trust Boundary
 
-codenuke is for trusted repositories. Engine-owned subprocess calls avoid shell interpolation where the command shape is owned by codenuke. User/repo configured commands are still trusted shell strings: `CN_PROPOSER`, `CN_IMPLEMENTER`, `CN_TEST`, `CN_TYPECHECK`, and command strings in `codenuke.loop.json`.
+codenuke is for trusted repositories. codenuke-owned git, test, typecheck,
+implementer, and package-manager commands run as argv arrays with
+`shell: false`. User/repo configured commands still execute external programs,
+but no longer pass through shell strings.
+
+The installed `@openai/codex-sdk@0.133.0` currently wraps the Codex CLI
+internally. codenuke no longer manages `codex exec` directly by default, but the
+SDK implementation may still spawn Codex until a native non-CLI transport exists.
 
 Use an outer sandbox before running against untrusted code.

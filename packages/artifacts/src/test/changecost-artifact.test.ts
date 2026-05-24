@@ -121,34 +121,34 @@ const updateResult = (
 ) =>
   artifact.results.map((result) => (result.id === id ? Object.assign({}, result, update) : result));
 
-function expectInvalid(artifact: unknown): void {
+async function expectInvalid(artifact: unknown): Promise<void> {
   const { dir, head } = makeRepo();
   writeFenceArtifact(dir, head);
   writeArtifact(dir, artifact);
-  const status = changeCostArtifactStatus(cfg(dir));
+  const status = await changeCostArtifactStatus(cfg(dir));
   expect(status.usable).toBe(false);
   expect(status.reason).toBe("invalid");
 }
 
 describe("changeCostArtifactStatus", () => {
-  it("is missing when .codenuke/changecost.json does not exist", () => {
+  it("is missing when .codenuke/changecost.json does not exist", async () => {
     const { dir } = makeRepo();
-    const status = changeCostArtifactStatus(cfg(dir));
+    const status = await changeCostArtifactStatus(cfg(dir));
     expect(status.artifact).toBeNull();
     expect(status.usable).toBe(false);
     expect(status.reason).toBe("missing");
   });
 
-  it("is usable for a schemaVersion 1 report whose derived values match", () => {
+  it("is usable for a schemaVersion 1 report whose derived values match", async () => {
     const { dir, head } = makeRepo();
     writeFenceArtifact(dir, head);
     writeArtifact(dir, validChangeCostArtifact());
-    const status = changeCostArtifactStatus(cfg(dir));
+    const status = await changeCostArtifactStatus(cfg(dir));
     expect(status.usable).toBe(true);
     expect(status.reason).toBeNull();
   });
 
-  it("accepts Vhat=null when no benchmark rows complete", () => {
+  it("accepts Vhat=null when no benchmark rows complete", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, {
       schemaVersion: 1,
@@ -162,12 +162,12 @@ describe("changeCostArtifactStatus", () => {
         { id: "tighten-gate", status: "not-done" },
       ],
     });
-    const status = changeCostArtifactStatus(cfg(dir));
+    const status = await changeCostArtifactStatus(cfg(dir));
     expect(status.usable).toBe(true);
     expect(status.reason).toBeNull();
   });
 
-  it("uses the runtime no-fence fallback verifyFrac of 1", () => {
+  it("uses the runtime no-fence fallback verifyFrac of 1", async () => {
     const { dir } = makeRepo();
     writeArtifact(dir, {
       schemaVersion: 1,
@@ -188,18 +188,18 @@ describe("changeCostArtifactStatus", () => {
         },
       ],
     });
-    const status = changeCostArtifactStatus(cfg(dir));
+    const status = await changeCostArtifactStatus(cfg(dir));
     expect(status.usable).toBe(true);
     expect(status.reason).toBeNull();
   });
 
-  it("rejects an otherwise valid unversioned report", () => {
+  it("rejects an otherwise valid unversioned report", async () => {
     const { schemaVersion: _schemaVersion, ...unversioned } = validChangeCostArtifact();
-    expectInvalid(unversioned);
+    await expectInvalid(unversioned);
   });
 
-  it("rejects malformed result rows", () => {
-    expectInvalid({
+  it("rejects malformed result rows", async () => {
+    await expectInvalid({
       ...validChangeCostArtifact(),
       results: [
         {
@@ -218,36 +218,36 @@ describe("changeCostArtifactStatus", () => {
     });
   });
 
-  it("rejects reports whose total does not match the number of results", () => {
-    expectInvalid({ ...validChangeCostArtifact(), total: 99 });
+  it("rejects reports whose total does not match the number of results", async () => {
+    await expectInvalid({ ...validChangeCostArtifact(), total: 99 });
   });
 
-  it("rejects reports whose Vhat is not the mean of done result costs", () => {
-    expectInvalid({ ...validChangeCostArtifact(), Vhat: 37 });
+  it("rejects reports whose Vhat is not the mean of done result costs", async () => {
+    await expectInvalid({ ...validChangeCostArtifact(), Vhat: 37 });
   });
 
-  it("rejects reports whose done count is not recomputed from done results", () => {
-    expectInvalid({ ...validChangeCostArtifact(), done: 3 });
+  it("rejects reports whose done count is not recomputed from done results", async () => {
+    await expectInvalid({ ...validChangeCostArtifact(), done: 3 });
   });
 
-  it("rejects done rows whose cost does not equal editTokens + beta * verifyFrac", () => {
+  it("rejects done rows whose cost does not equal editTokens + beta * verifyFrac", async () => {
     const artifact = validChangeCostArtifact();
-    expectInvalid({
+    await expectInvalid({
       ...artifact,
       results: updateResult(artifact, "add-parser", { cost: 31 }),
     });
   });
 
-  it("rejects done rows whose verifyFrac is not derived from the current fence", () => {
+  it("rejects done rows whose verifyFrac is not derived from the current fence", async () => {
     const artifact = validChangeCostArtifact();
-    expectInvalid({
+    await expectInvalid({
       ...artifact,
       Vhat: 32,
       results: updateResult(artifact, "add-parser", { verifyFrac: 0, cost: 18 }),
     });
   });
 
-  it("rejects invalid numeric beta, Vhat, and replay values", () => {
+  it("rejects invalid numeric beta, Vhat, and replay values", async () => {
     const artifact = validChangeCostArtifact();
     for (const invalid of [
       { ...artifact, beta: "60" },
@@ -256,13 +256,13 @@ describe("changeCostArtifactStatus", () => {
       { ...artifact, results: updateResult(artifact, "add-parser", { verifyFrac: 1.1 }) },
       { ...artifact, results: updateResult(artifact, "add-parser", { editTokens: 18.5 }) },
     ]) {
-      expectInvalid(invalid);
+      await expectInvalid(invalid);
     }
   });
 
-  it("rejects unknown result status values", () => {
+  it("rejects unknown result status values", async () => {
     const artifact = validChangeCostArtifact();
-    expectInvalid({
+    await expectInvalid({
       ...artifact,
       results: artifact.results.map((result) =>
         result.id === "wire-cache" ? Object.assign({}, result, { status: "skipped" }) : result,

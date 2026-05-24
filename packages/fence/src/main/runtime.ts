@@ -9,8 +9,8 @@
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { fenceArtifactStatus } from "@codenuke/artifacts";
 import { loadConfig, type Config } from "@codenuke/config";
-import { run } from "@codenuke/exec";
-import { linkWorktreeNodeModules, removeWorktree, runShellGroup } from "@codenuke/substrate";
+import { commandDisplay, run, tryRunCommand } from "@codenuke/exec";
+import { linkWorktreeNodeModules, removeWorktree } from "@codenuke/substrate";
 import {
   applyMutant,
   assertReplayBaselineGreen,
@@ -49,7 +49,7 @@ export type RuntimeEvent =
       readonly srcDir: string;
       readonly target: string;
       readonly regions: readonly string[];
-      readonly testCommand: string;
+  readonly testCommand: string;
       readonly worktree: string;
       readonly artifact: string;
       readonly cap: number;
@@ -208,17 +208,17 @@ async function runTests(
   reporter?: RuntimeReporter,
 ): Promise<TestStatus> {
   reporter?.emit({ type: "message", message: "  running test command" });
-  const result = await runShellGroup(config.testCommand, { cwd, env, timeout: TIMEOUT_MS });
+  const result = await tryRunCommand(config.testCommand, { cwd, env, timeout: TIMEOUT_MS });
   if (result.ok) {
     return "green";
   }
   return result.timedOut ? "timeout" : "fail";
 }
 
-function filesIn(config: Config, region: string, baselineSha: string): string[] {
+async function filesIn(config: Config, region: string, baselineSha: string): Promise<string[]> {
   const plan = fenceGitCommandPlan({ baseline: config.baseline, srcDir: config.srcDir, region });
   return filesFromGitLsTree(
-    run("git", plan.filesInRegion(baselineSha), {
+    await run("git", plan.filesInRegion(baselineSha), {
       cwd: config.repo,
     }),
   );
@@ -232,14 +232,14 @@ function readJson<T>(path: string, _shape?: (value: unknown) => value is T): T |
   }
 }
 
-function cleanup(config: Config, worktree: string): string | null {
-  removeWorktree(config.repo, worktree);
+async function cleanup(config: Config, worktree: string): Promise<string | null> {
+  await removeWorktree(config.repo, worktree);
   if (!existsSync(worktree)) {
     return null;
   }
   try {
     rmSync(worktree, { recursive: true, force: true });
-    run("git", ["worktree", "prune"], { cwd: config.repo });
+    await run("git", ["worktree", "prune"], { cwd: config.repo });
   } catch {
     /* surfaced by the existence check below */
   }
@@ -279,7 +279,7 @@ async function auditFence(
       total: 6,
       label: "resolving baseline",
     });
-    const baselineSha = run("git", auditPlan.resolveBaseline, { cwd: config.repo }).trim();
+    const baselineSha = (await run("git", auditPlan.resolveBaseline, { cwd: config.repo })).trim();
     recordEvent(out, options.reporter, {
       type: "audit-start",
       repo: config.repo,
@@ -288,7 +288,7 @@ async function auditFence(
       srcDir: config.srcDir,
       target: config.target,
       regions,
-      testCommand: config.testCommand,
+      testCommand: commandDisplay(config.testCommand),
       worktree,
       artifact: config.fenceArtifact,
       cap,
@@ -300,9 +300,9 @@ async function auditFence(
       total: 6,
       label: "creating isolated worktree",
     });
-    removeWorktree(config.repo, worktree);
-    run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
-    linkWorktreeNodeModules(config.repo, worktree);
+    await removeWorktree(config.repo, worktree);
+    await run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
+    await linkWorktreeNodeModules(config.repo, worktree);
     recordEvent(out, options.reporter, {
       type: "phase",
       index: 3,
@@ -315,7 +315,7 @@ async function auditFence(
       for (const message of red.stdout) {
         recordEvent(out, options.reporter, { type: "message", message });
       }
-      const cleanupFailure = cleanup(config, worktree);
+      const cleanupFailure = await cleanup(config, worktree);
       return {
         exitCode: red.exitCode,
         stdout: output(out),
@@ -332,7 +332,7 @@ async function auditFence(
     const filesByRegion: Record<string, { rel: string; text: string }[]> = {};
     for (const region of regions) {
       filesByRegion[region] = [];
-      for (const rel of filesIn(config, region, baselineSha)) {
+      for (const rel of await filesIn(config, region, baselineSha)) {
         try {
           filesByRegion[region].push({
             rel,
@@ -469,7 +469,7 @@ async function auditFence(
       artifact = mergeFilteredAuditArtifact(previousArtifact, artifact, filteredRegions);
       writeArtifact(config.fenceArtifact, artifact);
     }
-    const cleanupFailure = cleanup(config, worktree);
+    const cleanupFailure = await cleanup(config, worktree);
     if (cleanupFailure) {
       return { exitCode: 1, stdout: output(out), stderr: `${cleanupFailure}\n` };
     }
@@ -488,7 +488,7 @@ async function auditFence(
     }
     return { exitCode: 0, stdout: output(out) };
   } catch (error) {
-    const cleanupFailure = cleanup(config, worktree);
+    const cleanupFailure = await cleanup(config, worktree);
     const stderr = `${error instanceof Error ? error.message : String(error)}\n`;
     return {
       exitCode: 1,
@@ -511,7 +511,7 @@ async function replayFence(
   if (!region) {
     return { exitCode: 1, stdout: "", stderr: "usage: fence replay <region> [worktree]\n" };
   }
-  const status = fenceArtifactStatus(config);
+  const status = await fenceArtifactStatus(config);
   if (!status.usable || status.artifact?.schemaVersion !== 1) {
     return {
       exitCode: 1,
@@ -536,11 +536,20 @@ async function replayFence(
       total: 4,
       label: "checking replay baseline",
     });
+    const baselineSources = Object.fromEntries(
+      await Promise.all(
+        [...new Set((artifact.regions[region]?.survivorSpecs ?? []).map((spec) => spec.rel))].map(
+          async (rel) => [
+            rel,
+            await run("git", ["show", `${artifact.baselineSha}:${rel}`], { cwd: config.repo }),
+          ],
+        ),
+      ),
+    );
     assertReplaySourcesUnchanged({
       artifact,
       region,
-      readBaseline: (rel) =>
-        run("git", ["show", `${artifact.baselineSha}:${rel}`], { cwd: config.repo }),
+      readBaseline: (rel) => baselineSources[rel] ?? "",
       readWorktree: (rel) => readFileSync(safeWorktreePath(worktree, rel), "utf8"),
       worktreeRoot: worktree,
     });

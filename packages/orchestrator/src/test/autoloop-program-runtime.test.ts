@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { runAutoloop } from "../main/runtime.js";
+import { nodeCommandEnv, scriptedProposerAdapter } from "./proposer-fixture.js";
 
 const created: string[] = [];
 const Z95 = 1.96;
@@ -52,10 +53,6 @@ function commit(root: string, message: string): string {
   git(root, ["add", "-A"]);
   git(root, ["commit", "-m", message]);
   return git(root, ["rev-parse", "--verify", "HEAD"]).trim();
-}
-
-function nodeCommand(path: string): string {
-  return `node ${JSON.stringify(path)}`;
 }
 
 function wilson(
@@ -128,6 +125,7 @@ function setupReduceFixture(): {
   readonly root: string;
   readonly env: Record<string, string | undefined>;
   readonly proposerMarker: string;
+  readonly proposerAdapter: ReturnType<typeof scriptedProposerAdapter>;
 } {
   const root = fixtureRoot();
   const worktree = fixtureWorktree();
@@ -166,11 +164,10 @@ writeFileSync(marker, "called\\n");
       CN_STATE: join(root, ".codenuke/autoloop.state.json"),
       CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
       CN_RESULTS: join(root, ".codenuke/results.tsv"),
-      CN_TEST: nodeCommand(join(root, "scripts/test-command.mjs")),
-      CN_TYPECHECK: "",
+      ...nodeCommandEnv("CN_TEST", join(root, "scripts/test-command.mjs")),
       CN_PROGRAM: join(root, "missing-program.md"),
-      CN_PROPOSER: nodeCommand(proposerCommand),
     },
+    proposerAdapter: scriptedProposerAdapter(proposerCommand),
   };
 }
 
@@ -178,7 +175,9 @@ describe("runAutoloop reduce program contract", () => {
   it("fails closed before invoking the proposer when the reducer program file is missing", async () => {
     const fixture = setupReduceFixture();
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
 
     expect.soft(result.exitCode).toBe(1);
     expect.soft(result.stdout).toMatch(/program\.md.*missing|missing.*program\.md/u);
@@ -189,7 +188,9 @@ describe("runAutoloop reduce program contract", () => {
     const fixture = setupReduceFixture();
     writeFileSync(fixture.env.CN_PROGRAM!, "");
 
-    const result = await runAutoloop(1, fixture.env, fixture.root);
+    const result = await runAutoloop(1, fixture.env, fixture.root, {
+      proposerAdapter: fixture.proposerAdapter,
+    });
 
     expect.soft(result.exitCode).toBe(1);
     expect.soft(result.stdout).toMatch(/program\.md.*empty|empty.*program\.md/u);

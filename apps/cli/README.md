@@ -11,7 +11,7 @@ Requirements:
 - Node >= 22
 - git
 - a JavaScript or TypeScript target repo with a test command
-- the `codex` CLI by default, or another proposer command via `CN_PROPOSER`
+- `@openai/codex-sdk`, installed with the CLI package
 
 After publishing:
 
@@ -57,18 +57,35 @@ Common settings:
 | `srcDir`            | `CN_SRC`       | detected source directory          |
 | `target`            | `CN_TARGET`    | all detected source regions        |
 | `baseline`          | `CN_BASE`      | `HEAD`                             |
-| `testCommand`       | `CN_TEST`      | detected test runner               |
-| `typeCheckCommand`  | `CN_TYPECHECK` | detected `tsc`, otherwise disabled |
+| `testCommand`       | `CN_TEST_FILE` | detected test runner               |
+| `typeCheckCommand`  | `CN_TYPECHECK_FILE` | detected `tsc`, otherwise disabled |
 | `tag`               | `CN_TAG`       | `run`                              |
 | `fenceLB`           | `CN_FENCE_LB`  | `0.90`                             |
 | `proposerTimeoutMs` | `CN_TIMEOUT`   | `900000`                           |
 | `proposerBudgetUsd` | `CN_BUDGET`    | `8`                                |
 
-`CN_PROPOSER` replaces the default Codex proposer with a trusted shell command run in the isolated worktree.
+Command fields in `codenuke.loop.json` are argv specs, not shell strings:
+
+```json
+{
+  "testCommand": { "file": "pnpm", "args": ["test"] },
+  "typeCheckCommand": { "file": "pnpm", "args": ["typecheck"] }
+}
+```
+
+Environment overrides use `*_FILE` plus optional `*_ARGS_JSON`, for example
+`CN_TEST_FILE=pnpm` and `CN_TEST_ARGS_JSON='["test"]'`. Legacy `CN_TEST`,
+`CN_TYPECHECK`, `CN_PROPOSER`, and `CN_IMPLEMENTER` shell strings are rejected
+with migration errors.
+
+The Codex SDK proposer is the default. `CN_CODEX_PROVIDER=cli` is a temporary
+rollback to the direct Codex CLI adapter.
 
 ## Trust Boundary
 
-codenuke is intended for trusted repositories. Engine-owned git and process calls use argv-vector execution through the typed substrate, but repo/operator commands such as `CN_PROPOSER`, `CN_TEST`, `CN_TYPECHECK`, and commands from `codenuke.loop.json` remain trusted shell strings. Do not point codenuke at untrusted repositories without an outer sandbox.
+codenuke is intended for trusted repositories. codenuke-owned git, test, typecheck, implementer, and package-manager commands run as argv arrays with shell interpolation disabled. The loop still executes external tools from the repository and operator config, so do not point codenuke at untrusted repositories without an outer sandbox.
+
+The installed `@openai/codex-sdk@0.133.0` currently wraps the Codex CLI internally. codenuke no longer manages `codex exec` directly by default, but it cannot promise that no child process exists inside the SDK until the SDK provides a native non-CLI transport.
 
 ## Package Layout
 

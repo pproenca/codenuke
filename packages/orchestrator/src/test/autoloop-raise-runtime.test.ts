@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { runAutoloop } from "../main/runtime.js";
+import { nodeCommandEnv, scriptedProposerAdapter } from "./proposer-fixture.js";
 
 interface RuntimeResult {
   readonly exitCode: number;
@@ -70,10 +71,6 @@ function commit(root: string, message: string): string {
   git(root, ["add", "-A"]);
   git(root, ["commit", "-m", message]);
   return git(root, ["rev-parse", "--verify", "HEAD"]).trim();
-}
-
-function nodeCommand(path: string): string {
-  return `node ${JSON.stringify(path)}`;
 }
 
 function wilson(
@@ -222,6 +219,7 @@ function setupRaiseFixture(extra: {
   readonly env: Record<string, string | undefined>;
   readonly baselineSha: string;
   readonly source: string;
+  readonly proposerAdapter: ReturnType<typeof scriptedProposerAdapter>;
 } {
   const root = fixtureRoot();
   const worktree = fixtureWorktree();
@@ -259,12 +257,11 @@ function setupRaiseFixture(extra: {
       CN_STATE: join(root, ".codenuke/autoloop.state.json"),
       CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
       CN_RESULTS: join(root, ".codenuke/results.tsv"),
-      CN_TEST: nodeCommand(testCommand),
-      CN_TYPECHECK: "",
-      CN_PROPOSER: nodeCommand(proposerCommand),
+      ...nodeCommandEnv("CN_TEST", testCommand),
     },
     baselineSha,
     source,
+    proposerAdapter: scriptedProposerAdapter(proposerCommand),
   };
 }
 
@@ -279,7 +276,9 @@ async function runRaise(extra: {
   }
 > {
   const fixture = setupRaiseFixture(extra);
-  const result = await runAutoloop(1, fixture.env, fixture.root);
+  const result = await runAutoloop(1, fixture.env, fixture.root, {
+    proposerAdapter: fixture.proposerAdapter,
+  });
   return {
     ...result,
     root: fixture.root,

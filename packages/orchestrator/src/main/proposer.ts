@@ -1,10 +1,18 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { runCodexAgent, runShellGroup } from "@codenuke/substrate";
+import { runCodexAgent } from "@codenuke/substrate";
 import type { ProgressReporter } from "@codenuke/substrate";
-import type { CodexOptions, RunResult, ThreadOptions, TurnOptions } from "@openai/codex-sdk";
+import type {
+  CodexOptions,
+  CommandExecutionItem,
+  FileChangeItem,
+  RunStreamedResult,
+  ThreadOptions,
+  TurnOptions,
+  Usage,
+} from "@openai/codex-sdk";
 
 export type ProposerMode = "reduce" | "raise-fence";
-export type ProposerProvider = "shell" | "codex-cli" | "codex-sdk";
+export type ProposerProvider = "codex-cli" | "codex-sdk";
 
 export interface ProposerRequest {
   readonly mode: ProposerMode;
@@ -29,6 +37,10 @@ export interface ProposerResult {
   readonly threadId?: string;
   readonly summary?: string;
   readonly error?: string;
+  readonly usage?: Usage | null;
+  readonly elapsedMs?: number;
+  readonly commandEvents?: readonly CommandExecutionItem[];
+  readonly fileChanges?: readonly FileChangeItem[];
 }
 
 export interface ProposerAdapter {
@@ -38,7 +50,7 @@ export interface ProposerAdapter {
 
 interface CodexThreadLike {
   readonly id: string | null;
-  run(input: string, options?: TurnOptions): Promise<RunResult>;
+  runStreamed(input: string, options?: TurnOptions): Promise<RunStreamedResult>;
 }
 
 interface CodexClientLike {
@@ -140,45 +152,61 @@ async function runWithTimeout(
   thread: CodexThreadLike,
   prompt: string,
   timeoutMs: number,
-): Promise<{ readonly turn: RunResult; readonly timedOut: boolean }> {
+): Promise<{
+  readonly finalResponse: string;
+  readonly usage: Usage | null;
+  readonly commandEvents: readonly CommandExecutionItem[];
+  readonly fileChanges: readonly FileChangeItem[];
+  readonly timedOut: boolean;
+  readonly elapsedMs: number;
+}> {
   const controller = new AbortController();
   let timedOut = false;
+  const startedAt = Date.now();
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
   }, timeoutMs);
   timer.unref();
   try {
+    const commandEvents: CommandExecutionItem[] = [];
+    const fileChanges: FileChangeItem[] = [];
+    let finalResponse = "";
+    let usage: Usage | null = null;
+    const streamed = await thread.runStreamed(prompt, { signal: controller.signal });
+    for await (const event of streamed.events) {
+      if (
+        event.type === "item.completed" &&
+        event.item.type === "command_execution"
+      ) {
+        commandEvents.push(event.item);
+      }
+      if (event.type === "item.completed" && event.item.type === "file_change") {
+        fileChanges.push(event.item);
+      }
+      if (event.type === "item.completed" && event.item.type === "agent_message") {
+        finalResponse = event.item.text;
+      }
+      if (event.type === "turn.completed") {
+        usage = event.usage;
+      }
+      if (event.type === "turn.failed") {
+        throw new Error(event.error.message);
+      }
+      if (event.type === "error") {
+        throw new Error(event.message);
+      }
+    }
     return {
-      turn: await thread.run(prompt, { signal: controller.signal }),
+      finalResponse,
+      usage,
+      commandEvents,
+      fileChanges,
       timedOut,
+      elapsedMs: Date.now() - startedAt,
     };
   } finally {
     clearTimeout(timer);
-  }
-}
-
-export class ShellProposerAdapter implements ProposerAdapter {
-  readonly provider = "shell" as const;
-
-  async propose(request: ProposerRequest): Promise<ProposerResult> {
-    const command = request.env.CN_PROPOSER;
-    if (!command) {
-      return {
-        ok: false,
-        out: "CN_PROPOSER is required for the shell proposer",
-        timedOut: false,
-        provider: this.provider,
-      };
-    }
-    const result = await runShellGroup(command, {
-      cwd: request.worktree,
-      timeout: request.timeoutMs,
-      env: proposerEnv(request),
-      progress: request.progress,
-      progressLabel: "shell proposer",
-    });
-    return { ...result, provider: this.provider };
   }
 }
 
@@ -195,7 +223,13 @@ export class CodexCliProposerAdapter implements ProposerAdapter {
       progress: request.progress,
       progressLabel: "codex proposer",
     });
-    return { ...result, provider: this.provider };
+    return {
+      ...result,
+      provider: this.provider,
+      elapsedMs: result.elapsedMs,
+      commandEvents: [],
+      fileChanges: [],
+    };
   }
 }
 
@@ -215,7 +249,8 @@ export class CodexSdkProposerAdapter implements ProposerAdapter {
       const thread = existing
         ? codex.resumeThread(existing, threadOptions(request))
         : codex.startThread(threadOptions(request));
-      const { turn, timedOut } = await runWithTimeout(thread, request.prompt, request.timeoutMs);
+      const { finalResponse, usage, commandEvents, fileChanges, timedOut, elapsedMs } =
+        await runWithTimeout(thread, request.prompt, request.timeoutMs);
       const threadId = thread.id ?? existing;
       if (threadId) {
         writeThreadState(request.repo, {
@@ -236,11 +271,15 @@ export class CodexSdkProposerAdapter implements ProposerAdapter {
       }
       return {
         ok: true,
-        out: turn.finalResponse,
+        out: finalResponse,
         timedOut,
         provider: this.provider,
         ...(threadId ? { threadId } : {}),
-        summary: turn.finalResponse.replace(/\s+/gu, " ").trim().slice(0, 200),
+        summary: finalResponse.replace(/\s+/gu, " ").trim().slice(0, 200),
+        usage,
+        elapsedMs,
+        commandEvents,
+        fileChanges,
       };
     } catch (error) {
       return {
@@ -250,6 +289,8 @@ export class CodexSdkProposerAdapter implements ProposerAdapter {
         provider: this.provider,
         ...(existing ? { threadId: existing } : {}),
         error: error instanceof Error ? error.message : String(error),
+        commandEvents: [],
+        fileChanges: [],
       };
     }
   }
@@ -265,14 +306,14 @@ export function proposerEnv(request: ProposerRequest): NodeJS.ProcessEnv {
 
 export function selectProposerAdapter(env: NodeJS.ProcessEnv): ProposerAdapter {
   if (env.CN_PROPOSER) {
-    return new ShellProposerAdapter();
+    throw new Error("CN_PROPOSER no longer accepts shell strings; use the default Codex SDK proposer");
   }
   const provider = env.CN_CODEX_PROVIDER?.trim();
-  if (provider == null || provider === "" || provider === "cli") {
+  if (provider === "cli") {
     return new CodexCliProposerAdapter();
   }
-  if (provider === "sdk") {
+  if (provider == null || provider === "" || provider === "sdk") {
     return new CodexSdkProposerAdapter();
   }
-  return new CodexCliProposerAdapter();
+  return new CodexSdkProposerAdapter();
 }

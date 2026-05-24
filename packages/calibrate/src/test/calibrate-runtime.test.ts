@@ -40,12 +40,12 @@ interface RuntimeApi {
   readonly snapshotFromGitOutput: (input: {
     readonly ref: string;
     readonly treeOutput: string;
-    readonly readFileAtRef: (ref: string, path: string) => string | null;
-  }) => Record<string, string>;
+    readonly readFileAtRef: (ref: string, path: string) => Promise<string | null>;
+  }) => Promise<Record<string, string>>;
   readonly firstParentCommitPairs: (input: {
     readonly revListOutput: string;
-    readonly parentLineFor: (commit: string) => string;
-  }) => readonly { readonly parent: string; readonly commit: string }[];
+    readonly parentLineFor: (commit: string) => Promise<string>;
+  }) => Promise<readonly { readonly parent: string; readonly commit: string }[]>;
   readonly createCalibrationArtifact: (input: {
     readonly baseline: string;
     readonly baselineSha: string;
@@ -159,16 +159,16 @@ describe("calibrate runtime source discovery", () => {
     ]);
   });
 
-  it("creates snapshots by reading only filtered source files at the requested ref", () => {
+  it("creates snapshots by reading only filtered source files at the requested ref", async () => {
     const snapshotFromGitOutput = runtime("snapshotFromGitOutput");
     const reads: { ref: string; path: string }[] = [];
 
-    const snapshot = snapshotFromGitOutput({
+    const snapshot = await snapshotFromGitOutput({
       ref: "abc123",
       treeOutput: ["src/index.ts", "src/index.test.ts", "src/-dash.ts", "src/missing.ts", ""].join(
         "\0",
       ),
-      readFileAtRef(ref, path) {
+      async readFileAtRef(ref, path) {
         reads.push({ ref, path });
         return path === "src/missing.ts" ? null : `content:${ref}:${path}`;
       },
@@ -187,13 +187,13 @@ describe("calibrate runtime source discovery", () => {
 });
 
 describe("calibrate runtime commit extraction and artifacts", () => {
-  it("extracts first-parent commit pairs and skips root commits", () => {
+  it("extracts first-parent commit pairs and skips root commits", async () => {
     const firstParentCommitPairs = runtime("firstParentCommitPairs");
 
     expect(
-      firstParentCommitPairs({
+      await firstParentCommitPairs({
         revListOutput: ["merge", "feature", "root", ""].join("\n"),
-        parentLineFor(commit) {
+        async parentLineFor(commit) {
           return {
             merge: "merge first-parent second-parent",
             feature: "feature parent-of-feature",

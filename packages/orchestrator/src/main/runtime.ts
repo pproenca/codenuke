@@ -24,7 +24,8 @@ import {
   type ValueProxyStatus,
 } from "@codenuke/artifacts";
 import { loadConfig, regionOf, slug, type Config } from "@codenuke/config";
-import { commandAvailable, run, tryRun } from "@codenuke/exec";
+import { commandAvailable, commandDisplay, run, tryRun, tryRunCommand } from "@codenuke/exec";
+import type { CommandSpec } from "@codenuke/exec";
 import { runFenceCommand, textReporter } from "@codenuke/fence/runtime";
 import { measure, type Files, type Measurement } from "@codenuke/measure";
 import { decide, type CalibrationScales, type Verdict } from "@codenuke/scorer";
@@ -34,7 +35,6 @@ import {
   linkWorktreeNodeModules,
   removeWorktree,
   resetAndCleanWorktree,
-  runShellGroup,
   unlinkWorktreeNodeModules,
   type ProgressReporter,
 } from "@codenuke/substrate";
@@ -52,12 +52,18 @@ import {
   runStartupFailure,
   selectMode,
 } from "./orchestrator.js";
-import { selectProposerAdapter, type ProposerMode, type ProposerResult } from "./proposer.js";
+import {
+  selectProposerAdapter,
+  type ProposerAdapter,
+  type ProposerMode,
+  type ProposerResult,
+} from "./proposer.js";
 
 type Env = Record<string, string | undefined>;
 
 interface CommandOptions {
   readonly reporter?: ProgressReporter;
+  readonly proposerAdapter?: ProposerAdapter;
 }
 
 interface CommandResult {
@@ -102,15 +108,15 @@ function recordLine(out: string[], reporter: ProgressReporter | undefined, line 
 }
 
 const shellOk = async (
-  cmd: string,
+  cmd: CommandSpec,
   cwd: string,
   env: NodeJS.ProcessEnv,
   timeout = COMMAND_TIMEOUT,
   reporter?: ProgressReporter,
-  label = "shell command",
+  label = commandDisplay(cmd),
 ): Promise<boolean> =>
   (
-    await runShellGroup(cmd, {
+    await tryRunCommand(cmd, {
       cwd,
       env,
       timeout,
@@ -150,21 +156,27 @@ function readState(path: string): EngineState {
 const writeState = (path: string, state: EngineState): void =>
   writeFileSync(path, JSON.stringify(state, null, 2));
 
-const resolveBaselineSha = (config: Config, env: NodeJS.ProcessEnv): string =>
-  run("git", ["rev-parse", "--verify", "--end-of-options", `${config.baseline}^{commit}`], {
+const resolveBaselineSha = async (config: Config, env: NodeJS.ProcessEnv): Promise<string> =>
+  (await run("git", ["rev-parse", "--verify", "--end-of-options", `${config.baseline}^{commit}`], {
     cwd: config.repo,
     env,
-  }).trim();
+  })).trim();
 
-function assertStateBaselineSha(config: Config, env: NodeJS.ProcessEnv, state: EngineState): void {
+async function assertStateBaselineSha(
+  config: Config,
+  env: NodeJS.ProcessEnv,
+  state: EngineState,
+): Promise<void> {
   try {
-    const resolved = run(
+    const resolved = (
+      await run(
       "git",
       ["rev-parse", "--verify", "--end-of-options", `${state.baselineSha}^{commit}`],
       {
         cwd: config.repo,
         env,
       },
+      )
     ).trim();
     if (resolved !== state.baselineSha) {
       throw new Error("baselineSha resolved to a different commit");
@@ -212,7 +224,7 @@ async function isolatedChecks(
   typecheckOk: boolean;
 }> {
   const worktree = `${config.worktree}-doctor-${slug(Date.now())}`;
-  const resolved = tryRun("git", ["rev-parse", "--verify", "--end-of-options", config.baseline], {
+  const resolved = await tryRun("git", ["rev-parse", "--verify", "--end-of-options", config.baseline], {
     cwd: config.repo,
     env,
   });
@@ -222,9 +234,9 @@ async function isolatedChecks(
   const baselineSha = resolved.out.trim();
   try {
     reporter?.emit(`doctor: checking baseline worktree ${baselineSha.slice(0, 12)}`);
-    removeWorktree(config.repo, worktree);
-    run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
-    linkWorktreeNodeModules(config.repo, worktree);
+    await removeWorktree(config.repo, worktree);
+    await run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
+    await linkWorktreeNodeModules(config.repo, worktree);
     reporter?.emit("doctor: running test command");
     const baselineGreen = await shellOk(
       config.testCommand,
@@ -249,7 +261,7 @@ async function isolatedChecks(
   } catch {
     return { baselineExists: true, baselineGreen: false, typecheckOk: false };
   } finally {
-    removeWorktree(config.repo, worktree);
+    await removeWorktree(config.repo, worktree);
   }
 }
 
@@ -263,13 +275,12 @@ export async function runDoctor(
   const config = loadConfig(env, cwd);
   const isolated = await isolatedChecks(config, env as NodeJS.ProcessEnv, options.reporter);
   options.reporter?.emit("doctor: checking artifacts and proposer");
-  const fenceStatus = fenceArtifactStatus(config);
-  const calibrationStatus = calibrationArtifactStatus(config);
+  const fenceStatus = await fenceArtifactStatus(config);
+  const calibrationStatus = await calibrationArtifactStatus(config);
   const proposerProvider = selectProposerAdapter(env as NodeJS.ProcessEnv).provider;
   const proposerAvailable =
-    proposerProvider === "shell" ||
     proposerProvider === "codex-sdk" ||
-    commandAvailable("codex", { cwd: config.repo, env, timeout: 5000 });
+    (await commandAvailable("codex", { cwd: config.repo, env, timeout: 5000 }));
   const checks = {
     baseline: config.baseline,
     ...isolated,
@@ -283,8 +294,8 @@ export async function runDoctor(
     baseline: config.baseline,
     srcDir: config.srcDir,
     regions: config.regions,
-    testCommand: config.testCommand,
-    typeCheckCommand: config.typeCheckCommand,
+    testCommand: commandDisplay(config.testCommand),
+    typeCheckCommand: config.typeCheckCommand ? commandDisplay(config.typeCheckCommand) : null,
     checks,
     fenceArtifact: config.fenceArtifact,
     calibrationArtifact: `${config.repo}/.codenuke/calibration.json`,
@@ -298,18 +309,19 @@ export async function runDoctor(
   };
 }
 
-function targetL(config: Config, ref: string): number {
-  const files = run("git", ["ls-tree", "-r", "-z", "--name-only", ref, "--", config.target], {
+async function targetL(config: Config, ref: string): Promise<number> {
+  const files = (await run("git", ["ls-tree", "-r", "-z", "--name-only", ref, "--", config.target], {
     cwd: config.worktree,
-  })
+  }))
     .split("\0")
     .filter((value) => value.length > 0 && isAllowedReducePath(value, config.srcDir));
-  const map: Files = Object.fromEntries(
-    files.flatMap((file) => {
-      const shown = tryRun("git", ["show", `${ref}:${file}`], { cwd: config.worktree });
+  const entries = await Promise.all(
+    files.map(async (file) => {
+      const shown = await tryRun("git", ["show", `${ref}:${file}`], { cwd: config.worktree });
       return shown.ok ? [[file, shown.out]] : [];
     }),
   );
+  const map: Files = Object.fromEntries(entries.flat());
   return measure(map).L;
 }
 
@@ -321,7 +333,7 @@ async function typeErrors(
   if (!config.typeCheckCommand) {
     return 0;
   }
-  const result = await runShellGroup(config.typeCheckCommand, {
+  const result = await tryRunCommand(config.typeCheckCommand, {
     cwd: config.worktree,
     env,
     timeout: COMMAND_TIMEOUT,
@@ -345,9 +357,9 @@ async function initializeWorktree(
     return;
   }
   recordLine(out, reporter, `initializing worktree @ ${config.baseline}...`);
-  removeWorktree(config.repo, config.worktree);
-  run("git", ["worktree", "add", "-f", config.worktree, baselineSha], { cwd: config.repo, env });
-  linkWorktreeNodeModules(config.repo, config.worktree);
+  await removeWorktree(config.repo, config.worktree);
+  await run("git", ["worktree", "add", "-f", config.worktree, baselineSha], { cwd: config.repo, env });
+  await linkWorktreeNodeModules(config.repo, config.worktree);
   const green = await shellOk(
     config.testCommand,
     config.worktree,
@@ -358,32 +370,32 @@ async function initializeWorktree(
   );
   const baselineTsc = await typeErrors(config, env, reporter);
   if (!green) {
-    removeWorktree(config.repo, config.worktree);
-    throw new Error(`baseline tests RED (cmd: ${config.testCommand}) — abort`);
+    await removeWorktree(config.repo, config.worktree);
+    throw new Error(`baseline tests RED (cmd: ${commandDisplay(config.testCommand)}) — abort`);
   }
-  const startL = targetL(config, baselineSha);
+  const startL = await targetL(config, baselineSha);
   writeState(config.state, { baselineSha, baselineTsc, startL, accepted: [], iter: 0 });
-  tryRun("git", ["checkout", "-B", config.branch], { cwd: config.worktree, env });
+  await tryRun("git", ["checkout", "-B", config.branch], { cwd: config.worktree, env });
   recordLine(out, reporter, `trajectory branch: ${config.branch}`);
 }
 
-function changedSource(config: Config): string[] {
-  return run("git", ["diff", "-z", "--name-only", "HEAD", "--", config.srcDir], {
+async function changedSource(config: Config): Promise<string[]> {
+  return (await run("git", ["diff", "-z", "--name-only", "HEAD", "--", config.srcDir], {
     cwd: config.worktree,
-  })
+  }))
     .split("\0")
     .filter((value) => value.length > 0 && isAllowedReducePath(value, config.srcDir));
 }
 
-function changedMeasurement(
+async function changedMeasurement(
   config: Config,
   changed: readonly string[],
   ref: "HEAD" | "worktree",
-): Measurement {
-  const map: Files = Object.fromEntries(
-    changed.map((file) => {
+): Promise<Measurement> {
+  const entries = await Promise.all(
+    changed.map(async (file) => {
       if (ref === "HEAD") {
-        const shown = tryRun("git", ["show", `HEAD:${file}`], { cwd: config.worktree });
+        const shown = await tryRun("git", ["show", `HEAD:${file}`], { cwd: config.worktree });
         return [file, shown.ok ? shown.out : ""];
       }
       return [
@@ -394,11 +406,12 @@ function changedMeasurement(
       ];
     }),
   );
+  const map: Files = Object.fromEntries(entries);
   return measure(map);
 }
 
-function diffSize(config: Config): number {
-  const out = run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], {
+async function diffSize(config: Config): Promise<number> {
+  const out = await run("git", ["diff", "--shortstat", "HEAD", "--", config.srcDir], {
     cwd: config.worktree,
   });
   return Number(out.match(/(\d+) insert/u)?.[1] ?? 0) + Number(out.match(/(\d+) delet/u)?.[1] ?? 0);
@@ -410,14 +423,14 @@ async function scoreCandidate(
   state: EngineState,
   reporter?: ProgressReporter,
 ): Promise<ScoreResult | null> {
-  const changed = changedSource(config);
+  const changed = await changedSource(config);
   if (changed.length === 0) {
     return null;
   }
-  const before = changedMeasurement(config, changed, "HEAD");
-  const after = changedMeasurement(config, changed, "worktree");
+  const before = await changedMeasurement(config, changed, "HEAD");
+  const after = await changedMeasurement(config, changed, "worktree");
   const pinnedConfig = artifactConfig(config, state);
-  const fenceStatus = fenceArtifactStatus(pinnedConfig);
+  const fenceStatus = await fenceArtifactStatus(pinnedConfig);
   const fence = fenceStatus.usable ? fenceStatus.artifact : null;
   const touched = [...new Set(changed.map((path) => regionOf(path, config.srcDir)))];
   const fenceRegions = (fence?.regions ?? {}) as Record<
@@ -425,7 +438,7 @@ async function scoreCandidate(
     { admissible?: boolean; p?: number } | undefined
   >;
   const blocked = touched.filter((region) => fenceRegions[region]?.admissible !== true);
-  const calibration = calibrationArtifactStatus(pinnedConfig);
+  const calibration = await calibrationArtifactStatus(pinnedConfig);
   const scales = calibration.usable
     ? ((calibration.artifact?.scales ?? null) as CalibrationScales | null)
     : null;
@@ -443,7 +456,7 @@ async function scoreCandidate(
     fenceUsable: fenceStatus.usable,
     blockedRegions: blocked,
     touchedFidelities: touched.map((region) => fenceRegions[region]?.p ?? 0),
-    diffsize: diffSize(config),
+    diffsize: await diffSize(config),
     typeErrors: await typeErrors(config, env, reporter),
     baselineTypeErrors: state.baselineTsc,
     weights: config.weights,
@@ -473,32 +486,32 @@ function hideBenchmark(config: Config, benchmarkRel: string, benchmarkInsideRepo
   }
 }
 
-function restoreBenchmark(
+async function restoreBenchmark(
   config: Config,
   benchmarkRel: string,
   benchmarkInsideRepo: boolean,
   env: NodeJS.ProcessEnv,
-): void {
+): Promise<void> {
   if (benchmarkInsideRepo) {
-    const restored = tryRun("git", ["restore", "--staged", "--worktree", "--", benchmarkRel], {
+    const restored = await tryRun("git", ["restore", "--staged", "--worktree", "--", benchmarkRel], {
       cwd: config.worktree,
       env,
     });
     if (!restored.ok) {
-      tryRun("git", ["checkout", "HEAD", "--", benchmarkRel], { cwd: config.worktree, env });
+      await tryRun("git", ["checkout", "HEAD", "--", benchmarkRel], { cwd: config.worktree, env });
     }
   }
 }
 
-function restoreRuntimeDeps(config: Config): void {
+async function restoreRuntimeDeps(config: Config): Promise<void> {
   unlinkWorktreeNodeModules(config.repo, config.worktree);
-  linkWorktreeNodeModules(config.repo, config.worktree);
+  await linkWorktreeNodeModules(config.repo, config.worktree);
 }
 
-function dirtyPaths(config: Config, benchmarkRel: string, benchmarkInsideRepo: boolean): string[] {
-  const fields = tryRun("git", ["status", "--porcelain=v1", "-z", "-uall"], {
+async function dirtyPaths(config: Config, benchmarkRel: string, benchmarkInsideRepo: boolean): Promise<string[]> {
+  const fields = (await tryRun("git", ["status", "--porcelain=v1", "-z", "-uall"], {
     cwd: config.worktree,
-  })
+  }))
     .out.split("\0")
     .filter(Boolean);
   const paths: string[] = [];
@@ -525,26 +538,26 @@ function dirtyPaths(config: Config, benchmarkRel: string, benchmarkInsideRepo: b
   return paths;
 }
 
-function dirtyPathsAfterProposer(
+async function dirtyPathsAfterProposer(
   config: Config,
   benchmarkRel: string,
   benchmarkInsideRepo: boolean,
-): string[] {
-  const paths = dirtyPaths(config, benchmarkRel, benchmarkInsideRepo);
+): Promise<string[]> {
+  const paths = await dirtyPaths(config, benchmarkRel, benchmarkInsideRepo);
   if (existsSync(`${config.worktree}/node_modules`)) {
     paths.push("node_modules");
   }
   return [...new Set(paths)];
 }
 
-function cleanPaths(config: Config, paths: readonly string[]): void {
+async function cleanPaths(config: Config, paths: readonly string[]): Promise<void> {
   const cleanRoots = [...new Set([config.srcDir, ...config.testLayout.roots, ...paths])];
-  resetAndCleanWorktree(config.worktree, { paths: cleanRoots });
+  await resetAndCleanWorktree(config.worktree, { paths: cleanRoots });
 }
 
-function discardTipCommit(config: Config): void {
+async function discardTipCommit(config: Config): Promise<void> {
   const cleanRoots = [...new Set([config.srcDir, ...config.testLayout.roots])];
-  resetAndCleanWorktree(config.worktree, { ref: "HEAD~1", paths: cleanRoots });
+  await resetAndCleanWorktree(config.worktree, { ref: "HEAD~1", paths: cleanRoots });
 }
 
 function compactProcessOutput(result: {
@@ -570,6 +583,7 @@ function readReducerProgram(config: Config): string {
 }
 
 async function runProposer(
+  adapter: ProposerAdapter,
   config: Config,
   env: NodeJS.ProcessEnv,
   prompt: string,
@@ -578,7 +592,7 @@ async function runProposer(
   reporter?: ProgressReporter,
 ): Promise<ProposerResult> {
   const target = regionTarget(config, regionKey);
-  return selectProposerAdapter(env).propose({
+  return adapter.propose({
     mode,
     prompt,
     promptFile: config.promptFile,
@@ -614,7 +628,10 @@ function proposerStatusLine(input: {
 }
 
 function proposerResultLine(result: ProposerResult): string {
-  return `  proposer result: provider=${result.provider} status=${result.ok ? "ok" : "failed"}${result.threadId ? ` thread=${result.threadId}` : ""}${result.summary ? ` summary=${result.summary}` : ""}`;
+  const usage = result.usage
+    ? ` tokens=input:${result.usage.input_tokens}/cached:${result.usage.cached_input_tokens}/output:${result.usage.output_tokens}/reasoning:${result.usage.reasoning_output_tokens}`
+    : "";
+  return `  proposer result: provider=${result.provider} status=${result.ok ? "ok" : "failed"}${result.threadId ? ` thread=${result.threadId}` : ""}${result.elapsedMs != null ? ` elapsed=${result.elapsedMs}ms` : ""}${result.commandEvents?.length ? ` commands=${result.commandEvents.length}` : ""}${result.fileChanges?.length ? ` fileChanges=${result.fileChanges.length}` : ""}${usage}${result.summary ? ` summary=${result.summary}` : ""}`;
 }
 
 function logRow(
@@ -636,13 +653,14 @@ export async function runAutoloop(
 ): Promise<CommandResult> {
   const reporter = options.reporter;
   const config = loadConfig(env, cwd);
+  const proposerAdapter = options.proposerAdapter ?? selectProposerAdapter(env as NodeJS.ProcessEnv);
   const out: string[] = [];
   reporter?.emit("run: resolving startup state");
   let existingState: EngineState | null;
   try {
     existingState = existsSync(config.state) ? readState(config.state) : null;
     if (existingState) {
-      assertStateBaselineSha(config, env as NodeJS.ProcessEnv, existingState);
+      await assertStateBaselineSha(config, env as NodeJS.ProcessEnv, existingState);
     }
   } catch (error) {
     return { exitCode: 1, stdout: `${error instanceof Error ? error.message : String(error)}\n` };
@@ -650,7 +668,7 @@ export async function runAutoloop(
   let startupBaselineSha: string;
   try {
     startupBaselineSha =
-      existingState?.baselineSha ?? resolveBaselineSha(config, env as NodeJS.ProcessEnv);
+      existingState?.baselineSha ?? (await resolveBaselineSha(config, env as NodeJS.ProcessEnv));
   } catch {
     return { exitCode: 1, stdout: `baseline ${config.baseline} not found\n` };
   }
@@ -664,8 +682,8 @@ export async function runAutoloop(
       iter: 0,
     },
   );
-  const fenceStatus = fenceArtifactStatus(startupConfig);
-  const calibrationStatus = calibrationArtifactStatus(startupConfig);
+  const fenceStatus = await fenceArtifactStatus(startupConfig);
+  const calibrationStatus = await calibrationArtifactStatus(startupConfig);
   const valueProxyStatus = valueProxyValidationStatus(startupConfig);
   const fence = fenceStatus.artifact;
   const candidates = fence
@@ -708,14 +726,14 @@ export async function runAutoloop(
   recordLine(
     out,
     reporter,
-    `\n=== autoloop: ${iterations} iters, proposer=${selectProposerAdapter(env as NodeJS.ProcessEnv).provider}, regions=${config.regions.join(",") || config.region}, branch=${config.branch} ===`,
+    `\n=== autoloop: ${iterations} iters, proposer=${proposerAdapter.provider}, regions=${config.regions.join(",") || config.region}, branch=${config.branch} ===`,
   );
   let kept = 0;
   let raised = 0;
   const bench = benchmarkInfo(config);
   for (let i = 1; i <= iterations; i += 1) {
     const stateForArtifacts = existsSync(config.state) ? readState(config.state) : null;
-    const freshFenceStatus = fenceArtifactStatus(artifactConfig(config, stateForArtifacts));
+    const freshFenceStatus = await fenceArtifactStatus(artifactConfig(config, stateForArtifacts));
     const freshFence = freshFenceStatus.artifact;
     const regionMap = (freshFence?.regions ?? {}) as Record<string, FenceRegionRuntime | undefined>;
     const scoped = inScopeRegions(
@@ -759,13 +777,14 @@ export async function runAutoloop(
         out,
         reporter,
         proposerStatusLine({
-          provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
+          provider: proposerAdapter.provider,
           mode: "raise-fence",
           region: activeRegion,
           target: regionTarget(config, activeRegion),
         }),
       );
       const proposal = await runProposer(
+        proposerAdapter,
         config,
         env as NodeJS.ProcessEnv,
         raisePrompt(
@@ -784,14 +803,14 @@ export async function runAutoloop(
       recordLine(out, reporter, proposerResultLine(proposal));
       if (!proposal.ok) {
         const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
-        restoreBenchmark(
+        await restoreBenchmark(
           config,
           bench.benchmarkRel,
           bench.benchmarkInsideRepo,
           env as NodeJS.ProcessEnv,
         );
-        restoreRuntimeDeps(config);
-        cleanPaths(config, []);
+        await restoreRuntimeDeps(config);
+        await cleanPaths(config, []);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -805,20 +824,20 @@ export async function runAutoloop(
         });
         continue;
       }
-      const dirtyAfterRaise = dirtyPathsAfterProposer(
+      const dirtyAfterRaise = await dirtyPathsAfterProposer(
         config,
         bench.benchmarkRel,
         bench.benchmarkInsideRepo,
       );
       if (dirtyAfterRaise.length === 0) {
-        restoreBenchmark(
+        await restoreBenchmark(
           config,
           bench.benchmarkRel,
           bench.benchmarkInsideRepo,
           env as NodeJS.ProcessEnv,
         );
-        restoreRuntimeDeps(config);
-        cleanPaths(config, []);
+        await restoreRuntimeDeps(config);
+        await cleanPaths(config, []);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -836,14 +855,14 @@ export async function runAutoloop(
         (path) => !isAllowedRaisePath(path, config.testLayout.roots),
       );
       if (disallowed.length > 0) {
-        restoreBenchmark(
+        await restoreBenchmark(
           config,
           bench.benchmarkRel,
           bench.benchmarkInsideRepo,
           env as NodeJS.ProcessEnv,
         );
-        restoreRuntimeDeps(config);
-        cleanPaths(config, disallowed);
+        await restoreRuntimeDeps(config);
+        await cleanPaths(config, disallowed);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -858,13 +877,13 @@ export async function runAutoloop(
         continue;
       }
       const raisePaths = dirtyAfterRaise;
-      restoreBenchmark(
+      await restoreBenchmark(
         config,
         bench.benchmarkRel,
         bench.benchmarkInsideRepo,
         env as NodeJS.ProcessEnv,
       );
-      restoreRuntimeDeps(config);
+      await restoreRuntimeDeps(config);
       if (
         !(await shellOk(
           config.testCommand,
@@ -875,7 +894,7 @@ export async function runAutoloop(
           "test command",
         ))
       ) {
-        cleanPaths(config, []);
+        await cleanPaths(config, []);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -889,8 +908,8 @@ export async function runAutoloop(
         });
         continue;
       }
-      run("git", ["add", "-A", "--", ...raisePaths], { cwd: config.worktree, env });
-      run(
+      await run("git", ["add", "-A", "--", ...raisePaths], { cwd: config.worktree, env });
+      await run(
         "git",
         [
           "-c",
@@ -905,15 +924,15 @@ export async function runAutoloop(
         ],
         { cwd: config.worktree, env },
       );
-      const commit = run("git", ["rev-parse", "--short", "HEAD"], {
+      const commit = (await run("git", ["rev-parse", "--short", "HEAD"], {
         cwd: config.worktree,
         env,
-      }).trim();
+      })).trim();
       const replay = await runFenceCommand(["replay", activeRegion, config.worktree], env, cwd, {
         reporter: reporter ? textReporter((line) => reporter.emit(line)) : undefined,
       });
       if (replay.exitCode !== 0) {
-        discardTipCommit(config);
+        await discardTipCommit(config);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -928,7 +947,7 @@ export async function runAutoloop(
         continue;
       }
       const replayStateForArtifacts = existsSync(config.state) ? readState(config.state) : null;
-      const replayFenceStatus = fenceArtifactStatus(
+      const replayFenceStatus = await fenceArtifactStatus(
         artifactConfig(config, replayStateForArtifacts),
       );
       const replayRegion = (
@@ -938,7 +957,7 @@ export async function runAutoloop(
         >
       )[activeRegion];
       if (!replayRegion) {
-        discardTipCommit(config);
+        await discardTipCommit(config);
         logRow(config, out, reporter, {
           iter: i,
           commit: "-",
@@ -956,7 +975,7 @@ export async function runAutoloop(
       const status = (replayRegion.lo ?? 0) > loBefore + 1e-9 ? "raise" : "raise-nogain";
       const keptCommit = status === "raise";
       if (!keptCommit) {
-        discardTipCommit(config);
+        await discardTipCommit(config);
       }
       logRow(config, out, reporter, {
         iter: i,
@@ -978,13 +997,13 @@ export async function runAutoloop(
     try {
       program = readReducerProgram(config);
     } catch (error) {
-      restoreBenchmark(
+      await restoreBenchmark(
         config,
         bench.benchmarkRel,
         bench.benchmarkInsideRepo,
         env as NodeJS.ProcessEnv,
       );
-      restoreRuntimeDeps(config);
+      await restoreRuntimeDeps(config);
       return {
         exitCode: 1,
         stdout: lines([...out, error instanceof Error ? error.message : String(error)]),
@@ -994,13 +1013,14 @@ export async function runAutoloop(
       out,
       reporter,
       proposerStatusLine({
-        provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
+        provider: proposerAdapter.provider,
         mode: "reduce",
         region: activeRegion,
         target: regionTarget(config, activeRegion),
       }),
     );
     const proposal = await runProposer(
+      proposerAdapter,
       config,
       env as NodeJS.ProcessEnv,
       reducePrompt(regionTarget(config, activeRegion), program),
@@ -1011,14 +1031,14 @@ export async function runAutoloop(
     recordLine(out, reporter, proposerResultLine(proposal));
     if (!proposal.ok) {
       const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
-      restoreBenchmark(
+      await restoreBenchmark(
         config,
         bench.benchmarkRel,
         bench.benchmarkInsideRepo,
         env as NodeJS.ProcessEnv,
       );
-      restoreRuntimeDeps(config);
-      cleanPaths(config, []);
+      await restoreRuntimeDeps(config);
+      await cleanPaths(config, []);
       logRow(config, out, reporter, {
         iter: i,
         commit: "-",
@@ -1032,20 +1052,20 @@ export async function runAutoloop(
       });
       continue;
     }
-    const disallowed = dirtyPathsAfterProposer(
+    const disallowed = (await dirtyPathsAfterProposer(
       config,
       bench.benchmarkRel,
       bench.benchmarkInsideRepo,
-    ).filter((path) => !isAllowedReducePath(path, config.srcDir));
+    )).filter((path) => !isAllowedReducePath(path, config.srcDir));
     if (disallowed.length > 0) {
-      restoreBenchmark(
+      await restoreBenchmark(
         config,
         bench.benchmarkRel,
         bench.benchmarkInsideRepo,
         env as NodeJS.ProcessEnv,
       );
-      restoreRuntimeDeps(config);
-      cleanPaths(config, disallowed);
+      await restoreRuntimeDeps(config);
+      await cleanPaths(config, disallowed);
       logRow(config, out, reporter, {
         iter: i,
         commit: "-",
@@ -1059,17 +1079,17 @@ export async function runAutoloop(
       });
       continue;
     }
-    restoreBenchmark(
+    await restoreBenchmark(
       config,
       bench.benchmarkRel,
       bench.benchmarkInsideRepo,
       env as NodeJS.ProcessEnv,
     );
-    restoreRuntimeDeps(config);
+    await restoreRuntimeDeps(config);
     const state = readState(config.state);
     const score = await scoreCandidate(config, env as NodeJS.ProcessEnv, state, reporter);
     if (!score) {
-      cleanPaths(config, []);
+      await cleanPaths(config, []);
       logRow(config, out, reporter, {
         iter: i,
         commit: "-",
@@ -1085,8 +1105,8 @@ export async function runAutoloop(
     }
     const desc = `ΔAST=${score.dL} ${score.files.join(",")}`;
     if (score.keep) {
-      run("git", ["add", "-A", "--", ...changedSource(config)], { cwd: config.worktree, env });
-      run(
+      await run("git", ["add", "-A", "--", ...(await changedSource(config))], { cwd: config.worktree, env });
+      await run(
         "git",
         [
           "-c",
@@ -1101,10 +1121,10 @@ export async function runAutoloop(
         ],
         { cwd: config.worktree, env },
       );
-      const commit = run("git", ["rev-parse", "--short", "HEAD"], {
+      const commit = (await run("git", ["rev-parse", "--short", "HEAD"], {
         cwd: config.worktree,
         env,
-      }).trim();
+      })).trim();
       writeState(config.state, {
         ...state,
         iter: state.iter + 1,
@@ -1123,7 +1143,7 @@ export async function runAutoloop(
         description: desc,
       });
     } else {
-      cleanPaths(config, []);
+      await cleanPaths(config, []);
       logRow(config, out, reporter, {
         iter: i,
         commit: "-",
@@ -1141,10 +1161,10 @@ export async function runAutoloop(
   recordLine(out, reporter, `\n=== done: ${kept} kept, ${raised} fence-raises ===`);
   if (existsSync(config.state)) {
     const state = readState(config.state);
-    const headSha = run("git", ["rev-parse", "--verify", "--end-of-options", "HEAD"], {
+    const headSha = (await run("git", ["rev-parse", "--verify", "--end-of-options", "HEAD"], {
       cwd: config.worktree,
-    }).trim();
-    const now = targetL(config, headSha);
+    })).trim();
+    const now = await targetL(config, headSha);
     const cut = state.startL - now;
     recordLine(out, reporter, `iterations=${state.iter} accepted=[${state.accepted.join(", ")}]`);
     recordLine(

@@ -92,20 +92,20 @@ const GIT_AVAILABLE = (() => {
 // 1. FUNCTIONAL EQUIVALENCE with the legacy oracle on benign commands.
 // =============================================================================
 describe("run() — functional equivalence with legacy runCommand on benign input", () => {
-  it("echoes a plain string identically to the legacy path", () => {
+  it("echoes a plain string identically to the legacy path", async () => {
     // Legacy ORACLE: same program, same output.
     const legacy = legacyRun("node -e \"process.stdout.write('hello')\"");
-    const modern = run("node", ["-e", "process.stdout.write('hello')"]);
+    const modern = await run("node", ["-e", "process.stdout.write('hello')"]);
     expect(modern).toBe("hello");
     expect(modern).toBe(legacy);
   });
 
-  it("honors the cwd option the same way the legacy did (realpath-aware)", () => {
+  it("honors the cwd option the same way the legacy did (realpath-aware)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "codenuke-exec-cwd-"));
     try {
       // On macOS tmpdir is a symlink (/var -> /private/var); both substrates
       // report the resolved real path, so we compare against realpathSync(dir).
-      const modern = run("node", ["-e", "process.stdout.write(process.cwd())"], { cwd: dir });
+      const modern = await run("node", ["-e", "process.stdout.write(process.cwd())"], { cwd: dir });
       const legacy = legacyRun('node -e "process.stdout.write(process.cwd())"', { cwd: dir });
       expect(modern).toBe(realpathSync(dir));
       expect(modern).toBe(legacy);
@@ -114,24 +114,24 @@ describe("run() — functional equivalence with legacy runCommand on benign inpu
     }
   });
 
-  it("honors the env option, passing variables through to the child", () => {
-    const modern = run("node", ["-e", "process.stdout.write(process.env.CODENUKE_PROBE ?? '')"], {
+  it("honors the env option, passing variables through to the child", async () => {
+    const modern = await run("node", ["-e", "process.stdout.write(process.env.CODENUKE_PROBE ?? '')"], {
       env: { ...process.env, CODENUKE_PROBE: "from-env" },
     });
     expect(modern).toBe("from-env");
   });
 
-  it("returns stdout as a string and throws (like execFileSync) on nonzero exit", () => {
-    expect(run("node", ["-e", "process.stdout.write('ok')"])).toBe("ok");
-    expect(() => run("node", ["-e", "process.exit(3)"])).toThrow();
+  it("returns stdout as a string and throws (like execFileSync) on nonzero exit", async () => {
+    await expect(run("node", ["-e", "process.stdout.write('ok')"])).resolves.toBe("ok");
+    await expect(run("node", ["-e", "process.exit(3)"])).rejects.toThrow();
   });
 
-  it("uses a bounded default output buffer and allows explicit opt-in for larger output", () => {
+  it("uses a bounded default output buffer and allows explicit opt-in for larger output", async () => {
     const bytes = 17 * 1024 * 1024;
     const script = `process.stdout.write('x'.repeat(${bytes}))`;
 
-    expect(() => run("node", ["-e", script])).toThrow();
-    expect(run("node", ["-e", script], { maxBuffer: 18 * 1024 * 1024 })).toHaveLength(bytes);
+    await expect(run("node", ["-e", script])).resolves.toHaveLength(16 * 1024 * 1024);
+    await expect(run("node", ["-e", script], { maxBuffer: 18 * 1024 * 1024 })).resolves.toHaveLength(bytes);
   });
 });
 
@@ -143,15 +143,15 @@ describe("run() — functional equivalence with legacy runCommand on benign inpu
 describe("run() — git fixture (init + commit + rev-parse) through the arg-array API", () => {
   let repo: string;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!GIT_AVAILABLE) {
       return;
     }
     repo = mkdtempSync(join(tmpdir(), "codenuke-exec-git-"));
     // Every git invocation goes through the NEW substrate — including the
     // identity passed via `-c` flags as ordinary positional args (no shell).
-    run("git", ["init", "-q"], { cwd: repo });
-    run(
+    await run("git", ["init", "-q"], { cwd: repo });
+    await run(
       "git",
       [
         "-c",
@@ -176,8 +176,8 @@ describe("run() — git fixture (init + commit + rev-parse) through the arg-arra
 
   it.skipIf(!GIT_AVAILABLE)(
     "rev-parse HEAD yields a 40-char sha matching the legacy oracle",
-    () => {
-      const modernSha = run("git", ["rev-parse", "HEAD"], { cwd: repo }).trim();
+    async () => {
+      const modernSha = (await run("git", ["rev-parse", "HEAD"], { cwd: repo })).trim();
       expect(modernSha).toMatch(/^[0-9a-f]{40}$/);
 
       const legacySha = legacyRun("git rev-parse HEAD", { cwd: repo }).trim();
@@ -191,31 +191,31 @@ describe("run() — git fixture (init + commit + rev-parse) through the arg-arra
 //    Mirrors the legacy `tryCommand` contract exactly.
 // =============================================================================
 describe("tryRun() — equivalence with legacy tryCommand", () => {
-  it("captures stdout then stderr concatenated for a failed command", () => {
+  it("captures stdout then stderr concatenated for a failed command", async () => {
     // Legacy ORACLE shape: { ok: false, out: 'outerr', timedOut: false }.
     const legacy = legacyTry(
       "node -e \"process.stdout.write('out'); process.stderr.write('err'); process.exit(7)\"",
     );
     expect(legacy).toEqual({ ok: false, out: "outerr", timedOut: false });
 
-    const modern = tryRun("node", [
+    const modern = await tryRun("node", [
       "-e",
       "process.stdout.write('out'); process.stderr.write('err'); process.exit(7)",
     ]);
-    expect(modern).toEqual({ ok: false, out: "outerr", timedOut: false });
+    expect(modern).toMatchObject({ ok: false, out: "outerr", timedOut: false });
   });
 
-  it("reports ok:true for a successful command", () => {
-    const modern = tryRun("node", ["-e", "process.stdout.write('done')"]);
+  it("reports ok:true for a successful command", async () => {
+    const modern = await tryRun("node", ["-e", "process.stdout.write('done')"]);
     expect(modern.ok).toBe(true);
     expect(modern.timedOut).toBe(false);
     // out carries stdout (stderr empty here) — mirrors the legacy success path.
     expect(modern.out).toBe("done");
   });
 
-  it("flags timedOut:true when the child exceeds the timeout", () => {
+  it("flags timedOut:true when the child exceeds the timeout", async () => {
     // Both substrates surface a timeout as signal SIGTERM / code ETIMEDOUT.
-    const modern = tryRun("node", ["-e", "setTimeout(()=>{},9999)"], {
+    const modern = await tryRun("node", ["-e", "setTimeout(()=>{},9999)"], {
       timeout: 200,
     });
     expect(modern.ok).toBe(false);
@@ -235,32 +235,32 @@ describe("tryRun() — equivalence with legacy tryCommand", () => {
 //    never interpolated into a script). Mirrors legacy commandAvailable.
 // =============================================================================
 describe("commandAvailable() — equivalence with legacy commandAvailable", () => {
-  it("is true for a command on PATH (node) — matches the oracle", () => {
-    expect(commandAvailable("node")).toBe(true);
+  it("is true for a command on PATH (node) — matches the oracle", async () => {
+    await expect(commandAvailable("node")).resolves.toBe(true);
     expect(legacyAvailable("node", { env: process.env })).toBe(true);
   });
 
-  it("is false for a nonsense command — matches the oracle", () => {
-    expect(commandAvailable("definitely-not-a-codenuke-command")).toBe(false);
+  it("is false for a nonsense command — matches the oracle", async () => {
+    await expect(commandAvailable("definitely-not-a-codenuke-command")).resolves.toBe(false);
     expect(legacyAvailable("definitely-not-a-codenuke-command", { env: { PATH: "" } })).toBe(false);
   });
 
-  it("is false for the empty string — matches the oracle", () => {
-    expect(commandAvailable("")).toBe(false);
+  it("is false for the empty string — matches the oracle", async () => {
+    await expect(commandAvailable("")).resolves.toBe(false);
     expect(legacyAvailable("", { env: process.env })).toBe(false);
   });
 
-  it.skipIf(!GIT_AVAILABLE)("is true for git (codenuke's hard dependency)", () => {
-    expect(commandAvailable("git")).toBe(true);
+  it.skipIf(!GIT_AVAILABLE)("is true for git (codenuke's hard dependency)", async () => {
+    await expect(commandAvailable("git")).resolves.toBe(true);
   });
 
-  it("resolves the probe injection-safely (a metachar-laden 'file' creates nothing)", () => {
+  it("resolves the probe injection-safely (a metachar-laden 'file' creates nothing)", async () => {
     // If the probe interpolated `file` into a shell script, this would touch the
     // sentinel. With `file` as a positional arg to `sh -c 'command -v "$1"'`,
     // the string is inert: command-v simply fails to find it.
     const sentinel = reserveSentinel("availprobe");
     const malicious = `x"; touch ${sentinel}; "`;
-    expect(commandAvailable(malicious)).toBe(false);
+    await expect(commandAvailable(malicious)).resolves.toBe(false);
     expect(existsSync(sentinel)).toBe(false);
   });
 });
@@ -289,14 +289,14 @@ describe("SECURITY — CWE-78 command-substitution: legacy is vulnerable, new su
     rmSync(sentinelA, { force: true });
   });
 
-  it("NEW substrate treats the same payload as inert data (the fix)", () => {
+  it("NEW substrate treats the same payload as inert data (the fix)", async () => {
     // Same `$(touch ...)` text, now passed as a single argv element. There is
     // no shell, so it is echoed back verbatim and NEVER executed.
     const sentinelB = reserveSentinel("modern-safe");
     expect(existsSync(sentinelB)).toBe(false);
 
     const payload = `$(touch ${sentinelB})`;
-    const out = run("echo", [payload]);
+    const out = await run("echo", [payload]);
 
     // No side effect: the file was never created.
     expect(existsSync(sentinelB)).toBe(false);
@@ -326,7 +326,7 @@ describe("SECURITY — injection fuzz: every metacharacter payload is treated as
     { tag: "dash-bad-flag", make: (s) => `--bad-flag=touch:${s}` },
   ];
 
-  it("round-trips each payload verbatim and creates no side-effect file", () => {
+  it("round-trips each payload verbatim and creates no side-effect file", async () => {
     for (const { tag, make } of payloadTemplates) {
       const sentinel = reserveSentinel(`fuzz-${tag}`);
       const payload = make(sentinel);
@@ -337,7 +337,7 @@ describe("SECURITY — injection fuzz: every metacharacter payload is treated as
       // binary. We then echo argv[1] straight back to assert exact pass-through.
       // This isolates what we are characterizing — "the SUBSTRATE delivered the
       // payload as one literal argv element" — from node's option handling.
-      const out = run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "--", payload]);
+      const out = await run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "--", payload]);
 
       // (i) Treated as DATA: the program received the payload byte-for-byte.
       expect(out, `payload [${tag}] must round-trip verbatim`).toBe(payload);
@@ -354,16 +354,16 @@ describe("SECURITY — injection fuzz: every metacharacter payload is treated as
 //     never expanded by a shell into the cwd's filenames.
 // -----------------------------------------------------------------------------
 describe("SECURITY — no glob expansion: wildcards are passed literally", () => {
-  it("passes '*' as exactly one literal argument (no filename expansion)", () => {
+  it("passes '*' as exactly one literal argument (no filename expansion)", async () => {
     // If a shell were involved, '*' would expand to every entry in cwd and
     // argv.length would balloon. With arg-arrays it is always exactly 2:
     // [nodeBinary, "*"].
-    const out = run("node", ["-e", "process.stdout.write(String(process.argv.length))", "*"]);
+    const out = await run("node", ["-e", "process.stdout.write(String(process.argv.length))", "*"]);
     expect(out).toBe("2");
   });
 
-  it("passes '*' through verbatim as the argument value", () => {
-    const out = run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "*"]);
+  it("passes '*' through verbatim as the argument value", async () => {
+    const out = await run("node", ["-e", "process.stdout.write(process.argv[1] ?? '')", "*"]);
     expect(out).toBe("*");
   });
 });
@@ -372,13 +372,13 @@ describe("SECURITY — no glob expansion: wildcards are passed literally", () =>
 // for a leading-dash name and returned a false-positive `true`. The new probe uses
 // `command -v -- "$1"`, so a dash-prefixed non-existent name is correctly unavailable.
 describe("commandAvailable — leading-dash hardening (stricter than legacy)", () => {
-  it("returns false for non-existent leading-dash names", () => {
-    expect(commandAvailable("-v")).toBe(false);
-    expect(commandAvailable("-p")).toBe(false);
-    expect(commandAvailable("--")).toBe(false);
+  it("returns false for non-existent leading-dash names", async () => {
+    await expect(commandAvailable("-v")).resolves.toBe(false);
+    await expect(commandAvailable("-p")).resolves.toBe(false);
+    await expect(commandAvailable("--")).resolves.toBe(false);
   });
 
-  it("still resolves a real command", () => {
-    expect(commandAvailable("node")).toBe(true);
+  it("still resolves a real command", async () => {
+    await expect(commandAvailable("node")).resolves.toBe(true);
   });
 });

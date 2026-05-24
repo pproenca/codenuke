@@ -4,6 +4,9 @@
 
 - Modernized the TypeScript workspace into the public `codenuke` CLI package with bundled internal modules.
 - Added the current CLI command set for fence, calibration, changecost, proxy validation, scorer lifecycle, doctor, and loop runs.
+- Made the Codex SDK proposer the default, with `CN_CODEX_PROVIDER=cli` retained as a temporary rollback.
+- Replaced shell-string command config with argv `CommandSpec` objects and `*_FILE` / `*_ARGS_JSON` environment overrides.
+- Added proposer token, elapsed-time, command-event, and file-change telemetry to loop reporting.
 - Updated release packaging around the `apps/cli` tarball and workspace validation commands.
 
 ## 0.2.1 - 2026-05-18

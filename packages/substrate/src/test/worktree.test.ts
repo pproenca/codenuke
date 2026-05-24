@@ -107,11 +107,11 @@ describe("worktree lifecycle — integration (git fixture)", () => {
     repo = makeRepo();
   });
 
-  it("links node_modules into a worktree (symlink resolves to the repo's deps)", () => {
+  it("links node_modules into a worktree (symlink resolves to the repo's deps)", async () => {
     const wt = join(tmpdir(), `cn-wt-link-${Date.now()}`);
     cleanup.push(wt);
     git(repo, ["worktree", "add", "-q", wt, "HEAD"]);
-    linkWorktreeNodeModules(repo, wt);
+    await linkWorktreeNodeModules(repo, wt);
     expect(lstatSync(join(wt, "node_modules")).isSymbolicLink()).toBe(true);
     expect(lstatSync(join(wt, "packages", "foo", "node_modules")).isSymbolicLink()).toBe(true);
     expect(readFileSync(join(wt, "node_modules", "marker"), "utf8")).toBe("dep");
@@ -120,22 +120,22 @@ describe("worktree lifecycle — integration (git fixture)", () => {
     );
   });
 
-  it("resets and cleans a dirty worktree", () => {
+  it("resets and cleans a dirty worktree", async () => {
     const wt = join(tmpdir(), `cn-wt-reset-${Date.now()}`);
     cleanup.push(wt);
     git(repo, ["worktree", "add", "-q", wt, "HEAD"]);
     writeFileSync(join(wt, "junk.txt"), "garbage");
     writeFileSync(join(wt, "a.txt"), "modified");
-    resetAndCleanWorktree(wt, { all: true });
+    await resetAndCleanWorktree(wt, { all: true });
     expect(existsSync(join(wt, "junk.txt"))).toBe(false);
     expect(readFileSync(join(wt, "a.txt"), "utf8")).toBe("x");
   });
 
-  it("removes a worktree", () => {
+  it("removes a worktree", async () => {
     const wt = join(tmpdir(), `cn-wt-remove-${Date.now()}`);
     git(repo, ["worktree", "add", "-q", wt, "HEAD"]);
     expect(existsSync(wt)).toBe(true);
-    removeWorktree(repo, wt);
+    await removeWorktree(repo, wt);
     expect(existsSync(wt)).toBe(false);
   });
 });

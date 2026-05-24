@@ -43,8 +43,8 @@ export interface ValueProxyStatus {
 export type ChangeCostArtifactStatus = ValueProxyStatus;
 
 /** Resolve a git ref to its SHA, or null if it can't be verified. */
-function resolveRef(repo: string, ref: string): string | null {
-  const result = tryRun("git", ["rev-parse", "--verify", ref], { cwd: repo });
+async function resolveRef(repo: string, ref: string): Promise<string | null> {
+  const result = await tryRun("git", ["rev-parse", "--verify", ref], { cwd: repo });
   return result.ok ? result.out.trim() : null;
 }
 
@@ -139,7 +139,7 @@ function validFenceRegions(
 }
 
 /** Fence artifact status: missing / stale / invalid / usable (RULE-022). */
-export function fenceArtifactStatus(config: ArtifactConfig): ArtifactStatus {
+export async function fenceArtifactStatus(config: ArtifactConfig): Promise<ArtifactStatus> {
   const artifact = readJson<Record<string, unknown>>(config.fenceArtifact);
   if (!artifact?.regions) {
     return { artifact: null, usable: false, stale: false, reason: "missing" };
@@ -148,7 +148,7 @@ export function fenceArtifactStatus(config: ArtifactConfig): ArtifactStatus {
     return { artifact, usable: false, stale: false, reason: "invalid-regions" };
   }
 
-  const baselineSha = resolveRef(config.repo, config.baseline);
+  const baselineSha = await resolveRef(config.repo, config.baseline);
   if (artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha)) {
     return { artifact, usable: false, stale: true, reason: "stale-baseline-sha" };
   }
@@ -179,14 +179,14 @@ function matchesDefaultCalibrationScales(scales: Record<string, unknown> | undef
 }
 
 /** Calibration artifact status: missing / stale / invalid-provenance / invalid-scales / usable (RULE-023). */
-export function calibrationArtifactStatus(config: ArtifactConfig): ArtifactStatus {
+export async function calibrationArtifactStatus(config: ArtifactConfig): Promise<ArtifactStatus> {
   const path = `${config.repo}/.codenuke/calibration.json`;
   const artifact = readJson<Record<string, unknown>>(path);
   if (!artifact) {
     return { artifact: null, usable: false, stale: false, reason: "missing" };
   }
 
-  const baselineSha = resolveRef(config.repo, config.baseline);
+  const baselineSha = await resolveRef(config.repo, config.baseline);
   if (artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha)) {
     return { artifact, usable: false, stale: true, reason: "stale-baseline-sha" };
   }
@@ -335,14 +335,16 @@ function validChangeCostResult(
 }
 
 /** Changecost artifact status: re-derives summary metrics from result rows. */
-export function changeCostArtifactStatus(config: ArtifactConfig): ChangeCostArtifactStatus {
+export async function changeCostArtifactStatus(
+  config: ArtifactConfig,
+): Promise<ChangeCostArtifactStatus> {
   const path = `${config.repo}/.codenuke/changecost.json`;
   const artifact = readJson<Record<string, unknown>>(path);
   if (!artifact) {
     return { artifact: null, usable: false, reason: "missing" };
   }
   const results = artifact.results;
-  const fenceStatus = fenceArtifactStatus(config);
+  const fenceStatus = await fenceArtifactStatus(config);
   const fence = fenceStatus.usable ? fenceStatus.artifact : null;
   if (
     artifact.schemaVersion !== 1 ||

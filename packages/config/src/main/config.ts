@@ -1,6 +1,6 @@
 /**
  * codenuke configuration (repo-agnostic). Resolved, in order, from:
- *   1. environment (CN_REPO, CN_SRC, CN_TARGET, CN_BASE, CN_TAG, CN_TEST, …)
+ *   1. environment (CN_REPO, CN_SRC, CN_TARGET, CN_BASE, CN_TAG, CN_TEST_FILE, …)
  *   2. a `codenuke.loop.json` at the repo root
  *   3. auto-detection (test runner, tsc, source dir, regions)
  *
@@ -13,7 +13,7 @@
  */
 import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { commandAvailable } from "@codenuke/exec";
+import type { CommandSpec } from "@codenuke/exec";
 import { readJson } from "@codenuke/json";
 
 const IGNORED_SOURCE_DIRS = new Set([".codenuke", ".git", "coverage", "dist", "node_modules"]);
@@ -32,8 +32,9 @@ export interface Config {
   readonly tag: string;
   readonly branch: string;
   readonly worktree: string;
-  readonly testCommand: string;
-  readonly typeCheckCommand: string | null;
+  readonly testCommand: CommandSpec;
+  readonly typeCheckCommand: CommandSpec | null;
+  readonly implementerCommand: CommandSpec | null;
   readonly state: string;
   readonly promptFile: string;
   readonly fenceArtifact: string;
@@ -108,38 +109,38 @@ export const regionOf = (p: string, srcDir = "src"): string => {
   return rel.includes("/") ? rel.split("/")[0] : srcDir;
 };
 
-function detectTestCommand(repo: string, env: Env): string {
+function detectTestCommand(repo: string): CommandSpec {
   if (existsSync(`${repo}/node_modules/.bin/vitest`)) {
-    return "node_modules/.bin/vitest run --reporter=dot";
+    return { file: "node_modules/.bin/vitest", args: ["run", "--reporter=dot"] };
   }
   if (existsSync(`${repo}/node_modules/.bin/jest`)) {
-    return "node_modules/.bin/jest";
+    return { file: "node_modules/.bin/jest" };
   }
   if (existsSync(`${repo}/node_modules/.bin/mocha`)) {
-    return "node_modules/.bin/mocha";
+    return { file: "node_modules/.bin/mocha" };
   }
   if (existsSync(`${repo}/node_modules/.bin/ava`)) {
-    return "node_modules/.bin/ava";
+    return { file: "node_modules/.bin/ava" };
   }
   const pkg = readJson<{ packageManager?: string }>(`${repo}/package.json`);
   const usesBun =
     existsSync(`${repo}/bun.lock`) ||
     existsSync(`${repo}/bun.lockb`) ||
     (pkg?.packageManager?.startsWith("bun@") ?? false);
-  if (usesBun && commandAvailable("bun", { cwd: repo, env })) {
-    return "bun test";
+  if (usesBun) {
+    return { file: "bun", args: ["test"] };
   }
   const pm = existsSync(`${repo}/pnpm-lock.yaml`)
     ? "pnpm"
     : existsSync(`${repo}/yarn.lock`)
       ? "yarn"
       : "npm";
-  return `${pm} test`;
+  return { file: pm, args: ["test"] };
 }
 
-function detectTypeCheck(repo: string): string | null {
+function detectTypeCheck(repo: string): CommandSpec | null {
   if (existsSync(`${repo}/tsconfig.json`) && existsSync(`${repo}/node_modules/.bin/tsc`)) {
-    return "node_modules/.bin/tsc -p tsconfig.json --noEmit";
+    return { file: "node_modules/.bin/tsc", args: ["-p", "tsconfig.json", "--noEmit"] };
   }
   return null;
 }
@@ -315,6 +316,91 @@ function envWeightOverrides(value: string | undefined): Record<string, number> {
   return weightOverrides("CN_WEIGHTS", parsed);
 }
 
+function parseArgsJson(source: string, value: string | undefined): readonly string[] | undefined {
+  if (value == null || value === "") {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${source} must be a JSON array of strings`);
+  }
+  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string")) {
+    throw new Error(`${source} must be a JSON array of strings`);
+  }
+  return parsed;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((item) => typeof item === "string")
+  );
+}
+
+function commandSpec(source: string, value: unknown): CommandSpec {
+  if (typeof value === "string") {
+    throw new Error(`${source} no longer accepts shell strings; use { "file": "...", "args": [...] }`);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${source} must be a command object with file and optional args`);
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.file !== "string" || record.file.trim().length === 0) {
+    throw new Error(`${source}.file must be a non-empty string`);
+  }
+  if (record.args !== undefined && !isStringArray(record.args)) {
+    throw new Error(`${source}.args must be an array of strings`);
+  }
+  if (
+    record.timeoutMs !== undefined &&
+    (typeof record.timeoutMs !== "number" ||
+      !Number.isFinite(record.timeoutMs) ||
+      record.timeoutMs <= 0)
+  ) {
+    throw new Error(`${source}.timeoutMs must be a finite positive number`);
+  }
+  if (record.env !== undefined && !isStringRecord(record.env)) {
+    throw new Error(`${source}.env must be an object of string values`);
+  }
+  return {
+    file: record.file,
+    ...(record.args ? { args: record.args } : {}),
+    ...(record.timeoutMs ? { timeoutMs: record.timeoutMs } : {}),
+    ...(record.env ? { env: record.env } : {}),
+  };
+}
+
+function envCommandSpec(
+  env: Env,
+  prefix: "CN_TEST" | "CN_TYPECHECK" | "CN_IMPLEMENTER",
+): CommandSpec | undefined {
+  const old = env[prefix];
+  if (old !== undefined) {
+    throw new Error(`${prefix} no longer accepts shell strings; use ${prefix}_FILE and optional ${prefix}_ARGS_JSON`);
+  }
+  const file = env[`${prefix}_FILE`];
+  const args = parseArgsJson(`${prefix}_ARGS_JSON`, env[`${prefix}_ARGS_JSON`]);
+  if (!file && args) {
+    throw new Error(`${prefix}_FILE is required when ${prefix}_ARGS_JSON is set`);
+  }
+  return file ? { file, ...(args ? { args } : {}) } : undefined;
+}
+
+function fileCommandSpec(
+  fileCfg: Record<string, unknown>,
+  key: "testCommand" | "typeCheckCommand" | "implementerCommand",
+): CommandSpec | undefined {
+  return fileCfg[key] === undefined ? undefined : commandSpec(key, fileCfg[key]);
+}
+
 function numericSetting(
   source: string,
   value: unknown,
@@ -345,6 +431,12 @@ function numericSetting(
 
 /** Resolve the full configuration for a repo (RULE-033/034 + scoring defaults). */
 export function loadConfig(env: Env = process.env, cwd: string = process.cwd()): Config {
+  if (env.CN_PROPOSER !== undefined) {
+    throw new Error("CN_PROPOSER no longer accepts shell strings; use the default Codex SDK proposer");
+  }
+  if (env.CN_IMPLEMENTER !== undefined) {
+    throw new Error("CN_IMPLEMENTER no longer accepts shell strings; use CN_IMPLEMENTER_FILE and optional CN_IMPLEMENTER_ARGS_JSON");
+  }
   const cwdFileCfg = readJson<Record<string, unknown>>(`${cwd}/codenuke.loop.json`) ?? {};
   const configuredRepo = env.CN_REPO ?? (cwdFileCfg.repo as string | undefined) ?? cwd;
   const repoFileCfg =
@@ -390,9 +482,18 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
     tag,
     branch: `autoresearch/${tag}`,
     worktree: wt,
-    testCommand: pick("CN_TEST", "testCommand", detectTestCommand(repo, env)),
+    testCommand:
+      envCommandSpec(env, "CN_TEST") ??
+      fileCommandSpec(fileCfg, "testCommand") ??
+      detectTestCommand(repo),
     typeCheckCommand:
-      env.CN_TYPECHECK ?? (fileCfg.typeCheckCommand as string | undefined) ?? detectTypeCheck(repo),
+      envCommandSpec(env, "CN_TYPECHECK") ??
+      fileCommandSpec(fileCfg, "typeCheckCommand") ??
+      detectTypeCheck(repo),
+    implementerCommand:
+      envCommandSpec(env, "CN_IMPLEMENTER") ??
+      fileCommandSpec(fileCfg, "implementerCommand") ??
+      null,
     state: pick("CN_STATE", "state", `/tmp/codenuke-${slug(tag)}-${region}.state.json`),
     promptFile: `/tmp/codenuke-${slug(tag)}-${region}.prompt.txt`,
     fenceArtifact: pick("CN_FENCE", "fenceArtifact", `${repo}/.codenuke/fence-fidelity.json`),
