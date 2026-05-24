@@ -39,6 +39,7 @@ import {
   runScore,
   runStatus,
   runValidateProxy,
+  shouldRequireValueProxyValidation,
   startupGate,
   toNdjson,
   ValueProxyServiceLive,
@@ -232,19 +233,27 @@ const validateProxy = Command.make(
  * `doctor` (RULE-032) — collect EVERY readiness gap (no short-circuit, unlike the
  * startup gate) and report. Exit 0 when ready, 2 when not.
  */
-const doctor = Command.make("doctor", {}, () =>
-  Effect.gen(function* () {
-    const gaps = yield* runDoctor(process.cwd())
-    if (gaps.length === 0) {
-      yield* Console.log("codenuke doctor: ready")
-      return
-    }
-    yield* Console.error(`codenuke doctor: not ready (${gaps.length} gap(s))`)
-    for (const g of gaps) {
-      yield* Console.error(`  ✗ ${g.kind}: ${g.message}`)
-    }
-    return yield* Effect.fail({ _tag: "NotReady" as const })
-  }),
+const doctor = Command.make(
+  "doctor",
+  { iterations: Args.integer({ name: "iterations" }).pipe(Args.optional) },
+  ({ iterations }) =>
+    Effect.gen(function* () {
+      const requestedIterations = Option.getOrUndefined(iterations)
+      const requireValueProxy =
+        requestedIterations === undefined
+          ? true
+          : shouldRequireValueProxyValidation(requestedIterations)
+      const gaps = yield* runDoctor(process.cwd(), requireValueProxy)
+      if (gaps.length === 0) {
+        yield* Console.log("codenuke doctor: ready")
+        return
+      }
+      yield* Console.error(`codenuke doctor: not ready (${gaps.length} gap(s))`)
+      for (const g of gaps) {
+        yield* Console.error(`  ✗ ${g.kind}: ${g.message}`)
+      }
+      return yield* Effect.fail({ _tag: "NotReady" as const })
+    }),
 )
 
 /** RULE-044 — manual scorer lifecycle over a persistent managed worktree. */

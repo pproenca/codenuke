@@ -74,7 +74,8 @@ run("build local CLI", "pnpm", ["--filter", "codenuke", "run", "build"]);
 run("doctor preflight", "node", [cli, "doctor"], { allowExitCodes: [0, 2] });
 run("measure behavior fence", "node", [cli, "fence", fenceCap, fenceSeed]);
 run("calibrate value scales", "node", [cli, "calibrate"]);
-run("doctor readiness", "node", [cli, "doctor"]);
+run("measure change-cost ground truth", "node", [cli, "changecost"]);
+run("doctor readiness", "node", [cli, "doctor", iterations]);
 run("run loop", "node", [cli, "run", iterations]);
 
 console.log("\ncomplete");

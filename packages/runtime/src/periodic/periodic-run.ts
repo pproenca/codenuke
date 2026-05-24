@@ -140,5 +140,6 @@ export const runValidateProxy = (opts: { readonly repo: string; readonly inputPa
 
 export const runDoctor = (
   repo: string,
+  requireValueProxy = true,
 ): Effect.Effect<readonly ReadinessGap[], never, FileSystem.FileSystem | Path.Path> =>
-  readArtifactReadiness(repo).pipe(Effect.map((r) => collectGaps(r, true)))
+  readArtifactReadiness(repo).pipe(Effect.map((r) => collectGaps(r, requireValueProxy)))

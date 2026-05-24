@@ -23,4 +23,11 @@ describe("release build package scripts", () => {
 
     expect(pkg.scripts?.build).toBe("node scripts/bundle-cli.mjs")
   })
+
+  it("keeps dogfood generating the artifacts needed by its readiness check", async () => {
+    const dogfood = await readFile(resolve(repoRoot, "scripts/dogfood.mjs"), "utf8")
+
+    expect(dogfood).toContain('run("measure change-cost ground truth", "node", [cli, "changecost"])')
+    expect(dogfood).toContain('run("doctor readiness", "node", [cli, "doctor", iterations])')
+  })
 })
