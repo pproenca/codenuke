@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@codenuke/fence": ["./src/main/fence.ts"],
+      "@codenuke/artifacts": ["../artifacts/src/main/artifacts.ts"],
+      "@codenuke/config": ["../config/src/main/config.ts"],
+      "@codenuke/exec": ["../exec/src/main/exec.ts"],
+      "@codenuke/guards": ["../guards/src/main/guards.ts"],
+      "@codenuke/json": ["../json-io/src/main/json.ts"],
+      "@codenuke/stats": ["../stats/src/main/stats.ts"],
+      "@codenuke/substrate": ["../substrate/src/main/index.ts"],
+      "@codenuke/value-proxy": ["../value-proxy/src/main/value-proxy.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

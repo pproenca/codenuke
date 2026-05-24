@@ -2,41 +2,11 @@ name: CodeQL
 
 on:
   workflow_dispatch:
-    inputs:
-      profile:
-        description: CodeQL profile to run
-        required: false
-        default: all
-        type: choice
-        options:
-          - all
-          - typescript
-          - actions
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/codeql/**"
-      - ".github/workflows/**"
-      - "src/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "tsconfig*.json"
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - ".github/codeql/**"
-      - ".github/workflows/**"
-      - "src/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "tsconfig*.json"
+  push:
+    branches: ["main"]
   schedule:
-    - cron: "23 7 * * 1"
-
-concurrency:
-  group: codeql-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    - cron: "37 4 * * 1"
 
 permissions:
   actions: read
@@ -45,34 +15,36 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.category }})
-    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: CodeQL analyze
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: javascript-typescript
-            category: typescript
-            config_file: ./.github/codeql/codeql-typescript-security.yml
-          - language: actions
-            category: actions
-            config_file: ./.github/codeql/codeql-actions-security.yml
     steps:
-      - name: Checkout
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.profile == 'all' || inputs.profile == matrix.category }}
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Initialize CodeQL
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.profile == 'all' || inputs.profile == matrix.category }}
-        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
-          config-file: ${{ matrix.config_file }}
+          languages: javascript-typescript
+          config-file: ./.github/codeql/codenuke.yml
 
-      - name: Analyze
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.profile == 'all' || inputs.profile == matrix.category }}
-        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
-        with:
-          category: "/codeql/${{ matrix.category }}"
+      - name: Build
+        run: pnpm build
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4

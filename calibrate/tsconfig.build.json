@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src/main",
+    "paths": {
+      "@codenuke/artifacts": ["../artifacts/dist/artifacts.d.ts"],
+      "@codenuke/config": ["../config/dist/config.d.ts"],
+      "@codenuke/exec": ["../exec/dist/exec.d.ts"],
+      "@codenuke/measure": ["../measure/dist/measure.d.ts"]
+    }
+  },
+  "include": ["src/main/**/*.ts"]
+}

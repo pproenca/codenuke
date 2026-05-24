@@ -1,0 +1,21 @@
+{
+  "name": "@codenuke/config",
+  "version": "0.1.0",
+  "description": "Repo-agnostic configuration resolution + source/region classification for codenuke — modernized slice of loop/config.mjs.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "exports": { ".": { "types": "./dist/config.d.ts", "import": "./dist/config.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/main/program.md','dist/program.md')\"",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@codenuke/json": "workspace:*",
+    "@codenuke/exec": "workspace:*"
+  },
+  "devDependencies": { "typescript": "^6.0.3", "vitest": "^4.1.6", "@types/node": "^22.0.0" }
+}

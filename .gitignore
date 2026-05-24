@@ -2,3 +2,6 @@ node_modules/
 dist/
 coverage/
 .codenuke/
+*.tsbuildinfo
+*.tgz
+.DS_Store

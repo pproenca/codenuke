@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codenuke Issue Digest"
-  short_description: "Summarize codenuke issues by labels or all areas"
-  default_prompt: "Use $codenuke-issue-digest to run the codenuke issue digest for labels cli and mapper over the previous 24 hours."

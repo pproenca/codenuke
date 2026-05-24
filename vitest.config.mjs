@@ -1,9 +1,0 @@
-import { defineConfig } from "vitest/config";
-
-export default defineConfig({
-  test: {
-    include: ["loop/**/*.test.mjs"],
-    restoreMocks: true,
-    testTimeout: 30_000,
-  },
-});

@@ -1,7 +1,0 @@
-{
-  "id": "operator-prop",
-  "title": "Expose each comparator's operator string",
-  "region": "functions",
-  "prompt": "Expose each comparison function's operator as a string property `.operator`: gt.operator==='>', gte.operator==='>=', lt.operator==='<', lte.operator==='<=', eq.operator==='===', neq.operator==='!=='. Edit only files under functions/. Keep existing behaviour unchanged.",
-  "acceptPath": "test/operator-prop.accept.js"
-}

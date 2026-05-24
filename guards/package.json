@@ -1,0 +1,17 @@
+{
+  "name": "@codenuke/guards",
+  "version": "0.1.0",
+  "description": "Tiny runtime type guards for codenuke (modernized slice of loop/guards.mjs).",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "exports": { ".": { "types": "./dist/guards.d.ts", "import": "./dist/guards.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": { "typescript": "^6.0.3", "vitest": "^4.1.6" }
+}

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Package Release"
-  short_description: "Guide npm package release validation"
-  default_prompt: "Use $package-release to prepare or validate a codenuke npm package release."

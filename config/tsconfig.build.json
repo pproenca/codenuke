@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src/main",
+    "paths": {
+      "@codenuke/json": ["../json-io/dist/json.d.ts"],
+      "@codenuke/exec": ["../exec/dist/exec.d.ts"]
+    }
+  },
+  "include": ["src/main/**/*.ts"]
+}

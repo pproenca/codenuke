@@ -1,44 +1,40 @@
 {
   "name": "codenuke",
-  "version": "0.3.0",
-  "description": "Autonomous behavior-preserving code reduction: an immutable metric drives a propose → score → keep/revert loop (Karpathy's autoresearch, applied to refactoring).",
+  "version": "0.4.0",
+  "description": "Autonomous behavior-preserving code reduction.",
   "license": "MIT",
-  "bin": {
-    "codenuke": "bin/codenuke.mjs"
-  },
-  "files": [
-    "loop",
-    "bin",
-    "docs",
-    "README.md",
-    "LICENSE"
-  ],
+  "private": false,
   "type": "module",
-  "scripts": {
-    "build": "node scripts/check-js-syntax.mjs",
-    "prepack": "pnpm -s build",
-    "typecheck": "pnpm -s build",
-    "lint": "oxlint . --config oxlint.json",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "test": "vitest run",
-    "loop:fence": "node bin/codenuke.mjs fence",
-    "loop:run": "node bin/codenuke.mjs run",
-    "eval": "node evals/scripts/run-loop.mjs",
-    "benchmark-add": "node evals/scripts/benchmark-add.mjs",
-    "validate-substrates": "node evals/scripts/validate-substrates.mjs",
-    "pack:smoke": "node scripts/package-smoke.mjs"
-  },
-  "dependencies": {
-    "typescript": "^6.0.3"
-  },
-  "devDependencies": {
-    "oxfmt": "^0.50.0",
-    "oxlint": "^1.64.0",
-    "vitest": "^4.1.6"
-  },
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "pnpm@11.1.2"
+  "bin": {
+    "codenuke": "dist/cli.cjs"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "pnpm -r --filter './*' --if-present run typecheck",
+    "build": "pnpm -r --filter './*' --if-present run build && node scripts/bundle-cli.mjs",
+    "prepack": "pnpm -s build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.27.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }

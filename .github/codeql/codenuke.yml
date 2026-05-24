@@ -1,0 +1,11 @@
+name: codenuke
+
+paths:
+  - .
+
+paths-ignore:
+  - node_modules
+  - "**/node_modules"
+  - "**/dist"
+  - "**/*.test.ts"
+  - "**/src/test"
