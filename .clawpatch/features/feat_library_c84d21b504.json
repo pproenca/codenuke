@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_c84d21b504",
+  "title": "Node source measure/src",
+  "summary": "Node/TypeScript source file measure/src/main/measure.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "measure/package.json",
+      "symbol": "measure/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "measure/src/main/measure.ts",
+      "reason": "source group measure/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "measure/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "measure/src/test/measure.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "measure/src/test/measure.test.ts",
+      "command": "pnpm --dir measure test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/measure",
+    "project-root:measure"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

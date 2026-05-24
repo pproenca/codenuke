@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260524T104806-f2cedf",
+  "command": "review",
+  "args": [
+    "review",
+    "--limit",
+    "3",
+    "--skip-git-repo-check"
+  ],
+  "rootPath": "/Users/pedroproenca/Documents/Projects/codenuke",
+  "headSha": "5a75b1037c52bca81e3ee676c608dc881f16aad8",
+  "startedAt": "2026-05-24T10:48:06.091Z",
+  "finishedAt": "2026-05-24T10:48:18.580Z",
+  "status": "completed",
+  "claimedFeatureIds": [
+    "feat_cli-command_2a9382e01c",
+    "feat_config_57f59ddd1e",
+    "feat_config_7528cb5b98"
+  ],
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "errors": []
+}

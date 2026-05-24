@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_aa4b935d8f",
+  "title": "Node source scorer/src",
+  "summary": "Node/TypeScript source file scorer/src/main/scorer.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "scorer/package.json",
+      "symbol": "scorer/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "scorer/src/main/scorer.ts",
+      "reason": "source group scorer/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "scorer/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "scorer/src/test/scorer.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "scorer/src/test/scorer.test.ts",
+      "command": "pnpm --dir scorer test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/scorer",
+    "project-root:scorer"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

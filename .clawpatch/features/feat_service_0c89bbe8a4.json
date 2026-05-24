@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_service_0c89bbe8a4",
+  "title": "Node source config/src",
+  "summary": "Node/TypeScript source file config/src/main/config.ts.",
+  "kind": "service",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "config/package.json",
+      "symbol": "config/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "config/src/main/config.ts",
+      "reason": "source group config/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "config/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "config/src/test/config.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "config/src/test/config.test.ts",
+      "command": "pnpm --dir config test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/config",
+    "project-root:config"
+  ],
+  "trustBoundaries": [
+    "filesystem",
+    "database"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

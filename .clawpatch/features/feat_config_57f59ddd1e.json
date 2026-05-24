@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_config_57f59ddd1e",
+  "title": "Project config vitest.config.ts",
+  "summary": "Build, release, or quality configuration in vitest.config.ts.",
+  "kind": "config",
+  "source": "shared-infra-heuristic",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "vitest.config.ts",
+      "symbol": null,
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "vitest.config.ts",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "config"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "reviewed",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T104806-f2cedf",
+      "kind": "review",
+      "summary": "0 finding(s); prompt=5412 bytes; approxTokens=1353; includedFiles=1; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T10:48:18.579Z"
+    }
+  ],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:18.579Z"
+}

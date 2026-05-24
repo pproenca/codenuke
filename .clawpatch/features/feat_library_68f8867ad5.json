@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_68f8867ad5",
+  "title": "Node source substrate/src",
+  "summary": "Node/TypeScript source group substrate/src with 3 files.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "substrate/package.json",
+      "symbol": "substrate/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "substrate/src/main/agent.ts",
+      "reason": "source group substrate/src"
+    },
+    {
+      "path": "substrate/src/main/index.ts",
+      "reason": "source group substrate/src"
+    },
+    {
+      "path": "substrate/src/main/worktree.ts",
+      "reason": "source group substrate/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "substrate/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "substrate/src/test/agent.test.ts",
+      "reason": "associated test"
+    },
+    {
+      "path": "substrate/src/test/worktree.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "substrate/src/test/agent.test.ts",
+      "command": "pnpm --dir substrate test"
+    },
+    {
+      "path": "substrate/src/test/worktree.test.ts",
+      "command": "pnpm --dir substrate test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/substrate",
+    "project-root:substrate"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_039d2b3218",
+  "title": "Node package @codenuke/guards",
+  "summary": "Node package @codenuke/guards with package metadata and review context rooted at guards.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "guards/package.json",
+      "symbol": "@codenuke/guards",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "guards/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "guards/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "guards/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "guards/src/main/guards.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "guards/src/test/guards.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/guards",
+    "project-root:guards",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

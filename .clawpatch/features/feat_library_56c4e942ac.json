@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_56c4e942ac",
+  "title": "Node package @codenuke/orchestrator",
+  "summary": "Node package @codenuke/orchestrator with package metadata and review context rooted at orchestrator.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "orchestrator/package.json",
+      "symbol": "@codenuke/orchestrator",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "orchestrator/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "orchestrator/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "orchestrator/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "orchestrator/src/main/cli.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "orchestrator/src/main/orchestrator.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "orchestrator/src/main/runtime.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "orchestrator/src/test/autoloop-git-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "orchestrator/src/test/autoloop-program-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "orchestrator/src/test/autoloop-raise-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "orchestrator/src/test/autoloop-reduce-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "orchestrator/src/test/orchestrator.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/orchestrator",
+    "project-root:orchestrator",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

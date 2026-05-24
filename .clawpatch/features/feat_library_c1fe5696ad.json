@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_c1fe5696ad",
+  "title": "Node source changecost/src",
+  "summary": "Node/TypeScript source file changecost/src/main/changecost.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "changecost/package.json",
+      "symbol": "changecost/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "changecost/src/main/changecost.ts",
+      "reason": "source group changecost/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "changecost/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "changecost/src/test/changecost.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "changecost/src/test/changecost.test.ts",
+      "command": "pnpm --dir changecost test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/changecost",
+    "project-root:changecost"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

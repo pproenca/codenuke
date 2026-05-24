@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_447fded9ce",
+  "title": "Node source stats/src",
+  "summary": "Node/TypeScript source file stats/src/main/stats.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "stats/package.json",
+      "symbol": "stats/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "stats/src/main/stats.ts",
+      "reason": "source group stats/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "stats/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "stats/src/test/stats.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "stats/src/test/stats.test.ts",
+      "command": "pnpm --dir stats test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/stats",
+    "project-root:stats"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

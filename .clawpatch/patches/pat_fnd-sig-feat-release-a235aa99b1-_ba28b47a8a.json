@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "patchAttemptId": "pat_fnd-sig-feat-release-a235aa99b1-_ba28b47a8a",
+  "findingIds": [
+    "fnd_sig-feat-release-a235aa99b1-80f0_c62e665bd2"
+  ],
+  "featureIds": [
+    "feat_release_a235aa99b1"
+  ],
+  "status": "applied",
+  "plan": "Updated the root typecheck script to require package typecheck scripts by removing --if-present, so pnpm typecheck now fails if an intended workspace package lacks the script instead of silently skipping it.",
+  "filesChanged": [
+    "package.json"
+  ],
+  "commandsRun": [
+    {
+      "command": "pnpm typecheck",
+      "cwd": "/Users/pedroproenca/Documents/Projects/codenuke",
+      "exitCode": 0,
+      "durationMs": 5074,
+      "stdout": "Scope: 14 of 15 workspace projects\nexec typecheck$ tsc --noEmit -p tsconfig.json\njson-io typecheck$ tsc --noEmit -p tsconfig.json\nguards typecheck$ tsc --noEmit -p tsconfig.json\nmeasure typecheck$ tsc --noEmit -p tsconfig.json\njson-io typecheck: Done\nstats typecheck$ tsc --noEmit -p tsconfig.json\nguards typecheck: Done\nexec typecheck: Done\nmeasure typecheck: Done\nstats typecheck: Done\nsubstrate typecheck$ tsc --noEmit -p tsconfig.json\nconfig typecheck$ tsc --noEmit -p tsconfig.json\nsubstrate typecheck: Done\nconfig typecheck: Done\nvalue-proxy typecheck$ tsc --noEmit -p tsconfig.json\nvalue-proxy typecheck: Done\nartifacts typecheck$ tsc --noEmit -p tsconfig.json\nartifacts typecheck: Done\nchangecost typecheck$ tsc --noEmit -p tsconfig.json\ncalibrate typecheck$ tsc --noEmit -p tsconfig.json\nscorer typecheck$ tsc --noEmit -p tsconfig.json\nfence typecheck$ tsc --noEmit -p tsconfig.json\ncalibrate typecheck: Done\nscorer typecheck: Done\nchangecost typecheck: Done\nfence typecheck: Done\norchestrator typecheck$ tsc --noEmit -p tsconfig.json\norchestrator typecheck: Done\n",
+      "stderr": "$ pnpm -r --filter './*' run typecheck\n"
+    },
+    {
+      "command": "pnpm test",
+      "cwd": "/Users/pedroproenca/Documents/Projects/codenuke",
+      "exitCode": 0,
+      "durationMs": 10684,
+      "stdout": "\n RUN  v4.1.7 /Users/pedroproenca/Documents/Projects/codenuke\n\n\n Test Files  25 passed (25)\n      Tests  344 passed (344)\n   Start at  11:50:01\n   Duration  10.13s (transform 1.63s, setup 0ms, import 8.77s, tests 61.01s, environment 5ms)\n\n",
+      "stderr": "$ vitest run\n"
+    }
+  ],
+  "testResults": [
+    {
+      "command": "pnpm typecheck",
+      "cwd": "/Users/pedroproenca/Documents/Projects/codenuke",
+      "exitCode": 0,
+      "durationMs": 5074,
+      "stdout": "Scope: 14 of 15 workspace projects\nexec typecheck$ tsc --noEmit -p tsconfig.json\njson-io typecheck$ tsc --noEmit -p tsconfig.json\nguards typecheck$ tsc --noEmit -p tsconfig.json\nmeasure typecheck$ tsc --noEmit -p tsconfig.json\njson-io typecheck: Done\nstats typecheck$ tsc --noEmit -p tsconfig.json\nguards typecheck: Done\nexec typecheck: Done\nmeasure typecheck: Done\nstats typecheck: Done\nsubstrate typecheck$ tsc --noEmit -p tsconfig.json\nconfig typecheck$ tsc --noEmit -p tsconfig.json\nsubstrate typecheck: Done\nconfig typecheck: Done\nvalue-proxy typecheck$ tsc --noEmit -p tsconfig.json\nvalue-proxy typecheck: Done\nartifacts typecheck$ tsc --noEmit -p tsconfig.json\nartifacts typecheck: Done\nchangecost typecheck$ tsc --noEmit -p tsconfig.json\ncalibrate typecheck$ tsc --noEmit -p tsconfig.json\nscorer typecheck$ tsc --noEmit -p tsconfig.json\nfence typecheck$ tsc --noEmit -p tsconfig.json\ncalibrate typecheck: Done\nscorer typecheck: Done\nchangecost typecheck: Done\nfence typecheck: Done\norchestrator typecheck$ tsc --noEmit -p tsconfig.json\norchestrator typecheck: Done\n",
+      "stderr": "$ pnpm -r --filter './*' run typecheck\n"
+    },
+    {
+      "command": "pnpm test",
+      "cwd": "/Users/pedroproenca/Documents/Projects/codenuke",
+      "exitCode": 0,
+      "durationMs": 10684,
+      "stdout": "\n RUN  v4.1.7 /Users/pedroproenca/Documents/Projects/codenuke\n\n\n Test Files  25 passed (25)\n      Tests  344 passed (344)\n   Start at  11:50:01\n   Duration  10.13s (transform 1.63s, setup 0ms, import 8.77s, tests 61.01s, environment 5ms)\n\n",
+      "stderr": "$ vitest run\n"
+    }
+  ],
+  "provider": {
+    "name": "codex",
+    "model": null,
+    "reasoningEffort": null,
+    "requestId": null,
+    "startedAt": "2026-05-24T10:49:14.663Z",
+    "finishedAt": "2026-05-24T10:50:11.553Z"
+  },
+  "git": {
+    "baseSha": "5a75b1037c52bca81e3ee676c608dc881f16aad8",
+    "commitSha": null,
+    "branchName": "master",
+    "prUrl": null
+  },
+  "createdAt": "2026-05-24T10:49:14.662Z",
+  "updatedAt": "2026-05-24T10:50:11.553Z"
+}

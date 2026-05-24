@@ -21,8 +21,10 @@
     "CHANGELOG.md"
   ],
   "scripts": {
+    "codenuke": "node dist/cli.cjs",
+    "codenuke:build": "pnpm -s build && node dist/cli.cjs",
     "test": "vitest run",
-    "typecheck": "pnpm -r --filter './*' --if-present run typecheck",
+    "typecheck": "pnpm -r --filter './*' run typecheck",
     "build": "pnpm -r --filter './*' --if-present run build && node scripts/bundle-cli.mjs",
     "prepack": "pnpm -s build"
   },

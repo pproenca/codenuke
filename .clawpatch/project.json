@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "projectId": "prj_git-github-com-pproenca-codenuke_273724e7ee",
+  "name": "codenuke",
+  "rootPath": "/Users/pedroproenca/Documents/Projects/codenuke",
+  "git": {
+    "remoteUrl": "git@github.com:pproenca/codenuke.git",
+    "defaultBranch": "master",
+    "currentBranch": "master",
+    "headSha": "5a75b1037c52bca81e3ee676c608dc881f16aad8"
+  },
+  "detected": {
+    "languages": [
+      "javascript"
+    ],
+    "frameworks": [
+      "vitest"
+    ],
+    "packageManagers": [
+      "pnpm"
+    ],
+    "commands": {
+      "typecheck": "pnpm typecheck",
+      "lint": null,
+      "format": null,
+      "test": "pnpm test"
+    }
+  },
+  "createdAt": "2026-05-24T10:47:40.096Z",
+  "updatedAt": "2026-05-24T10:47:40.096Z"
+}

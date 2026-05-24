@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_64507d2d3f",
+  "title": "Node package @codenuke/changecost",
+  "summary": "Node package @codenuke/changecost with package metadata and review context rooted at changecost.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "changecost/package.json",
+      "symbol": "@codenuke/changecost",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "changecost/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "changecost/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "changecost/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "changecost/src/main/changecost.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "changecost/src/test/changecost-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "changecost/src/test/changecost.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/changecost",
+    "project-root:changecost",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

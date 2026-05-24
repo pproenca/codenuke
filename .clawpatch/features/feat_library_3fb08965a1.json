@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_3fb08965a1",
+  "title": "Node source guards/src",
+  "summary": "Node/TypeScript source file guards/src/main/guards.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "guards/package.json",
+      "symbol": "guards/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "guards/src/main/guards.ts",
+      "reason": "source group guards/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "guards/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "guards/src/test/guards.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "guards/src/test/guards.test.ts",
+      "command": "pnpm --dir guards test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/guards",
+    "project-root:guards"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}

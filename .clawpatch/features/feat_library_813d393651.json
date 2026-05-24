@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_813d393651",
+  "title": "Node source artifacts/src",
+  "summary": "Node/TypeScript source file artifacts/src/main/artifacts.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "artifacts/package.json",
+      "symbol": "artifacts/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "artifacts/src/main/artifacts.ts",
+      "reason": "source group artifacts/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "artifacts/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "artifacts/src/test/artifacts.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "artifacts/src/test/artifacts.test.ts",
+      "command": "pnpm --dir artifacts test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/artifacts",
+    "project-root:artifacts"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T10:48:02.889Z",
+  "updatedAt": "2026-05-24T10:48:02.889Z"
+}
