@@ -32,11 +32,23 @@
     "process-exec",
     "filesystem"
   ],
-  "status": "pending",
+  "status": "needs-fix",
   "lock": null,
-  "findingIds": [],
+  "findingIds": [
+    "fnd_sig-feat-release-1ae0636f10-695e_ba75e33302"
+  ],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "1 finding(s); prompt=4452 bytes; approxTokens=1113; includedFiles=1; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:45:26.009Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:45:26.009Z"
 }

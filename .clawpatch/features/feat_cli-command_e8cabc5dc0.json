@@ -54,11 +54,23 @@
     "user-input",
     "process-exec"
   ],
-  "status": "pending",
+  "status": "needs-fix",
   "lock": null,
-  "findingIds": [],
+  "findingIds": [
+    "fnd_sig-feat-cli-command-e8cabc5dc0-_b5e0f3a614"
+  ],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "1 finding(s); prompt=25097 bytes; approxTokens=6275; includedFiles=6; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:43:13.205Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:43:13.205Z"
 }

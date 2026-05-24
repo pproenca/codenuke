@@ -44,11 +44,23 @@
     "project-root:packages/changecost"
   ],
   "trustBoundaries": [],
-  "status": "pending",
+  "status": "needs-fix",
   "lock": null,
-  "findingIds": [],
+  "findingIds": [
+    "fnd_sig-feat-library-bd0051e6a0-1b84_b13f05874d"
+  ],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "1 finding(s); prompt=28265 bytes; approxTokens=7058; includedFiles=3; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:44:14.562Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:44:14.562Z"
 }

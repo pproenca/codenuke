@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-7c1de51af7-e49b_0ed88bae33",
+  "featureId": "feat_library_7c1de51af7",
+  "title": "JSX files are parsed and scanned as plain TypeScript unless they end in .tsx",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/measure/src/main/measure.ts",
+      "startLine": 28,
+      "endLine": 35,
+      "symbol": "scriptKind",
+      "quote": null
+    },
+    {
+      "path": "packages/measure/src/main/measure.ts",
+      "startLine": 89,
+      "endLine": 95,
+      "symbol": "tokenStream",
+      "quote": null
+    },
+    {
+      "path": "packages/measure/src/test/measure.test.ts",
+      "startLine": 19,
+      "endLine": 37,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The module recognizes JavaScript/JSX test filenames via the [tj]sx? test-file regex, but JSX parsing is only enabled for .tsx names. Non-test .jsx files therefore go through ts.ScriptKind.TS and LanguageVariant.Standard, so JSX syntax is tokenized/parsed as non-JSX TypeScript. That can skew L and dupMass for JSX sources even though the filename handling implies JS/JSX inputs are in scope.",
+  "reproduction": null,
+  "recommendation": "Treat .jsx as JSX in both scriptKind and scanner variant, for example by replacing isTsx with an isJsxLike helper that matches .tsx and .jsx, and selecting ScriptKind.JSX for .jsx.",
+  "whyTestsDoNotAlreadyCoverThis": "The characterization matrix includes .ts sources and a .test.ts exclusion case only; it has no .jsx or .tsx source case that would expose JSX parsing/scanning differences.",
+  "suggestedRegressionTest": "Add a measurement case for a .jsx file containing JSX markup and compare it to the legacy oracle or to the same content under a .tsx filename where applicable.",
+  "minimumFixScope": "Update extension detection in packages/measure/src/main/measure.ts and add a focused JSX measurement test in packages/measure/src/test/measure.test.ts.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-7c1de51af7_e49b2e3276",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:52.443Z",
+  "updatedAt": "2026-05-24T11:43:52.443Z"
+}

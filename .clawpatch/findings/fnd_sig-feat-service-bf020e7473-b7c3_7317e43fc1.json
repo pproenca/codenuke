@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-service-bf020e7473-b7c3_7317e43fc1",
+  "featureId": "feat_service_bf020e7473",
+  "title": "Invalid numeric overrides can produce NaN or unsafe runtime values",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/config/src/main/config.ts",
+      "startLine": 321,
+      "endLine": 334,
+      "symbol": "loadConfig",
+      "quote": null
+    },
+    {
+      "path": "packages/config/src/test/config.test.ts",
+      "startLine": 100,
+      "endLine": 115,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/config/src/test/config.test.ts",
+      "startLine": 145,
+      "endLine": 210,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "CN_FENCE_LB and CN_TIMEOUT are converted with Number(...) and returned without validating that the result is finite and meaningful. Values such as CN_FENCE_LB=abc produce NaN, CN_FENCE_LB=Infinity produces Infinity, and CN_TIMEOUT=0 or a negative/NaN value can be returned as proposerTimeoutMs. These fields drive scoring thresholds and proposer timeout behavior, so malformed environment or file config can silently disable expected bounds or break later consumers instead of failing closed. The nearby CN_WEIGHTS parsing explicitly rejects malformed and non-finite numeric values, which indicates this package already treats invalid numeric config as an error for similar scoring inputs.",
+  "reproduction": "Call loadConfig({ CN_PROGRAM: '/fixed/program.md', CN_FENCE_LB: 'not-a-number', CN_TIMEOUT: 'NaN' }, repoWithPackageAndSrc). The returned config has thresholds.fenceLB === NaN and proposerTimeoutMs === NaN.",
+  "recommendation": "Parse numeric config through a shared helper that rejects non-finite values and, where applicable, enforces domain bounds such as fenceLB between 0 and 1 and timeout greater than 0. Apply it to env and codenuke.loop.json values for fenceLB and proposerTimeoutMs.",
+  "whyTestsDoNotAlreadyCoverThis": "The env override test only exercises valid numeric strings for CN_FENCE_LB and CN_TIMEOUT. The fail-closed tests cover CN_WEIGHTS and codenuke.loop.json weights only, not the other numeric fields.",
+  "suggestedRegressionTest": "Add tests that CN_FENCE_LB, codenuke.loop.json fenceLB, CN_TIMEOUT, and codenuke.loop.json proposerTimeoutMs reject malformed, non-finite, and out-of-range values with clear errors.",
+  "minimumFixScope": "Update loadConfig numeric parsing for thresholds.fenceLB and proposerTimeoutMs, plus focused tests in packages/config/src/test/config.test.ts.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-service-bf020e7473_b7c3f1cf3a",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:46:44.298Z",
+  "updatedAt": "2026-05-24T11:46:44.298Z"
+}

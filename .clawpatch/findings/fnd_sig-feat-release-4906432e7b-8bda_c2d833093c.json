@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-release-4906432e7b-8bda_c2d833093c",
+  "featureId": "feat_release_4906432e7b",
+  "title": "Build does not clear packaged dist output before compiling",
+  "category": "build-release",
+  "severity": "low",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/exec/package.json",
+      "startLine": 16,
+      "endLine": 21,
+      "symbol": "scripts.build",
+      "quote": null
+    }
+  ],
+  "reasoning": "The package only includes dist in release artifacts, and prepack delegates to the build script. The build script runs TypeScript compilation but does not remove the existing dist directory first, so files emitted by older source layouts can remain in dist and be packed even after the corresponding source is deleted or renamed. That can ship stale runtime or type files alongside the current build output.",
+  "reproduction": null,
+  "recommendation": "Make the package build start from a clean output directory, for example by adding a clean step before tsc or changing prepack to run clean then build.",
+  "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for this package script, and ordinary unit tests would not detect stale files surviving in dist unless packaging output is explicitly inspected.",
+  "suggestedRegressionTest": "Add a packaging smoke test that creates a stale file in packages/exec/dist, runs the package build/prepack path, and asserts the stale file is absent from the packed artifact or final dist.",
+  "minimumFixScope": "Update packages/exec/package.json scripts to clean dist before invoking tsc, plus add a focused packaging/build test if the workspace has package smoke coverage.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-release-4906432e7b_8bdaf60d9b",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:46:01.672Z",
+  "updatedAt": "2026-05-24T11:46:01.672Z"
+}

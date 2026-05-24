@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-7fcb82f3a6-b35c_682d2bd745",
+  "featureId": "feat_library_7fcb82f3a6",
+  "title": "Backslash traversal bypasses path-safety checks on Windows",
+  "category": "security",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 192,
+      "endLine": 201,
+      "symbol": "assertSafeSourcePath",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 222,
+      "endLine": 234,
+      "symbol": "safeWorktreePath",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 409,
+      "endLine": 411,
+      "symbol": "runChangeCostCommand",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/test/changecost-runtime.test.ts",
+      "startLine": 291,
+      "endLine": 307,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The code imports platform-specific `node:path`, but the traversal and symlink checks hard-code `/` when detecting parent paths and splitting path components. On Windows, `relative(root, outside)` uses backslashes, so a path like `..\\outside.ts` would not match `back === '..'` or `back.startsWith('../')`; it can then be used for the hidden acceptance-test write. The tests assert the intended traversal rejection but only cover forward-slash traversal and symlink parents.",
+  "reproduction": null,
+  "recommendation": "Normalize and reject both `/` and `\\` traversal separators for untrusted relative inputs, or use platform-aware checks with `path.sep` plus explicit rejection of alternate separators where appropriate. Add Windows-style traversal cases for `safeWorktreePath` and `assertSafeSourcePath`.",
+  "whyTestsDoNotAlreadyCoverThis": "The current path-safety tests use `/tmp/outside.ts`, `../outside.ts`, and a forward-slash child path; they do not cover Windows-style `..\\` traversal.",
+  "suggestedRegressionTest": "Assert that `safeWorktreePath(worktree, '..\\\\outside.ts')` throws and that `changeCostGitCommandPlan` rejects a `srcDir` containing `..\\\\` traversal.",
+  "minimumFixScope": "Harden path validation helpers and extend the path-safety tests with backslash traversal cases.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-7fcb82f3a6_b35cccb546",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:45:08.337Z",
+  "updatedAt": "2026-05-24T11:45:08.337Z"
+}

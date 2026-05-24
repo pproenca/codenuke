@@ -51,11 +51,24 @@
     "workspace"
   ],
   "trustBoundaries": [],
-  "status": "pending",
+  "status": "needs-fix",
   "lock": null,
-  "findingIds": [],
+  "findingIds": [
+    "fnd_sig-feat-library-7fcb82f3a6-4438_c6cb759aaa",
+    "fnd_sig-feat-library-7fcb82f3a6-b35c_682d2bd745"
+  ],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "2 finding(s); prompt=54774 bytes; approxTokens=13685; includedFiles=6; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:45:08.338Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:45:08.338Z"
 }

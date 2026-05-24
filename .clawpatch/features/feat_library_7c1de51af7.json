@@ -44,11 +44,23 @@
     "project-root:packages/measure"
   ],
   "trustBoundaries": [],
-  "status": "pending",
+  "status": "needs-fix",
   "lock": null,
-  "findingIds": [],
+  "findingIds": [
+    "fnd_sig-feat-library-7c1de51af7-e49b_0ed88bae33"
+  ],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "1 finding(s); prompt=15363 bytes; approxTokens=3836; includedFiles=3; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:43:52.443Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:43:52.443Z"
 }

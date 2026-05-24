@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-eb817b1790-7be8_38a5721f17",
+  "featureId": "feat_library_eb817b1790",
+  "title": "Worktree cleanup only removes the root node_modules link",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "high",
+  "triage": "confirmed-bug",
+  "evidence": [
+    {
+      "path": "packages/substrate/src/main/worktree.ts",
+      "startLine": 68,
+      "endLine": 76,
+      "symbol": "unlinkWorktreeNodeModules",
+      "quote": null
+    },
+    {
+      "path": "packages/substrate/src/main/worktree.ts",
+      "startLine": 80,
+      "endLine": 91,
+      "symbol": "removeWorktree",
+      "quote": null
+    },
+    {
+      "path": "packages/substrate/src/test/worktree.test.ts",
+      "startLine": 80,
+      "endLine": 106,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "linkWorktreeNodeModules explicitly handles the root node_modules plus nested workspace node_modules paths, but removeWorktree only removes `${worktree}/node_modules` before invoking `git worktree remove --force`. If linkWorktreeNodeModules created nested symlinks such as `packages/foo/node_modules`, those untracked symlinks can remain in the worktree and cause `git worktree remove` to fail or leave directories behind. The catch block then suppresses the failure, so callers can believe cleanup succeeded while the worktree still exists.",
+  "reproduction": null,
+  "recommendation": "Call unlinkWorktreeNodeModules(repo, worktree) from removeWorktree, or otherwise remove every path returned by worktreeNodeModulesPaths(repo) before running git worktree remove. Avoid swallowing the final removal failure silently if the worktree still exists.",
+  "whyTestsDoNotAlreadyCoverThis": "The integration tests only create and validate a root node_modules symlink, and the remove test removes a worktree that never had nested node_modules symlinks linked into it.",
+  "suggestedRegressionTest": "Create a fixture repo with a nested workspace node_modules directory, call linkWorktreeNodeModules, then removeWorktree, and assert the worktree path no longer exists.",
+  "minimumFixScope": "Update removeWorktree to clean the same node_modules symlink set that linkWorktreeNodeModules creates, and add an integration test for nested workspace node_modules cleanup.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-eb817b1790_7be8925779",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:45:01.818Z",
+  "updatedAt": "2026-05-24T11:45:01.818Z"
+}

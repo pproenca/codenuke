@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-cli-command-e103438025-_9a9a4c4c72",
+  "featureId": "feat_cli-command_e103438025",
+  "title": "Run iteration parsing silently changes zero and invalid counts to five",
+  "category": "bug",
+  "severity": "low",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "apps/cli/src/main/cli.ts",
+      "startLine": 75,
+      "endLine": 77,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The `Number(rest[0]) || 5` defaulting treats `0`, `NaN`, and an empty string the same as an omitted argument. That means `codenuke run 0` unexpectedly runs five iterations instead of zero or returning a validation error, and malformed values also proceed with the default without telling the user.",
+  "reproduction": null,
+  "recommendation": "Parse the optional iteration argument explicitly: default only when the argument is absent, reject non-finite/non-integer/negative values with a clear exit code, and pass a valid parsed number through unchanged.",
+  "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for `run`/`loop` argument parsing or invalid iteration input.",
+  "suggestedRegressionTest": "Add dispatcher tests covering omitted iterations, `0`, a positive integer, and an invalid string for both `run` and `loop`.",
+  "minimumFixScope": "Replace truthiness-based defaulting for `iterations` with explicit argument validation in the run/loop branch.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-cli-command-e103438025_ea9eeb6cf7",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:16.142Z",
+  "updatedAt": "2026-05-24T11:43:16.142Z"
+}

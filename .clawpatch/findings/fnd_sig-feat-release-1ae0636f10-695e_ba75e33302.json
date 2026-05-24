@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-release-1ae0636f10-695e_ba75e33302",
+  "featureId": "feat_release_1ae0636f10",
+  "title": "Package typecheck does not validate the build TypeScript project",
+  "category": "build-release",
+  "severity": "low",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/stats/package.json",
+      "startLine": 20,
+      "endLine": 23,
+      "symbol": "scripts",
+      "quote": null
+    }
+  ],
+  "reasoning": "The package build script compiles with tsconfig.build.json, but the typecheck script runs tsc --noEmit against tsconfig.json. If those configs include different files or compiler options, the advertised package typecheck can pass while the actual release build still fails. That weakens this script as a release gate for @codenuke/stats.",
+  "reproduction": null,
+  "recommendation": "Align the typecheck script with the build project, or add an additional build-config typecheck such as tsc --noEmit -p tsconfig.build.json if tsconfig.json is intentionally broader for development/tests.",
+  "whyTestsDoNotAlreadyCoverThis": "No linked tests or packaging checks are included for this feature, and the package script itself is the only evidence shown.",
+  "suggestedRegressionTest": "Add a package-level release smoke or workspace script test that runs the @codenuke/stats typecheck and build scripts and fails if either TypeScript project is invalid.",
+  "minimumFixScope": "Update packages/stats/package.json scripts only.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-release-1ae0636f10_695e1a4772",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:45:26.008Z",
+  "updatedAt": "2026-05-24T11:45:26.008Z"
+}

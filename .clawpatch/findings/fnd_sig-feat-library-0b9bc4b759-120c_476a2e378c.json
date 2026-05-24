@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-0b9bc4b759-120c_476a2e378c",
+  "featureId": "feat_library_0b9bc4b759",
+  "title": "Artifacts remain usable when the configured baseline cannot be resolved",
+  "category": "security",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/artifacts/src/main/artifacts.ts",
+      "startLine": 128,
+      "endLine": 135,
+      "symbol": "fenceArtifactStatus",
+      "quote": null
+    },
+    {
+      "path": "packages/artifacts/src/main/artifacts.ts",
+      "startLine": 159,
+      "endLine": 171,
+      "symbol": "calibrationArtifactStatus",
+      "quote": null
+    }
+  ],
+  "reasoning": "Both freshness checks call resolveRef, but only reject a mismatched baselineSha when the configured baseline resolves successfully. If git rev-parse fails because the repo is not a git repository, the baseline ref is invalid, or git cannot verify it, baselineSha-bearing artifacts skip the stale checks and can still pass metadata validation. These functions are documented as fail-closed gates for stale or invalid artifacts, so inability to verify the trusted baseline should not make a recorded SHA trustworthy.",
+  "reproduction": null,
+  "recommendation": "Treat an unresolved configured baseline as unusable whenever the artifact relies on baselineSha freshness. Return a stale or invalid reason before accepting fence or calibration artifacts, and add the same fail-closed behavior anywhere baselineSha freshness is required.",
+  "whyTestsDoNotAlreadyCoverThis": "The existing tests create a valid temporary git repository and always use baseline HEAD, so resolveRef succeeds in the covered paths. There is no test for an invalid baseline ref or non-git repo with a baselineSha-bearing artifact.",
+  "suggestedRegressionTest": "Create a temp directory with a syntactically valid fence and calibration artifact containing baselineSha, configure baseline to a missing ref such as refs/heads/nope, and assert the statuses are unusable rather than accepted.",
+  "minimumFixScope": "Update fenceArtifactStatus and calibrationArtifactStatus baseline resolution handling, plus focused tests for unresolved baseline refs.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-0b9bc4b759_120c1b9d1b",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:28.683Z",
+  "updatedAt": "2026-05-24T11:43:28.683Z"
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-7fcb82f3a6-4438_c6cb759aaa",
+  "featureId": "feat_library_7fcb82f3a6",
+  "title": "Runtime cost snapshot ignores untracked source files",
+  "category": "bug",
+  "severity": "high",
+  "confidence": "high",
+  "triage": "confirmed-bug",
+  "evidence": [
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 292,
+      "endLine": 305,
+      "symbol": "snapshotWorktree",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 401,
+      "endLine": 407,
+      "symbol": "runChangeCostCommand",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/main/changecost.ts",
+      "startLine": 420,
+      "endLine": 423,
+      "symbol": "runChangeCostCommand",
+      "quote": null
+    },
+    {
+      "path": "packages/changecost/src/test/changecost-runtime.test.ts",
+      "startLine": 379,
+      "endLine": 390,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The runtime allows implementer changes to non-test source files, including untracked additions, but `snapshotWorktree` builds both baseline and post-implementation maps with `git ls-files` only. Untracked source files created by an implementer are therefore omitted from the after snapshot unless they were staged, so `editCost` will not charge their tokens or regions. A benchmark that passes by adding `src/new.ts` can be reported as zero or heavily undercounted cost, corrupting Vhat.",
+  "reproduction": null,
+  "recommendation": "Include untracked, non-ignored source files in the post-implementation snapshot, for example by using `git ls-files -z --cached --others --exclude-standard -- <srcDir>` or equivalent, while preserving deletion handling for tracked files.",
+  "whyTestsDoNotAlreadyCoverThis": "The pure `editCost` tests cover added files when the maps already contain them, but the runtime benchmark test modifies only an existing tracked `src/index.ts`; it never exercises an implementer-created untracked source file.",
+  "suggestedRegressionTest": "Add a runtime benchmark where the scripted implementer writes a new `src/added.ts`, the acceptance command requires that file/content, and the resulting artifact must report a nonzero edit cost including the added file.",
+  "minimumFixScope": "Update runtime source snapshot collection and add one runtime regression test for untracked source additions.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-7fcb82f3a6_4438791929",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:45:08.337Z",
+  "updatedAt": "2026-05-24T11:45:08.337Z"
+}

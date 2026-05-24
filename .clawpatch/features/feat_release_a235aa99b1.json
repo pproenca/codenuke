@@ -32,7 +32,7 @@
     "process-exec",
     "filesystem"
   ],
-  "status": "pending",
+  "status": "reviewed",
   "lock": null,
   "findingIds": [
     "fnd_sig-feat-release-a235aa99b1-80f0_c62e665bd2"
@@ -47,8 +47,17 @@
       "model": null,
       "reasoningEffort": null,
       "createdAt": "2026-05-24T10:48:52.858Z"
+    },
+    {
+      "runId": "20260524T114252-810d38",
+      "kind": "review",
+      "summary": "0 finding(s); prompt=4558 bytes; approxTokens=1140; includedFiles=1; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:46:11.165Z"
     }
   ],
   "createdAt": "2026-05-24T10:48:02.889Z",
-  "updatedAt": "2026-05-24T11:41:13.444Z"
+  "updatedAt": "2026-05-24T11:46:11.165Z"
 }

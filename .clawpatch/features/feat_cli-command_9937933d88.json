@@ -31,16 +31,21 @@
     "filesystem",
     "process-exec"
   ],
-  "status": "claimed",
-  "lock": {
-    "lockedByRunId": "20260524T114113-0dcf9d",
-    "lockedAt": "2026-05-24T11:41:13.551Z",
-    "hostname": "pmm.local",
-    "pid": 56766
-  },
+  "status": "reviewed",
+  "lock": null,
   "findingIds": [],
   "patchAttemptIds": [],
-  "analysisHistory": [],
+  "analysisHistory": [
+    {
+      "runId": "20260524T114113-0dcf9d",
+      "kind": "review",
+      "summary": "0 finding(s); prompt=4447 bytes; approxTokens=1112; includedFiles=1; omittedFiles=0",
+      "provider": "codex",
+      "model": null,
+      "reasoningEffort": null,
+      "createdAt": "2026-05-24T11:41:40.568Z"
+    }
+  ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:41:13.552Z"
+  "updatedAt": "2026-05-24T11:41:40.568Z"
 }

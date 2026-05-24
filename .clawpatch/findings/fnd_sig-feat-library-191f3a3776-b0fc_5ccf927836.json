@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-191f3a3776-b0fc_5ccf927836",
+  "featureId": "feat_library_191f3a3776",
+  "title": "Untracked source files are invisible to score and accept",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "high",
+  "triage": "confirmed-bug",
+  "evidence": [
+    {
+      "path": "packages/scorer/src/main/scorer.ts",
+      "startLine": 190,
+      "endLine": 192,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/scorer/src/main/scorer.ts",
+      "startLine": 245,
+      "endLine": 247,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/scorer/src/main/scorer.ts",
+      "startLine": 365,
+      "endLine": 371,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/scorer/src/main/scorer.ts",
+      "startLine": 412,
+      "endLine": 421,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/scorer/src/test/scorer-runtime.test.ts",
+      "startLine": 436,
+      "endLine": 459,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "Candidate discovery uses `git diff -z --name-only HEAD -- srcDir`, which does not report untracked files. As a result, a candidate that only adds a new source file is treated as a clean worktree, and a candidate that modifies tracked source plus adds untracked source is scored and accepted without measuring or committing the new file. This can produce a misleading keep/reject decision because tests may pass with the untracked file present, while the accepted commit omits it. The accept test verifies that non-source package.json edits stay uncommitted, but it does not cover untracked source files.",
+  "reproduction": null,
+  "recommendation": "Include untracked source files in candidate discovery, for example by combining the tracked diff with `git ls-files -z --others --exclude-standard -- srcDir`, then measure and stage the union of source paths.",
+  "whyTestsDoNotAlreadyCoverThis": "The existing accept test mutates a tracked source file and a non-source package.json file, but it never creates an untracked source file that should participate in scoring and acceptance.",
+  "suggestedRegressionTest": "Add a runtime test that creates an initialized repo, writes a new untracked `src/*.ts` file in the scorer worktree, and verifies `score --json` reports it and `accept` commits it when gates pass.",
+  "minimumFixScope": "Update `changedSource` discovery and the accept/score paths that consume it; add targeted runtime coverage for untracked source additions.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-191f3a3776_b0fc40bad9",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:24.618Z",
+  "updatedAt": "2026-05-24T11:43:24.618Z"
+}

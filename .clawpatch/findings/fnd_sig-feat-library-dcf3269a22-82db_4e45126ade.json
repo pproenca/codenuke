@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-dcf3269a22-82db_4e45126ade",
+  "featureId": "feat_library_dcf3269a22",
+  "title": "Duplicate-window signatures can collide because token keys are concatenated without separators",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/measure/src/main/measure.ts",
+      "startLine": 122,
+      "endLine": 128,
+      "symbol": "duplicateMass",
+      "quote": null
+    },
+    {
+      "path": "packages/measure/src/test/measure.test.ts",
+      "startLine": 53,
+      "endLine": 56,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/measure/src/test/measure.test.ts",
+      "startLine": 65,
+      "endLine": 70,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "duplicateMass builds each 12-token window key with window.map(...).join(\"\"). Individual token keys have variable length and no escaping or delimiter, so two different token sequences can produce the same string key. That can falsely inflate dupMass by treating unrelated windows as duplicates, corrupting the RULE-005 measurement. The existing tests only check obvious repeated blocks and legacy-oracle parity on fixed examples, so they would not catch a crafted signature collision.",
+  "reproduction": null,
+  "recommendation": "Use an unambiguous serialization for window keys, such as JSON.stringify(window.map(token => token.key)), or join with a delimiter that is length-prefixed/escaped so adjacent token keys cannot merge ambiguously.",
+  "whyTestsDoNotAlreadyCoverThis": "The tests assert duplicate mass for repeated identical blocks and compare a few realistic fixtures to the legacy oracle, but they do not include non-identical windows with ambiguous concatenated token-key boundaries.",
+  "suggestedRegressionTest": "Add a test with two non-identical 12-token windows whose current concatenated key collides, and assert dupMass remains zero after switching to an unambiguous key format.",
+  "minimumFixScope": "Change duplicateMass window key construction and add a focused regression test in packages/measure/src/test/measure.test.ts.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-dcf3269a22_82dbe0b6e3",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:44:48.905Z",
+  "updatedAt": "2026-05-24T11:44:48.905Z"
+}

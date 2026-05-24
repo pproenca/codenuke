@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-760394befa-fc67_b8e6ec1559",
+  "featureId": "feat_library_760394befa",
+  "title": "Packaging smoke test is pinned to a stale tarball filename",
+  "category": "build-release",
+  "severity": "low",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "AGENTS.md",
+      "startLine": 30,
+      "endLine": 33,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The packaging smoke instructions install `/tmp/codenuke-pack/codenuke-0.4.0.tgz` after running `npm pack ./apps/cli`. That filename changes whenever the CLI package version changes, so the documented smoke test will fail even when packing succeeds unless the maintainer manually updates this line for every release. The root manifest also identifies this package as only the private workspace orchestrator, so the fixed CLI tarball name is not derived from package metadata here.",
+  "reproduction": null,
+  "recommendation": "Avoid hard-coding the tarball version in the smoke command. Capture the `npm pack` output or install via a glob constrained to the pack directory, for example the single generated `codenuke-*.tgz` file.",
+  "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for release packaging instructions, and this is a documentation/scripted release workflow hazard rather than runtime behavior.",
+  "suggestedRegressionTest": null,
+  "minimumFixScope": "Update the packaging smoke instructions in `AGENTS.md` to derive the generated tarball path instead of referencing `codenuke-0.4.0.tgz`.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-760394befa_fc677384cd",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:47.482Z",
+  "updatedAt": "2026-05-24T11:43:47.482Z"
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-c26682e800-a764_3f8703754c",
+  "featureId": "feat_library_c26682e800",
+  "title": "baseline resolution failure escapes the command-result contract",
+  "category": "api-contract",
+  "severity": "medium",
+  "confidence": "high",
+  "triage": "contract-mismatch",
+  "evidence": [
+    {
+      "path": "packages/fence/src/main/runtime.ts",
+      "startLine": 109,
+      "endLine": 116,
+      "symbol": "auditFence",
+      "quote": null
+    },
+    {
+      "path": "packages/fence/src/main/runtime.ts",
+      "startLine": 219,
+      "endLine": 227,
+      "symbol": "auditFence",
+      "quote": null
+    },
+    {
+      "path": "packages/fence/src/main/runtime.ts",
+      "startLine": 285,
+      "endLine": 291,
+      "symbol": "runFenceCommand",
+      "quote": null
+    }
+  ],
+  "reasoning": "runFenceCommand exposes a FenceCommandResult-returning API, and auditFence handles later operational failures by returning exitCode/stdout/stderr. However the initial git rev-parse for the configured baseline runs before the try/catch. If the baseline ref is missing or git errors, run() can throw out of auditFence, so callers get a rejected promise instead of the documented command result shape. That is inconsistent with the rest of the runtime error handling and can crash the CLI path instead of producing a controlled failure.",
+  "reproduction": "Configure an invalid baseline ref, then call runFenceCommand([]). The rev-parse at lines 109-115 executes before the catch block starts, so the thrown error bypasses the FenceCommandResult return path.",
+  "recommendation": "Move baseline command planning and baselineSha resolution inside the existing try/catch, or add a narrow try/catch around rev-parse that returns a FenceCommandResult with exitCode 1 and stderr.",
+  "whyTestsDoNotAlreadyCoverThis": "The included tests only exercise pure mutation-core exports from @codenuke/fence. They do not import ./runtime or cover auditFence/runFenceCommand error paths.",
+  "suggestedRegressionTest": "Add a runtime test that stubs or configures an invalid baseline and asserts runFenceCommand([]) resolves to { exitCode: 1, stderr: ... } rather than rejecting.",
+  "minimumFixScope": "packages/fence/src/main/runtime.ts auditFence baseline resolution error handling",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-c26682e800_a764fe00c2",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:44:26.546Z",
+  "updatedAt": "2026-05-24T11:44:26.546Z"
+}

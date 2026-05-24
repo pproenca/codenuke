@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-library-a7f2960d5e-7b6d_d4f4fca10a",
+  "featureId": "feat_library_a7f2960d5e",
+  "title": "JSX files are selected for audits but parsed as non-JSX TypeScript",
+  "category": "bug",
+  "severity": "medium",
+  "confidence": "medium",
+  "triage": "risk",
+  "evidence": [
+    {
+      "path": "packages/fence/src/main/fence.ts",
+      "startLine": 63,
+      "endLine": 70,
+      "symbol": "collectSites",
+      "quote": null
+    },
+    {
+      "path": "packages/fence/src/main/fence.ts",
+      "startLine": 134,
+      "endLine": 135,
+      "symbol": "isSourceFile",
+      "quote": null
+    },
+    {
+      "path": "packages/fence/src/test/fence.test.ts",
+      "startLine": 8,
+      "endLine": 30,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "packages/fence/src/test/fence-runtime.test.ts",
+      "startLine": 200,
+      "endLine": 230,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The runtime includes .jsx files as source candidates, but collectSites only switches to ScriptKind.TSX for names ending in .tsx. A .jsx file containing JSX syntax is therefore parsed as plain TypeScript, which can produce a malformed AST and miss mutation sites or compute unreliable spans inside JSX expressions. Existing tests cover .tsx path filtering but do not call collectSites on JSX syntax, so this mismatch is not exercised.",
+  "reproduction": null,
+  "recommendation": "Choose ScriptKind.JS/JSX/TS/TSX from the file extension, using JSX for both .jsx and .tsx files and JS for .js/.mjs/.cjs where appropriate.",
+  "whyTestsDoNotAlreadyCoverThis": "The collectSites tests only use a .ts filename, and runtime discovery tests only verify that .tsx-like paths are retained; no test feeds JSX source to collectSites.",
+  "suggestedRegressionTest": "Add a collectSites test for a .jsx file such as `export const C = ({a,b}) => <div>{a < b}</div>;` and assert that the `<→>` site is found and applyMutant produces valid mutated source.",
+  "minimumFixScope": "Update collectSites script-kind selection and add focused parser coverage for .jsx/.tsx inputs.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-library-a7f2960d5e_7b6deadfe8",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:44:04.906Z",
+  "updatedAt": "2026-05-24T11:44:04.906Z"
+}

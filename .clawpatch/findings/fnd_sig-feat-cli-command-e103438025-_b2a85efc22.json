@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "findingId": "fnd_sig-feat-cli-command-e103438025-_b2a85efc22",
+  "featureId": "feat_cli-command_e103438025",
+  "title": "Implemented scorer commands are omitted from the recognized-command error text",
+  "category": "api-contract",
+  "severity": "low",
+  "confidence": "medium",
+  "triage": "contract-mismatch",
+  "evidence": [
+    {
+      "path": "apps/cli/src/main/cli.ts",
+      "startLine": 65,
+      "endLine": 73,
+      "symbol": null,
+      "quote": null
+    },
+    {
+      "path": "apps/cli/src/main/cli.ts",
+      "startLine": 82,
+      "endLine": 85,
+      "symbol": null,
+      "quote": null
+    }
+  ],
+  "reasoning": "The dispatcher has a working scorer adapter when commandTarget resolves to the scorer module, but the error message for other recognized-but-unimplemented commands lists supported commands without mentioning scorer. Users who hit an unimplemented recognized command get inaccurate CLI contract information and may assume scorer is not available.",
+  "reproduction": null,
+  "recommendation": "Include the scorer command names or a generic scorer reference in the supported-command message, ideally from the same command metadata used by commandTarget/cliHelpText so this cannot drift again.",
+  "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for the CLI dispatcher or its user-facing error output.",
+  "suggestedRegressionTest": "Add a CLI dispatcher test for a recognized unimplemented command that asserts the supported-command list includes every implemented adapter family, including scorer.",
+  "minimumFixScope": "Update the recognized-but-unimplemented error message or derive it from centralized command metadata.",
+  "status": "open",
+  "history": [],
+  "signature": "sig_feat-cli-command-e103438025_35fdb2e3b2",
+  "linkedPatchAttemptIds": [],
+  "createdByRunId": "20260524T114252-810d38",
+  "createdAt": "2026-05-24T11:43:16.142Z",
+  "updatedAt": "2026-05-24T11:43:16.142Z"
+}

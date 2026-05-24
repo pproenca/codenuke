@@ -9,8 +9,8 @@
   "rootPath": "/Users/pedroproenca/Documents/Projects/codenuke",
   "headSha": "7b4fc5b24b874081edf6bddd7aa73ff534a6fcf8",
   "startedAt": "2026-05-24T11:41:13.550Z",
-  "finishedAt": null,
-  "status": "running",
+  "finishedAt": "2026-05-24T11:41:40.569Z",
+  "status": "completed",
   "claimedFeatureIds": [
     "feat_cli-command_9937933d88"
   ],
