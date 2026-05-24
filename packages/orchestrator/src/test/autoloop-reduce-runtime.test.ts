@@ -23,7 +23,7 @@ const created: string[] = [];
 const Z95 = 1.96;
 
 afterAll(() => {
-  for (const path of created.reverse()) rmSync(path, { recursive: true, force: true });
+  for (const path of created.toReversed()) rmSync(path, { recursive: true, force: true });
 });
 
 function fixtureRoot(name = "codenuke-autoloop-reduce-"): string {

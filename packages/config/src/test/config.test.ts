@@ -31,6 +31,15 @@ afterAll(() => {
   for (const d of created) rmSync(d, { recursive: true, force: true });
 });
 
+function thrownBy(fn: () => unknown): unknown {
+  try {
+    fn();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected function to throw");
+}
+
 function makeRepo(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), "cn-config-"));
   created.push(dir);
@@ -145,15 +154,6 @@ describe("loadConfig — literal source-prefix stripping", () => {
 describe("loadConfig — CN_WEIGHTS fail-closed parsing", () => {
   const repo = (): string => makeRepo({ "package.json": "{}", "src/a.ts": "export const a = 1;" });
   const loadWithWeights = (value: string) => loadConfig(env({ CN_WEIGHTS: value }), repo());
-
-  function thrownBy(fn: () => unknown): unknown {
-    try {
-      fn();
-    } catch (error) {
-      return error;
-    }
-    throw new Error("expected function to throw");
-  }
 
   it("accepts a valid object and overrides numeric defaults without rejecting unknown keys", () => {
     const config = loadWithWeights(JSON.stringify({ dL: 2.5, dCx: 4, customSignal: 0.25 }));

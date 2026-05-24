@@ -34,7 +34,7 @@ export function tokenize(name: string, text: string): string[] {
     text,
     ts.ScriptTarget.Latest,
     true,
-    /\.tsx$/.test(name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    name.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
   const tokens: string[] = [];
   (function walk(node: ts.Node): void {
@@ -55,9 +55,9 @@ export function lcsEditSize(a: readonly string[], b: readonly string[]): number 
   const m = b.length;
   if (n === 0) return m;
   if (m === 0) return n;
-  let prev = new Array<number>(m + 1).fill(0);
+  let prev = Array.from({ length: m + 1 }, () => 0);
   for (let i = 1; i <= n; i++) {
-    const cur = new Array<number>(m + 1).fill(0);
+    const cur = Array.from({ length: m + 1 }, () => 0);
     const ai = a[i - 1];
     for (let j = 1; j <= m; j++) {
       cur[j] = ai === b[j - 1] ? prev[j - 1]! + 1 : prev[j]! >= cur[j - 1]! ? prev[j]! : cur[j - 1]!;
@@ -263,7 +263,7 @@ export function discoverBenchmarks(benchmarkDir: string): readonly BenchmarkDelt
         acceptTest: readFileSync(join(dir, "accept.test.ts"), "utf8"),
       };
     })
-    .sort((left, right) => left.id.localeCompare(right.id));
+    .toSorted((left, right) => left.id.localeCompare(right.id));
 }
 
 export function dirtyPathsFromPorcelainZ(

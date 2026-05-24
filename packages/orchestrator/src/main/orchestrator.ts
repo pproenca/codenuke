@@ -25,7 +25,7 @@ const RESULT_COLUMNS = ["iter", "commit", "dAST", "dCx", "behavior", "mfence", "
 export function chooseRegion(fence: FenceLike, candidates: readonly string[], defaultRegion: string): string {
   const blocked = [...candidates]
     .filter((key) => fence.regions[key]?.admissible !== true)
-    .sort((a, b) => (fence.regions[b]?.lo ?? 0) - (fence.regions[a]?.lo ?? 0));
+    .toSorted((a, b) => (fence.regions[b]?.lo ?? 0) - (fence.regions[a]?.lo ?? 0));
   return (
     blocked[0] ??
     candidates.find((key) => fence.regions[key]?.admissible === true) ??
@@ -276,7 +276,7 @@ export function runStartupFailure(input: RunStartupInput): { exitCode: 1; messag
 }
 
 const isSourceFile = (path: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !/\.d\.ts$/u.test(path) && !/\.(test|spec|accept)\./u.test(path);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !path.endsWith(".d.ts") && !/\.(test|spec|accept)\./u.test(path);
 
 const isUnderSourceDir = (path: string, srcDir: string): boolean =>
   srcDir === "." || path === srcDir || path.startsWith(`${srcDir}/`);

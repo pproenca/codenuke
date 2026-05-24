@@ -90,6 +90,8 @@ export interface ScorerState {
   readonly iter: number;
 }
 
+const gateMark = (value: boolean): string => (value ? "✓" : "✗");
+
 export interface ScorerGitCommandPlan {
   readonly resolveBaseline: readonly string[];
   readonly addWorktree: (ref: string) => readonly string[];
@@ -378,7 +380,6 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
     }
     const scored = await scoreCandidate(config, runEnv, state, changed);
     const v = scored.verdict;
-    const y = (value: boolean): string => (value ? "✓" : "✗");
     const fenceTxt = formatFenceText({
       gates: v.gates,
       mfence: v.mfence,
@@ -390,7 +391,7 @@ export async function runScorerCommand(args: readonly string[], env: Env, cwd: s
     const out = [
       "",
       `  candidate: ${scored.files.join(", ")}`,
-      `  gates: G1 ${y(v.gates.G1)}  G1′ ${y(v.gates.G1prime)} (${fenceTxt})  G3 ${y(v.gates.G3)} (types ${await typeErrors(config, runEnv)}/${state.baselineTsc})  G4↓ ${y(v.gates.G4)}`,
+      `  gates: G1 ${gateMark(v.gates.G1)}  G1′ ${gateMark(v.gates.G1prime)} (${fenceTxt})  G3 ${gateMark(v.gates.G3)} (types ${await typeErrors(config, runEnv)}/${state.baselineTsc})  G4↓ ${gateMark(v.gates.G4)}`,
       `  ΔAST=${v.dL} ΔCx=${v.dCx} ΔDup=${v.dDup}  gain=${v.gain.toFixed(3)} risk=${v.risk.toFixed(3)} loss=${v.loss == null ? "+Inf" : v.loss.toFixed(3)}`,
       `  VERDICT: ${verdictLabel(v)}`,
     ];

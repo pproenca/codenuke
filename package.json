@@ -12,6 +12,9 @@
   "scripts": {
     "codenuke": "pnpm --filter codenuke codenuke",
     "codenuke:build": "pnpm --filter codenuke codenuke:build",
+    "lint": "oxlint apps packages",
+    "lint:fix": "oxlint apps packages --fix",
+    "security:opengrep": "semgrep scan --config security/opengrep/codenuke.yml --error",
     "test": "pnpm -r --filter './packages/*' --filter './apps/*' --if-present run test",
     "typecheck": "pnpm -r --filter './packages/*' --filter './apps/*' run typecheck",
     "build": "pnpm -r --filter './packages/*' --filter './apps/*' run build"
@@ -19,12 +22,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.1",
+    "oxlint": "1.66.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }

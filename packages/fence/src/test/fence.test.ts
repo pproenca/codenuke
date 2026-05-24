@@ -8,7 +8,7 @@ import { applyMutant, collectSites, isAdmissible, mulberry32, sampleSites, shuff
 describe("collectSites — mutation operators (RULE-007)", () => {
   it("flips relational/equality/logical operators", () => {
     const sites = collectSites("a.ts", "const r = a < b && c === d || e >= f;");
-    const ops = sites.map((s) => s.op).sort();
+    const ops = sites.map((s) => s.op).toSorted();
     expect(ops).toContain("<→>");
     expect(ops).toContain("===→!==");
     expect(ops).toContain("&&→||");
@@ -68,7 +68,7 @@ describe("mulberry32 / shuffle / sampleSites — deterministic sampling (RULE-00
   it("shuffle preserves the multiset", () => {
     const arr = [1, 2, 3, 4, 5];
     const shuffled = shuffle([...arr], mulberry32(42));
-    expect([...shuffled].sort((x, y) => x - y)).toEqual(arr);
+    expect(shuffled.toSorted((x, y) => x - y)).toEqual(arr);
   });
 });
 

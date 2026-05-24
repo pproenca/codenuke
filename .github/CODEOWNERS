@@ -1,15 +1,17 @@
 # Protect release, security, and automation surfaces.
-/.github/ @openclaw/openclaw-secops
-/SECURITY.md @openclaw/openclaw-secops
-/package.json @openclaw/openclaw-secops
-/pnpm-lock.yaml @openclaw/openclaw-secops
-/pnpm-workspace.yaml @openclaw/openclaw-secops
-/**/package.json @openclaw/openclaw-secops
+/.agents/ @pproenca
+/.github/ @pproenca
+/security/ @pproenca
+/apps/cli/SECURITY.md @pproenca
+/package.json @pproenca
+/pnpm-lock.yaml @pproenca
+/pnpm-workspace.yaml @pproenca
+/**/package.json @pproenca
 
 # Runtime trust-boundary code.
-/exec/ @openclaw/openclaw-secops
-/substrate/ @openclaw/openclaw-secops
-/orchestrator/ @openclaw/openclaw-secops
-/scorer/ @openclaw/openclaw-secops
-/config/ @openclaw/openclaw-secops
-/artifacts/ @openclaw/openclaw-secops
+/packages/exec/ @pproenca
+/packages/substrate/ @pproenca
+/packages/orchestrator/ @pproenca
+/packages/scorer/ @pproenca
+/packages/config/ @pproenca
+/packages/artifacts/ @pproenca

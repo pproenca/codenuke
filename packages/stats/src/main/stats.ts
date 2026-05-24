@@ -81,9 +81,9 @@ export function ranks(values: readonly number[]): number[] {
 
   const ordered = values
     .map((value, index) => ({ value, index }))
-    .sort((a, b) => a.value - b.value);
+    .toSorted((a, b) => a.value - b.value);
 
-  const result = new Array<number>(values.length);
+  const result = Array.from({ length: values.length }, () => 0);
   for (let start = 0; start < ordered.length; ) {
     let end = start;
     while (end + 1 < ordered.length && ordered[end + 1].value === ordered[start].value) {

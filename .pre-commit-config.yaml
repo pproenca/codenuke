@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^(dist/|node_modules/|\.codenuke/|\.clawpatch/|.*\.tsbuildinfo$)'
+      - id: end-of-file-fixer
+        exclude: '^(dist/|node_modules/|\.codenuke/|\.clawpatch/|.*\.tsbuildinfo$)'
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+        args: [--maxkb=500]
+        exclude: '^(dist/|node_modules/|\.codenuke/|\.clawpatch/|.*\.tgz$)'
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: pnpm-typecheck
+        name: pnpm typecheck
+        entry: pnpm typecheck
+        language: system
+        pass_filenames: false
+      - id: pnpm-build
+        name: pnpm build
+        entry: pnpm build
+        language: system
+        pass_filenames: false
+      - id: pnpm-test
+        name: pnpm test
+        entry: pnpm test
+        language: system
+        pass_filenames: false
+      - id: pnpm-lint
+        name: pnpm lint
+        entry: pnpm lint
+        language: system
+        pass_filenames: false
+        types_or: [javascript, jsx, ts, tsx]
+      - id: pnpm-audit-prod
+        name: pnpm audit prod
+        entry: pnpm --filter codenuke audit --prod --audit-level high
+        language: system
+        pass_filenames: false

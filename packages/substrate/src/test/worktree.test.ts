@@ -26,6 +26,9 @@ afterAll(() => {
   for (const d of cleanup) rmSync(d, { recursive: true, force: true });
 });
 
+const ignoreNodeModulesEntry = ({ path }: { line: string; path: string; status: string }): boolean =>
+  isNodeModulesPath(path);
+
 const git = (cwd: string, args: string[]): string =>
   execFileSync("git", args, { cwd, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
 
@@ -64,12 +67,13 @@ describe("pure helpers — dual-execution vs legacy", () => {
   it("dirtyPathsFromPorcelain matches legacy (with and without ignoreEntry)", () => {
     const out = " M a.ts\n?? b.ts\nR  c.ts -> d.ts\n D node_modules/x\n";
     expect(dirtyPathsFromPorcelain(out)).toEqual(lDirty(out));
-    const ignoreEntry = ({ path }: { line: string; path: string; status: string }) => isNodeModulesPath(path);
     const legacyDirtyPaths = lDirty as (
       output: string,
-      options?: { ignoreEntry?: typeof ignoreEntry },
+      options?: { ignoreEntry?: typeof ignoreNodeModulesEntry },
     ) => string[];
-    expect(dirtyPathsFromPorcelain(out, { ignoreEntry })).toEqual(legacyDirtyPaths(out, { ignoreEntry }));
+    expect(dirtyPathsFromPorcelain(out, { ignoreEntry: ignoreNodeModulesEntry })).toEqual(
+      legacyDirtyPaths(out, { ignoreEntry: ignoreNodeModulesEntry }),
+    );
   });
 });
 

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "eslint/no-shadow": "off",
+    "eslint/no-var": "error",
+    "eslint/prefer-const": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "off",
+    "unicorn/consistent-function-scoping": "error",
+    "unicorn/no-array-reverse": "error",
+    "unicorn/no-array-sort": "error",
+    "unicorn/no-new-array": "error",
+    "unicorn/prefer-string-starts-ends-with": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    "dist/**",
+    "**/dist/**",
+    ".codenuke/**",
+    ".clawpatch/**",
+    "test-fixtures/**",
+    "*.tsbuildinfo"
+  ]
+}

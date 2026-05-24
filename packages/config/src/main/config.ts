@@ -63,11 +63,11 @@ export const slug = (value: unknown): string =>
     .replace(/[^A-Za-z0-9_.-]+/g, "-") || "root";
 
 /** A test file (RULE-033): `.test`/`.spec` of a JS/TS extension, excluding `.d.ts`. */
-const isTestPath = (p: string): boolean => /\.(test|spec)\.[jt]sx?$/.test(p) && !/\.d\.ts$/.test(p);
+const isTestPath = (p: string): boolean => /\.(test|spec)\.[jt]sx?$/.test(p) && !p.endsWith(".d.ts");
 
 /** A source file (RULE-033): JS/TS extension, not a declaration, not a test/accept file. */
 export const isSourceFile = (p: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !/\.d\.ts$/.test(p) && !/\.(test|spec|accept)\./.test(p);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/.test(p) && !p.endsWith(".d.ts") && !/\.(test|spec|accept)\./.test(p);
 
 /** True iff `path` is `srcDir` itself or sits beneath it. */
 export const isUnderSourceDir = (path: string, srcDir: string): boolean =>
@@ -207,7 +207,7 @@ function detectSrcDir(repo: string): string {
   const tsconfigSource = tsconfigCandidates
     .map((candidate) => ({ candidate, count: sourceFileCount(`${repo}/${candidate}`) }))
     .filter(({ count }) => count > 0)
-    .sort((left, right) => right.count - left.count)[0];
+    .toSorted((left, right) => right.count - left.count)[0];
   const conventionalSource = ["src", "lib", "app", "source"]
     .map((candidate) => ({ candidate, count: sourceFileCount(`${repo}/${candidate}`) }))
     .find(({ count }) => count > 0);
@@ -237,7 +237,7 @@ function detectRegions(repo: string, srcDir: string): string[] {
           return false;
         }
       })
-      .sort();
+      .toSorted();
     if (nested.length > 0) return nested;
     return hasSourceFile(root) ? [srcDir] : [];
   } catch {

@@ -139,7 +139,7 @@ export const isAdmissible = (caught: number, total: number, threshold: number): 
   wilson(caught, total).lo >= threshold;
 
 const isSourceFile = (path: string): boolean =>
-  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !/\.d\.ts$/u.test(path) && !/\.(test|spec|accept)\./u.test(path);
+  /\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path) && !path.endsWith(".d.ts") && !/\.(test|spec|accept)\./u.test(path);
 
 /** Legacy region → git pathspec mapping for fence audits. */
 export const regionPath = (srcDir: string, region: string): string =>

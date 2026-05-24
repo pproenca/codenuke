@@ -53,6 +53,15 @@ const both = <T>(fn: (c: ReturnType<typeof cfg>) => T, legacy: (c: ReturnType<ty
   legacy(cfg(dir)),
 ];
 
+const validCalibration = (head: string) => ({
+  schemaVersion: 1,
+  baseline: "HEAD",
+  baselineSha: head,
+  generatedAt: new Date().toISOString(),
+  commitsSampled: 5,
+  scales: { sL: 120, sCx: 12, sDup: 4 },
+});
+
 // A valid fence artifact: one all-caught region + one with a single survivor.
 function validFence(head: string) {
   const a = wilson(35, 35);
@@ -156,15 +165,6 @@ describe("fenceArtifactStatus — dual-execution", () => {
 });
 
 describe("calibrationArtifactStatus — dual-execution", () => {
-  const valid = (head: string) => ({
-    schemaVersion: 1,
-    baseline: "HEAD",
-    baselineSha: head,
-    generatedAt: new Date().toISOString(),
-    commitsSampled: 5,
-    scales: { sL: 120, sCx: 12, sDup: 4 },
-  });
-
   it("missing when no file", () => {
     const { dir } = makeRepo();
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
@@ -174,7 +174,7 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("usable for a valid artifact", () => {
     const { dir, head } = makeRepo();
-    writeArtifact(dir, "calibration.json", valid(head));
+    writeArtifact(dir, "calibration.json", validCalibration(head));
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.usable).toBe(true);
@@ -182,7 +182,7 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("stale-baseline-sha when calibration baseline cannot be resolved", () => {
     const { dir, head } = makeRepo();
-    writeArtifact(dir, "calibration.json", valid(head));
+    writeArtifact(dir, "calibration.json", validCalibration(head));
 
     const status = calibrationArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
 
@@ -193,7 +193,7 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("invalid-metadata for an otherwise valid unversioned artifact", () => {
     const { dir, head } = makeRepo();
-    const { schemaVersion: _schemaVersion, ...unversioned } = valid(head);
+    const { schemaVersion: _schemaVersion, ...unversioned } = validCalibration(head);
     writeArtifact(dir, "calibration.json", unversioned);
     const status = calibrationArtifactStatus(cfg(dir));
     expect(status.usable).toBe(false);
@@ -202,7 +202,7 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("invalid-provenance for <3 commits with non-default scales", () => {
     const { dir, head } = makeRepo();
-    writeArtifact(dir, "calibration.json", { ...valid(head), commitsSampled: 2 });
+    writeArtifact(dir, "calibration.json", { ...validCalibration(head), commitsSampled: 2 });
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-provenance");
@@ -210,7 +210,7 @@ describe("calibrationArtifactStatus — dual-execution", () => {
 
   it("invalid-scales for a non-positive scale", () => {
     const { dir, head } = makeRepo();
-    writeArtifact(dir, "calibration.json", { ...valid(head), scales: { sL: -1, sCx: 12, sDup: 4 } });
+    writeArtifact(dir, "calibration.json", { ...validCalibration(head), scales: { sL: -1, sCx: 12, sDup: 4 } });
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-scales");
