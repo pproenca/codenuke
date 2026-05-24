@@ -194,7 +194,8 @@ function assertSafeSourcePath(srcDir: string): void {
     !srcDir ||
     isAbsolute(srcDir) ||
     srcDir.includes("\0") ||
-    srcDir.split("/").includes("..") ||
+    srcDir.includes("\\") ||
+    srcDir.split(/[\\/]+/u).includes("..") ||
     srcDir.startsWith(":")
   ) {
     throw new Error("unsafe source path for changecost");
@@ -220,12 +221,14 @@ export function changeCostGitCommandPlan(input: {
 }
 
 export function safeWorktreePath(worktreeRoot: string, rel: string): string {
-  if (isAbsolute(rel) || rel.includes("\0")) throw new Error("unsafe worktree path");
+  if (isAbsolute(rel) || rel.includes("\0") || rel.includes("\\")) throw new Error("unsafe worktree path");
   const root = resolve(worktreeRoot);
   const path = resolve(root, rel);
   const back = relative(root, path);
-  if (back === ".." || back.startsWith(`..${"/"}`) || isAbsolute(back)) throw new Error("unsafe worktree path");
-  const parts = back.split("/").filter(Boolean);
+  if (back === ".." || back.startsWith("../") || back.startsWith("..\\") || isAbsolute(back)) {
+    throw new Error("unsafe worktree path");
+  }
+  const parts = back.split(/[\\/]+/u).filter(Boolean);
   let current = root;
   for (const part of parts) {
     current = join(current, part);
@@ -289,8 +292,11 @@ export function dirtyPathsFromPorcelainZ(
   return paths;
 }
 
-function snapshotWorktree(worktree: string, srcDir: string): Record<string, string> {
-  const files = run("git", ["-C", worktree, "ls-files", "-z", "--", srcDir])
+function snapshotWorktree(worktree: string, srcDir: string, includeUntracked = false): Record<string, string> {
+  const lsArgs = includeUntracked
+    ? ["-C", worktree, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", srcDir]
+    : ["-C", worktree, "ls-files", "-z", "--", srcDir];
+  const files = run("git", lsArgs)
     .split("\0")
     .filter((path) => path.length > 0 && isSourceFile(path));
   const snapshot: Record<string, string> = {};
@@ -347,6 +353,14 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
   });
 
   const cleanupWorktree = (): void => removeWorktree(config.repo, worktree);
+  const cleanupFailureMessage = (): string => {
+    try {
+      cleanupWorktree();
+      return "";
+    } catch (error) {
+      return `cleanup failed: ${(error as Error).message}\n`;
+    }
+  };
   const cleanWT = (): void => resetAndCleanWorktree(worktree, { all: true });
   const dirtyPaths = (): string[] =>
     dirtyPathsFromPorcelainZ(run("git", ["-C", worktree, ...plan.statusPorcelain]), {
@@ -417,7 +431,7 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
         continue;
       }
 
-      const e = editCost(baseline, snapshotWorktree(worktree, config.srcDir), config.srcDir);
+      const e = editCost(baseline, snapshotWorktree(worktree, config.srcDir, true), config.srcDir);
       const regions = [...new Set(Object.keys(e.perFile).map((path) => regionOf(path, config.srcDir)))];
       const verifyFrac = fence ? verifyCost(regions, fence) : 1;
       const cost = costOf(e.tokens, verifyFrac, beta);
@@ -449,11 +463,12 @@ export async function runChangeCostCommand(args: readonly string[], env: Env, cw
     });
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, JSON.stringify(artifact, null, 2));
-    cleanupWorktree();
+    const cleanupFailure = cleanupFailureMessage();
+    if (cleanupFailure) return { exitCode: 1, stdout: stdout.join(""), stderr: cleanupFailure };
     stdout.push(formatChangeCostSummary(artifact, out));
     return { exitCode: 0, stdout: stdout.join(""), stderr: stderr.join("") };
   } catch (error) {
-    cleanupWorktree();
-    return { exitCode: 1, stdout: stdout.join(""), stderr: `${(error as Error).message}\n` };
+    const cleanupFailure = cleanupFailureMessage();
+    return { exitCode: 1, stdout: stdout.join(""), stderr: `${(error as Error).message}\n${cleanupFailure}` };
   }
 }

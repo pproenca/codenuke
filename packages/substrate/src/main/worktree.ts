@@ -5,7 +5,7 @@
  *
  * @see analysis/codenuke/BUSINESS_RULES.md — RULE-045 (worktree lifecycle)
  */
-import { appendFileSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
 import { dirname } from "node:path";
 import { run } from "@codenuke/exec";
 
@@ -78,16 +78,12 @@ export function unlinkWorktreeNodeModules(repo: string, worktree: string): void 
 
 /** Remove a worktree and prune git's bookkeeping. */
 export function removeWorktree(repo: string, worktree: string): void {
-  try {
-    rmSync(`${worktree}/node_modules`, { force: true });
-  } catch {
-    /* best-effort */
-  }
+  unlinkWorktreeNodeModules(repo, worktree);
   try {
     run("git", ["worktree", "remove", "--force", worktree], { cwd: repo });
     run("git", ["worktree", "prune"], { cwd: repo });
-  } catch {
-    /* best-effort */
+  } catch (error) {
+    if (existsSync(worktree)) throw error;
   }
 }
 

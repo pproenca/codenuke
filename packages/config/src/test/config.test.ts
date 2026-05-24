@@ -209,6 +209,31 @@ describe("loadConfig — CN_WEIGHTS fail-closed parsing", () => {
   });
 });
 
+describe("loadConfig — numeric overrides fail closed", () => {
+  const repo = (): string => makeRepo({ "package.json": "{}", "src/a.ts": "export const a = 1;" });
+
+  it.each([
+    ["CN_FENCE_LB", "not-a-number"],
+    ["CN_FENCE_LB", "1.5"],
+    ["CN_TIMEOUT", "NaN"],
+    ["CN_TIMEOUT", "0"],
+  ])("rejects invalid env numeric override %s=%s", (key, value) => {
+    expect(() => loadConfig(env({ [key]: value }), repo())).toThrow(
+      key === "CN_FENCE_LB" ? /fenceLB/ : /proposerTimeoutMs/,
+    );
+  });
+
+  it("rejects invalid codenuke.loop.json numeric overrides", () => {
+    const dir = makeRepo({
+      "package.json": "{}",
+      "src/a.ts": "export const a = 1;",
+      "codenuke.loop.json": JSON.stringify({ fenceLB: Number.NaN, proposerTimeoutMs: -1 }),
+    });
+
+    expect(() => loadConfig(env(), dir)).toThrow(/fenceLB|proposerTimeoutMs/);
+  });
+});
+
 describe("program.md runtime data", () => {
   const packageLocalProgram = fileURLToPath(new URL("../main/program.md", import.meta.url));
   const packageLocalConfig = fileURLToPath(new URL("../main/config.ts", import.meta.url));

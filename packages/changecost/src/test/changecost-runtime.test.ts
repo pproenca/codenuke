@@ -290,11 +290,21 @@ describe("changecost runtime argv-vector and path-safety contract", () => {
 
   it("resolves worktree-relative writes and rejects traversal before installing accept tests", () => {
     const safeWorktreePath = runtime("safeWorktreePath");
+    const changeCostGitCommandPlan = runtime("changeCostGitCommandPlan");
     const worktree = fixtureRoot("codenuke-changecost-safe-wt-");
 
     expect(safeWorktreePath(worktree, "tests/value.accept.test.ts")).toBe(join(worktree, "tests/value.accept.test.ts"));
     expect(() => safeWorktreePath(worktree, "/tmp/outside.ts")).toThrow("unsafe worktree path");
     expect(() => safeWorktreePath(worktree, "../outside.ts")).toThrow("unsafe worktree path");
+    expect(() => safeWorktreePath(worktree, "..\\outside.ts")).toThrow("unsafe worktree path");
+    expect(() =>
+      changeCostGitCommandPlan({
+        repo: "/repo",
+        worktree,
+        ref: "HEAD",
+        srcDir: "..\\src",
+      }),
+    ).toThrow("unsafe source path for changecost");
   });
 
   it("rejects symlinked parent directories before installing accept tests", () => {
@@ -432,6 +442,44 @@ if (process.env.CN_DELTA === "two") writeFileSync(path, source.replace("b = 10",
     });
     expect(artifact.Vhat).toBe(((oneEdit.tokens + 10) + (twoEdit.tokens + 10)) / 2);
     expect(existsSync(`${worktree}-changecost`)).toBe(false);
+  });
+
+  it("includes untracked source additions in runtime edit cost", async () => {
+    const root = fixtureRoot();
+    initRepo(root);
+    write(root, "src/index.ts", "export const value = 1;\n");
+    writeBenchmark(root, "value", { acceptPath: "tests/value.accept.test.ts" });
+    commit(root, "benchmark");
+    const worktree = join(tmpdir(), `codenuke-changecost-untracked-${Date.now()}`);
+    const implementer = write(
+      root,
+      "implementer.mjs",
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync("src/added.ts", "export const added = 2;\\n");
+`,
+    );
+    const testCommand = `node -e "const fs=require('fs');process.exit(fs.existsSync('tests/value.accept.test.ts')&&!fs.existsSync('src/added.ts')?1:0)"`;
+    const runChangeCostCommand = runtime("runChangeCostCommand");
+
+    const result = await runChangeCostCommand(
+      [],
+      baseEnv(root, worktree, {
+        CN_TEST: testCommand,
+        CN_IMPLEMENTER: `node ${JSON.stringify(implementer)}`,
+      }),
+      root,
+    );
+    const artifact = readArtifact(root);
+
+    expect(result.exitCode).toBe(0);
+    expect(artifact.results[0]).toMatchObject({
+      id: "value",
+      status: "done",
+      filesTouched: 1,
+      regions: ["src"],
+    });
+    expect(artifact.results[0]!.editTokens).toBeGreaterThan(0);
   });
 
   it("records not-done when the hidden acceptance test stays red after implementation", async () => {

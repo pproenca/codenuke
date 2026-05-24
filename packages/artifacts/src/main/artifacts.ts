@@ -92,6 +92,7 @@ function validFenceRegions(regions: Record<string, Record<string, unknown>>, thr
   if (!finiteNumber(threshold)) return false;
   if (Object.keys(regions).length === 0) return false;
   return Object.values(regions).every((region) => {
+    if (!isRecord(region)) return false;
     if (
       !nonNegativeInteger(region?.caught) ||
       !nonNegativeInteger(region?.total) ||
@@ -121,12 +122,12 @@ function validFenceRegions(regions: Record<string, Record<string, unknown>>, thr
 /** Fence artifact status: missing / stale / invalid / usable (RULE-022). */
 export function fenceArtifactStatus(config: ArtifactConfig): ArtifactStatus {
   const artifact = readJson<Record<string, unknown>>(config.fenceArtifact);
-  if (!artifact?.regions || typeof artifact.regions !== "object") {
+  if (!artifact?.regions || !isRecord(artifact.regions)) {
     return { artifact: null, usable: false, stale: false, reason: "missing" };
   }
 
   const baselineSha = resolveRef(config.repo, config.baseline);
-  if (artifact.baselineSha && baselineSha && artifact.baselineSha !== baselineSha) {
+  if (artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha)) {
     return { artifact, usable: false, stale: true, reason: "stale-baseline-sha" };
   }
   if (!artifact.baselineSha && artifact.baseline && artifact.baseline !== config.baseline) {
@@ -157,7 +158,7 @@ export function calibrationArtifactStatus(config: ArtifactConfig): ArtifactStatu
   if (!artifact) return { artifact: null, usable: false, stale: false, reason: "missing" };
 
   const baselineSha = resolveRef(config.repo, config.baseline);
-  if (artifact.baselineSha && baselineSha && artifact.baselineSha !== baselineSha) {
+  if (artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha)) {
     return { artifact, usable: false, stale: true, reason: "stale-baseline-sha" };
   }
   if (!artifact.baselineSha && artifact.baseline && artifact.baseline !== config.baseline) {

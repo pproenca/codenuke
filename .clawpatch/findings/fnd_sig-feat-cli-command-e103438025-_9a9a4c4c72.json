@@ -22,11 +22,32 @@
   "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for `run`/`loop` argument parsing or invalid iteration input.",
   "suggestedRegressionTest": "Add dispatcher tests covering omitted iterations, `0`, a positive integer, and an invalid string for both `run` and `loop`.",
   "minimumFixScope": "Replace truthiness-based defaulting for `iterations` with explicit argument validation in the run/loop branch.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence location apps/cli/src/main/cli.ts:75-77 still exists but no longer contains run/loop iteration parsing; those lines now dispatch scorer args. Current run/loop parsing moved to apps/cli/src/main/cli.ts:84-90 and calls parseIterations at lines 24-31. That helper defaults only when the argument is absent, rejects non-integer/negative values with exit 2, and returns 0 unchanged, so the reported Number(rest[0]) || 5 source bug is fixed. rg found no Number(rest[0]) truthiness default in tracked source. The ignored generated apps/cli/dist/cli.cjs still contains stale old bundled code, but git check-ignore confirms dist/ is ignored and repository instructions say not to commit dist. pnpm --filter codenuke typecheck passed; Vitest could not run in the read-only sandbox because Vite attempted to write temp files and received EPERM.",
+      "commands": [
+        "nl -ba apps/cli/src/main/cli.ts | sed -n '1,180p'",
+        "rg -n \"Number\\(rest\\[0\\]\\)|iterations|run|loop\" apps/cli/src/main/cli.ts apps/cli/src test packages 2>/dev/null",
+        "rg -n \"run 0|loop 0|run invalid|loop invalid|iteration|iterations|parse.*iteration|codenuke run|codenuke loop\" . --glob '!node_modules' --glob '!dist' --glob '!*.tsbuildinfo'",
+        "cat apps/cli/package.json",
+        "git diff -- apps/cli/src/main/cli.ts && git status --short",
+        "rg -n \"Number\\(|parseIterations|iterations must|cmd === \\\"run\\\"|cmd === \\\"loop\\\"|runAutoloop\" apps/cli/dist/cli.cjs apps/cli/src/main/cli.ts",
+        "pnpm --filter codenuke typecheck",
+        "pnpm --filter @codenuke/orchestrator test",
+        "pnpm --filter @codenuke/orchestrator exec vitest run --configLoader runner",
+        "git check-ignore -v apps/cli/dist/cli.cjs || true"
+      ],
+      "createdAt": "2026-05-24T11:58:12.670Z"
+    }
+  ],
   "signature": "sig_feat-cli-command-e103438025_ea9eeb6cf7",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:16.142Z",
-  "updatedAt": "2026-05-24T11:43:16.142Z"
+  "updatedAt": "2026-05-24T11:58:12.670Z"
 }

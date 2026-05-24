@@ -29,7 +29,8 @@ rm -rf /tmp/codenuke-pack /tmp/codenuke-cli-install
 mkdir -p /tmp/codenuke-pack /tmp/codenuke-cli-install
 pnpm build
 npm pack ./apps/cli --pack-destination /tmp/codenuke-pack
-npm install --prefix /tmp/codenuke-cli-install /tmp/codenuke-pack/codenuke-0.4.0.tgz
+tarball="$(find /tmp/codenuke-pack -maxdepth 1 -name 'codenuke-*.tgz' -print -quit)"
+npm install --prefix /tmp/codenuke-cli-install "$tarball"
 /tmp/codenuke-cli-install/node_modules/.bin/codenuke --version
 ```
 

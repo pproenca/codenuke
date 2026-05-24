@@ -281,9 +281,29 @@ const isSourceFile = (path: string): boolean =>
 const isUnderSourceDir = (path: string, srcDir: string): boolean =>
   srcDir === "." || path === srcDir || path.startsWith(`${srcDir}/`);
 
+const ROOT_TOOLING_DIRS = new Set([
+  ".github",
+  "benchmarks",
+  "benchmark",
+  "codenuke.benchmark",
+  "doc",
+  "docs",
+  "script",
+  "scripts",
+  "test",
+  "tests",
+]);
+
+const isRootToolingPath = (path: string): boolean => {
+  const parts = path.split("/");
+  const first = parts[0] ?? "";
+  const name = parts.at(-1) ?? "";
+  return ROOT_TOOLING_DIRS.has(first) || /\.config\.[cm]?[jt]s$/u.test(name) || /^config\.[cm]?[jt]s$/u.test(name);
+};
+
 /** Reduce moves may only edit source under the configured source dir (RULE-025). */
 export const isAllowedReducePath = (path: string, srcDir: string): boolean =>
-  isUnderSourceDir(path, srcDir) && isSourceFile(path);
+  isUnderSourceDir(path, srcDir) && isSourceFile(path) && (srcDir !== "." || !isRootToolingPath(path));
 
 const underTestRoot = (path: string, root: string): boolean =>
   root === "." || path === root || path.startsWith(`${root}/`);

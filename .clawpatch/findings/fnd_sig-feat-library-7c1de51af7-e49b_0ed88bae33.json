@@ -36,11 +36,30 @@
   "whyTestsDoNotAlreadyCoverThis": "The characterization matrix includes .ts sources and a .test.ts exclusion case only; it has no .jsx or .tsx source case that would expose JSX parsing/scanning differences.",
   "suggestedRegressionTest": "Add a measurement case for a .jsx file containing JSX markup and compare it to the legacy oracle or to the same content under a .tsx filename where applicable.",
   "minimumFixScope": "Update extension detection in packages/measure/src/main/measure.ts and add a focused JSX measurement test in packages/measure/src/test/measure.test.ts.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence files still exist, but the relevant code has changed. packages/measure/src/main/measure.ts now defines isJsxLike at line 30, selects ts.ScriptKind.JSX for .jsx at line 32, and uses isJsxLike to select ts.LanguageVariant.JSX for tokenStream at line 90. packages/measure/src/test/measure.test.ts now includes a focused .jsx regression test at lines 64-68. Typecheck passes. The normal Vitest run could not execute in this read-only sandbox because Vite/Vitest attempted to create temporary files, but executing the current measure.ts source through TypeScript's in-memory transpiler on a .jsx sample returned {\"L\":30,\"complexity\":2,\"dupMass\":0}, confirming the JSX case parses and measures successfully in current code.",
+      "commands": [
+        "nl -ba packages/measure/src/main/measure.ts | sed -n '1,140p'",
+        "nl -ba packages/measure/src/test/measure.test.ts | sed -n '1,180p'",
+        "rg -n \"ScriptKind|LanguageVariant|tsx|jsx|tokenStream|createScanner|isTsx|isJsx\" packages/measure/src",
+        "cat packages/measure/package.json",
+        "pnpm --filter @codenuke/measure test",
+        "pnpm --filter @codenuke/measure exec vitest run --configLoader runner src/test/measure.test.ts",
+        "pnpm --filter @codenuke/measure typecheck",
+        "node --input-type=module -e 'import fs from \"node:fs\"; import ts from \"typescript\"; const sourcePath = \"packages/measure/src/main/measure.ts\"; const source = fs.readFileSync(sourcePath, \"utf8\"); let js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText; js = js.replace(\"import ts from \\\"typescript\\\";\\n\", \"const ts = globalThis.__typescriptForMeasureTest;\\n\"); globalThis.__typescriptForMeasureTest = ts; const mod = await import(`data:text/javascript;base64,${Buffer.from(js).toString(\"base64\")}`); const result = mod.measure({ \"component.jsx\": \"export const C = ({a, b}) => <div>{a < b ? a : b}</div>;\" }); console.log(JSON.stringify(result));'"
+      ],
+      "createdAt": "2026-05-24T12:07:13.004Z"
+    }
+  ],
   "signature": "sig_feat-library-7c1de51af7_e49b2e3276",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:52.443Z",
-  "updatedAt": "2026-05-24T11:43:52.443Z"
+  "updatedAt": "2026-05-24T12:07:13.004Z"
 }

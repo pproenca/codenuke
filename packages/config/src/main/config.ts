@@ -76,8 +76,12 @@ export const isUnderSourceDir = (path: string, srcDir: string): boolean =>
 export const programPathFromModuleUrl = (moduleUrl: string): string =>
   fileURLToPath(new URL("./program.md", moduleUrl));
 
-const runtimeModuleUrl = (moduleUrl: string | undefined): string =>
-  moduleUrl ?? pathToFileURL(realpathSync(process.argv[1] ?? process.cwd())).href;
+const runtimeModuleUrl = (moduleUrl: string | undefined): string => {
+  if (moduleUrl) return moduleUrl;
+  if (process.argv[1]) return pathToFileURL(realpathSync(process.argv[1])).href;
+  const cwdUrl = pathToFileURL(`${realpathSync(process.cwd())}/`).href;
+  return cwdUrl.endsWith("/") ? cwdUrl : `${cwdUrl}/`;
+};
 
 export function stripSourcePrefix(target: string, srcDir: string): string {
   const normalizedTarget = target.replace(/\/+$/u, "");
@@ -270,6 +274,34 @@ function envWeightOverrides(value: string | undefined): Record<string, number> {
   return weightOverrides("CN_WEIGHTS", parsed);
 }
 
+function numericSetting(
+  source: string,
+  value: unknown,
+  bounds: { min?: number; max?: number; minExclusive?: number } = {},
+): number {
+  if (value === null || value === "" || (typeof value === "object" && value !== null)) {
+    throw new Error(`${source} must be a finite number`);
+  }
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (
+    !Number.isFinite(parsed) ||
+    (bounds.min !== undefined && parsed < bounds.min) ||
+    (bounds.max !== undefined && parsed > bounds.max) ||
+    (bounds.minExclusive !== undefined && parsed <= bounds.minExclusive)
+  ) {
+    const range =
+      bounds.minExclusive !== undefined
+        ? `> ${bounds.minExclusive}`
+        : bounds.min !== undefined && bounds.max !== undefined
+          ? `between ${bounds.min} and ${bounds.max}`
+          : bounds.min !== undefined
+            ? `>= ${bounds.min}`
+            : "finite";
+    throw new Error(`${source} must be a finite number ${range}`);
+  }
+  return parsed;
+}
+
 /** Resolve the full configuration for a repo (RULE-033/034 + scoring defaults). */
 export function loadConfig(env: Env = process.env, cwd: string = process.cwd()): Config {
   const cwdFileCfg = readJson<Record<string, unknown>>(`${cwd}/codenuke.loop.json`) ?? {};
@@ -295,6 +327,12 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
     : undefined;
   const regions = envRegions ?? fileRegions ?? detectRegions(repo, srcDir);
   const wt = pick("CN_WORKTREE", "worktree", `/tmp/codenuke-${slug(tag)}-${region}`);
+  const fenceLB = numericSetting("fenceLB", env.CN_FENCE_LB ?? fileCfg.fenceLB ?? 0.9, { min: 0, max: 1 });
+  const proposerTimeoutMs = numericSetting(
+    "proposerTimeoutMs",
+    env.CN_TIMEOUT ?? fileCfg.proposerTimeoutMs ?? 900000,
+    { minExclusive: 0 },
+  );
 
   return {
     repo,
@@ -318,7 +356,7 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
     results: pick("CN_RESULTS", "results", `${repo}/.codenuke/results.tsv`),
     program: pick("CN_PROGRAM", "program", programPathFromModuleUrl(runtimeModuleUrl(import.meta.url))),
     benchmarkDir: pick("CN_BENCH", "benchmarkDir", `${repo}/codenuke.benchmark`),
-    thresholds: { fenceLB: Number(env.CN_FENCE_LB ?? (fileCfg.fenceLB as number | undefined) ?? 0.9) },
+    thresholds: { fenceLB },
     weights: {
       dL: 1.0,
       dCx: 1.8,
@@ -331,6 +369,6 @@ export function loadConfig(env: Env = process.env, cwd: string = process.cwd()):
       ...envWeightOverrides(env.CN_WEIGHTS),
     },
     proposerBudgetUsd: pick("CN_BUDGET", "proposerBudgetUsd", "8"),
-    proposerTimeoutMs: Number(pick("CN_TIMEOUT", "proposerTimeoutMs", "900000")),
+    proposerTimeoutMs,
   };
 }

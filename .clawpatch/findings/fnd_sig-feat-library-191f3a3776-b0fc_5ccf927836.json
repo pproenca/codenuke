@@ -50,11 +50,30 @@
   "whyTestsDoNotAlreadyCoverThis": "The existing accept test mutates a tracked source file and a non-source package.json file, but it never creates an untracked source file that should participate in scoring and acceptance.",
   "suggestedRegressionTest": "Add a runtime test that creates an initialized repo, writes a new untracked `src/*.ts` file in the scorer worktree, and verifies `score --json` reports it and `accept` commits it when gates pass.",
   "minimumFixScope": "Update `changedSource` discovery and the accept/score paths that consume it; add targeted runtime coverage for untracked source additions.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence paths still exist, but the implementation has changed to include untracked source discovery. packages/scorer/src/main/scorer.ts now adds untrackedSource to the git plan with git ls-files -z --others --exclude-standard -- srcDir, and changedSource() returns the de-duplicated union of tracked diff paths and untracked source paths. The score and accept paths still consume changedSource(), so both now see untracked source additions; accept stages the resulting source path list with git add -A. Current tests also cover the gap: scorer-runtime.test.ts has untracked-only score coverage for new src/*.ts files and the accept lifecycle test now creates src/new.ts and expects it in the accepted commit while package.json stays uncommitted. pnpm --filter @codenuke/scorer typecheck passed. Targeted Vitest execution was attempted but blocked by the read-only sandbox because Vite tried to write temp files, so runtime tests were not executed in this environment.",
+      "commands": [
+        "rg -n \"git diff|ls-files|changedSource|accept|score --json|package.json\" packages/scorer/src/main/scorer.ts packages/scorer/src/test/scorer-runtime.test.ts",
+        "nl -ba packages/scorer/src/main/scorer.ts | sed -n '170,260p;340,430p'",
+        "nl -ba packages/scorer/src/test/scorer-runtime.test.ts | sed -n '420,470p'",
+        "rg -n \"untracked|src/new|files:|changedSource\\)|score.*json|accept commits changed\" packages/scorer/src/test/scorer-runtime.test.ts packages/scorer/src/test packages/scorer/src/main/scorer.ts",
+        "git status --short && git diff -- packages/scorer/src/main/scorer.ts packages/scorer/src/test/scorer-runtime.test.ts",
+        "pnpm --filter @codenuke/scorer test -- scorer-runtime.test.ts",
+        "pnpm --filter @codenuke/scorer exec vitest run --configLoader runner scorer-runtime.test.ts",
+        "pnpm --filter @codenuke/scorer typecheck"
+      ],
+      "createdAt": "2026-05-24T12:04:12.373Z"
+    }
+  ],
   "signature": "sig_feat-library-191f3a3776_b0fc40bad9",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:24.618Z",
-  "updatedAt": "2026-05-24T11:43:24.618Z"
+  "updatedAt": "2026-05-24T12:04:12.373Z"
 }

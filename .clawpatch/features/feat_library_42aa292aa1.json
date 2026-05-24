@@ -47,7 +47,7 @@
     "workspace"
   ],
   "trustBoundaries": [],
-  "status": "needs-fix",
+  "status": "fixed",
   "lock": null,
   "findingIds": [
     "fnd_sig-feat-library-42aa292aa1-a3dd_7e80f8a883"
@@ -65,5 +65,5 @@
     }
   ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:43:43.164Z"
+  "updatedAt": "2026-05-24T12:05:03.032Z"
 }

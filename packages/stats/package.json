@@ -20,7 +20,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm -s build",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.build.json"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

@@ -29,11 +29,35 @@
   "whyTestsDoNotAlreadyCoverThis": "The existing tests create a valid temporary git repository and always use baseline HEAD, so resolveRef succeeds in the covered paths. There is no test for an invalid baseline ref or non-git repo with a baselineSha-bearing artifact.",
   "suggestedRegressionTest": "Create a temp directory with a syntactically valid fence and calibration artifact containing baselineSha, configure baseline to a missing ref such as refs/heads/nope, and assert the statuses are unusable rather than accepted.",
   "minimumFixScope": "Update fenceArtifactStatus and calibrationArtifactStatus baseline resolution handling, plus focused tests for unresolved baseline refs.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence path still exists, but the vulnerable checks have changed. Current source at packages/artifacts/src/main/artifacts.ts:129-131 and packages/artifacts/src/main/artifacts.ts:160-162 now uses artifact.baselineSha && (!baselineSha || artifact.baselineSha !== baselineSha), so a baselineSha-bearing fence or calibration artifact is rejected as stale when the configured baseline cannot be resolved. Regression tests are present at packages/artifacts/src/test/artifacts.test.ts:107-115 and packages/artifacts/src/test/artifacts.test.ts:183-191 for unresolved fence and calibration baselines. The old condition remains only in test-fixtures/legacy-loop/artifacts.mjs, which is test-only per AGENTS.md, and in ignored dist outputs; git check-ignore confirms dist/ is ignored, and apps/cli/scripts/bundle-cli.mjs bundles from source. I attempted targeted Vitest runs, but the read-only sandbox blocked Vite/Vitest temp file creation with EPERM before tests could execute.",
+      "commands": [
+        "rg -n \"function fenceArtifactStatus|function calibrationArtifactStatus|fenceArtifactStatus|calibrationArtifactStatus|resolveRef|baselineSha\" packages/artifacts/src/main/artifacts.ts",
+        "sed -n '1,240p' packages/artifacts/src/main/artifacts.ts",
+        "sed -n '1,230p' packages/artifacts/src/test/artifacts.test.ts",
+        "nl -ba packages/artifacts/src/main/artifacts.ts | sed -n '40,180p'",
+        "nl -ba packages/artifacts/src/test/artifacts.test.ts | sed -n '95,195p'",
+        "rg -n \"artifact\\.baselineSha && baselineSha && artifact\\.baselineSha !== baselineSha\" packages apps test-fixtures --glob '!**/dist/**'",
+        "rg -n \"artifact\\.baselineSha && baselineSha && artifact\\.baselineSha !== baselineSha|artifact\\.baselineSha && \\(!baselineSha \\|\\| artifact\\.baselineSha !== baselineSha\\)\" apps/cli/dist packages/*/dist 2>/dev/null",
+        "git check-ignore -v apps/cli/dist/cli.cjs packages/artifacts/dist/artifacts.js",
+        "git ls-files apps/cli/dist/cli.cjs packages/artifacts/dist/artifacts.js",
+        "sed -n '1,90p' apps/cli/scripts/bundle-cli.mjs",
+        "pnpm --filter @codenuke/artifacts test -- --runInBand",
+        "pnpm exec vitest run packages/artifacts/src/test/artifacts.test.ts --configLoader runner",
+        "TMPDIR=/tmp pnpm exec vitest run packages/artifacts/src/test/artifacts.test.ts --configLoader runner"
+      ],
+      "createdAt": "2026-05-24T12:03:01.014Z"
+    }
+  ],
   "signature": "sig_feat-library-0b9bc4b759_120c1b9d1b",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:28.683Z",
-  "updatedAt": "2026-05-24T11:43:28.683Z"
+  "updatedAt": "2026-05-24T12:03:01.014Z"
 }

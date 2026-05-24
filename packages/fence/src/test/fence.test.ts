@@ -27,6 +27,15 @@ describe("collectSites — mutation operators (RULE-007)", () => {
     const sites = collectSites("a.ts", "const s = 'a < b'; const n = 1 + 2;");
     expect(sites).toEqual([]);
   });
+
+  it("parses JSX source files with JSX script kind", () => {
+    const text = "export const C = ({a, b}) => <div>{a < b ? a : b}</div>;";
+    const sites = collectSites("component.jsx", text);
+    const site = sites.find((s) => s.op === "<→>");
+
+    expect(site).toBeDefined();
+    expect(applyMutant(text, site!)).toContain("a > b");
+  });
 });
 
 describe("applyMutant", () => {

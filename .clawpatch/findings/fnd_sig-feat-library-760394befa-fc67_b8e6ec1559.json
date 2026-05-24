@@ -23,10 +23,26 @@
   "suggestedRegressionTest": null,
   "minimumFixScope": "Update the packaging smoke instructions in `AGENTS.md` to derive the generated tarball path instead of referencing `codenuke-0.4.0.tgz`.",
   "status": "open",
-  "history": [],
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "open",
+      "note": null,
+      "reasoning": "The original AGENTS.md evidence at lines 30-33 has been fixed: it now derives tarball with find and installs \"$tarball\". However, the same issue is still open elsewhere in current release documentation: apps/cli/docs/publishing.md lines 24-25 run npm pack into /tmp/codenuke-pack and then install the hard-coded /tmp/codenuke-pack/codenuke-0.4.0.tgz; line 38 also hard-codes codenuke-0.4.0.tgz for inspection. apps/cli/package.json currently reports version 0.4.0, so the command happens to match today, but it remains pinned to a versioned filename and will stale on the next CLI version bump.",
+      "commands": [
+        "nl -ba AGENTS.md | sed -n '24,38p'",
+        "rg -n \"codenuke-[0-9]+\\.[0-9]+\\.[0-9]+\\.tgz|npm install --prefix .*codenuke-|codenuke-\\*\\.tgz|npm pack ./apps/cli\" .",
+        "node -e \"const p=require('./apps/cli/package.json'); console.log(p.name+' '+p.version)\"",
+        "nl -ba apps/cli/docs/publishing.md | sed -n '1,55p'",
+        "rg -n \"\\\"version\\\"|codenuke-0\\.4\\.0\\.tgz|tar -tf codenuke-|npm install --prefix\" package.json apps/cli/package.json apps/cli/docs/publishing.md AGENTS.md"
+      ],
+      "createdAt": "2026-05-24T12:05:38.774Z"
+    }
+  ],
   "signature": "sig_feat-library-760394befa_fc677384cd",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:47.482Z",
-  "updatedAt": "2026-05-24T11:43:47.482Z"
+  "updatedAt": "2026-05-24T12:05:38.774Z"
 }

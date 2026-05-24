@@ -36,11 +36,34 @@
   "whyTestsDoNotAlreadyCoverThis": "The invalid-input suite only asserts RangeError for k > n, negative k, non-integer n, and NaN k; it never passes an invalid custom z.",
   "suggestedRegressionTest": "Add cases asserting wilson(5, 10, Number.NaN), wilson(5, 10, Number.POSITIVE_INFINITY), and wilson(5, 10, -1.96) throw RangeError, plus one valid custom z case if custom quantiles are supported.",
   "minimumFixScope": "packages/stats/src/main/stats.ts and packages/stats/src/test/stats.test.ts",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence path still exists. Current packages/stats/src/main/stats.ts now documents z validation at lines 35-38 and enforces it at lines 44-46 with !Number.isFinite(z) || z < 0 throwing RangeError before interval arithmetic. Current packages/stats/src/test/stats.test.ts still has the original invalid k/n tests at lines 253-258 and now adds regression coverage at lines 260-264 for Number.NaN, POSITIVE_INFINITY, and -1.96 throwing RangeError, while allowing z=0. I attempted to run the stats test suite, but the read-only sandbox prevented Vitest/Vite from creating temporary files, first under node_modules/.vite-temp and then under /var/folders. Based on current implementation plus checked-in regression tests, the reported issue is fixed.",
+      "commands": [
+        "pwd && rg -n \"function wilson|export function wilson|wilson\\(\" packages/stats/src/main/stats.ts packages/stats/src/test/stats.test.ts",
+        "git status --short",
+        "sed -n '1,90p' packages/stats/src/main/stats.ts",
+        "sed -n '230,275p' packages/stats/src/test/stats.test.ts",
+        "cat packages/stats/package.json",
+        "rg -n \"describe\\(\\\"input validation|invalid custom z|finite non-negative z|Number\\.isFinite\\(z\\)|z < 0\" packages/stats/src/main/stats.ts packages/stats/src/test/stats.test.ts",
+        "pnpm --filter @codenuke/stats test",
+        "pnpm --filter @codenuke/stats exec vitest run --configLoader runner packages/stats/src/test/stats.test.ts",
+        "pnpm --filter @codenuke/stats exec vitest run --configLoader runner src/test/stats.test.ts",
+        "nl -ba packages/stats/src/main/stats.ts | sed -n '32,56p'",
+        "nl -ba packages/stats/src/test/stats.test.ts | sed -n '252,266p'",
+        "rg -n \"wilson\\([^\\n]*Number\\.NaN|wilson\\([^\\n]*POSITIVE_INFINITY|wilson\\([^\\n]*-1\\.96|expected finite non-negative z\" packages/stats/src"
+      ],
+      "createdAt": "2026-05-24T12:05:02.905Z"
+    }
+  ],
   "signature": "sig_feat-library-42aa292aa1_a3dda9ec6d",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:43.163Z",
-  "updatedAt": "2026-05-24T11:43:43.163Z"
+  "updatedAt": "2026-05-24T12:05:02.905Z"
 }

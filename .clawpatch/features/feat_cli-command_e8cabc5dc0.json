@@ -54,7 +54,7 @@
     "user-input",
     "process-exec"
   ],
-  "status": "needs-fix",
+  "status": "fixed",
   "lock": null,
   "findingIds": [
     "fnd_sig-feat-cli-command-e8cabc5dc0-_b5e0f3a614"
@@ -72,5 +72,5 @@
     }
   ],
   "createdAt": "2026-05-24T11:41:13.444Z",
-  "updatedAt": "2026-05-24T11:43:13.205Z"
+  "updatedAt": "2026-05-24T12:00:34.872Z"
 }

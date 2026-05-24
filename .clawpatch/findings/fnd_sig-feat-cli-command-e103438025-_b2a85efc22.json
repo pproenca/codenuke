@@ -29,11 +29,33 @@
   "whyTestsDoNotAlreadyCoverThis": "No linked tests are included for the CLI dispatcher or its user-facing error output.",
   "suggestedRegressionTest": "Add a CLI dispatcher test for a recognized unimplemented command that asserts the supported-command list includes every implemented adapter family, including scorer.",
   "minimumFixScope": "Update the recognized-but-unimplemented error message or derive it from centralized command metadata.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence path still exists, but the relevant lines moved. In current apps/cli/src/main/cli.ts, the scorer adapter is present at lines 74-83, and the recognized-command error text at lines 95-99 now lists the scorer lifecycle commands: init, score, accept, revert, status, cleanup. Current packages/orchestrator/src/main/orchestrator.ts lines 123-129 route exactly those scorer verbs to module \"scorer\", so the supported-command text no longer omits the implemented scorer command family. Existing test source in packages/orchestrator/src/test/orchestrator.test.ts lines 203-206 asserts those scorer verbs route to scorer, though I could not execute Vitest in this read-only sandbox because Vite/Vitest attempted to create temp files and failed with EPERM.",
+      "commands": [
+        "sed -n '1,180p' apps/cli/src/main/cli.ts",
+        "rg -n \"recognized|unimplemented|supported|scorer|commandTarget|cliHelpText\" apps/cli packages -S",
+        "sed -n '96,154p' packages/orchestrator/src/main/orchestrator.ts",
+        "sed -n '190,230p' packages/orchestrator/src/test/orchestrator.test.ts",
+        "rg -n \"Supported commands:|recognized but its modernized runtime adapter|codenuke .* recognized\" apps packages -S",
+        "nl -ba apps/cli/src/main/cli.ts | sed -n '60,104p'",
+        "nl -ba packages/orchestrator/src/main/orchestrator.ts | sed -n '103,153p'",
+        "nl -ba packages/orchestrator/src/test/orchestrator.test.ts | sed -n '196,226p'",
+        "pnpm --filter @codenuke/orchestrator test",
+        "pnpm exec vitest run packages/orchestrator/src/test/orchestrator.test.ts --configLoader runner",
+        "node -e 'const {readFileSync}=require(\"node:fs\"); const cli=readFileSync(\"apps/cli/src/main/cli.ts\",\"utf8\"); const errorLine=cli.match(/Supported commands: ([^`]+)\\\\n/)[1]; const supported=new Set(errorLine.replace(/\\.$/,\"\").split(\", \")); const scorer=[\"init\",\"score\",\"accept\",\"revert\",\"status\",\"cleanup\"]; console.log(JSON.stringify({errorLine,scorer,missing:scorer.filter(c=>!supported.has(c))}));'"
+      ],
+      "createdAt": "2026-05-24T11:59:43.702Z"
+    }
+  ],
   "signature": "sig_feat-cli-command-e103438025_35fdb2e3b2",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:16.142Z",
-  "updatedAt": "2026-05-24T11:43:16.142Z"
+  "updatedAt": "2026-05-24T11:59:43.702Z"
 }

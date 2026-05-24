@@ -43,11 +43,36 @@
   "whyTestsDoNotAlreadyCoverThis": "The pure `editCost` tests cover added files when the maps already contain them, but the runtime benchmark test modifies only an existing tracked `src/index.ts`; it never exercises an implementer-created untracked source file.",
   "suggestedRegressionTest": "Add a runtime benchmark where the scripted implementer writes a new `src/added.ts`, the acceptance command requires that file/content, and the resulting artifact must report a nonzero edit cost including the added file.",
   "minimumFixScope": "Update runtime source snapshot collection and add one runtime regression test for untracked source additions.",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence path still exists, but the relevant implementation changed. `snapshotWorktree` now accepts `includeUntracked` and, when true, runs `git ls-files -z --cached --others --exclude-standard -- <srcDir>`. `runChangeCostCommand` still takes the baseline snapshot with tracked files only before implementation, but computes post-acceptance edit cost with `snapshotWorktree(worktree, config.srcDir, true)`, so untracked non-ignored source additions are included while deletion handling is preserved by the read failure catch. A regression test now exists at `packages/changecost/src/test/changecost-runtime.test.ts:447` where the implementer writes untracked `src/added.ts` and asserts a done result with `filesTouched: 1` and positive `editTokens`. I attempted the targeted runtime test, but execution is blocked by the read-only sandbox because Vitest/Vite needs to write temp/cache files; code and test evidence support fixed.",
+      "commands": [
+        "git status --short",
+        "nl -ba packages/changecost/src/main/changecost.ts | sed -n '260,450p'",
+        "nl -ba packages/changecost/src/test/changecost-runtime.test.ts | sed -n '340,430p'",
+        "rg -n \"snapshotWorktree|ls-files|--others|exclude-standard|editCost|added\\\\.ts|new\\\\.ts|untracked\" packages/changecost/src",
+        "nl -ba packages/changecost/src/test/changecost-runtime.test.ts | sed -n '430,490p'",
+        "nl -ba packages/changecost/src/main/changecost.ts | sed -n '100,140p;200,225p;286,306p;428,438p'",
+        "git diff -- packages/changecost/src/main/changecost.ts packages/changecost/src/test/changecost-runtime.test.ts",
+        "sed -n '1,220p' packages/changecost/package.json",
+        "sed -n '1,220p' package.json",
+        "rg -n \"vitest|tsx|test\" package.json packages/changecost/package.json pnpm-workspace.yaml",
+        "pnpm --filter @codenuke/changecost exec vitest run packages/changecost/src/test/changecost-runtime.test.ts",
+        "pnpm --filter @codenuke/changecost exec vitest --help | sed -n '1,160p'",
+        "pnpm --filter @codenuke/changecost exec vitest run packages/changecost/src/test/changecost-runtime.test.ts --configLoader runner",
+        "pnpm --filter @codenuke/changecost exec vitest run src/test/changecost-runtime.test.ts --configLoader runner"
+      ],
+      "createdAt": "2026-05-24T12:08:15.853Z"
+    }
+  ],
   "signature": "sig_feat-library-7fcb82f3a6_4438791929",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:45:08.337Z",
-  "updatedAt": "2026-05-24T11:45:08.337Z"
+  "updatedAt": "2026-05-24T12:08:15.853Z"
 }

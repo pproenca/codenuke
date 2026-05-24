@@ -439,6 +439,7 @@ describe("runScorerCommand accept/revert/status/cleanup lifecycle", () => {
     expect((await runScorerCommand(["init"], env, root)).exitCode).toBe(0);
     writePassingFence(root, baselineSha);
     write(worktree, "src/index.ts", "export const value = 1;\n");
+    write(worktree, "src/new.ts", "");
     write(worktree, "package.json", JSON.stringify({ name: "mutated" }, null, 2));
 
     const result = await runScorerCommand(["accept"], env, root);
@@ -454,7 +455,7 @@ describe("runScorerCommand accept/revert/status/cleanup lifecycle", () => {
     expect(state.iter).toBe(1);
     expect(state.accepted).toHaveLength(1);
     expect(state.accepted[0]).toMatch(/^[0-9a-f]{7,}$/u);
-    expect(committedFiles).toEqual(["src/index.ts"]);
+    expect(committedFiles).toEqual(["src/index.ts", "src/new.ts"]);
     expect(git(worktree, ["status", "--short"])).toContain(" M package.json");
   });
 

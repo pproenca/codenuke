@@ -36,11 +36,21 @@
   "whyTestsDoNotAlreadyCoverThis": "The runtime and math tests import through the workspace path mapping and exercise source code, not npm publication behavior or package publishability.",
   "suggestedRegressionTest": "Add a packaging smoke test that runs npm pack for packages/calibrate only if it is intended to be publishable, then imports the packed package from a temporary install.",
   "minimumFixScope": "packages/calibrate/package.json",
-  "status": "open",
-  "history": [],
+  "status": "false-positive",
+  "history": [
+    {
+      "runId": null,
+      "kind": "triage",
+      "status": "false-positive",
+      "note": "packages/* are intentionally private internal implementation modules bundled into the public apps/cli tarball; @codenuke/calibrate is not an independently published package.",
+      "reasoning": null,
+      "commands": [],
+      "createdAt": "2026-05-24T11:55:53.916Z"
+    }
+  ],
   "signature": "sig_feat-library-ef3da57849_806d36e595",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:45:07.819Z",
-  "updatedAt": "2026-05-24T11:45:07.819Z"
+  "updatedAt": "2026-05-24T11:55:53.915Z"
 }

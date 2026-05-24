@@ -38,6 +38,8 @@ function makeRepo(): string {
   git(dir, ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "init"]);
   mkdirSync(join(dir, "node_modules"));
   writeFileSync(join(dir, "node_modules", "marker"), "dep");
+  mkdirSync(join(dir, "packages", "foo", "node_modules"), { recursive: true });
+  writeFileSync(join(dir, "packages", "foo", "node_modules", "marker"), "nested-dep");
   return dir;
 }
 
@@ -83,7 +85,9 @@ describe("worktree lifecycle — integration (git fixture)", () => {
     git(repo, ["worktree", "add", "-q", wt, "HEAD"]);
     linkWorktreeNodeModules(repo, wt);
     expect(lstatSync(join(wt, "node_modules")).isSymbolicLink()).toBe(true);
+    expect(lstatSync(join(wt, "packages", "foo", "node_modules")).isSymbolicLink()).toBe(true);
     expect(readFileSync(join(wt, "node_modules", "marker"), "utf8")).toBe("dep");
+    expect(readFileSync(join(wt, "packages", "foo", "node_modules", "marker"), "utf8")).toBe("nested-dep");
   });
 
   it("resets and cleans a dirty worktree", () => {

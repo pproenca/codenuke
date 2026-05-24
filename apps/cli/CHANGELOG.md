@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-05-24
+
+- Modernized the TypeScript workspace into the public `codenuke` CLI package with bundled internal modules.
+- Added the current CLI command set for fence, calibration, changecost, proxy validation, scorer lifecycle, doctor, and loop runs.
+- Updated release packaging around the `apps/cli` tarball and workspace validation commands.
+
 ## 0.2.1 - 2026-05-18
 
 - Added the companion `codenuke` agent skill for `npx skills` installation and simple `npx --yes codenuke@latest` review/fix-loop dogfooding.

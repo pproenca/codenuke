@@ -338,6 +338,13 @@ describe("path-surface enforcement (RULE-025, RULE-026)", () => {
     expect(isAllowedReducePath("node_modules/.bin/tool", "src")).toBe(false);
   });
 
+  it("rejects common tooling paths when the configured source dir is the repo root", () => {
+    expect(isAllowedReducePath("packages/app/src/index.ts", ".")).toBe(true);
+    expect(isAllowedReducePath("vitest.config.ts", ".")).toBe(false);
+    expect(isAllowedReducePath("scripts/release.ts", ".")).toBe(false);
+    expect(isAllowedReducePath("docs/example.ts", ".")).toBe(false);
+  });
+
   it("allows raise edits only to .test/.spec files under detected test roots", () => {
     const roots = ["test", "src"];
     expect(isAllowedRaisePath("test/api.behavior.test.ts", roots)).toBe(true);

@@ -95,6 +95,7 @@ export interface ScorerGitCommandPlan {
   readonly addWorktree: (ref: string) => readonly string[];
   readonly targetTree: (ref: string) => readonly string[];
   readonly changedSource: readonly string[];
+  readonly untrackedSource: readonly string[];
   readonly addChangedSource: (paths: readonly string[]) => readonly string[];
   readonly cleanSource: readonly string[];
 }
@@ -188,6 +189,7 @@ export function scorerGitCommandPlan(input: {
       return ["ls-tree", "-r", "-z", "--name-only", ref, "--", input.target];
     },
     changedSource: ["diff", "-z", "--name-only", "HEAD", "--", input.srcDir],
+    untrackedSource: ["ls-files", "-z", "--others", "--exclude-standard", "--", input.srcDir],
     addChangedSource: (paths) => ["add", "-A", "--", ...paths],
     cleanSource: ["clean", "-fdq", "--", input.srcDir],
   };
@@ -243,7 +245,12 @@ function targetL(config: Config, ref: string, plan: ScorerGitCommandPlan): numbe
 }
 
 function changedSource(config: Config, plan: ScorerGitCommandPlan): string[] {
-  return gitPathList(run("git", plan.changedSource, { cwd: config.worktree }), config.srcDir);
+  return [
+    ...new Set([
+      ...gitPathList(run("git", plan.changedSource, { cwd: config.worktree }), config.srcDir),
+      ...gitPathList(run("git", plan.untrackedSource, { cwd: config.worktree }), config.srcDir),
+    ]),
+  ];
 }
 
 function changedMeasurement(config: Config, changed: readonly string[], ref: "HEAD" | "worktree"): Measurement {

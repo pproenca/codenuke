@@ -106,14 +106,13 @@ async function auditFence(
     return { exitCode: 1, stdout: `no source regions detected under ${config.srcDir}/\n` };
   }
 
-  const auditPlan = fenceGitCommandPlan({
-    baseline: config.baseline,
-    srcDir: config.srcDir,
-    region: regions[0]!,
-  });
-  const baselineSha = run("git", auditPlan.resolveBaseline, { cwd: config.repo }).trim();
-
   try {
+    const auditPlan = fenceGitCommandPlan({
+      baseline: config.baseline,
+      srcDir: config.srcDir,
+      region: regions[0]!,
+    });
+    const baselineSha = run("git", auditPlan.resolveBaseline, { cwd: config.repo }).trim();
     removeWorktree(config.repo, worktree);
     run("git", ["worktree", "add", "-f", worktree, baselineSha], { cwd: config.repo, env });
     linkWorktreeNodeModules(config.repo, worktree);

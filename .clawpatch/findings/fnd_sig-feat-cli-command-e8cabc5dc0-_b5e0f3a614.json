@@ -36,11 +36,30 @@
   "whyTestsDoNotAlreadyCoverThis": "No linked tests or release smoke checks assert that the package version has a corresponding changelog entry.",
   "suggestedRegressionTest": "Add a packaging/release check that reads apps/cli/package.json version and fails if apps/cli/CHANGELOG.md lacks a matching top-level version heading.",
   "minimumFixScope": "apps/cli/CHANGELOG.md",
-  "status": "open",
-  "history": [],
+  "status": "fixed",
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "fixed",
+      "note": null,
+      "reasoning": "The original evidence paths still exist. apps/cli/package.json still declares codenuke version 0.4.0 and still ships CHANGELOG.md in files. apps/cli/README.md still identifies apps/cli as public package codenuke@0.4.0. The issue is fixed because apps/cli/CHANGELOG.md now has a top-level 0.4.0 entry at line 3 before the older 0.2.1 entry. A read-only Node check against the current package version confirmed changelogHasVersionHeading=true and shipsChangelog=true. I did not find an existing regression test for this with rg.",
+      "commands": [
+        "sed -n '1,40p' apps/cli/package.json",
+        "sed -n '1,80p' apps/cli/CHANGELOG.md",
+        "sed -n '70,85p' apps/cli/README.md",
+        "nl -ba apps/cli/package.json | sed -n '1,25p'",
+        "nl -ba apps/cli/CHANGELOG.md | sed -n '1,20p'",
+        "nl -ba apps/cli/README.md | sed -n '73,82p'",
+        "rg -n \"CHANGELOG|changelog|package.json.*version|version.*CHANGELOG\" .",
+        "node -e 'const fs=require(\"fs\"); const pkg=JSON.parse(fs.readFileSync(\"apps/cli/package.json\",\"utf8\")); const changelog=fs.readFileSync(\"apps/cli/CHANGELOG.md\",\"utf8\"); const hasHeading=changelog.split(/\\r?\\n/).some(line => line.startsWith(\"## \"+pkg.version)); console.log(JSON.stringify({version:pkg.version, changelogHasVersionHeading:hasHeading, shipsChangelog:pkg.files.includes(\"CHANGELOG.md\")})); process.exit(hasHeading && pkg.files.includes(\"CHANGELOG.md\") ? 0 : 1);'"
+      ],
+      "createdAt": "2026-05-24T12:00:34.850Z"
+    }
+  ],
   "signature": "sig_feat-cli-command-e8cabc5dc0_cf8837fa17",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:43:13.205Z",
-  "updatedAt": "2026-05-24T11:43:13.205Z"
+  "updatedAt": "2026-05-24T12:00:34.850Z"
 }

@@ -44,10 +44,39 @@
   "suggestedRegressionTest": "Assert that `safeWorktreePath(worktree, '..\\\\outside.ts')` throws and that `changeCostGitCommandPlan` rejects a `srcDir` containing `..\\\\` traversal.",
   "minimumFixScope": "Harden path validation helpers and extend the path-safety tests with backslash traversal cases.",
   "status": "open",
-  "history": [],
+  "history": [
+    {
+      "runId": "20260524T115603-25fe73",
+      "kind": "revalidate",
+      "status": "open",
+      "note": null,
+      "reasoning": "The original source lines still exist but have been changed to reject backslashes: assertSafeSourcePath now checks srcDir.includes(\"\\\\\") and splits on /[\\\\/]+/u, safeWorktreePath rejects rel.includes(\"\\\\\"), checks back.startsWith(\"..\\\\\"), and splits on /[\\\\/]+/u. The test evidence also moved from only forward-slash cases to include safeWorktreePath(worktree, \"..\\\\outside.ts\") and changeCostGitCommandPlan({srcDir:\"..\\\\src\"}). However the package export used by @codenuke/changecost currently resolves to packages/changecost/dist/changecost.js, and that current dist file still has the old slash-only checks. A direct import of the current exported module allowed both backslash inputs. The targeted vitest command could not run in this read-only sandbox because Vite attempted to write node_modules/.vite-temp, but the exported runtime evidence shows the issue remains open in the current executable package artifact until dist is rebuilt or consumers/tests are pointed at the fixed source.",
+      "commands": [
+        "rg -n \"assertSafeSourcePath|safeWorktreePath|runChangeCostCommand|changeCostGitCommandPlan|\\\\\\\\|\\.\\.\" packages/changecost/src/main/changecost.ts packages/changecost/src/test/changecost-runtime.test.ts",
+        "git status --short",
+        "nl -ba packages/changecost/src/main/changecost.ts | sed -n '170,245p;390,420p'",
+        "nl -ba packages/changecost/src/test/changecost-runtime.test.ts | sed -n '260,330p'",
+        "cat package.json",
+        "cat packages/changecost/package.json",
+        "rg -n \"describe\\(|it\\(|vitest|node:test|safeWorktreePath\\(worktree, \\\"\\.\\.\\\\\\\\outside|srcDir: \\\"\\.\\.\\\\\\\\src\" packages/changecost/src/test package.json packages/changecost/package.json pnpm-workspace.yaml",
+        "pnpm --filter @codenuke/changecost test -- --runInBand packages/changecost/src/test/changecost-runtime.test.ts",
+        "ls packages/changecost",
+        "rg -n \"function assertSafeSourcePath|function safeWorktreePath|includes\\\\(\\\"\\\\\\\\\\\\\\\\\\\"\\\\)|startsWith\\\\(\\\"\\.\\.\\\\\\\\\\\\\\\\\\\"\\\\)|split\\\\(/\\\\[\\\\\\\\\\\\\\\\/\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\]\" packages/changecost/dist packages/changecost/src/main/changecost.ts",
+        "find packages/changecost -maxdepth 2 -type f | sort",
+        "nl -ba packages/changecost/dist/changecost.js | sed -n '96,140p'",
+        "nl -ba packages/changecost/src/test/changecost-runtime.test.ts | sed -n '1,90p'",
+        "node --input-type=module -e 'import { safeWorktreePath, changeCostGitCommandPlan } from \"./packages/changecost/dist/changecost.js\"; for (const [name, fn] of [[\"safeWorktreePath\", () => safeWorktreePath(\"/tmp/wt\", \"..\\\\\\\\outside.ts\")], [\"changeCostGitCommandPlan\", () => changeCostGitCommandPlan({repo:\"/repo\", worktree:\"/tmp/wt\", ref:\"HEAD\", srcDir:\"..\\\\\\\\src\"})]]) { try { fn(); console.log(name + \": allowed\"); } catch (e) { console.log(name + \": \" + e.message); } }'",
+        "git ls-files packages/changecost/dist packages/changecost/src/main/changecost.ts packages/changecost/src/test/changecost-runtime.test.ts",
+        "rg -n \"dist|tsbuildinfo|node_modules|\\.codenuke|tgz\" .gitignore packages/changecost/.gitignore apps/cli/.gitignore",
+        "git diff -- packages/changecost/src/main/changecost.ts packages/changecost/src/test/changecost-runtime.test.ts packages/changecost/dist/changecost.js | sed -n '1,220p'",
+        "node --input-type=module -e 'const rel = String.raw`..\\outside.ts`; import(\"./packages/changecost/dist/changecost.js\").then(({safeWorktreePath, changeCostGitCommandPlan}) => { for (const [name, fn] of [[\"safeWorktreePath\", () => safeWorktreePath(\"/tmp/wt\", rel)], [\"changeCostGitCommandPlan\", () => changeCostGitCommandPlan({repo:\"/repo\", worktree:\"/tmp/wt\", ref:\"HEAD\", srcDir:String.raw`..\\src`})]]) { try { const value = fn(); console.log(`${name}: allowed ${JSON.stringify(value)}`); } catch (e) { console.log(`${name}: ${e.message}`); } } })'"
+      ],
+      "createdAt": "2026-05-24T12:10:04.973Z"
+    }
+  ],
   "signature": "sig_feat-library-7fcb82f3a6_b35cccb546",
   "linkedPatchAttemptIds": [],
   "createdByRunId": "20260524T114252-810d38",
   "createdAt": "2026-05-24T11:45:08.337Z",
-  "updatedAt": "2026-05-24T11:45:08.337Z"
+  "updatedAt": "2026-05-24T12:10:04.973Z"
 }

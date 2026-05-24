@@ -104,6 +104,17 @@ describe("fenceArtifactStatus — dual-execution", () => {
     expect(a.reason).toBe("stale-baseline-sha");
   });
 
+  it("stale-baseline-sha when the configured baseline cannot be resolved", () => {
+    const { dir, head } = makeRepo();
+    writeArtifact(dir, "fence-fidelity.json", validFence(head));
+
+    const status = fenceArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
+
+    expect(status.usable).toBe(false);
+    expect(status.stale).toBe(true);
+    expect(status.reason).toBe("stale-baseline-sha");
+  });
+
   it("invalid-metadata for a wrong method", () => {
     const { dir, head } = makeRepo();
     writeArtifact(dir, "fence-fidelity.json", { ...validFence(head), method: "line-based" });
@@ -131,6 +142,17 @@ describe("fenceArtifactStatus — dual-execution", () => {
     expect(a).toEqual(b);
     expect(a.reason).toBe("invalid-regions");
   });
+
+  it("missing when regions is array-shaped", () => {
+    const { dir, head } = makeRepo();
+    const art = validFence(head);
+    writeArtifact(dir, "fence-fidelity.json", { ...art, regions: Object.values(art.regions) });
+
+    const status = fenceArtifactStatus(cfg(dir));
+
+    expect(status.usable).toBe(false);
+    expect(status.reason).toBe("missing");
+  });
 });
 
 describe("calibrationArtifactStatus — dual-execution", () => {
@@ -156,6 +178,17 @@ describe("calibrationArtifactStatus — dual-execution", () => {
     const [a, b] = both(calibrationArtifactStatus, legacyCalibration, dir);
     expect(a).toEqual(b);
     expect(a.usable).toBe(true);
+  });
+
+  it("stale-baseline-sha when calibration baseline cannot be resolved", () => {
+    const { dir, head } = makeRepo();
+    writeArtifact(dir, "calibration.json", valid(head));
+
+    const status = calibrationArtifactStatus({ ...cfg(dir), baseline: "refs/heads/missing" });
+
+    expect(status.usable).toBe(false);
+    expect(status.stale).toBe(true);
+    expect(status.reason).toBe("stale-baseline-sha");
   });
 
   it("invalid-metadata for an otherwise valid unversioned artifact", () => {
