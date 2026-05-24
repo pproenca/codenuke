@@ -1,0 +1,32 @@
+{
+  "name": "@codenuke/measure",
+  "version": "0.1.0",
+  "description": "Source measurement (AST size, cyclomatic complexity, duplication) for codenuke — modernized slice of loop/measure.mjs.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/measure.d.ts",
+      "import": "./dist/measure.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.6"
+  },
+  "private": true
+}

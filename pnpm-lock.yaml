@@ -21,7 +21,19 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  artifacts:
+  apps/cli:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      esbuild:
+        specifier: ^0.27.1
+        version: 0.27.7
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/artifacts:
     dependencies:
       '@codenuke/exec':
         specifier: workspace:*
@@ -49,7 +61,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  calibrate:
+  packages/calibrate:
     dependencies:
       '@codenuke/artifacts':
         specifier: workspace:*
@@ -71,7 +83,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  changecost:
+  packages/changecost:
     dependencies:
       '@codenuke/artifacts':
         specifier: workspace:*
@@ -93,7 +105,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  config:
+  packages/config:
     dependencies:
       '@codenuke/exec':
         specifier: workspace:*
@@ -112,7 +124,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  exec:
+  packages/exec:
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -124,7 +136,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  fence:
+  packages/fence:
     dependencies:
       '@codenuke/artifacts':
         specifier: workspace:*
@@ -152,7 +164,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  guards:
+  packages/guards:
     devDependencies:
       typescript:
         specifier: ^6.0.3
@@ -161,7 +173,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  json-io:
+  packages/json-io:
     devDependencies:
       typescript:
         specifier: ^6.0.3
@@ -170,7 +182,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  measure:
+  packages/measure:
     dependencies:
       typescript:
         specifier: ^6.0.3
@@ -180,7 +192,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  orchestrator:
+  packages/orchestrator:
     dependencies:
       '@codenuke/artifacts':
         specifier: workspace:*
@@ -223,7 +235,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  scorer:
+  packages/scorer:
     dependencies:
       '@codenuke/artifacts':
         specifier: workspace:*
@@ -248,7 +260,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  stats:
+  packages/stats:
     devDependencies:
       typescript:
         specifier: ^6.0.3
@@ -257,7 +269,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  substrate:
+  packages/substrate:
     dependencies:
       '@codenuke/exec':
         specifier: workspace:*
@@ -273,7 +285,7 @@ importers:
         specifier: ^4.1.6
         version: 4.1.7(@types/node@22.19.19)(vite@8.0.14(@types/node@22.19.19)(esbuild@0.27.7))
 
-  value-proxy:
+  packages/value-proxy:
     dependencies:
       '@codenuke/config':
         specifier: workspace:*

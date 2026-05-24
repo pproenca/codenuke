@@ -1,0 +1,42 @@
+{
+  "name": "@codenuke/fence",
+  "version": "0.1.0",
+  "description": "Behavior-fence mutation core (operators/sites/sampling/admissibility) — modernized pure logic of loop/fence.mjs.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/fence.d.ts",
+      "import": "./dist/fence.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@codenuke/artifacts": "workspace:*",
+    "@codenuke/config": "workspace:*",
+    "@codenuke/exec": "workspace:*",
+    "@codenuke/stats": "workspace:*",
+    "@codenuke/substrate": "workspace:*",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.6",
+    "@types/node": "^22.0.0"
+  },
+  "private": true
+}

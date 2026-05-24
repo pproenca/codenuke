@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@codenuke/artifacts": ["../../packages/artifacts/src/main/artifacts.ts"],
+      "@codenuke/calibrate": ["../../packages/calibrate/src/main/calibrate.ts"],
+      "@codenuke/changecost": ["../../packages/changecost/src/main/changecost.ts"],
+      "@codenuke/config": ["../../packages/config/src/main/config.ts"],
+      "@codenuke/exec": ["../../packages/exec/src/main/exec.ts"],
+      "@codenuke/fence": ["../../packages/fence/src/main/fence.ts"],
+      "@codenuke/fence/runtime": ["../../packages/fence/src/main/runtime.ts"],
+      "@codenuke/guards": ["../../packages/guards/src/main/guards.ts"],
+      "@codenuke/json": ["../../packages/json-io/src/main/json.ts"],
+      "@codenuke/measure": ["../../packages/measure/src/main/measure.ts"],
+      "@codenuke/orchestrator": ["../../packages/orchestrator/src/main/orchestrator.ts"],
+      "@codenuke/orchestrator/runtime": ["../../packages/orchestrator/src/main/runtime.ts"],
+      "@codenuke/scorer": ["../../packages/scorer/src/main/scorer.ts"],
+      "@codenuke/stats": ["../../packages/stats/src/main/stats.ts"],
+      "@codenuke/substrate": ["../../packages/substrate/src/main/index.ts"],
+      "@codenuke/value-proxy": ["../../packages/value-proxy/src/main/value-proxy.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

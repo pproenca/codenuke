@@ -1,0 +1,30 @@
+{
+  "name": "@codenuke/stats",
+  "version": "0.1.0",
+  "description": "Statistical primitives for codenuke safety gates (modernized slice of loop/stats.mjs).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/stats.d.ts",
+      "import": "./dist/stats.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  },
+  "private": true
+}

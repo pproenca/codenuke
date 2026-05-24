@@ -1,0 +1,31 @@
+{
+  "name": "@codenuke/exec",
+  "version": "0.1.0",
+  "description": "Safe subprocess substrate (execFile arg-arrays, no shell) for codenuke — CWE-78 remediation of loop/shell.mjs.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/exec.d.ts",
+      "import": "./dist/exec.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm -s build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6",
+    "@types/node": "^22.0.0"
+  },
+  "private": true
+}

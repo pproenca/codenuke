@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@codenuke/calibrate": ["./src/main/calibrate.ts"],
+      "@codenuke/artifacts": ["../artifacts/src/main/artifacts.ts"],
+      "@codenuke/config": ["../config/src/main/config.ts"],
+      "@codenuke/exec": ["../exec/src/main/exec.ts"],
+      "@codenuke/guards": ["../guards/src/main/guards.ts"],
+      "@codenuke/json": ["../json-io/src/main/json.ts"],
+      "@codenuke/measure": ["../measure/src/main/measure.ts"],
+      "@codenuke/stats": ["../stats/src/main/stats.ts"],
+      "@codenuke/value-proxy": ["../value-proxy/src/main/value-proxy.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

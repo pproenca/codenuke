@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@codenuke/substrate": ["./src/main/index.ts"],
+      "@codenuke/exec": ["../exec/src/main/exec.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

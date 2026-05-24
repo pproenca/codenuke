@@ -1,32 +1,20 @@
 {
-  "name": "codenuke",
-  "version": "0.4.0",
+  "name": "codenuke-workspace",
+  "version": "0.0.0",
   "description": "Autonomous behavior-preserving code reduction.",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "type": "module",
   "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=22"
   },
-  "bin": {
-    "codenuke": "dist/cli.cjs"
-  },
-  "files": [
-    "dist",
-    "docs",
-    "README.md",
-    "LICENSE",
-    "SECURITY.md",
-    "CHANGELOG.md"
-  ],
   "scripts": {
-    "codenuke": "node dist/cli.cjs",
-    "codenuke:build": "pnpm -s build && node dist/cli.cjs",
-    "test": "vitest run",
-    "typecheck": "pnpm -r --filter './*' run typecheck",
-    "build": "pnpm -r --filter './*' --if-present run build && node scripts/bundle-cli.mjs",
-    "prepack": "pnpm -s build"
+    "codenuke": "pnpm --filter codenuke codenuke",
+    "codenuke:build": "pnpm --filter codenuke codenuke:build",
+    "test": "pnpm -r --filter './packages/*' --filter './apps/*' --if-present run test",
+    "typecheck": "pnpm -r --filter './packages/*' --filter './apps/*' run typecheck",
+    "build": "pnpm -r --filter './packages/*' --filter './apps/*' run build"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
