@@ -40,7 +40,7 @@ never touched by the loop.
 | `calibrate` | per-repo value scales from git history |
 | `changecost [ref]` | held-out implementer benchmark → 𝒱̂ |
 | `validate-proxy [input]` | proxy↔𝒱̂ Spearman validation |
-| `doctor` | readiness / gap report |
+| `doctor [iterations]` | readiness / gap report |
 
 ## Configuration (`CN_*`)
 

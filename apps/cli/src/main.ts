@@ -230,8 +230,10 @@ const validateProxy = Command.make(
 )
 
 /**
- * `doctor` (RULE-032) — collect EVERY readiness gap (no short-circuit, unlike the
- * startup gate) and report. Exit 0 when ready, 2 when not.
+ * `doctor [iterations]` (RULE-032) — collect readiness gaps (no short-circuit,
+ * unlike the startup gate) and report. With no iteration count, report full
+ * artifact readiness; with a count, mirror the startup gate for that run length.
+ * Exit 0 when ready, 2 when not.
  */
 const doctor = Command.make(
   "doctor",
