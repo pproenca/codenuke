@@ -257,6 +257,13 @@ describe("input validation (modern deviation: fail loud, not silent NaN)", () =>
     expect(() => wilson(Number.NaN, 10)).toThrow(RangeError); // NaN k
   });
 
+  it("wilson throws on invalid custom z values", () => {
+    expect(() => wilson(5, 10, Number.NaN)).toThrow(RangeError);
+    expect(() => wilson(5, 10, Number.POSITIVE_INFINITY)).toThrow(RangeError);
+    expect(() => wilson(5, 10, -1.96)).toThrow(RangeError);
+    expect(() => wilson(5, 10, 0)).not.toThrow();
+  });
+
   it("wilson still accepts the valid degenerate and boundary cases", () => {
     expect(() => wilson(0, 0)).not.toThrow();
     expect(() => wilson(10, 10)).not.toThrow();

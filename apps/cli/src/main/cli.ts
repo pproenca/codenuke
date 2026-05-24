@@ -21,6 +21,15 @@ async function packageVersion(): Promise<string> {
   return (JSON.parse(readFileSync(packageJson, "utf8")) as { version: string }).version;
 }
 
+function parseIterations(value: string | undefined): number | string {
+  if (value == null) return 5;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return `error: iterations must be a non-negative integer, received ${value}\n`;
+  }
+  return parsed;
+}
+
 async function main(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   const [cmd, ...rest] = argv;
   const target = commandTarget(cmd);
@@ -73,7 +82,11 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     return result.exitCode;
   }
   if (cmd === "run" || cmd === "loop") {
-    const iterations = Number(rest[0]) || 5;
+    const iterations = parseIterations(rest[0]);
+    if (typeof iterations === "string") {
+      process.stderr.write(iterations);
+      return 2;
+    }
     const result = await runAutoloop(iterations, process.env, process.cwd());
     process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
@@ -81,7 +94,7 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
   }
   if (target) {
     process.stderr.write(
-      `error: codenuke ${cmd} is recognized but its modernized runtime adapter is not implemented yet. Supported commands: calibrate, changecost, doctor, fence, run, validate-proxy.\n`,
+      `error: codenuke ${cmd} is recognized but its modernized runtime adapter is not implemented yet. Supported commands: calibrate, changecost, doctor, fence, init, score, accept, revert, status, cleanup, run, validate-proxy.\n`,
     );
     return 2;
   }

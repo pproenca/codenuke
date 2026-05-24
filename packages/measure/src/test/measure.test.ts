@@ -60,6 +60,19 @@ describe("measure — characterization (RULE-003/004/005)", () => {
     expect(measure(files).L).toBe(legacyMeasure(files).L);
     expect(measure(files).dupMass).toBe(0);
   });
+
+  it("parses JSX syntax in .jsx files", () => {
+    const jsx = { "component.jsx": "export const C = ({a, b}) => <div>{a < b ? a : b}</div>;" };
+    expect(measure(jsx).L).toBeGreaterThan(0);
+    expect(measure(jsx).complexity).toBeGreaterThan(1);
+  });
+
+  it("keeps duplicate-window token signatures unambiguous", () => {
+    const one = Array.from({ length: 6 }, (_, i) => `const a${i} = ${i};`).join(" ");
+    const two = Array.from({ length: 6 }, (_, i) => `const a = ${i};`).join(" ");
+
+    expect(measure({ "one.ts": one, "two.ts": two }).dupMass).toBe(0);
+  });
 });
 
 describe("dual-execution vs legacy measure — L / complexity / dupMass", () => {

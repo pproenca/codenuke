@@ -27,9 +27,9 @@ const MIN_CONTENT = 5; // min distinct content tokens for a window to count (fil
 
 const isTest = (name: string): boolean =>
   /\.(test|spec)\.[tj]sx?$/.test(name) || name.includes("__tests__");
-const isTsx = (name: string): boolean => name.endsWith(".tsx");
+const isJsxLike = (name: string): boolean => /\.(t|j)sx$/u.test(name);
 const scriptKind = (name: string): ts.ScriptKind =>
-  isTsx(name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  name.endsWith(".jsx") ? ts.ScriptKind.JSX : isJsxLike(name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
 
 const parse = (name: string, text: string): ts.SourceFile =>
   ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, scriptKind(name));
@@ -87,7 +87,7 @@ interface Token {
 
 /** Token stream for clone detection — import / re-export lines stripped (idiom, not logic). */
 function tokenStream(name: string, text: string): Token[] {
-  const variant = isTsx(name) ? ts.LanguageVariant.JSX : ts.LanguageVariant.Standard;
+  const variant = isJsxLike(name) ? ts.LanguageVariant.JSX : ts.LanguageVariant.Standard;
   const stripped = text
     .split(/\r?\n/u)
     .filter((line) => !/^\s*import\b/u.test(line) && !/^\s*export\b[^;]*\bfrom\b/u.test(line))
@@ -124,7 +124,7 @@ function duplicateMass(files: Files): number {
       const distinctContent = new Set<string>();
       for (const token of window) if (token.content) distinctContent.add(token.text);
       if (distinctContent.size < MIN_CONTENT) continue;
-      const key = window.map((token) => token.key).join("");
+      const key = JSON.stringify(window.map((token) => token.key));
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
   }

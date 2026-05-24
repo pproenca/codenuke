@@ -32,13 +32,17 @@ export interface WilsonInterval {
  * @param k caught count, `0 ≤ k ≤ n`
  * @param n sample size; `n === 0` returns the degenerate `{ p: 0, lo: 0, hi: 1 }`
  * @param z normal quantile; defaults to the 95% two-sided value, 1.96
- * @throws {RangeError} if `k`/`n` are not integers with `0 ≤ k ≤ n`. A P0 gate
+ * @throws {RangeError} if `k`/`n` are not integers with `0 ≤ k ≤ n` or `z` is
+ *   not a finite non-negative number. A P0 gate
  *   must fail loud: an unvalidated bad input produces a `NaN` lower bound, and
  *   `NaN >= 0.90` is `false`, which would silently mark a region inadmissible.
  */
 export function wilson(k: number, n: number, z: number = Z_95): WilsonInterval {
   if (!Number.isInteger(k) || !Number.isInteger(n) || n < 0 || k < 0 || k > n) {
     throw new RangeError(`wilson: expected integers 0 <= k <= n, received k=${k}, n=${n}`);
+  }
+  if (!Number.isFinite(z) || z < 0) {
+    throw new RangeError(`wilson: expected finite non-negative z, received z=${z}`);
   }
   if (n === 0) return { p: 0, lo: 0, hi: 1 };
 

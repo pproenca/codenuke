@@ -61,12 +61,19 @@ export interface FenceArtifact {
 
 /** Collect all mutation sites in a source file: operator flips, startsWith↔endsWith, return true↔false. */
 export function collectSites(name: string, text: string): MutationSite[] {
+  const kind = name.endsWith(".jsx")
+    ? ts.ScriptKind.JSX
+    : /\.(t|j)sx$/u.test(name)
+      ? ts.ScriptKind.TSX
+      : name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".cjs")
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
   const sf = ts.createSourceFile(
     name,
     text,
     ts.ScriptTarget.Latest,
     true,
-    /\.tsx$/.test(name) ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    kind,
   );
   const sites: MutationSite[] = [];
   const push = (start: number, end: number, repl: string): void => {
