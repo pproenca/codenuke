@@ -52,6 +52,7 @@ await build({
   target: "node22",
   define: { "import.meta.url": "undefined" },
   plugins: [workspaceAliasPlugin],
+  external: ["@openai/codex-sdk"],
   logLevel: "info",
 });
 

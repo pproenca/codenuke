@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { run } from "@codenuke/exec";
 import * as fence from "@codenuke/fence";
 import { describe, expect, it } from "vitest";
-import { runFenceCommand } from "../main/runtime.js";
+import { runFenceCommand, type RuntimeEvent } from "../main/runtime.js";
 
 interface PlannedMutation {
   readonly rel: string;
@@ -492,6 +492,66 @@ describe("fence runtime filtered refresh", () => {
 });
 
 describe("fence runtime audit cleanup", () => {
+  it("reports resolved config, phases, mutation progress, and explained region results", async () => {
+    const root = fixtureRoot("codenuke-fence-reporting-");
+    const worktree = join(root, "..", "reporting-worktree");
+    const fenceWorktree = `${worktree}-fence`;
+    const testScript = join(root, "scripts", "green.mjs");
+    const events: RuntimeEvent[] = [];
+    initRepo(root);
+    write(root, "src/api/rules.ts", "export const allows = (value: number) => value < 10;\n");
+    write(root, "scripts/green.mjs", "process.exit(0);\n");
+    git(root, ["add", "."]);
+    git(root, ["commit", "-m", "fixtures"]);
+
+    try {
+      const result = await runFenceCommand(
+        ["1", "1337"],
+        {
+          ...process.env,
+          CN_REPO: root,
+          CN_SRC: "src",
+          CN_TARGET: "src/api",
+          CN_REGIONS: "api",
+          CN_BASE: "HEAD",
+          CN_WORKTREE: worktree,
+          CN_FENCE: join(root, ".codenuke/fence-fidelity.json"),
+          CN_TEST: nodeCommand(testScript),
+        },
+        root,
+        { reporter: { emit: (event) => events.push(event) } },
+      );
+
+      expect.soft(result.exitCode).toBe(0);
+      expect.soft(result.stdout).toContain("fence audit");
+      expect.soft(result.stdout).toContain("repo:");
+      expect.soft(result.stdout).toContain("source: src");
+      expect.soft(result.stdout).toContain("[1/6] resolving baseline");
+      expect.soft(result.stdout).toContain("[5/6] running mutation audit: 0/1 complete");
+      expect.soft(result.stdout).toContain("  api");
+      expect.soft(result.stdout).toContain("== api");
+      expect.soft(result.stdout).toContain("mutations tested: 1");
+      expect.soft(result.stdout).toContain("survived: 1");
+      expect.soft(result.stdout).toContain("status: BLOCKED");
+      expect.soft(result.stdout).toContain("meaning: tests missed 1 behavior changes");
+      expect
+        .soft(events.map((event) => event.type))
+        .toEqual(
+          expect.arrayContaining([
+            "phase",
+            "audit-start",
+            "region-plan",
+            "mutation-progress",
+            "region-result",
+            "artifact",
+          ]),
+        );
+    } finally {
+      removeFixtureWorktree(root, fenceWorktree);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("fails closed and removes the fence worktree when an unexpected runtime error happens after baseline green", async () => {
     const root = fixtureRoot("codenuke-fence-cleanup-");
     const worktree = join(root, "..", "cleanup-worktree");

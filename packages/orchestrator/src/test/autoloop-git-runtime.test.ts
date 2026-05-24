@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { measure, type Files } from "@codenuke/measure";
 import { afterAll, describe, expect, it } from "vitest";
-import { runAutoloop } from "../main/runtime.js";
+import { runAutoloop, runDoctor } from "../main/runtime.js";
 
 interface EngineState {
   readonly baselineSha: string;
@@ -194,6 +194,32 @@ function baseEnv(
 }
 
 describe("runAutoloop git baseline and path discovery contract", () => {
+  it("treats the SDK proposer as available without a PATH codex binary", async () => {
+    const root = fixtureRoot("codenuke-doctor-sdk-");
+    initRepo(root);
+    write(root, "src/api/rules.ts", "export const value = 1;\n");
+    const testCommand = write(root, "scripts/test-command.mjs", "process.exit(0);\n");
+    commit(root, "baseline");
+
+    const result = await runDoctor(
+      {
+        ...process.env,
+        PATH: "/usr/bin:/bin",
+        CN_REPO: root,
+        CN_SRC: "src",
+        CN_TARGET: "src/api",
+        CN_REGIONS: "api",
+        CN_TEST: `${JSON.stringify(process.execPath)} ${JSON.stringify(testCommand)}`,
+        CN_TYPECHECK: "",
+        CN_CODEX_PROVIDER: "sdk",
+      },
+      root,
+    );
+
+    expect(result.stdout).toContain("proposer: available");
+    expect(result.stdout).not.toContain("- proposer unavailable");
+  });
+
   it("resolves the configured baseline before init and measures target sources from NUL-delimited ls-tree output", async () => {
     const root = fixtureRoot("codenuke-autoloop-ls-tree-");
     const baselineSha = writeAwkwardSourceRepo(root);

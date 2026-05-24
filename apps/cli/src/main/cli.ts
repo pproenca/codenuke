@@ -8,7 +8,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { runCalibrateCommand } from "@codenuke/calibrate";
 import { runChangeCostCommand } from "@codenuke/changecost";
-import { runFenceCommand } from "@codenuke/fence/runtime";
+import { runFenceCommand, textReporter } from "@codenuke/fence/runtime";
 import { cliHelpText, commandTarget } from "@codenuke/orchestrator";
 import { runAutoloop, runDoctor } from "@codenuke/orchestrator/runtime";
 import { runScorerCommand } from "@codenuke/scorer";
@@ -52,8 +52,17 @@ async function main(argv: readonly string[] = process.argv.slice(2)): Promise<nu
     return result.exitCode;
   }
   if (cmd === "fence") {
-    const result = await runFenceCommand(rest, process.env, process.cwd());
-    process.stdout.write(result.stdout);
+    let liveLines = 0;
+    const liveReporter = textReporter((line) => {
+      liveLines += 1;
+      process.stdout.write(`${line}\n`);
+    });
+    const result = await runFenceCommand(rest, process.env, process.cwd(), {
+      reporter: rest[0] === "replay" ? undefined : liveReporter,
+    });
+    if (liveLines === 0) {
+      process.stdout.write(result.stdout);
+    }
     if (result.stderr) {
       process.stderr.write(result.stderr);
     }

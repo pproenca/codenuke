@@ -34,10 +34,8 @@ import {
   linkWorktreeNodeModules,
   removeWorktree,
   resetAndCleanWorktree,
-  runCodexAgent,
   runShellGroup,
   unlinkWorktreeNodeModules,
-  type ProcessResult,
 } from "@codenuke/substrate";
 import {
   chooseRegion,
@@ -53,6 +51,7 @@ import {
   runStartupFailure,
   selectMode,
 } from "./orchestrator.js";
+import { selectProposerAdapter, type ProposerMode, type ProposerResult } from "./proposer.js";
 
 type Env = Record<string, string | undefined>;
 
@@ -223,9 +222,11 @@ export async function runDoctor(
   const isolated = await isolatedChecks(config, env as NodeJS.ProcessEnv);
   const fenceStatus = fenceArtifactStatus(config);
   const calibrationStatus = calibrationArtifactStatus(config);
-  const proposerAvailable = env.CN_PROPOSER
-    ? true
-    : commandAvailable("codex", { cwd: config.repo, env, timeout: 5000 });
+  const proposerProvider = selectProposerAdapter(env as NodeJS.ProcessEnv).provider;
+  const proposerAvailable =
+    proposerProvider === "shell" ||
+    proposerProvider === "codex-sdk" ||
+    commandAvailable("codex", { cwd: config.repo, env, timeout: 5000 });
   const checks = {
     baseline: config.baseline,
     ...isolated,
@@ -505,25 +506,20 @@ async function runProposer(
   env: NodeJS.ProcessEnv,
   prompt: string,
   regionKey: string,
-): Promise<ProcessResult> {
-  const proposerEnv = {
-    ...env,
-    CN_REGION: regionKey,
-    CN_TARGET: regionTarget(config, regionKey),
-  };
-  if (env.CN_PROPOSER) {
-    return runShellGroup(env.CN_PROPOSER, {
-      cwd: config.worktree,
-      timeout: config.proposerTimeoutMs,
-      env: proposerEnv,
-    });
-  }
-  writeFileSync(config.promptFile, prompt);
-  return runCodexAgent(prompt, {
-    cwd: config.worktree,
-    timeout: config.proposerTimeoutMs,
-    env: proposerEnv,
-    outputPath: `${config.promptFile}.last.txt`,
+  mode: ProposerMode,
+): Promise<ProposerResult> {
+  const target = regionTarget(config, regionKey);
+  return selectProposerAdapter(env).propose({
+    mode,
+    prompt,
+    promptFile: config.promptFile,
+    repo: config.repo,
+    worktree: config.worktree,
+    regionKey,
+    regionTarget: target,
+    timeoutMs: config.proposerTimeoutMs,
+    budgetUsd: config.proposerBudgetUsd,
+    env,
   });
 }
 
@@ -535,6 +531,20 @@ function regionTarget(config: Config, regionKey: string): string {
     return `${config.srcDir}/`;
   }
   return `${config.srcDir}/${regionKey}/`;
+}
+
+function proposerStatusLine(input: {
+  readonly provider: string;
+  readonly mode: ProposerMode;
+  readonly region: string;
+  readonly target: string;
+  readonly threadId?: string;
+}): string {
+  return `  proposer start: provider=${input.provider} mode=${input.mode} region=${input.region} target=${input.target}${input.threadId ? ` thread=${input.threadId}` : ""}`;
+}
+
+function proposerResultLine(result: ProposerResult): string {
+  return `  proposer result: provider=${result.provider} status=${result.ok ? "ok" : "failed"}${result.threadId ? ` thread=${result.threadId}` : ""}${result.summary ? ` summary=${result.summary}` : ""}`;
 }
 
 function logRow(config: Config, out: string[], row: Parameters<typeof formatResultRow>[0]): void {
@@ -618,7 +628,7 @@ export async function runAutoloop(
     writeFileSync(config.results, `${formatResultsHeader()}\n`);
   }
   out.push(
-    `\n=== autoloop: ${iterations} iters, proposer=${env.CN_PROPOSER ? "scripted" : "codex exec"}, regions=${config.regions.join(",") || config.region}, branch=${config.branch} ===`,
+    `\n=== autoloop: ${iterations} iters, proposer=${selectProposerAdapter(env as NodeJS.ProcessEnv).provider}, regions=${config.regions.join(",") || config.region}, branch=${config.branch} ===`,
   );
   let kept = 0;
   let raised = 0;
@@ -663,6 +673,14 @@ export async function runAutoloop(
       const loBefore = region?.lo ?? 0;
       hideBenchmark(config, bench.benchmarkRel, bench.benchmarkInsideRepo);
       unlinkWorktreeNodeModules(config.repo, config.worktree);
+      out.push(
+        proposerStatusLine({
+          provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
+          mode: "raise-fence",
+          region: activeRegion,
+          target: regionTarget(config, activeRegion),
+        }),
+      );
       const proposal = await runProposer(
         config,
         env as NodeJS.ProcessEnv,
@@ -676,7 +694,9 @@ export async function runAutoloop(
           })),
         ),
         activeRegion,
+        "raise-fence",
       );
+      out.push(proposerResultLine(proposal));
       if (!proposal.ok) {
         const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
         restoreBenchmark(
@@ -874,12 +894,22 @@ export async function runAutoloop(
         stdout: lines([...out, error instanceof Error ? error.message : String(error)]),
       };
     }
+    out.push(
+      proposerStatusLine({
+        provider: selectProposerAdapter(env as NodeJS.ProcessEnv).provider,
+        mode: "reduce",
+        region: activeRegion,
+        target: regionTarget(config, activeRegion),
+      }),
+    );
     const proposal = await runProposer(
       config,
       env as NodeJS.ProcessEnv,
       reducePrompt(regionTarget(config, activeRegion), program),
       activeRegion,
+      "reduce",
     );
+    out.push(proposerResultLine(proposal));
     if (!proposal.ok) {
       const failure = proposerFailure({ ...proposal, timeoutMs: config.proposerTimeoutMs });
       restoreBenchmark(

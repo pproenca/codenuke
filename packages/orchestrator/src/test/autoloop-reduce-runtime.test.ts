@@ -231,6 +231,8 @@ writeFileSync("docs/notes.md", "not source\\n");
     const [row] = expectRows(fixture.root, result.stdout);
 
     expect.soft(result.exitCode).toBe(0);
+    expect.soft(result.stdout).toContain("proposer start: provider=shell mode=reduce");
+    expect.soft(result.stdout).toContain("proposer result: provider=shell status=ok");
     expect.soft(row?.status).toBe("revert");
     expect.soft(row?.description).toContain("outside reduce source surface");
     expect.soft(row?.description).toContain("docs/notes.md");

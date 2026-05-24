@@ -35,7 +35,8 @@
     "@codenuke/measure": "workspace:*",
     "@codenuke/scorer": "workspace:*",
     "@codenuke/substrate": "workspace:*",
-    "@codenuke/value-proxy": "workspace:*"
+    "@codenuke/value-proxy": "workspace:*",
+    "@openai/codex-sdk": "0.133.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
