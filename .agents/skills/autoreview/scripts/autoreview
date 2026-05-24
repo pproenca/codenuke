@@ -6,6 +6,7 @@ import concurrent.futures
 import copy
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -168,6 +169,22 @@ def read_text(path: Path, limit: int = 40_000) -> str:
     return bounded(text, limit)
 
 
+def read_untracked_text(repo: Path, rel: str, limit: int = 40_000) -> str:
+    path = repo / rel
+    try:
+        file_stat = path.lstat()
+    except OSError as exc:
+        return f"[unreadable: {exc}]"
+    if stat.S_ISLNK(file_stat.st_mode):
+        return "[symlink omitted]"
+    try:
+        resolved = path.resolve()
+        resolved.relative_to(repo)
+    except (OSError, ValueError) as exc:
+        return f"[outside repository omitted: {exc}]"
+    return read_text(path, limit)
+
+
 def local_bundle(repo: Path) -> str:
     parts = [
         "# Git Status",
@@ -183,8 +200,7 @@ def local_bundle(repo: Path) -> str:
     if untracked:
         parts.append("# Untracked Files")
         for rel in untracked:
-            path = repo / rel
-            parts.append(f"## {rel}\n{read_text(path)}")
+            parts.append(f"## {rel}\n{read_untracked_text(repo, rel)}")
     return "\n\n".join(parts)
 
 

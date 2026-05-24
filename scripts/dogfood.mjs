@@ -9,6 +9,10 @@ const iterations = process.argv[2] ?? "1";
 const fenceCap = process.env.DOGFOOD_FENCE_CAP ?? "60";
 const fenceSeed = process.env.DOGFOOD_FENCE_SEED ?? "1337";
 
+function usage() {
+  console.log("usage: pnpm dogfood [iterations 1-5]");
+}
+
 // Commands are argv-only CommandSpecs now (RULE-048): shell-string CN_TEST /
 // CN_TYPECHECK are rejected on sight, so pass file + JSON argv array instead.
 const env = {
@@ -44,8 +48,13 @@ function run(label, command, args, options = {}) {
   return status;
 }
 
+if (iterations === "-h" || iterations === "--help") {
+  usage();
+  process.exit(0);
+}
+
 if (!/^[1-5]$/.test(iterations)) {
-  console.error("usage: pnpm dogfood [iterations 1-5]");
+  usage();
   process.exit(1);
 }
 

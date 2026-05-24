@@ -2,4 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 .codenuke/
+.clawpatch/
 coverage/
+*.tgz
+__pycache__/
+*.py[cod]
