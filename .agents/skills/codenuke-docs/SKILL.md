@@ -5,23 +5,23 @@ description: "Write or review codenuke developer and user docs for CLI behavior,
 
 # codenuke Docs
 
-Use this for docs under `apps/cli/README.md`, `apps/cli/docs/*`, `apps/cli/SECURITY.md`, `apps/cli/CHANGELOG.md`, root `AGENTS.md`, and root `VISION.md`.
+Use this for docs under root `README.md`, root `CHANGELOG.md`, `docs/*` (`AI_NATIVE_SPEC.md`, `REIMAGINED_ARCHITECTURE.md`, `spec/*`), `MIGRATION_PLAN.md`, and root `CLAUDE.md`.
 
 ## Model
 
 - Lead with what the user can do.
 - Give one recommended path before alternatives.
 - Keep examples runnable and aligned with current CLI output.
-- Put trust-boundary warnings where users configure proposer, test, typecheck, or implementer commands.
+- Put trust-boundary warnings where users configure proposer, test, typecheck, or implementer commands (argv-only `CommandSpec`s, not shell strings).
 - Keep maintainer-only workflow out of product docs unless it affects users.
-- Do not treat `packages/config/src/main/program.md` as documentation; it is runtime prompt data.
+- Do not treat the proposer prompt text in `packages/runtime/src/proposer/` as documentation; it is runtime prompt data.
 
 ## Page Shapes
 
 - README: quickstart, requirements, commands, common config, trust boundary, package layout.
 - Spec: runtime model, package ownership, gates, artifacts, keep/revert semantics.
 - Publishing docs: exact release commands, pack/install smoke, approval points.
-- Security docs: supported scope, trusted-repo model, reporting path.
+- Security docs: supported scope, trusted-repo model, reporting path (no `SECURITY.md` wired yet — roadmap in CHANGELOG.md; trust model lives in README + `docs/REIMAGINED_ARCHITECTURE.md`).
 - Changelog: user-facing changes and fixes only.
 
 ## Verification

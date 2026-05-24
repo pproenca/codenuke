@@ -20,7 +20,7 @@ Use this for release and publish-time workflow. Ordinary development fixes use `
 - `apps/cli/package.json` is the public package version.
 - Root `package.json` is the private workspace orchestrator.
 - README and packaging smoke examples must match the public package version when changed.
-- `apps/cli/CHANGELOG.md` is the release note source.
+- Root `CHANGELOG.md` is the release note source.
 
 ## Preflight
 
@@ -29,11 +29,11 @@ pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm build
 pnpm test
-pnpm lint
-pnpm --filter codenuke audit --prod --audit-level high
 ```
 
-Then run the packaging smoke from root `AGENTS.md` and record the tarball name, installed CLI path, and `codenuke --version` output.
+(lint/format/dependency-audit not yet wired — roadmap in CHANGELOG.md.)
+
+Then run the packaging smoke (see `$codenuke-testing`) and record the tarball name, installed CLI path, and `codenuke --version` output.
 
 ## Publish Shape
 

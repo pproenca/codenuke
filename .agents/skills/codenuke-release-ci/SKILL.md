@@ -1,11 +1,13 @@
 ---
 name: codenuke-release-ci
-description: "Run, watch, debug, and summarize codenuke GitHub Actions for CI, CodeQL, Dependency Review, OpenGrep, release proof, and branch-filter issues."
+description: "Run, watch, debug, and summarize codenuke GitHub Actions once CI is wired (typecheck/test/build, security scanning, release proof) and triage branch-filter issues."
 ---
 
 # codenuke Release CI
 
 Use this with `$codenuke-release-maintainer` and `$codenuke-testing` for release validation or CI recovery.
+
+GitHub Actions workflows (CI, security scanning, release proof) are not yet wired — roadmap in CHANGELOG.md. Until then, run the local proof (`pnpm typecheck` / `pnpm test` / `pnpm build`) per `$codenuke-testing`. The `gh` mechanics below apply once workflows land.
 
 ## Guardrails
 

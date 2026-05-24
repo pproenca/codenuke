@@ -17,23 +17,23 @@ Use this when behavior differs between tests, package smoke, scorer decisions, p
 
 ## Code Pointers
 
-- CLI/package entry: `apps/cli/`.
-- Orchestration: `packages/orchestrator/src/main/runtime.ts`.
-- Config resolution and runtime prompt path: `packages/config/src/main/config.ts`, `packages/config/src/main/program.md`.
-- Worktree/proposer substrate: `packages/substrate/src/main/`.
-- Artifact validation: `packages/artifacts/src/main/artifacts.ts`.
-- Fence and replay: `packages/fence/src/main/`.
-- Scoring: `packages/scorer/src/main/`.
-- Measurement: `packages/measure/src/main/`.
-- Change-cost and value-proxy: `packages/changecost/src/main/`, `packages/value-proxy/src/main/`.
+- CLI entry: `apps/cli/src/main.ts` (@effect/cli tree); exit codes `apps/cli/src/exit-codes.ts`.
+- Orchestration: `packages/runtime/src/orchestrator/orchestrator.ts`, state in `packages/runtime/src/orchestrator/state.ts`; loop/lifecycle in `packages/runtime/src/loop/{loop.ts,lifecycle.ts}`.
+- Config resolution: `packages/runtime/src/config/config.ts`.
+- Worktree/proposer substrate: `packages/runtime/src/git/git.ts` (worktrees), `packages/runtime/src/proposer/{proposer.ts,codex-agent.ts}`.
+- Artifact validation: `packages/core/src/artifacts/index.ts` (readiness/anti-tamper in `packages/runtime/src/loop/loop.ts`).
+- Fence and replay: `packages/fence/src/*` (`operators/sampling/survivor/wilson/replay/audit/runner/path-guard`).
+- Scoring and the pure kernel: `packages/core/src/scoring/index.ts`, `packages/core/src/kernel/index.ts`.
+- Measurement: `packages/core/src/measure/index.ts`.
+- Change-cost and value-proxy: `packages/runtime/src/periodic/{calibrate,value-proxy,changecost,periodic-run,changecost-run}.ts`.
 
 ## Common Boundaries
 
 - Config vs runtime: check `CN_*`, `codenuke.loop.json`, and auto-detected defaults.
 - Source vs tests: reducers may edit only configured source; raise paths are test-surface only.
-- Legacy parity: `.mjs` files under `test-fixtures/legacy-loop/` are test oracles, not runtime.
-- Package smoke: `npm pack ./apps/cli` proves bundled files and runtime prompt data.
-- Trust model: repo/operator command strings are trusted; engine-owned commands should avoid shell interpolation.
+- Behavior parity: pinned by acceptance tests keyed to `RULE-###` ids (`docs/spec/BEHAVIOR_CONTRACT.md`); the old `.mjs` loop oracles are gone.
+- Package smoke: `npm pack ./apps/cli` proves the bundled `dist/cli.cjs` bin and its packed files.
+- Trust model: repo/operator commands are trusted but argv-only (`CommandSpec` file + args; legacy shell strings rejected, RULE-048); all codenuke-owned subprocesses run `shell:false` with an env allowlist.
 
 ## Output
 

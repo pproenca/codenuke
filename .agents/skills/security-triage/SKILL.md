@@ -9,13 +9,13 @@ Use when reviewing codenuke security reports, dependency alerts, or GHSA drafts.
 
 ## Close Bar
 
-Close only if the report is a duplicate, invalid against shipped behavior, out of scope under `apps/cli/SECURITY.md`, or fixed before any affected release.
+Close only if the report is a duplicate, invalid against shipped behavior, out of scope under the documented trusted-repo model (README + `docs/REIMAGINED_ARCHITECTURE.md`; no `SECURITY.md` wired yet — roadmap in CHANGELOG.md), or fixed before any affected release.
 
 Do not close only because the current branch is fixed if the latest shipped npm package is affected.
 
 ## Required Reads
 
-1. Read `apps/cli/SECURITY.md`.
+1. Read the trusted-repo model in README + `docs/REIMAGINED_ARCHITECTURE.md` (no `SECURITY.md` wired yet — roadmap in CHANGELOG.md).
 2. Inspect implicated code paths.
 3. Verify shipped state with tags and npm package version when relevant.
 4. Check whether the behavior is inside codenuke's documented trusted-repo model.
