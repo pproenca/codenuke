@@ -13,10 +13,14 @@ function usage() {
   console.log("usage: pnpm dogfood [iterations 1-5]");
 }
 
-// Commands are argv-only CommandSpecs now (RULE-048): shell-string CN_TEST /
-// CN_TYPECHECK are rejected on sight, so pass file + JSON argv array instead.
+const baseEnv = { ...process.env };
+for (const key of ["CN_TEST", "CN_TYPECHECK", "CN_PROPOSER", "CN_IMPLEMENTER"]) {
+  delete baseEnv[key];
+}
+
+// Commands are argv-only CommandSpecs now (RULE-048), so pass file + JSON argv.
 const env = {
-  ...process.env,
+  ...baseEnv,
   CN_REPO: process.env.CN_REPO ?? repo,
   CN_SRC: process.env.CN_SRC ?? "packages",
   CN_TARGET: process.env.CN_TARGET ?? "packages",
