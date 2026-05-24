@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_release_2b697264e9",
+  "title": "Package script typecheck (codenuke)",
+  "summary": "Package script 'typecheck' in apps/cli/package.json: tsc --noEmit -p tsconfig.json",
+  "kind": "release",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "apps/cli/package.json",
+      "symbol": "typecheck",
+      "route": null,
+      "command": "typecheck"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "apps/cli/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:codenuke",
+    "project-root:apps/cli"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

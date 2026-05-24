@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_191f3a3776",
+  "title": "Node package @codenuke/scorer",
+  "summary": "Node package @codenuke/scorer with package metadata and review context rooted at packages/scorer.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/scorer/package.json",
+      "symbol": "@codenuke/scorer",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/scorer/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "packages/scorer/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "packages/scorer/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "packages/scorer/src/main/scorer.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "packages/scorer/src/test/scorer-runtime.test.ts",
+      "reason": "package test"
+    },
+    {
+      "path": "packages/scorer/src/test/scorer.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/scorer",
+    "project-root:packages/scorer",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

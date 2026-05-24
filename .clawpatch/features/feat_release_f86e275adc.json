@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_release_f86e275adc",
+  "title": "Package script typecheck (@codenuke/changecost)",
+  "summary": "Package script 'typecheck' in packages/changecost/package.json: tsc --noEmit -p tsconfig.json",
+  "kind": "release",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/changecost/package.json",
+      "symbol": "typecheck",
+      "route": null,
+      "command": "typecheck"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/changecost/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/changecost",
+    "project-root:packages/changecost"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_release_806e446463",
+  "title": "Package script build (@codenuke/substrate)",
+  "summary": "Package script 'build' in packages/substrate/package.json: tsc -p tsconfig.build.json",
+  "kind": "release",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/substrate/package.json",
+      "symbol": "build",
+      "route": null,
+      "command": "build"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/substrate/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/substrate",
+    "project-root:packages/substrate"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

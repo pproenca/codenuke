@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_cli-command_9937933d88",
+  "title": "CLI command codenuke",
+  "summary": "Package bin 'codenuke' at dist/cli.cjs, source apps/cli/package.json.",
+  "kind": "cli-command",
+  "source": "package-json-bin",
+  "confidence": "low",
+  "entrypoints": [
+    {
+      "path": "apps/cli/package.json",
+      "symbol": null,
+      "route": null,
+      "command": "codenuke"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "apps/cli/package.json",
+      "reason": "package manifest declaring generated bin"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "cli"
+  ],
+  "trustBoundaries": [
+    "user-input",
+    "filesystem",
+    "process-exec"
+  ],
+  "status": "claimed",
+  "lock": {
+    "lockedByRunId": "20260524T114113-0dcf9d",
+    "lockedAt": "2026-05-24T11:41:13.551Z",
+    "hostname": "pmm.local",
+    "pid": 56766
+  },
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.552Z"
+}

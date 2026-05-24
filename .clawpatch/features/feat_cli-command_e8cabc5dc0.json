@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_cli-command_e8cabc5dc0",
+  "title": "Node package codenuke",
+  "summary": "Node package codenuke with package metadata and review context rooted at apps/cli.",
+  "kind": "cli-command",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "apps/cli/package.json",
+      "symbol": "codenuke",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "apps/cli/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "apps/cli/tsconfig.json",
+      "reason": "typescript configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "apps/cli/README.md",
+      "reason": "package context"
+    },
+    {
+      "path": "apps/cli/CHANGELOG.md",
+      "reason": "package changelog"
+    },
+    {
+      "path": "apps/cli/src/main/cli.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "apps/cli/scripts/bundle-cli.mjs",
+      "reason": "package source overview"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:codenuke",
+    "project-root:apps/cli",
+    "workspace"
+  ],
+  "trustBoundaries": [
+    "user-input",
+    "process-exec"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

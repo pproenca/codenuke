@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_test-suite_6e31a9cd2e",
+  "title": "Package script test (@codenuke/measure)",
+  "summary": "Package script 'test' in packages/measure/package.json: vitest run",
+  "kind": "test-suite",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/measure/package.json",
+      "symbol": "test",
+      "route": null,
+      "command": "test"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/measure/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/measure",
+    "project-root:packages/measure"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

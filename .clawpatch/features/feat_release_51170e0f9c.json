@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "feat_release_51170e0f9c",
   "title": "Package script build",
-  "summary": "Package script 'build': pnpm -r --filter './*' --if-present run build && node scripts/bundle-cli.mjs",
+  "summary": "Package script 'build': pnpm -r --filter './packages/*' --filter './apps/*' run build",
   "kind": "release",
   "source": "package-json-script",
   "confidence": "medium",
@@ -25,14 +25,14 @@
   "tags": [
     "node",
     "package-script",
-    "project:codenuke",
+    "project:codenuke-workspace",
     "project-root:."
   ],
   "trustBoundaries": [
     "process-exec",
     "filesystem"
   ],
-  "status": "reviewed",
+  "status": "pending",
   "lock": null,
   "findingIds": [],
   "patchAttemptIds": [],
@@ -48,5 +48,5 @@
     }
   ],
   "createdAt": "2026-05-24T10:48:02.889Z",
-  "updatedAt": "2026-05-24T10:48:47.409Z"
+  "updatedAt": "2026-05-24T11:41:13.444Z"
 }

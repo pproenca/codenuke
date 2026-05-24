@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_cli-command_e103438025",
+  "title": "Node source apps/cli/src",
+  "summary": "Node/TypeScript source file apps/cli/src/main/cli.ts.",
+  "kind": "cli-command",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "apps/cli/package.json",
+      "symbol": "apps/cli/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "apps/cli/src/main/cli.ts",
+      "reason": "source group apps/cli/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "apps/cli/package.json",
+      "reason": "package manifest"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:codenuke",
+    "project-root:apps/cli"
+  ],
+  "trustBoundaries": [
+    "user-input",
+    "process-exec"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

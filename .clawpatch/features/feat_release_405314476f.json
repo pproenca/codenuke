@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_release_405314476f",
+  "title": "Package script build (@codenuke/config)",
+  "summary": "Package script 'build' in packages/config/package.json: tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/main/program.md','dist/program.md')\"",
+  "kind": "release",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/config/package.json",
+      "symbol": "build",
+      "route": null,
+      "command": "build"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/config/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/config",
+    "project-root:packages/config"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "feat_release_a235aa99b1",
   "title": "Package script typecheck",
-  "summary": "Package script 'typecheck': pnpm -r --filter './*' --if-present run typecheck",
+  "summary": "Package script 'typecheck': pnpm -r --filter './packages/*' --filter './apps/*' run typecheck",
   "kind": "release",
   "source": "package-json-script",
   "confidence": "medium",
@@ -25,14 +25,14 @@
   "tags": [
     "node",
     "package-script",
-    "project:codenuke",
+    "project:codenuke-workspace",
     "project-root:."
   ],
   "trustBoundaries": [
     "process-exec",
     "filesystem"
   ],
-  "status": "fixed",
+  "status": "pending",
   "lock": null,
   "findingIds": [
     "fnd_sig-feat-release-a235aa99b1-80f0_c62e665bd2"
@@ -50,5 +50,5 @@
     }
   ],
   "createdAt": "2026-05-24T10:48:02.889Z",
-  "updatedAt": "2026-05-24T10:51:17.387Z"
+  "updatedAt": "2026-05-24T11:41:13.444Z"
 }

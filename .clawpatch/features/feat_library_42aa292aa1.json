@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_42aa292aa1",
+  "title": "Node package @codenuke/stats",
+  "summary": "Node package @codenuke/stats with package metadata and review context rooted at packages/stats.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/stats/package.json",
+      "symbol": "@codenuke/stats",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/stats/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "packages/stats/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "packages/stats/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "packages/stats/src/main/stats.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "packages/stats/src/test/stats.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/stats",
+    "project-root:packages/stats",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

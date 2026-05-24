@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_eb817b1790",
+  "title": "Node source packages/substrate/src",
+  "summary": "Node/TypeScript source group packages/substrate/src with 3 files.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/substrate/package.json",
+      "symbol": "packages/substrate/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/substrate/src/main/agent.ts",
+      "reason": "source group packages/substrate/src"
+    },
+    {
+      "path": "packages/substrate/src/main/index.ts",
+      "reason": "source group packages/substrate/src"
+    },
+    {
+      "path": "packages/substrate/src/main/worktree.ts",
+      "reason": "source group packages/substrate/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "packages/substrate/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "packages/substrate/src/test/agent.test.ts",
+      "reason": "associated test"
+    },
+    {
+      "path": "packages/substrate/src/test/worktree.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "packages/substrate/src/test/agent.test.ts",
+      "command": "pnpm --dir packages/substrate test"
+    },
+    {
+      "path": "packages/substrate/src/test/worktree.test.ts",
+      "command": "pnpm --dir packages/substrate test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/substrate",
+    "project-root:packages/substrate"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

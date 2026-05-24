@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "featureId": "feat_test-suite_84ae84a25a",
   "title": "Package script test",
-  "summary": "Package script 'test': vitest run",
+  "summary": "Package script 'test': pnpm -r --filter './packages/*' --filter './apps/*' --if-present run test",
   "kind": "test-suite",
   "source": "package-json-script",
   "confidence": "medium",
@@ -25,11 +25,11 @@
   "tags": [
     "node",
     "package-script",
-    "project:codenuke",
+    "project:codenuke-workspace",
     "project-root:."
   ],
   "trustBoundaries": [],
-  "status": "reviewed",
+  "status": "pending",
   "lock": null,
   "findingIds": [],
   "patchAttemptIds": [],
@@ -45,5 +45,5 @@
     }
   ],
   "createdAt": "2026-05-24T10:48:02.889Z",
-  "updatedAt": "2026-05-24T10:48:39.363Z"
+  "updatedAt": "2026-05-24T11:41:13.444Z"
 }

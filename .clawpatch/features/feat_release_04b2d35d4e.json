@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_release_04b2d35d4e",
+  "title": "Package script typecheck (@codenuke/value-proxy)",
+  "summary": "Package script 'typecheck' in packages/value-proxy/package.json: tsc --noEmit -p tsconfig.json",
+  "kind": "release",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/value-proxy/package.json",
+      "symbol": "typecheck",
+      "route": null,
+      "command": "typecheck"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/value-proxy/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/value-proxy",
+    "project-root:packages/value-proxy"
+  ],
+  "trustBoundaries": [
+    "process-exec",
+    "filesystem"
+  ],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

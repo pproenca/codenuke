@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_0e9d192c85",
+  "title": "Node source packages/json-io/src",
+  "summary": "Node/TypeScript source file packages/json-io/src/main/json.ts.",
+  "kind": "library",
+  "source": "node-source-group",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/json-io/package.json",
+      "symbol": "packages/json-io/src",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/json-io/src/main/json.ts",
+      "reason": "source group packages/json-io/src"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "packages/json-io/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "packages/json-io/src/test/json.test.ts",
+      "reason": "associated test"
+    }
+  ],
+  "tests": [
+    {
+      "path": "packages/json-io/src/test/json.test.ts",
+      "command": "pnpm --dir packages/json-io test"
+    }
+  ],
+  "tags": [
+    "node",
+    "typescript",
+    "source-group",
+    "project:@codenuke/json",
+    "project-root:packages/json-io"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

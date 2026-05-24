@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_3aca3bb55b",
+  "title": "Node package @codenuke/exec",
+  "summary": "Node package @codenuke/exec with package metadata and review context rooted at packages/exec.",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/exec/package.json",
+      "symbol": "@codenuke/exec",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/exec/package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "packages/exec/tsconfig.json",
+      "reason": "typescript configuration"
+    },
+    {
+      "path": "packages/exec/tsconfig.build.json",
+      "reason": "typescript build configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "packages/exec/src/main/exec.ts",
+      "reason": "package source overview"
+    },
+    {
+      "path": "packages/exec/src/test/exec.test.ts",
+      "reason": "package test"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:@codenuke/exec",
+    "project-root:packages/exec",
+    "workspace"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

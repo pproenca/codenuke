@@ -32,11 +32,11 @@
     "process-exec",
     "filesystem"
   ],
-  "status": "pending",
+  "status": "skipped",
   "lock": null,
   "findingIds": [],
   "patchAttemptIds": [],
   "analysisHistory": [],
   "createdAt": "2026-05-24T10:48:02.889Z",
-  "updatedAt": "2026-05-24T10:48:02.889Z"
+  "updatedAt": "2026-05-24T11:41:13.494Z"
 }

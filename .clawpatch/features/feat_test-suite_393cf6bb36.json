@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_test-suite_393cf6bb36",
+  "title": "Package script test (@codenuke/fence)",
+  "summary": "Package script 'test' in packages/fence/package.json: vitest run",
+  "kind": "test-suite",
+  "source": "package-json-script",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "packages/fence/package.json",
+      "symbol": "test",
+      "route": null,
+      "command": "test"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "packages/fence/package.json",
+      "reason": "entrypoint"
+    }
+  ],
+  "contextFiles": [],
+  "tests": [],
+  "tags": [
+    "node",
+    "package-script",
+    "project:@codenuke/fence",
+    "project-root:packages/fence"
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}

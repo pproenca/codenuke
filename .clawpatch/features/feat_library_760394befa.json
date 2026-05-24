@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "featureId": "feat_library_760394befa",
+  "title": "Node package codenuke-workspace",
+  "summary": "Node package codenuke-workspace with package metadata and review context rooted at ..",
+  "kind": "library",
+  "source": "node-package",
+  "confidence": "medium",
+  "entrypoints": [
+    {
+      "path": "package.json",
+      "symbol": "codenuke-workspace",
+      "route": null,
+      "command": null
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "package.json",
+      "reason": "package manifest"
+    },
+    {
+      "path": "vitest.config.ts",
+      "reason": "test configuration"
+    }
+  ],
+  "contextFiles": [
+    {
+      "path": "AGENTS.md",
+      "reason": "package context"
+    }
+  ],
+  "tests": [],
+  "tags": [
+    "node",
+    "package",
+    "project:codenuke-workspace",
+    "project-root:."
+  ],
+  "trustBoundaries": [],
+  "status": "pending",
+  "lock": null,
+  "findingIds": [],
+  "patchAttemptIds": [],
+  "analysisHistory": [],
+  "createdAt": "2026-05-24T11:41:13.444Z",
+  "updatedAt": "2026-05-24T11:41:13.444Z"
+}
