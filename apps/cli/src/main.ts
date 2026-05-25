@@ -20,10 +20,10 @@ import { FenceLive, makeMutationRunnerLive } from "@codenuke/fence"
 import {
   CalibrationServiceLive,
   ChangeCostServiceLive,
-  CodexProposerLive,
   ConfigLive,
   GitLive,
   makeApplyingFakeProposerLive,
+  makeCodexProposerLive,
   ndjsonRenderer,
   OrchestratorLive,
   ProgressBus,
@@ -41,6 +41,7 @@ import {
   runScore,
   runStatus,
   runValidateProxy,
+  resolveProposerConfig,
   shouldRequireValueProxyValidation,
   ttyRenderer,
   toNdjson,
@@ -165,7 +166,14 @@ const reduceRun = (iterations: number, json: boolean) =>
             rel: process.env.CN_FAKE_FILE ?? `${region}/index.ts`,
             marker: process.env.CN_FAKE_MARKER ?? "codenuke:remove",
           })
-        : CodexProposerLive
+        : (() => {
+            const proposerConfig = resolveProposerConfig(process.env)
+            if (proposerConfig instanceof Error) return proposerConfig
+            return makeCodexProposerLive({ env: process.env, config: proposerConfig })
+          })()
+    if (proposerLayer instanceof Error) {
+      return yield* Effect.fail(proposerLayer)
+    }
     const progress = yield* ProgressBus
     const renderer = json ? ndjsonRenderer(progress.stream) : ttyRenderer(progress.stream, process.stderr.isTTY && !process.env.NO_COLOR)
     const renderFiber = yield* Effect.fork(renderer)

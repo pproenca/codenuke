@@ -4,8 +4,8 @@ import { describe, expect, it } from "@effect/vitest"
 import { wilson } from "@codenuke/core"
 import { Effect, Layer, Stream } from "effect"
 import { Git } from "../src/git/git.ts"
-import { runReduceLoop } from "../src/loop/loop.ts"
-import { makeApplyingFakeProposerLive } from "../src/proposer/proposer.ts"
+import { buildReducePrompt, runReduceLoop } from "../src/loop/loop.ts"
+import { makeApplyingFakeProposerLive, Proposer, ProposerFailed } from "../src/proposer/proposer.ts"
 import { ProgressBus, type ProgressEvent } from "../src/progress/progress.ts"
 
 const START = "a".repeat(40)
@@ -68,62 +68,91 @@ const makeProgressCaptureLive = (events: ProgressEvent[]) =>
     }),
   )
 
+const writeReadyArtifacts = (repo: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    yield* fs.makeDirectory(path.join(repo, ".codenuke"), { recursive: true })
+    const w = wilson(60, 60)
+    yield* fs.writeFileString(
+      path.join(repo, ".codenuke", "fence-fidelity.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        baseline: "HEAD",
+        baselineSha: START,
+        generatedAt: "2026-05-25T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 60,
+            total: 60,
+            p: w.p,
+            lo: w.lo,
+            hi: w.hi,
+            admissible: w.lo >= 0.9,
+            survivorSpecs: [],
+          },
+        },
+      })}\n`,
+    )
+    yield* fs.writeFileString(
+      path.join(repo, ".codenuke", "calibration.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        baseline: "HEAD",
+        baselineSha: START,
+        generatedAt: "2026-05-25T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 150, sCx: 15, sDup: 5 },
+      })}\n`,
+    )
+    yield* fs.writeFileString(
+      path.join(repo, ".codenuke", "changecost.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        ref: "HEAD",
+        beta: 60,
+        Vhat: null,
+        done: 0,
+        total: 0,
+        results: [],
+      })}\n`,
+    )
+  })
+
+const FailingProposerLive = Layer.succeed(
+  Proposer,
+  Proposer.of({
+    propose: () => Stream.fail(new ProposerFailed({ message: "sdk crashed with raw details", failureClass: "crash" })),
+  }),
+)
+
 describe("loop progress", () => {
+  it("builds a probation-aware reduce prompt", () => {
+    const prompt = buildReducePrompt({
+      region: "packages/core/src/measure",
+      target: "packages/core/src/measure",
+      probation: true,
+      maxFiles: 1,
+      maxDiffsize: 80,
+      attempt: 2,
+      totalAttempts: 3,
+    })
+    expect(prompt).toContain("Touch at most 1 source file.")
+    expect(prompt).toContain("under 80 inserted plus deleted lines")
+    expect(prompt).toContain("Do not add, remove, rename, or change public exports.")
+    expect(prompt).toContain("Attempt: 2/3")
+  })
+
   it.effect("emits compact run, phase, scoring, and decision events", () =>
     Effect.scoped(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem
-        const path = yield* Path.Path
         const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-loop-progress-" })
-        yield* fs.makeDirectory(path.join(repo, ".codenuke"), { recursive: true })
-        const w = wilson(60, 60)
-        yield* fs.writeFileString(
-          path.join(repo, ".codenuke", "fence-fidelity.json"),
-          `${JSON.stringify({
-            schemaVersion: 1,
-            baseline: "HEAD",
-            baselineSha: START,
-            generatedAt: "2026-05-25T00:00:00.000Z",
-            method: "ast-aware",
-            threshold: 0.9,
-            capPerRegion: 60,
-            seed: 1337,
-            regions: {
-              src: {
-                caught: 60,
-                total: 60,
-                p: w.p,
-                lo: w.lo,
-                hi: w.hi,
-                admissible: w.lo >= 0.9,
-                survivorSpecs: [],
-              },
-            },
-          })}\n`,
-        )
-        yield* fs.writeFileString(
-          path.join(repo, ".codenuke", "calibration.json"),
-          `${JSON.stringify({
-            schemaVersion: 1,
-            baseline: "HEAD",
-            baselineSha: START,
-            generatedAt: "2026-05-25T00:00:00.000Z",
-            commitsSampled: 3,
-            scales: { sL: 150, sCx: 15, sDup: 5 },
-          })}\n`,
-        )
-        yield* fs.writeFileString(
-          path.join(repo, ".codenuke", "changecost.json"),
-          `${JSON.stringify({
-            schemaVersion: 1,
-            ref: "HEAD",
-            beta: 60,
-            Vhat: null,
-            done: 0,
-            total: 0,
-            results: [],
-          })}\n`,
-        )
+        yield* writeReadyArtifacts(repo)
 
         const events: ProgressEvent[] = []
         const layer = Layer.mergeAll(
@@ -161,6 +190,76 @@ describe("loop progress", () => {
         expect(
           events.some((ev) => ev._tag === "Scored" && ev.envelope.schemaVersion === 2 && ev.envelope._tag === "Scored"),
         ).toBe(true)
+      }).pipe(Effect.provide(NodeContext.layer)),
+    ),
+  )
+
+  it.effect("classifies proposer crashes without leaking raw agent text", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-loop-proposer-fail-" })
+        yield* writeReadyArtifacts(repo)
+
+        const events: ProgressEvent[] = []
+        const layer = Layer.mergeAll(makeGitFakeLive(), makeProgressCaptureLive(events), FailingProposerLive)
+
+        const report = yield* runReduceLoop({
+          repo,
+          region: "src",
+          iterations: 1,
+          testCommand: { file: "node", args: ["-e", "process.exit(0)"] },
+          threshold: 0.9,
+          resultRef: "refs/codenuke/result",
+        }).pipe(Effect.provide(layer))
+
+        expect(report.iterations[0]?.reason).toBe("proposer-failed:ProposerFailed")
+        expect(events).toContainEqual(
+          expect.objectContaining({
+            _tag: "Message",
+            level: "warn",
+            text: "proposer-failed:ProposerFailed",
+          }),
+        )
+        expect(events.some((ev) => ev._tag === "Message" && ev.text.includes("raw details"))).toBe(false)
+      }).pipe(Effect.provide(NodeContext.layer)),
+    ),
+  )
+
+  it.effect("does not validate Codex-only env knobs for injected fake proposers", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const previous = process.env.CN_REASONING_EFFORT
+        process.env.CN_REASONING_EFFORT = "maximum"
+        try {
+          const fs = yield* FileSystem.FileSystem
+          const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-loop-fake-env-" })
+          yield* writeReadyArtifacts(repo)
+
+          const events: ProgressEvent[] = []
+          const layer = Layer.mergeAll(
+            makeGitFakeLive(),
+            makeProgressCaptureLive(events),
+            makeApplyingFakeProposerLive({ rel: "src/index.ts", marker: "codenuke:remove" }),
+          )
+
+          const report = yield* runReduceLoop({
+            repo,
+            region: "src",
+            iterations: 1,
+            testCommand: { file: "node", args: ["-e", "process.exit(0)"] },
+            threshold: 0.9,
+            resultRef: "refs/codenuke/result",
+          }).pipe(Effect.provide(layer))
+
+          expect(report.iterations).toHaveLength(1)
+        } finally {
+          if (previous === undefined) {
+            delete process.env.CN_REASONING_EFFORT
+          } else {
+            process.env.CN_REASONING_EFFORT = previous
+          }
+        }
       }).pipe(Effect.provide(NodeContext.layer)),
     ),
   )

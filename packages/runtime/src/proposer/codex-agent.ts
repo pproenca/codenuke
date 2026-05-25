@@ -6,13 +6,13 @@
  * The SDK value is loaded via dynamic `import()` (and kept EXTERNAL in the CLI
  * bundle) so the heavy CLI-wrapping package isn't inlined. Types are erased
  * `import type`s. When `CodexOptions.env` is provided the SDK does NOT inherit
- * process.env, so we forward the full (string-valued) env — codex needs its own
- * auth/config vars (OPENAI_API_KEY, CODEX_*, PATH, HOME, …), which a narrow
- * subprocess allowlist would strip. This is the codex trust boundary (the agent
- * runs against a trusted repo), intentionally broader than the test/git allowlist.
+ * process.env, so we forward a Codex-specific environment that includes OS basics
+ * plus auth/config variables. This is broader than the test/git subprocess
+ * allowlist, but remains explicit and owned by the Codex adapter boundary.
  */
 import type { CodexOptions, ThreadEvent, ThreadItem, ThreadOptions, Usage } from "@openai/codex-sdk"
 import { Effect } from "effect"
+import type { ResolvedProposerConfig } from "../config/config.ts"
 import { ProposerFailed } from "./proposer.ts"
 
 /** Minimal structural views of the SDK (avoid importing the `Codex` value in types). */
@@ -29,39 +29,57 @@ export interface CodexClientLike {
   resumeThread(id: string, options?: ThreadOptions): CodexThreadLike
 }
 
-/** Keep only string-valued env entries (CodexOptions.env shape). */
-export const codexEnv = (env: Record<string, string | undefined>): Record<string, string> =>
-  Object.fromEntries(
-    Object.entries(env).filter((e): e is [string, string] => typeof e[1] === "string"),
-  )
+const CODEX_SDK_ENV_KEYS = [
+  "PATH",
+  "HOME",
+  "LANG",
+  "LC_ALL",
+  "TMPDIR",
+  "SHELL",
+  "USER",
+  "LOGNAME",
+  "TERM",
+  "OPENAI_API_KEY",
+  "OPENAI_ORG_ID",
+  "OPENAI_PROJECT_ID",
+  "OPENAI_BASE_URL",
+] as const
 
-/** Build ThreadOptions from CN_* env (sandbox/approval/model/effort) + the worktree. */
+const CODEX_SDK_ENV_PREFIXES = ["CODEX_", "OPENAI_CODEX_"] as const
+
+/** Keep only string-valued entries needed by CodexOptions.env. */
+export const codexSdkEnv = (
+  parent: Record<string, string | undefined>,
+  extra: Record<string, string> = {},
+): Record<string, string> => {
+  const out: Record<string, string> = {}
+  for (const key of CODEX_SDK_ENV_KEYS) {
+    const value = parent[key]
+    if (typeof value === "string") out[key] = value
+  }
+  for (const [key, value] of Object.entries(parent)) {
+    if (typeof value === "string" && CODEX_SDK_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      out[key] = value
+    }
+  }
+  return { ...out, ...extra }
+}
+
+/** Back-compat alias for the changecost implementer path. */
+export const codexEnv = codexSdkEnv
+
+/** Build ThreadOptions from resolved config + the worktree. */
 export const codexThreadOptions = (
-  env: Record<string, string | undefined>,
+  config: ResolvedProposerConfig,
   worktree: string,
 ): ThreadOptions => {
-  const sandbox = env["CN_CODEX_SANDBOX"]?.trim()
-  const approval = env["CN_CODEX_APPROVAL_POLICY"]?.trim()
   return {
     workingDirectory: worktree,
     skipGitRepoCheck: true, // detached worktrees are valid; don't reject them
-    sandboxMode:
-      sandbox === "read-only" || sandbox === "workspace-write" || sandbox === "danger-full-access"
-        ? sandbox
-        : sandbox === "bypass" || sandbox === "none"
-          ? "danger-full-access"
-          : "workspace-write",
-    approvalPolicy:
-      approval === "on-request" ||
-      approval === "on-failure" ||
-      approval === "untrusted" ||
-      approval === "never"
-        ? approval
-        : "never",
-    ...(env["CN_MODEL"] ? { model: env["CN_MODEL"] } : {}),
-    ...(env["CN_REASONING_EFFORT"]
-      ? { modelReasoningEffort: env["CN_REASONING_EFFORT"] as ThreadOptions["modelReasoningEffort"] }
-      : {}),
+    sandboxMode: config.codexSandboxMode,
+    approvalPolicy: config.codexApprovalPolicy,
+    ...(config.proposerModel ? { model: config.proposerModel } : {}),
+    ...(config.proposerReasoningEffort ? { modelReasoningEffort: config.proposerReasoningEffort } : {}),
   }
 }
 
@@ -78,10 +96,10 @@ export const makeCodex = (options: CodexOptions): Effect.Effect<CodexClientLike,
 /** Start or resume a thread for `worktree` with the resolved options. */
 export const openThread = (
   client: CodexClientLike,
-  env: Record<string, string | undefined>,
+  config: ResolvedProposerConfig,
   worktree: string,
   threadId?: string,
 ): CodexThreadLike =>
   threadId
-    ? client.resumeThread(threadId, codexThreadOptions(env, worktree))
-    : client.startThread(codexThreadOptions(env, worktree))
+    ? client.resumeThread(threadId, codexThreadOptions(config, worktree))
+    : client.startThread(codexThreadOptions(config, worktree))

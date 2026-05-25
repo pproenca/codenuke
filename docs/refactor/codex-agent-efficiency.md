@@ -99,11 +99,11 @@ Stopping rule:
   writing this report.
 - [x] (2026-05-25 09:10Z) Reviewed the first plan with the `opencode-ts`
   rubric and found over-extraction, parallel config, and schema drift risks.
-- [ ] Implement Codex env/config separation through existing config and
+- [x] (2026-05-25 10:22Z) Implemented Codex env/config separation through existing config and
   proposer ownership.
-- [ ] Implement probation-aware prompt construction.
-- [ ] Add failure and option-propagation tests.
-- [ ] Run focused tests and dogfood proof.
+- [x] (2026-05-25 10:22Z) Implemented probation-aware prompt construction.
+- [x] (2026-05-25 10:22Z) Added failure and option-propagation tests.
+- [x] (2026-05-25 10:23Z) Ran focused tests, workspace proof, and narrow dogfood proof.
 
 ## Surprises And Discoveries
 

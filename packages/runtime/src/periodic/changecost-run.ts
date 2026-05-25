@@ -13,6 +13,7 @@
 import { Command, FileSystem, Path } from "@effect/platform"
 import { allowlistEnv, type CommandSpec, isSourceFile } from "@codenuke/core"
 import { Effect } from "effect"
+import { resolveProposerConfig } from "../config/config.ts"
 import { Git } from "../git/git.ts"
 import { codexEnv, makeCodex, openThread } from "../proposer/codex-agent.ts"
 import {
@@ -50,6 +51,10 @@ export const runChangeCost = (opts: RunChangeCostOptions) =>
     const git = yield* Git
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
+    const proposerConfig = resolveProposerConfig(process.env)
+    if (proposerConfig instanceof Error) {
+      return yield* Effect.fail(proposerConfig)
+    }
 
     const tasksRaw = yield* fs
       .readFileString(path.join(opts.benchmarkDir, "tasks.json"))
@@ -105,7 +110,7 @@ export const runChangeCost = (opts: RunChangeCostOptions) =>
     const runImplementer = (worktree: string, prompt: string): Effect.Effect<boolean> =>
       makeCodex({ env: codexEnv(process.env) }).pipe(
         Effect.flatMap((client) => {
-          const thread = openThread(client, process.env, worktree)
+          const thread = openThread(client, proposerConfig, worktree)
           return Effect.tryPromise({ try: () => thread.run(prompt), catch: (e) => new Error(String(e)) })
         }),
         Effect.as(true),

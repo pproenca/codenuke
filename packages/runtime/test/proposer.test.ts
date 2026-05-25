@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@effect/vitest"
+import { allowlistEnv } from "@codenuke/core"
 import { Effect, Stream } from "effect"
+import { resolveProposerConfig } from "../src/config/config.ts"
+import { codexSdkEnv, codexThreadOptions } from "../src/proposer/codex-agent.ts"
 import {
   fakeProposerStream,
   type ProposerEvent,
@@ -43,4 +46,41 @@ describe("proposer — FakeProposer (deterministic test double)", () => {
         }),
       ),
     ))
+})
+
+describe("proposer — Codex SDK options/env boundary", () => {
+  it("passes CN_REASONING_EFFORT through resolved Codex thread options", () => {
+    const config = resolveProposerConfig({
+      CN_MODEL: "gpt-5-codex",
+      CN_REASONING_EFFORT: "medium",
+      CN_CODEX_SANDBOX: "workspace-write",
+      CN_CODEX_APPROVAL_POLICY: "never",
+    })
+    if (config instanceof Error) throw config
+    expect(codexThreadOptions(config, "/tmp/worktree")).toMatchObject({
+      workingDirectory: "/tmp/worktree",
+      model: "gpt-5-codex",
+      modelReasoningEffort: "medium",
+      sandboxMode: "workspace-write",
+      approvalPolicy: "never",
+    })
+  })
+
+  it("keeps Codex SDK env separate from subprocess allowlist env", () => {
+    const parent = {
+      PATH: "/usr/bin",
+      HOME: "/home/user",
+      CN_REASONING_EFFORT: "medium",
+      OPENAI_API_KEY: "secret",
+      CODEX_HOME: "/tmp/codex",
+      UNRELATED_SECRET: "nope",
+    }
+    expect(allowlistEnv(parent)).toEqual({ PATH: "/usr/bin", HOME: "/home/user" })
+    expect(codexSdkEnv(parent)).toEqual({
+      PATH: "/usr/bin",
+      HOME: "/home/user",
+      OPENAI_API_KEY: "secret",
+      CODEX_HOME: "/tmp/codex",
+    })
+  })
 })

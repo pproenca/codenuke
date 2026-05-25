@@ -17,7 +17,11 @@
 import type { ThreadEvent } from "@openai/codex-sdk"
 import { FileSystem, Path } from "@effect/platform"
 import { Context, Data, Effect, Layer, Option, Stream } from "effect"
-import { codexEnv, makeCodex, openThread } from "./codex-agent.ts"
+import {
+  type ResolvedProposerConfig,
+  resolveProposerConfig,
+} from "../config/config.ts"
+import { codexSdkEnv, makeCodex, openThread } from "./codex-agent.ts"
 
 // ---------------------------------------------------------------------------
 // Constants (preserved exactly). The proposer-timeout / budget defaults are the
@@ -64,7 +68,6 @@ export interface ProposerRequest {
   readonly timeoutMs: number
   readonly budgetUsd: string
   readonly threadId?: string
-  readonly env: Record<string, string>
 }
 
 /** RULE-047 — the streamed SDK events become ProgressEvent.ProposerEvent. */
@@ -143,9 +146,11 @@ const mapEvent = (ev: ThreadEvent): Option.Option<Effect.Effect<ProposerEvent, P
   }
 }
 
-/** RULE-039/042 — inject region context into the proposer env (legacy parity). */
-export const proposerEnv = (req: ProposerRequest): Record<string, string> => ({
-  ...req.env,
+/** RULE-039/042 — inject region context into the Codex SDK env. */
+export const proposerEnv = (
+  parent: Record<string, string | undefined>,
+  req: ProposerRequest,
+): Record<string, string> => codexSdkEnv(parent, {
   CN_REGION: req.regionKey,
   CN_TARGET: req.regionTarget,
 })
@@ -157,32 +162,73 @@ export const proposerEnv = (req: ProposerRequest): Record<string, string> => ({
  * (= the worktree), which is what the loop measures. Thread continuity (RULE-057
  * persistence) is a follow-up; `req.threadId` is honored when supplied.
  */
-export const CodexProposerLive: Layer.Layer<Proposer> = Layer.succeed(
-  Proposer,
-  Proposer.of({
-    propose: (req) =>
-      Stream.unwrap(
-        Effect.gen(function* () {
-          const client = yield* makeCodex({ env: codexEnv(proposerEnv(req)) })
-          const thread = openThread(client, req.env, req.worktree, req.threadId)
-          const controller = new AbortController()
-          const timer = setTimeout(() => controller.abort(), req.timeoutMs)
-          timer.unref?.()
-          const streamed = yield* Effect.tryPromise({
-            try: () => thread.runStreamed(req.prompt, { signal: controller.signal }),
-            catch: (e) => new ProposerFailed({ message: String(e), failureClass: "crash" }),
-          })
-          return Stream.fromAsyncIterable(
-            streamed.events,
-            (e) => new ProposerFailed({ message: String(e), failureClass: "crash" }),
-          ).pipe(
-            Stream.filterMapEffect(mapEvent),
-            Stream.ensuring(Effect.sync(() => clearTimeout(timer))),
-          )
+const classifyProposerError = (
+  error: unknown,
+  req: ProposerRequest,
+  aborted: boolean,
+): ProposerError => {
+  const message = error instanceof Error ? error.message : String(error)
+  if (aborted || error instanceof DOMException && error.name === "AbortError" || /abort/i.test(message)) {
+    return new ProposerTimeout({ mode: req.mode, elapsedMs: req.timeoutMs })
+  }
+  if (/budget|spend|cost/i.test(message)) {
+    return new ProposerBudgetExceeded({ budgetUsd: req.budgetUsd })
+  }
+  return new ProposerFailed({ message, failureClass: "crash" })
+}
+
+export const makeCodexProposerLive = (opts: {
+  readonly env: Record<string, string | undefined>
+  readonly config: ResolvedProposerConfig
+}): Layer.Layer<Proposer> =>
+  Layer.succeed(
+    Proposer,
+    Proposer.of({
+      propose: (req) =>
+        Stream.unwrap(
+          Effect.gen(function* () {
+            const client = yield* makeCodex({ env: proposerEnv(opts.env, req) })
+            const thread = openThread(client, opts.config, req.worktree, req.threadId)
+            const controller = new AbortController()
+            let timedOut = false
+            const timer = setTimeout(() => {
+              timedOut = true
+              controller.abort()
+            }, req.timeoutMs)
+            timer.unref?.()
+            const streamed = yield* Effect.tryPromise({
+              try: () => thread.runStreamed(req.prompt, { signal: controller.signal }),
+              catch: (e) => classifyProposerError(e, req, timedOut),
+            })
+            return Stream.fromAsyncIterable(
+              streamed.events,
+              (e) => classifyProposerError(e, req, timedOut),
+            ).pipe(
+              Stream.filterMapEffect(mapEvent),
+              Stream.ensuring(Effect.sync(() => clearTimeout(timer))),
+            )
+          }),
+        ),
+    }),
+  )
+
+const defaultConfig = resolveProposerConfig(process.env)
+
+export const CodexProposerLive: Layer.Layer<Proposer> =
+  defaultConfig instanceof Error
+    ? Layer.succeed(
+        Proposer,
+        Proposer.of({
+          propose: () =>
+            Stream.fail(
+              new ProposerFailed({
+                message: defaultConfig.message,
+                failureClass: "crash",
+              }),
+            ),
         }),
-      ),
-  }),
-)
+      )
+    : makeCodexProposerLive({ env: process.env, config: defaultConfig })
 
 // ---------------------------------------------------------------------------
 // FakeProposerLive — deterministic double. USABLE: emits a scripted stream.

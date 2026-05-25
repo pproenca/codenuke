@@ -21,6 +21,8 @@ import { Context, Data, Effect, Layer } from "effect"
 export const DEFAULT_FENCE_LB = 0.9
 export const DEFAULT_PROPOSER_TIMEOUT_MS = 900_000
 export const DEFAULT_PROPOSER_BUDGET_USD = "8"
+export const DEFAULT_CODEX_SANDBOX_MODE = "workspace-write" as const
+export const DEFAULT_CODEX_APPROVAL_POLICY = "never" as const
 /** New knobs added per architecture §7 (three distinct timeout knobs). */
 export const DEFAULT_TEST_TIMEOUT_MS = 300_000
 export const DEFAULT_FENCE_TIMEOUT_MS = 45_000
@@ -175,7 +177,73 @@ export interface ResolvedNumerics {
   readonly weights: typeof DEFAULT_WEIGHTS
 }
 
+export type ProposerReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh"
+export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access"
+export type CodexApprovalPolicy = "on-request" | "on-failure" | "untrusted" | "never"
+
+export interface ResolvedProposerConfig {
+  readonly proposerTimeoutMs: number
+  readonly proposerBudgetUsd: string
+  readonly proposerModel?: string
+  readonly proposerReasoningEffort?: ProposerReasoningEffort
+  readonly codexSandboxMode: CodexSandboxMode
+  readonly codexApprovalPolicy: CodexApprovalPolicy
+}
+
+export interface ResolvedProposerLimits {
+  readonly proposerTimeoutMs: number
+  readonly proposerBudgetUsd: string
+}
+
 const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v)
+
+const REASONING_EFFORTS = ["minimal", "low", "medium", "high", "xhigh"] as const
+const CODEX_SANDBOX_MODES = ["read-only", "workspace-write", "danger-full-access"] as const
+const CODEX_SANDBOX_ALIASES = {
+  bypass: "danger-full-access",
+  none: "danger-full-access",
+} as const
+const CODEX_APPROVAL_POLICIES = ["on-request", "on-failure", "untrusted", "never"] as const
+
+type Env = Record<string, string | undefined>
+
+const envValue = (env: Env, key: string): string | undefined => {
+  const value = env[key]?.trim()
+  return value === "" ? undefined : value
+}
+
+const isOneOf = <T extends string>(value: string, values: readonly T[]): value is T =>
+  values.some((v) => v === value)
+
+function parseEnumEnv<T extends string>(opts: {
+  readonly key: string
+  readonly value: string | undefined
+  readonly fallback: T
+  readonly values: readonly T[]
+  readonly aliases?: Readonly<Record<string, T>>
+  readonly message: string
+}): T | ConfigInvalid
+function parseEnumEnv<T extends string>(opts: {
+  readonly key: string
+  readonly value: string | undefined
+  readonly values: readonly T[]
+  readonly aliases?: Readonly<Record<string, T>>
+  readonly message: string
+}): T | ConfigInvalid | undefined
+function parseEnumEnv<T extends string>(opts: {
+  readonly key: string
+  readonly value: string | undefined
+  readonly fallback?: T
+  readonly values: readonly T[]
+  readonly aliases?: Readonly<Record<string, T>>
+  readonly message: string
+}): T | ConfigInvalid | undefined {
+  if (opts.value === undefined) return opts.fallback
+  const alias = opts.aliases?.[opts.value]
+  if (alias !== undefined) return alias
+  if (isOneOf(opts.value, opts.values)) return opts.value
+  return new ConfigInvalid({ key: opts.key, message: opts.message })
+}
 
 /**
  * RULE-049 — bounds-check numeric settings & weight overrides.
@@ -231,6 +299,90 @@ export const validateNumerics = (input: NumericInputs): ResolvedNumerics | Confi
   return { fenceLB, proposerTimeoutMs, testTimeoutMs, fenceTimeoutMs, weights }
 }
 
+const parsePositiveIntegerEnv = (
+  env: Env,
+  key: string,
+  fallback: number,
+): number | ConfigInvalid => {
+  const value = envValue(env, key)
+  if (value === undefined) return fallback
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    return new ConfigInvalid({ key, message: `${key} must be a positive integer` })
+  }
+  return parsed
+}
+
+const parseStringEnv = (
+  env: Env,
+  key: string,
+  fallback: string,
+): string => envValue(env, key) ?? fallback
+
+const parseReasoningEffort = (
+  env: Env,
+): ProposerReasoningEffort | ConfigInvalid | undefined =>
+  parseEnumEnv({
+    key: "CN_REASONING_EFFORT",
+    value: envValue(env, "CN_REASONING_EFFORT"),
+    values: REASONING_EFFORTS,
+    message: "CN_REASONING_EFFORT must be one of minimal, low, medium, high, xhigh",
+  })
+
+const parseSandboxMode = (env: Env): CodexSandboxMode | ConfigInvalid =>
+  parseEnumEnv({
+    key: "CN_CODEX_SANDBOX",
+    value: envValue(env, "CN_CODEX_SANDBOX"),
+    fallback: DEFAULT_CODEX_SANDBOX_MODE,
+    values: CODEX_SANDBOX_MODES,
+    aliases: CODEX_SANDBOX_ALIASES,
+    message: "CN_CODEX_SANDBOX must be read-only, workspace-write, danger-full-access, bypass, or none",
+  })
+
+const parseApprovalPolicy = (env: Env): CodexApprovalPolicy | ConfigInvalid =>
+  parseEnumEnv({
+    key: "CN_CODEX_APPROVAL_POLICY",
+    value: envValue(env, "CN_CODEX_APPROVAL_POLICY"),
+    fallback: DEFAULT_CODEX_APPROVAL_POLICY,
+    values: CODEX_APPROVAL_POLICIES,
+    message: "CN_CODEX_APPROVAL_POLICY must be one of on-request, on-failure, untrusted, never",
+  })
+
+/**
+ * Interim pure env resolver for Codex proposer knobs. Delete this once ConfigLive
+ * owns env/file/autodetect resolution end-to-end.
+ */
+export const resolveProposerConfig = (
+  env: Env,
+): ResolvedProposerConfig | ConfigInvalid => {
+  const limits = resolveProposerLimits(env)
+  if (limits instanceof ConfigInvalid) return limits
+  const proposerReasoningEffort = parseReasoningEffort(env)
+  if (proposerReasoningEffort instanceof ConfigInvalid) return proposerReasoningEffort
+  const codexSandboxMode = parseSandboxMode(env)
+  if (codexSandboxMode instanceof ConfigInvalid) return codexSandboxMode
+  const codexApprovalPolicy = parseApprovalPolicy(env)
+  if (codexApprovalPolicy instanceof ConfigInvalid) return codexApprovalPolicy
+
+  const proposerModel = envValue(env, "CN_MODEL")
+  return {
+    ...limits,
+    ...(proposerModel ? { proposerModel } : {}),
+    ...(proposerReasoningEffort ? { proposerReasoningEffort } : {}),
+    codexSandboxMode,
+    codexApprovalPolicy,
+  }
+}
+
+export const resolveProposerLimits = (
+  env: Env,
+): ResolvedProposerLimits | ConfigInvalid => {
+  const proposerTimeoutMs = parsePositiveIntegerEnv(env, "CN_PROPOSER_TIMEOUT_MS", DEFAULT_PROPOSER_TIMEOUT_MS)
+  if (proposerTimeoutMs instanceof ConfigInvalid) return proposerTimeoutMs
+  const proposerBudgetUsd = parseStringEnv(env, "CN_PROPOSER_BUDGET_USD", DEFAULT_PROPOSER_BUDGET_USD)
+  return { proposerTimeoutMs, proposerBudgetUsd }
+}
+
 // ---------------------------------------------------------------------------
 // Resolved Config shape (mirrors @codenuke/core `Config`; runtime carries the
 // three timeout knobs added in architecture §7).
@@ -250,9 +402,13 @@ export interface ResolvedConfig {
   readonly benchmarkDir: string
   readonly fenceLB: number
   readonly proposerTimeoutMs: number
+  readonly proposerBudgetUsd: string
+  readonly proposerModel?: string
+  readonly proposerReasoningEffort?: ProposerReasoningEffort
+  readonly codexSandboxMode: CodexSandboxMode
+  readonly codexApprovalPolicy: CodexApprovalPolicy
   readonly testTimeoutMs: number
   readonly fenceTimeoutMs: number
-  readonly proposerBudgetUsd: string
   readonly weights: typeof DEFAULT_WEIGHTS
   readonly testCommand: CommandSpec | null
   readonly typeCheckCommand: CommandSpec | null

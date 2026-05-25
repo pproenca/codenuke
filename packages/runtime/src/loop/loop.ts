@@ -15,7 +15,7 @@
  * v2 metric path used by `score` and `accept`.
  */
 import { FileSystem, Path } from "@effect/platform"
-import { allowlistEnv, type CommandSpec, isSourceFile, measureFiles, type ScoreEnvelope } from "@codenuke/core"
+import { type CommandSpec, isSourceFile, measureFiles, type ScoreEnvelope } from "@codenuke/core"
 import { Effect, Fiber, Stream } from "effect"
 import {
   readArtifactBundle,
@@ -31,6 +31,7 @@ import {
 import { Proposer, type ProposerRequest } from "../proposer/proposer.ts"
 import { ProgressBus, type LoopPhase } from "../progress/progress.ts"
 import { PROBATION_MAX_ITERATIONS, runTypecheckCount, scoreCurrentChange } from "../score/score.ts"
+import { resolveProposerLimits } from "../config/config.ts"
 
 // ---------------------------------------------------------------------------
 // Startup gate (RULE-030/031/054)
@@ -89,6 +90,46 @@ export interface ReduceLoopReport {
   readonly iterations: readonly IterationOutcome[]
 }
 
+export interface ReducePromptInput {
+  readonly region: string
+  readonly target: string
+  readonly probation: boolean
+  readonly maxFiles: number
+  readonly maxDiffsize: number
+  readonly attempt: number
+  readonly totalAttempts: number
+}
+
+export const buildReducePrompt = (input: ReducePromptInput): string => {
+  const probationRules = input.probation
+    ? [
+        `- Touch at most ${input.maxFiles} source file.`,
+        `- Keep the final diff under ${input.maxDiffsize} inserted plus deleted lines.`,
+        "- Do not edit tests, snapshots, generated files, package manifests, lockfiles, config, or docs.",
+        "- Do not add, remove, rename, or change public exports.",
+        "- Do not introduce imports that can create cycles.",
+      ]
+    : [
+        "- Keep the edit tightly scoped to the selected region.",
+        "- Avoid tests, generated files, package manifests, lockfiles, config, and docs unless explicitly required.",
+      ]
+
+  return [
+    "Reduce the selected code region while preserving behavior.",
+    "",
+    `Region: ${input.region}`,
+    `Target: ${input.target}`,
+    `Attempt: ${input.attempt}/${input.totalAttempts}`,
+    "",
+    "Candidate constraints:",
+    ...probationRules,
+    "- Prefer one narrow local simplification over broad cleanup.",
+    "- Stop without changing files if no safe reduction is obvious.",
+    "",
+    "After editing, leave the worktree with only the candidate change. Do not commit.",
+  ].join("\n")
+}
+
 export const rejectedScoreReason = (envelope: ScoreEnvelope): string => {
   const guardrail = envelope.guardrails.failures[0]
   if (guardrail !== undefined) return guardrail.code
@@ -106,6 +147,10 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
     const path = yield* Path.Path
     const proposer = yield* Proposer
     const progress = yield* ProgressBus
+    const proposerLimits = resolveProposerLimits(process.env)
+    if (proposerLimits instanceof Error) {
+      return yield* Effect.fail(proposerLimits)
+    }
 
     const startSha = yield* git.resolveSha(opts.repo, "HEAD")
     const emit = (ev: Parameters<typeof progress.emit>[0]): Effect.Effect<void> =>
@@ -189,23 +234,54 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
           // propose (reduce) — edits the worktree; proposer failure ⇒ no change
           const req: ProposerRequest = {
             mode: "reduce",
-            prompt: `reduce region ${opts.region}`,
+            prompt: buildReducePrompt({
+              region: opts.region,
+              target: opts.region,
+              probation,
+              maxFiles: 1,
+              maxDiffsize: 80,
+              attempt: iter,
+              totalAttempts: totalIterations,
+            }),
             promptFile: "",
             repo: opts.repo,
             worktree,
             regionKey: opts.region,
             regionTarget: opts.region,
-            timeoutMs: 900_000,
-            budgetUsd: "8",
-            env: allowlistEnv(process.env),
+            timeoutMs: proposerLimits.proposerTimeoutMs,
+            budgetUsd: proposerLimits.proposerBudgetUsd,
           }
+          let proposerFailureReason: string | null = null
           yield* timedPhase(
             iter,
             "proposer",
             Stream.runForEach(proposer.propose(req), (ev) =>
               ev._tag === "AgentMessage" ? Effect.void : emit({ _tag: "ProposerEvent", ev }),
             ),
-          ).pipe(Effect.catchAll(() => Effect.void))
+          ).pipe(
+            Effect.catchAll((error) =>
+              Effect.sync(() => {
+                const tag =
+                  error instanceof Error && "_tag" in error
+                    ? String((error as { readonly _tag: string })._tag)
+                    : "ProposerFailed"
+                return `proposer-failed:${tag}`
+              }).pipe(
+                Effect.tap((reason) =>
+                  Effect.sync(() => {
+                    proposerFailureReason = reason
+                  }),
+                ),
+                Effect.flatMap((reason) =>
+                  emit({
+                    _tag: "Message",
+                    level: "warn",
+                    text: reason,
+                  }),
+                ),
+              ),
+            ),
+          )
 
           const envelope = yield* timedPhase(
             iter,
@@ -239,7 +315,8 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
           } else {
             yield* git.discardAll(worktree).pipe(Effect.ignore)
             reverted += 1
-            const reason = rejectedScoreReason(envelope)
+            const scoreReason = rejectedScoreReason(envelope)
+            const reason = proposerFailureReason ?? (verdict?.dL === 0 ? "no-change" : scoreReason)
             outcomes.push({ iter, kept: false, reason, dL: verdict?.dL ?? 0, loss: verdict?.loss ?? null })
             tsvRows.push(
               [iter, "-", verdict?.dL ?? 0, verdict?.dCx ?? 0, (verdict?.mfence ?? 0).toFixed(3), verdict?.loss === null || verdict?.loss === undefined ? "null" : String(verdict.loss), "REVERT", sanitize(reason)].join(

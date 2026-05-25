@@ -4,6 +4,8 @@ import {
   DEFAULT_FENCE_LB,
   DEFAULT_PROPOSER_TIMEOUT_MS,
   rejectShellStringEnv,
+  resolveProposerConfig,
+  resolveProposerLimits,
   ShellStringRejected,
   validateCommandSpec,
   validateNumerics,
@@ -41,6 +43,90 @@ describe("config — RULE-048 (reject legacy shell-string commands)", () => {
 
   it("RULE-048 an empty file is ConfigInvalid", () => {
     expect(validateCommandSpec("testCommand", { file: "" })).toBeInstanceOf(ConfigInvalid)
+  })
+})
+
+describe("config — Codex proposer env knobs", () => {
+  it("resolves model, reasoning, sandbox, approval, timeout, and budget from CN_* env", () => {
+    const r = resolveProposerConfig({
+      CN_MODEL: " gpt-5-codex ",
+      CN_REASONING_EFFORT: " medium ",
+      CN_CODEX_SANDBOX: " read-only ",
+      CN_CODEX_APPROVAL_POLICY: " on-request ",
+      CN_PROPOSER_TIMEOUT_MS: " 1234 ",
+      CN_PROPOSER_BUDGET_USD: " 2.50 ",
+    })
+    expect(r).not.toBeInstanceOf(ConfigInvalid)
+    if (!(r instanceof ConfigInvalid)) {
+      expect(r).toMatchObject({
+        proposerModel: "gpt-5-codex",
+        proposerReasoningEffort: "medium",
+        codexSandboxMode: "read-only",
+        codexApprovalPolicy: "on-request",
+        proposerTimeoutMs: 1234,
+        proposerBudgetUsd: "2.50",
+      })
+    }
+  })
+
+  it("uses defaults for blank proposer env knobs", () => {
+    const r = resolveProposerConfig({
+      CN_MODEL: " ",
+      CN_REASONING_EFFORT: " ",
+      CN_CODEX_SANDBOX: " ",
+      CN_CODEX_APPROVAL_POLICY: " ",
+      CN_PROPOSER_TIMEOUT_MS: " ",
+      CN_PROPOSER_BUDGET_USD: " ",
+    })
+    expect(r).not.toBeInstanceOf(ConfigInvalid)
+    if (!(r instanceof ConfigInvalid)) {
+      expect(r).toMatchObject({
+        proposerTimeoutMs: 900_000,
+        proposerBudgetUsd: "8",
+        codexSandboxMode: "workspace-write",
+        codexApprovalPolicy: "never",
+      })
+      expect(r.proposerModel).toBeUndefined()
+      expect(r.proposerReasoningEffort).toBeUndefined()
+    }
+  })
+
+  it("normalizes sandbox aliases to danger-full-access", () => {
+    for (const value of ["bypass", "none"]) {
+      const r = resolveProposerConfig({ CN_CODEX_SANDBOX: value })
+      expect(r).not.toBeInstanceOf(ConfigInvalid)
+      if (!(r instanceof ConfigInvalid)) expect(r.codexSandboxMode).toBe("danger-full-access")
+    }
+  })
+
+  it("rejects invalid reasoning effort before an agent run is assembled", () => {
+    const e = resolveProposerConfig({ CN_REASONING_EFFORT: "maximum" })
+    expect(e).toBeInstanceOf(ConfigInvalid)
+    if (e instanceof ConfigInvalid) expect(e.key).toBe("CN_REASONING_EFFORT")
+  })
+
+  it("resolves generic proposer limits without validating Codex-only knobs", () => {
+    const r = resolveProposerLimits({
+      CN_REASONING_EFFORT: "maximum",
+      CN_CODEX_SANDBOX: "invalid",
+      CN_PROPOSER_TIMEOUT_MS: "1234",
+      CN_PROPOSER_BUDGET_USD: "2.50",
+    })
+    expect(r).toEqual({ proposerTimeoutMs: 1234, proposerBudgetUsd: "2.50" })
+  })
+
+  it("rejects invalid sandbox, approval, and non-integer timeout env values", () => {
+    const sandbox = resolveProposerConfig({ CN_CODEX_SANDBOX: "open" })
+    expect(sandbox).toBeInstanceOf(ConfigInvalid)
+    if (sandbox instanceof ConfigInvalid) expect(sandbox.key).toBe("CN_CODEX_SANDBOX")
+
+    const approval = resolveProposerConfig({ CN_CODEX_APPROVAL_POLICY: "always" })
+    expect(approval).toBeInstanceOf(ConfigInvalid)
+    if (approval instanceof ConfigInvalid) expect(approval.key).toBe("CN_CODEX_APPROVAL_POLICY")
+
+    const timeout = resolveProposerConfig({ CN_PROPOSER_TIMEOUT_MS: "1.5" })
+    expect(timeout).toBeInstanceOf(ConfigInvalid)
+    if (timeout instanceof ConfigInvalid) expect(timeout.key).toBe("CN_PROPOSER_TIMEOUT_MS")
   })
 })
 
