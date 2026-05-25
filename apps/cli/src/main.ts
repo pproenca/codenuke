@@ -49,37 +49,34 @@ import {
 import { Cause, Console, Effect, Fiber, Layer, Option } from "effect"
 import { existsSync } from "node:fs"
 import { resolve as pathResolve } from "node:path"
+import { exitCodeFor, EXIT_NOT_READY } from "./exit-codes.ts"
 
-/** Build the test CommandSpec from the env (argv only; never a shell string). */
-const testCommandFromEnv = (): { readonly file: string; readonly args: readonly string[] } => {
-  const file = process.env.CN_TEST_FILE ?? "npm"
-  const raw = process.env.CN_TEST_ARGS_JSON
-  if (!raw) return { file, args: ["test"] }
-  try {
-    const v: unknown = JSON.parse(raw)
-    return { file, args: Array.isArray(v) ? v.map(String) : ["test"] }
-  } catch {
-    return { file, args: ["test"] }
-  }
+interface CliCommand {
+  readonly file: string
+  readonly args: readonly string[]
+}
+
+const envArgs = (raw: string | undefined, fallback: readonly string[]): readonly string[] => {
+  if (!raw) return fallback
+  const parsed = Effect.runSync(
+    Effect.try((): unknown => JSON.parse(raw)).pipe(Effect.orElseSucceed(() => fallback)),
+  )
+  return Array.isArray(parsed) ? parsed.map(String) : fallback
 }
 
 const envCommand = (
   prefix: string,
-  fallback: { readonly file: string; readonly args: readonly string[] } | null,
-): { readonly file: string; readonly args: readonly string[] } | null => {
+  fallback: CliCommand | null,
+): CliCommand | null => {
   const file = process.env[`${prefix}_FILE`] ?? fallback?.file
-  const raw = process.env[`${prefix}_ARGS_JSON`]
   if (!file) return null
-  if (!raw) return { file, args: fallback?.args ?? [] }
-  try {
-    const v: unknown = JSON.parse(raw)
-    return { file, args: Array.isArray(v) ? v.map(String) : fallback?.args ?? [] }
-  } catch {
-    return { file, args: fallback?.args ?? [] }
-  }
+  return { file, args: envArgs(process.env[`${prefix}_ARGS_JSON`], fallback?.args ?? []) }
 }
 
-const typeCheckCommandFromEnv = (): { readonly file: string; readonly args: readonly string[] } | null => {
+/** Build the test CommandSpec from the env (argv only; never a shell string). */
+const testCommandFromEnv = (): CliCommand => envCommand("CN_TEST", { file: "npm", args: ["test"] }) ?? { file: "npm", args: ["test"] }
+
+const typeCheckCommandFromEnv = (): CliCommand | null => {
   if (process.env.CN_TYPECHECK_FILE || process.env.CN_TYPECHECK_ARGS_JSON) {
     return envCommand("CN_TYPECHECK", { file: process.env.CN_TYPECHECK_FILE ?? "npm", args: ["run", "typecheck"] })
   }
@@ -89,7 +86,6 @@ const typeCheckCommandFromEnv = (): { readonly file: string; readonly args: read
   }
   return null
 }
-import { exitCodeFor, EXIT_NOT_READY } from "./exit-codes.ts"
 
 const VERSION = "0.5.0"
 

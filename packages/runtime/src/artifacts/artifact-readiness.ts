@@ -35,13 +35,12 @@ const readRaw = (
   file: string,
 ): Effect.Effect<{ readonly raw: string | null; readonly parsed: unknown | null }, never> =>
   fs.readFileString(file).pipe(
-    Effect.map((raw) => {
-      try {
-        return { raw, parsed: JSON.parse(raw) as unknown }
-      } catch {
-        return { raw, parsed: null }
-      }
-    }),
+    Effect.flatMap((raw) =>
+      Effect.try((): unknown => JSON.parse(raw)).pipe(
+        Effect.map((parsed) => ({ raw, parsed })),
+        Effect.orElseSucceed(() => ({ raw, parsed: null })),
+      ),
+    ),
     Effect.orElseSucceed(() => ({ raw: null, parsed: null })),
   )
 
