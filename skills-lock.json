@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "opencode-ts": {
+      "source": "pproenca/dot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/.experimental/opencode-ts/SKILL.md",
+      "computedHash": "00425995b222f608641add76eac5408b5595d234b43d808bfae81ea4d95bc125"
+    }
+  }
+}
