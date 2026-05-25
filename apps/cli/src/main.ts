@@ -93,6 +93,16 @@ import { exitCodeFor, EXIT_NOT_READY } from "./exit-codes.ts"
 
 const VERSION = "0.5.0"
 
+const notReadyGapMessage = (error: unknown): string | null => {
+  if (error === null || typeof error !== "object") return null
+  const record = error as Record<string, unknown>
+  if (record["_tag"] !== "NotReady") return null
+  const gap = record["gap"]
+  if (gap === null || typeof gap !== "object") return null
+  const message = (gap as Record<string, unknown>)["message"]
+  return typeof message === "string" ? message : null
+}
+
 // ---------------------------------------------------------------------------
 // Reusable args / options.
 // ---------------------------------------------------------------------------
@@ -173,6 +183,10 @@ const reduceRun = (iterations: number, json: boolean) =>
       resultRef: "refs/codenuke/result",
     }).pipe(
       Effect.provide(proposerLayer),
+      Effect.tapError((error) => {
+        const message = notReadyGapMessage(error)
+        return message === null ? Effect.void : Console.error(`codenuke: not ready — ${message}`)
+      }),
       Effect.ensuring(progress.shutdown),
       Effect.ensuring(Fiber.join(renderFiber).pipe(Effect.ignore)),
     )

@@ -373,6 +373,12 @@ export const scoreCurrentChange = (opts: {
               yield* Effect.acquireRelease(git.worktreeAdd(opts.repo, worktree, baselineSha), () =>
                 git.worktreeRemove(opts.repo, worktree).pipe(Effect.ignore),
               )
+              const repoNodeModules = path.join(opts.repo, "node_modules")
+              const worktreeNodeModules = path.join(worktree, "node_modules")
+              const hasNodeModules = yield* fs.exists(repoNodeModules).pipe(Effect.orElseSucceed(() => false))
+              if (hasNodeModules) {
+                yield* fs.symlink(repoNodeModules, worktreeNodeModules).pipe(Effect.ignore)
+              }
               return yield* runTypecheckCount(worktree, opts.typeCheckCommand)
             }).pipe(Effect.orElseSucceed(() => 0)),
           ))

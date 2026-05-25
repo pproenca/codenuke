@@ -89,7 +89,7 @@ export const readArtifactBundle = (opts: {
     }
 
     const enoughCalibration =
-      calibration.artifact !== null && calibration.artifact.commitsSampled >= 3
+      calibration.status.usable && calibration.artifact !== null && calibration.artifact.commitsSampled >= 3
     const confidence: MetricConfidence =
       valueProxy.status.usable && enoughCalibration
         ? "validated"
