@@ -123,6 +123,9 @@ export type { Files } from "./measure/index.ts";
 // --- deterministic discovery -------------------------------------------------
 export { discoverOpportunities } from "./discovery/index.ts";
 
+// --- public export surface ----------------------------------------------------
+export { publicExportSurface } from "./exports/index.ts";
+
 // --- metric envelope / guardrails -------------------------------------------
 export {
   METRIC_NAME,

@@ -1,30 +1,9 @@
-import { isSourceFile, isTestFile, type GuardrailFailure } from "@codenuke/core"
+import { isSourceFile, isTestFile, publicExportSurface, type GuardrailFailure } from "@codenuke/core"
 import { posix as pathPosix } from "node:path"
 
 export const PROBATION_MAX_ITERATIONS = 3
 export const PROBATION_MAX_FILES = 1
 export const PROBATION_MAX_DIFFSIZE = 80
-
-const exportNames = (source: string): readonly string[] => {
-  const out = new Set<string>()
-  for (const match of source.matchAll(/\bexport\s+(?:declare\s+)?(?:async\s+)?(?:function|class|const|let|var|interface|type|enum)\s+([A-Za-z_$][\w$]*)/gu)) {
-    if (match[1]) out.add(match[1])
-  }
-  for (const match of source.matchAll(/\bexport\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s+["']([^"']+)["']/gu)) {
-    if (match[1] && match[2]) out.add(`*as:${match[1]}:${match[2]}`)
-  }
-  for (const match of source.matchAll(/\bexport\s+\*\s+from\s+["']([^"']+)["']/gu)) {
-    if (match[1]) out.add(`*:${match[1]}`)
-  }
-  for (const match of source.matchAll(/\bexport\s*\{([^}]+)\}/gu)) {
-    for (const part of (match[1] ?? "").split(",")) {
-      const name = part.trim().split(/\s+as\s+/u)[1] ?? part.trim().split(/\s+/u)[0]
-      if (name) out.add(name)
-    }
-  }
-  if (/\bexport\s+default\b/u.test(source)) out.add("default")
-  return [...out].sort()
-}
 
 const sameList = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index])
@@ -148,7 +127,10 @@ export const probationGuardrails = (args: {
       : []),
   ])
   const exports = changed.flatMap((file) =>
-    sameList(exportNames(args.before[file] ?? ""), exportNames(args.after[file] ?? ""))
+    sameList(
+      publicExportSurface(args.before[file] ?? "", file),
+      publicExportSurface(args.after[file] ?? "", file),
+    )
       ? []
       : [failure("public-api-change", "probation rejects changed public exports", "reject", file)],
   )

@@ -66,6 +66,233 @@ describe("probation guardrails", () => {
     ).toContain("public-api-change")
   })
 
+  it("rejects type-only named export surface changes", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export type { A }\nexport { type B }\n" },
+        after: { "src/a.ts": "export type { Renamed }\nexport { type B }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects value export changes when the local binding is named type", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "const type = 1\nexport { type as oldName }\n" },
+        after: { "src/a.ts": "const type = 1\nexport { type as newName }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects changes between value and type-only exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "const Foo = 1\nexport { Foo }\n" },
+        after: { "src/a.ts": "type Foo = number\nexport type { Foo }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects changes between runtime and type-only default exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export default class Foo {}\n" },
+        after: { "src/a.ts": "export default interface Foo {}\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects changes that remove class type exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export class Foo {}\n" },
+        after: { "src/a.ts": "export const Foo = 1\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("allows moving class declarations behind named exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export class Foo {}\n" },
+        after: { "src/a.ts": "class Foo {}\nexport { Foo }\n" },
+      }),
+    ).not.toContain("public-api-change")
+  })
+
+  it("rejects removing a same-name local type surface from a named export", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "type Foo = number\nconst Foo = 1\nexport { Foo }\n" },
+        after: { "src/a.ts": "const Foo = 1\nexport { Foo }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects changes that remove default class type exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export default class Foo {}\n" },
+        after: { "src/a.ts": "export default function Foo() {}\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("allows moving default class declarations behind identifier exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export default class Foo {}\n" },
+        after: { "src/a.ts": "class Foo {}\nexport default Foo\n" },
+      }),
+    ).not.toContain("public-api-change")
+  })
+
+  it("rejects removing default class type surfaces through identifier exports", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "class Foo {}\nexport default Foo\n" },
+        after: { "src/a.ts": "function Foo() {}\nexport default Foo\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("does not use local declarations to classify re-export clauses", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "type Foo = number\nexport { Foo } from './mod'\n" },
+        after: { "src/a.ts": "type Foo = number\nexport type { Foo } from './mod'\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects exported namespace member changes", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "export namespace API { export const oldName = 1 }\n" },
+        after: { "src/a.ts": "export namespace API { export const newName = 1 }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects local namespace member changes when exposed by named export", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "namespace API { export const oldName = 1 }\nexport { API }\n" },
+        after: { "src/a.ts": "namespace API { export const newName = 1 }\nexport { API }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects merged namespace member changes when exposed by named export", () => {
+    expect(
+      failures({
+        before: {
+          "src/a.ts": "namespace API { export const oldName = 1 }\nnamespace API { export const stable = 1 }\nexport { API }\n",
+        },
+        after: {
+          "src/a.ts": "namespace API { export const newName = 1 }\nnamespace API { export const stable = 1 }\nexport { API }\n",
+        },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects ambient module export changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": 'declare module "pkg" { export const oldName: string }\n' },
+        after: { "src/a.d.ts": 'declare module "pkg" { export const newName: string }\n' },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects implicit ambient module declaration changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": 'declare module "pkg" { interface Old {} }\n' },
+        after: { "src/a.d.ts": 'declare module "pkg" { interface New {} }\n' },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects type-only namespace member changes", () => {
+    expect(
+      failures({
+        before: { "src/a.ts": "namespace API { export interface Old {} }\nexport type { API }\n" },
+        after: { "src/a.ts": "namespace API { export interface New {} }\nexport type { API }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects top-level ambient declaration changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "interface Old {}\n" },
+        after: { "src/a.d.ts": "interface New {}\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects top-level ambient namespace member changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "declare namespace API { interface Old {} }\n" },
+        after: { "src/a.d.ts": "declare namespace API { interface New {} }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects dotted ambient namespace member changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "declare namespace React.JSX { interface Old {} }\n" },
+        after: { "src/a.d.ts": "declare namespace React.JSX { interface New {} }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("rejects export assignment surface changes", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "declare class Foo {}\nexport = Foo\n" },
+        after: { "src/a.d.ts": "declare function Foo(): void\nexport = Foo\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
+  it("allows private declaration changes in external declaration files", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "export {}\ninterface Old {}\n" },
+        after: { "src/a.d.ts": "export {}\ninterface New {}\n" },
+      }),
+    ).not.toContain("public-api-change")
+  })
+
+  it("rejects exported declaration namespace member changes in external declaration files", () => {
+    expect(
+      failures({
+        changed: ["src/a.d.ts"],
+        allChanged: ["src/a.d.ts"],
+        before: { "src/a.d.ts": "export {}\nexport namespace API { interface Old {} }\n" },
+        after: { "src/a.d.ts": "export {}\nexport namespace API { interface New {} }\n" },
+      }),
+    ).toContain("public-api-change")
+  })
+
   it("rejects new import cycles when detectable", () => {
     expect(
       failures({

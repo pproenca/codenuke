@@ -26,6 +26,7 @@ describe("cli run --json smoke", () => {
       execFileSync("git", ["init"], { cwd: repo, stdio: "ignore" })
       execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: repo })
       execFileSync("git", ["config", "user.name", "Test User"], { cwd: repo })
+      execFileSync("git", ["config", "commit.gpgsign", "false"], { cwd: repo })
       execFileSync("git", ["add", "."], { cwd: repo })
       execFileSync("git", ["commit", "-m", "init"], { cwd: repo, stdio: "ignore" })
       const baselineSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf8" }).trim()
