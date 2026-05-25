@@ -212,6 +212,22 @@ const envValue = (env: Env, key: string): string | undefined => {
   return value === "" ? undefined : value
 }
 
+const envValueAny = (env: Env, keys: readonly string[]): string | undefined => {
+  for (const key of keys) {
+    const value = envValue(env, key)
+    if (value !== undefined) return value
+  }
+  return undefined
+}
+
+const envEntryAny = (env: Env, keys: readonly string[]): readonly [string, string] | undefined => {
+  for (const key of keys) {
+    const value = envValue(env, key)
+    if (value !== undefined) return [key, value]
+  }
+  return undefined
+}
+
 const isOneOf = <T extends string>(value: string, values: readonly T[]): value is T =>
   values.some((v) => v === value)
 
@@ -299,12 +315,11 @@ export const validateNumerics = (input: NumericInputs): ResolvedNumerics | Confi
   return { fenceLB, proposerTimeoutMs, testTimeoutMs, fenceTimeoutMs, weights }
 }
 
-const parsePositiveIntegerEnv = (
-  env: Env,
+const parsePositiveIntegerValue = (
   key: string,
+  value: string | undefined,
   fallback: number,
 ): number | ConfigInvalid => {
-  const value = envValue(env, key)
   if (value === undefined) return fallback
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
@@ -312,12 +327,6 @@ const parsePositiveIntegerEnv = (
   }
   return parsed
 }
-
-const parseStringEnv = (
-  env: Env,
-  key: string,
-  fallback: string,
-): string => envValue(env, key) ?? fallback
 
 const parseReasoningEffort = (
   env: Env,
@@ -377,9 +386,15 @@ export const resolveProposerConfig = (
 export const resolveProposerLimits = (
   env: Env,
 ): ResolvedProposerLimits | ConfigInvalid => {
-  const proposerTimeoutMs = parsePositiveIntegerEnv(env, "CN_PROPOSER_TIMEOUT_MS", DEFAULT_PROPOSER_TIMEOUT_MS)
+  const timeoutEntry = envEntryAny(env, ["CN_PROPOSER_TIMEOUT_MS", "CN_TIMEOUT"])
+  const proposerTimeoutMs = parsePositiveIntegerValue(
+    timeoutEntry?.[0] ?? "CN_PROPOSER_TIMEOUT_MS",
+    timeoutEntry?.[1],
+    DEFAULT_PROPOSER_TIMEOUT_MS,
+  )
   if (proposerTimeoutMs instanceof ConfigInvalid) return proposerTimeoutMs
-  const proposerBudgetUsd = parseStringEnv(env, "CN_PROPOSER_BUDGET_USD", DEFAULT_PROPOSER_BUDGET_USD)
+  const proposerBudgetUsd =
+    envValueAny(env, ["CN_PROPOSER_BUDGET_USD", "CN_BUDGET"]) ?? DEFAULT_PROPOSER_BUDGET_USD
   return { proposerTimeoutMs, proposerBudgetUsd }
 }
 

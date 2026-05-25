@@ -115,6 +115,24 @@ describe("config — Codex proposer env knobs", () => {
     expect(r).toEqual({ proposerTimeoutMs: 1234, proposerBudgetUsd: "2.50" })
   })
 
+  it("accepts documented CN_TIMEOUT and CN_BUDGET aliases for proposer limits", () => {
+    const r = resolveProposerLimits({
+      CN_TIMEOUT: "4321",
+      CN_BUDGET: "3.25",
+    })
+    expect(r).toEqual({ proposerTimeoutMs: 4321, proposerBudgetUsd: "3.25" })
+  })
+
+  it("prefers explicit proposer limit names over documented legacy aliases", () => {
+    const r = resolveProposerLimits({
+      CN_TIMEOUT: "4321",
+      CN_BUDGET: "3.25",
+      CN_PROPOSER_TIMEOUT_MS: "1234",
+      CN_PROPOSER_BUDGET_USD: "2.50",
+    })
+    expect(r).toEqual({ proposerTimeoutMs: 1234, proposerBudgetUsd: "2.50" })
+  })
+
   it("rejects invalid sandbox, approval, and non-integer timeout env values", () => {
     const sandbox = resolveProposerConfig({ CN_CODEX_SANDBOX: "open" })
     expect(sandbox).toBeInstanceOf(ConfigInvalid)
