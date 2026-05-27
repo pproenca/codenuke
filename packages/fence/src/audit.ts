@@ -191,8 +191,7 @@ export const FenceLive: Layer.Layer<Fence, never, MutationRunner> = Layer.effect
             const before = req.baselineFiles[mutation.rel];
             const now = req.currentFiles[mutation.rel];
             if (before === undefined || now === undefined) {
-              outcomes.push("green");
-              continue;
+              return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
             }
             if (before !== now) {
               return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));

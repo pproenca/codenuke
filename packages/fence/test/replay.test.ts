@@ -135,6 +135,36 @@ describe("RULE-051 replay precondition (sources unchanged + green)", () => {
     }).pipe(Effect.provide(FenceLive.pipe(Layer.provide(ReplayRunnerLive)))),
   );
 
+  it.effect("RULE-051 throws 'source changed before replay' when survivor source is missing", () =>
+    Effect.gen(function* () {
+      const fence = yield* Fence;
+      const before = mod!.wilson(1, 2);
+      const exit = yield* fence
+        .replayRegion({
+          region: "src",
+          worktree: "/tmp/replay",
+          threshold: 0.9,
+          baselineGreen: true,
+          baselineFiles: { "src/a.ts": "before" },
+          currentFiles: {},
+          previous: {
+            caught: 1,
+            total: 2,
+            p: before.p,
+            lo: before.lo,
+            hi: before.hi,
+            admissible: false,
+            survivorSpecs: [mutation],
+          },
+        })
+        .pipe(Effect.exit);
+      expect(exit._tag).toBe("Failure");
+      if (exit._tag === "Failure") {
+        expect(String(exit.cause)).toContain("ReplayPreconditionFailed");
+      }
+    }).pipe(Effect.provide(FenceLive.pipe(Layer.provide(ReplayRunnerLive)))),
+  );
+
   it.effect("RULE-051 throws 'worktree baseline not green' when the baseline test status is red", () =>
     Effect.gen(function* () {
       const fence = yield* Fence;

@@ -72,12 +72,12 @@ Implemented behavior so far:
 
 Remaining gap:
 
-- `Fence.replayRegion` now enforces green-baseline and source-unchanged preconditions when the caller supplies baseline/current source snapshots. A CLI/runtime command that gathers those snapshots from the persisted artifact and worktree is still a follow-up. The full audit path remains unchanged and should stay the default evidence path until that wiring lands.
+- `Fence.replayRegion` now enforces green-baseline and source-unchanged preconditions from caller-supplied baseline/current source snapshots, including fail-closed behavior when a survivor source snapshot is missing. A CLI/runtime command that gathers those snapshots from the persisted artifact and worktree is still a follow-up. The full audit path remains unchanged and should stay the default evidence path until that wiring lands.
 
 Validation completed:
 
     pnpm test
-      33 passed, 1 skipped test file; 266 passed, 26 skipped, 7 todo tests.
+      33 passed, 1 skipped test file; 270 passed, 24 skipped, 7 todo tests.
 
     pnpm typecheck
       packages/core, packages/fence, packages/runtime, and apps/cli typecheck passed.
