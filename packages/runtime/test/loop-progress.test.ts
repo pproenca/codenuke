@@ -256,37 +256,42 @@ describe("loop progress", () => {
   it.effect("does not validate Codex-only env knobs for injected fake proposers", () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const previous = process.env.CN_REASONING_EFFORT
-        process.env.CN_REASONING_EFFORT = "maximum"
-        try {
-          const fs = yield* FileSystem.FileSystem
-          const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-loop-fake-env-" })
-          yield* writeReadyArtifacts(repo)
+        yield* Effect.acquireRelease(
+          Effect.sync(() => {
+            const previous = process.env.CN_REASONING_EFFORT
+            process.env.CN_REASONING_EFFORT = "maximum"
+            return previous
+          }),
+          (previous) =>
+            Effect.sync(() => {
+              if (previous === undefined) {
+                delete process.env.CN_REASONING_EFFORT
+                return
+              }
+              process.env.CN_REASONING_EFFORT = previous
+            }),
+        )
+        const fs = yield* FileSystem.FileSystem
+        const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-loop-fake-env-" })
+        yield* writeReadyArtifacts(repo)
 
-          const events: ProgressEvent[] = []
-          const layer = Layer.mergeAll(
-            makeGitFakeLive(),
-            makeProgressCaptureLive(events),
-            makeApplyingFakeProposerLive({ rel: "src/index.ts", marker: "codenuke:remove" }),
-          )
+        const events: ProgressEvent[] = []
+        const layer = Layer.mergeAll(
+          makeGitFakeLive(),
+          makeProgressCaptureLive(events),
+          makeApplyingFakeProposerLive({ rel: "src/index.ts", marker: "codenuke:remove" }),
+        )
 
-          const report = yield* runReduceLoop({
-            repo,
-            region: "src",
-            iterations: 1,
-            testCommand: { file: "node", args: ["-e", "process.exit(0)"] },
-            threshold: 0.9,
-            resultRef: "refs/codenuke/result",
-          }).pipe(Effect.provide(layer))
+        const report = yield* runReduceLoop({
+          repo,
+          region: "src",
+          iterations: 1,
+          testCommand: { file: "node", args: ["-e", "process.exit(0)"] },
+          threshold: 0.9,
+          resultRef: "refs/codenuke/result",
+        }).pipe(Effect.provide(layer))
 
-          expect(report.iterations).toHaveLength(1)
-        } finally {
-          if (previous === undefined) {
-            delete process.env.CN_REASONING_EFFORT
-          } else {
-            process.env.CN_REASONING_EFFORT = previous
-          }
-        }
+        expect(report.iterations).toHaveLength(1)
       }).pipe(Effect.provide(NodeContext.layer)),
     ),
   )

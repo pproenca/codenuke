@@ -98,8 +98,8 @@ export const openThread = (
   client: CodexClientLike,
   config: ResolvedProposerConfig,
   worktree: string,
-  threadId?: string,
+  threadID?: string,
 ): CodexThreadLike =>
-  threadId
-    ? client.resumeThread(threadId, codexThreadOptions(config, worktree))
+  threadID
+    ? client.resumeThread(threadID, codexThreadOptions(config, worktree))
     : client.startThread(codexThreadOptions(config, worktree))

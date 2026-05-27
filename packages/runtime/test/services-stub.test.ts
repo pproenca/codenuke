@@ -30,7 +30,7 @@ describe("proposer thread state — RULE-057", () => {
     provider: "codex-sdk",
     threads: {
       "reduce:src": {
-        threadId: "thread-reduce-src",
+        threadID: "thread-reduce-src",
         createdAt: "2026-05-27T00:00:00.000Z",
         lastUsedAt: "2026-05-27T00:00:00.000Z",
         baselineSha: "a".repeat(40),
@@ -54,7 +54,7 @@ describe("proposer thread state — RULE-057", () => {
       provider: "codex-sdk",
       threads: {
         "reduce:src": {
-          threadId: "legacy-thread",
+          threadID: "legacy-thread",
           createdAt: "2026-05-27T00:00:00.000Z",
           lastUsedAt: "2026-05-27T00:00:00.000Z",
         },
@@ -67,12 +67,12 @@ describe("proposer thread state — RULE-057", () => {
     const next = upsertProposerThread({
       state,
       key: "reduce:src",
-      threadId: "thread-next",
+      threadID: "thread-next",
       baselineSha: "a".repeat(40),
       now: "2026-05-27T01:00:00.000Z",
     })
     expect(next.threads["reduce:src"]).toEqual({
-      threadId: "thread-next",
+      threadID: "thread-next",
       createdAt: "2026-05-27T00:00:00.000Z",
       lastUsedAt: "2026-05-27T01:00:00.000Z",
       baselineSha: "a".repeat(40),

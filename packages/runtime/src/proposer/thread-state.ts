@@ -30,13 +30,13 @@ export const selectProposerThread = (
   const entry = state.threads[key]
   if (entry === undefined) return undefined
   if (entry.baselineSha !== baselineSha) return undefined
-  return entry.threadId
+  return entry.threadID
 }
 
 export const upsertProposerThread = (args: {
   readonly state: ThreadState
   readonly key: string
-  readonly threadId: string
+  readonly threadID: string
   readonly baselineSha: string
   readonly now: string
 }): ThreadState => ({
@@ -45,7 +45,7 @@ export const upsertProposerThread = (args: {
   threads: {
     ...args.state.threads,
     [args.key]: {
-      threadId: args.threadId,
+      threadID: args.threadID,
       createdAt: args.state.threads[args.key]?.createdAt ?? args.now,
       lastUsedAt: args.now,
       baselineSha: args.baselineSha,

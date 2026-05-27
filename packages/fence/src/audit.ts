@@ -186,18 +186,17 @@ export const FenceLive: Layer.Layer<Fence, never, MutationRunner> = Layer.effect
           if (!req.baselineGreen) {
             return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "baseline-red" }));
           }
-          const outcomes: MutantStatus[] = [];
-          for (const mutation of req.previous.survivorSpecs) {
+          const outcomes = yield* Effect.forEach(req.previous.survivorSpecs, (mutation) => {
             const before = req.baselineFiles[mutation.rel];
             const now = req.currentFiles[mutation.rel];
             if (before === undefined || now === undefined) {
-              return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
+              return Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
             }
             if (before !== now) {
-              return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
+              return Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
             }
-            outcomes.push(yield* runner.run({ worktree: req.worktree, mutation }));
-          }
+            return runner.run({ worktree: req.worktree, mutation });
+          });
           const killed = outcomes.filter(isCaught).length;
           const replayed = recomputeReplay(req.previous.caught, req.previous.total, killed, req.previous.lo);
           const survivorSpecs = req.previous.survivorSpecs.filter((_, i) => !isCaught(outcomes[i]));

@@ -1,7 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { execFileSync } from "node:child_process"
+import { Command, CommandExecutor, FileSystem, Path } from "@effect/platform"
 import { NodeContext } from "@effect/platform-node"
 import { describe, expect, it } from "@effect/vitest"
 import type { Measurement } from "@codenuke/core"
@@ -33,48 +30,54 @@ const gates = (diffsize: number): GateInputs => ({
   typeErrors: 0,
   baselineTypeErrors: 0,
 })
-const git = (cwd: string, args: readonly string[]): string =>
-  execFileSync("git", [...args], { cwd, encoding: "utf8" }).trim()
+const git = (repo: string, args: readonly string[]): Effect.Effect<string, never, CommandExecutor.CommandExecutor> =>
+  Command.string(Command.make("git", ...args).pipe(Command.workingDirectory(repo))).pipe(
+    Effect.map((s) => s.trim()),
+    Effect.orDie,
+  )
 
-const writeArtifacts = (repo: string, baselineSha: string): void => {
-  mkdirSync(join(repo, ".codenuke"), { recursive: true })
-  const w = wilson(60, 60)
-  writeFileSync(
-    join(repo, ".codenuke", "fence-fidelity.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      baseline: "HEAD",
-      baselineSha,
-      generatedAt: "2026-05-27T00:00:00.000Z",
-      method: "ast-aware",
-      threshold: 0.9,
-      capPerRegion: 60,
-      seed: 1337,
-      regions: {
-        src: {
-          caught: 60,
-          total: 60,
-          p: w.p,
-          lo: w.lo,
-          hi: w.hi,
-          admissible: w.lo >= 0.9,
-          survivorSpecs: [],
+const writeArtifacts = (repo: string, baselineSha: string): Effect.Effect<void, never, FileSystem.FileSystem | Path.Path> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const w = wilson(60, 60)
+    yield* fs.makeDirectory(path.join(repo, ".codenuke"), { recursive: true }).pipe(Effect.orDie)
+    yield* fs.writeFileString(
+      path.join(repo, ".codenuke", "fence-fidelity.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        baseline: "HEAD",
+        baselineSha,
+        generatedAt: "2026-05-27T00:00:00.000Z",
+        method: "ast-aware",
+        threshold: 0.9,
+        capPerRegion: 60,
+        seed: 1337,
+        regions: {
+          src: {
+            caught: 60,
+            total: 60,
+            p: w.p,
+            lo: w.lo,
+            hi: w.hi,
+            admissible: w.lo >= 0.9,
+            survivorSpecs: [],
+          },
         },
-      },
-    })}\n`,
-  )
-  writeFileSync(
-    join(repo, ".codenuke", "calibration.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      baseline: "HEAD",
-      baselineSha,
-      generatedAt: "2026-05-27T00:00:00.000Z",
-      commitsSampled: 3,
-      scales: { sL: 150, sCx: 15, sDup: 5 },
-    })}\n`,
-  )
-}
+      })}\n`,
+    ).pipe(Effect.orDie)
+    yield* fs.writeFileString(
+      path.join(repo, ".codenuke", "calibration.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        baseline: "HEAD",
+        baselineSha,
+        generatedAt: "2026-05-27T00:00:00.000Z",
+        commitsSampled: 3,
+        scales: { sL: 150, sCx: 15, sDup: 5 },
+      })}\n`,
+    ).pipe(Effect.orDie)
+  })
 
 describe("RULE-035 score assembly — assembleScoreInputs", () => {
   it("RULE-035 requires explicit gate inputs and passes through diffsize/weights", () => {
@@ -131,21 +134,23 @@ describe("RULE-035 score assembly — assembleScoreInputs", () => {
 
 describe("scoreCurrentChange — early cheap vetoes", () => {
   it.effect("rejects probation guardrails before running test or typecheck commands", () =>
-    Effect.gen(function* () {
-      const repo = mkdtempSync(join(tmpdir(), "codenuke-score-veto-"))
-      const testSentinel = join(repo, "test-ran")
-      const typeSentinel = join(repo, "type-ran")
-      try {
-        mkdirSync(join(repo, "src"), { recursive: true })
-        writeFileSync(join(repo, "src", "index.ts"), "export const value = 1\n")
-        git(repo, ["init"])
-        git(repo, ["config", "user.email", "test@codenuke.local"])
-        git(repo, ["config", "user.name", "codenuke test"])
-        git(repo, ["add", "."])
-        git(repo, ["commit", "-m", "initial"])
-        const baselineSha = git(repo, ["rev-parse", "HEAD"])
-        writeArtifacts(repo, baselineSha)
-        writeFileSync(join(repo, "src", "index.ts"), "export const renamed = 1\n")
+    Effect.scoped(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const path = yield* Path.Path
+        const repo = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-score-veto-" })
+        const test = path.join(repo, "test-ran")
+        const type = path.join(repo, "type-ran")
+        yield* fs.makeDirectory(path.join(repo, "src"), { recursive: true }).pipe(Effect.orDie)
+        yield* fs.writeFileString(path.join(repo, "src", "index.ts"), "export const value = 1\n").pipe(Effect.orDie)
+        yield* git(repo, ["init"])
+        yield* git(repo, ["config", "user.email", "test@codenuke.local"])
+        yield* git(repo, ["config", "user.name", "codenuke test"])
+        yield* git(repo, ["add", "."])
+        yield* git(repo, ["commit", "-m", "initial"])
+        const baselineSha = yield* git(repo, ["rev-parse", "HEAD"])
+        yield* writeArtifacts(repo, baselineSha)
+        yield* fs.writeFileString(path.join(repo, "src", "index.ts"), "export const renamed = 1\n").pipe(Effect.orDie)
 
         const envelope = yield* scoreCurrentChange({
           repo,
@@ -155,22 +160,20 @@ describe("scoreCurrentChange — early cheap vetoes", () => {
           testCommand: {
             file: "node",
             args: ["-e", "require('fs').writeFileSync(process.env.SENTINEL, 'test')"],
-            env: { SENTINEL: testSentinel },
+            env: { SENTINEL: test },
           },
           typeCheckCommand: {
             file: "node",
             args: ["-e", "require('fs').writeFileSync(process.env.SENTINEL, 'type')"],
-            env: { SENTINEL: typeSentinel },
+            env: { SENTINEL: type },
           },
         })
 
         expect(envelope.status).toBe("rejected")
         expect(envelope.guardrails.failures.map((f) => f.code)).toContain("public-api-change")
-        expect(existsSync(testSentinel)).toBe(false)
-        expect(existsSync(typeSentinel)).toBe(false)
-      } finally {
-        rmSync(repo, { recursive: true, force: true })
-      }
-    }).pipe(Effect.provide(Layer.mergeAll(NodeContext.layer, GitLive.pipe(Layer.provide(NodeContext.layer))))),
+        expect(yield* fs.exists(test).pipe(Effect.orDie)).toBe(false)
+        expect(yield* fs.exists(type).pipe(Effect.orDie)).toBe(false)
+      }),
+    ).pipe(Effect.provide(Layer.mergeAll(NodeContext.layer, GitLive.pipe(Layer.provide(NodeContext.layer))))),
   )
 })

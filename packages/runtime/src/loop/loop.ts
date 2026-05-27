@@ -16,7 +16,7 @@
  */
 import { FileSystem, Path } from "@effect/platform"
 import { type CommandSpec, discoverOpportunities, isSourceFile, measureFiles, type Opportunity, type ScoreEnvelope } from "@codenuke/core"
-import { Effect, Fiber, Stream } from "effect"
+import { Effect, Fiber, Ref, Stream } from "effect"
 import {
   readArtifactBundle,
   readArtifactReadiness as readValidatedArtifactReadiness,
@@ -215,7 +215,7 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
     }
     const probation = artifacts.confidence !== "validated"
     const totalIterations = probation ? Math.min(opts.iterations, PROBATION_MAX_ITERATIONS) : opts.iterations
-    let threads = yield* readProposerThreadState(opts.repo)
+    const threads = yield* Ref.make(yield* readProposerThreadState(opts.repo))
 
     yield* emit({ _tag: "RunStarted", iterations: totalIterations, baselineSha: startSha })
     yield* emit({ _tag: "RegionSelected", region: opts.region, mode: "reduce" })
@@ -267,8 +267,9 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
           yield* emit({ _tag: "IterationStarted", iter, total: totalIterations })
           const opportunity = opportunities.length > 0 ? opportunities[i % opportunities.length] : undefined
           const target = opportunity ? `${opportunity.kind} ${opportunity.id}` : opts.region
-          const threadKey = proposerThreadKey("reduce", opts.region)
-          const threadId = selectProposerThread(threads, threadKey, startSha)
+          const key = proposerThreadKey("reduce", opts.region)
+          const state = yield* Ref.get(threads)
+          const threadID = selectProposerThread(state, key, startSha)
 
           // propose (reduce) — edits the worktree; proposer failure ⇒ no change
           const req: ProposerRequest = {
@@ -290,23 +291,22 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
             regionTarget: opts.region,
             timeoutMs: proposerLimits.proposerTimeoutMs,
             budgetUsd: proposerLimits.proposerBudgetUsd,
-            ...(threadId ? { threadId } : {}),
+            ...(threadID ? { threadID } : {}),
           }
-          let proposerFailureReason: string | null = null
-          let completedThreadId: string | null = null
-          yield* timedPhase(
+          const completed = yield* Ref.make<string | null>(null)
+          const failure = yield* timedPhase(
             iter,
             "proposer",
             Stream.runForEach(proposer.propose(req), (ev) =>
               ev._tag === "AgentMessage"
                 ? Effect.void
-                : Effect.sync(() => {
-                    if (ev._tag === "TurnCompleted" && ev.threadId !== undefined) {
-                      completedThreadId = ev.threadId
-                    }
-                  }).pipe(Effect.zipRight(emit({ _tag: "ProposerEvent", ev }))),
+                : (ev._tag === "TurnCompleted" && ev.threadID !== undefined
+                    ? Ref.set(completed, ev.threadID)
+                    : Effect.void
+                  ).pipe(Effect.zipRight(emit({ _tag: "ProposerEvent", ev }))),
             ),
           ).pipe(
+            Effect.as(null),
             Effect.catchAll((error) =>
               Effect.sync(() => {
                 const tag =
@@ -315,30 +315,27 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
                     : "ProposerFailed"
                 return `proposer-failed:${tag}`
               }).pipe(
-                Effect.tap((reason) =>
-                  Effect.sync(() => {
-                    proposerFailureReason = reason
-                  }),
-                ),
                 Effect.flatMap((reason) =>
                   emit({
                     _tag: "Message",
                     level: "warn",
                     text: reason,
-                  }),
+                  }).pipe(Effect.as(reason)),
                 ),
               ),
             ),
           )
-          if (proposerFailureReason === null && completedThreadId !== null) {
-            threads = upsertProposerThread({
-              state: threads,
-              key: threadKey,
-              threadId: completedThreadId,
+          const done = yield* Ref.get(completed)
+          if (failure === null && done !== null) {
+            const next = upsertProposerThread({
+              state,
+              key,
+              threadID: done,
               baselineSha: startSha,
               now: new Date().toISOString(),
             })
-            yield* writeProposerThreadState(opts.repo, threads)
+            yield* Ref.set(threads, next)
+            yield* writeProposerThreadState(opts.repo, next)
           }
 
           const envelope = yield* timedPhase(
@@ -374,7 +371,7 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
             yield* git.discardAll(worktree).pipe(Effect.ignore)
             reverted += 1
             const scoreReason = rejectedScoreReason(envelope)
-            const reason = proposerFailureReason ?? (verdict?.dL === 0 ? "no-change" : scoreReason)
+            const reason = failure ?? (verdict?.dL === 0 ? "no-change" : scoreReason)
             outcomes.push({ iter, kept: false, reason, dL: verdict?.dL ?? 0, loss: verdict?.loss ?? null })
             tsvRows.push(
               [iter, "-", verdict?.dL ?? 0, verdict?.dCx ?? 0, (verdict?.mfence ?? 0).toFixed(3), verdict?.loss === null || verdict?.loss === undefined ? "null" : String(verdict.loss), "REVERT", sanitize(reason)].join(

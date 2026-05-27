@@ -412,7 +412,7 @@ export const ProposerRequest = Schema.Struct({
   regionTarget: Schema.String,
   timeoutMs: FiniteNumber,
   budgetUsd: Schema.String,
-  threadId: Schema.optional(Schema.String),
+  threadID: Schema.optional(Schema.String),
 });
 export type ProposerRequest = Schema.Schema.Type<typeof ProposerRequest>;
 
@@ -422,7 +422,7 @@ export const ProposerResult = Schema.Struct({
   out: Schema.String,
   timedOut: Schema.Boolean,
   provider: Schema.Literal("codex-cli", "codex-sdk"),
-  threadId: Schema.optional(Schema.String),
+  threadID: Schema.optional(Schema.String),
   summary: Schema.optional(Schema.String),
   error: Schema.optional(Schema.String),
 });
@@ -430,7 +430,7 @@ export type ProposerResult = Schema.Schema.Type<typeof ProposerResult>;
 
 /** RULE-057 — one persisted SDK conversation, keyed `mode:regionTarget`. */
 export const ProposerThreadEntry = Schema.Struct({
-  threadId: Schema.String,
+  threadID: Schema.String,
   createdAt: Schema.String,
   lastUsedAt: Schema.String,
   baselineSha: Schema.optional(Sha40),

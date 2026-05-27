@@ -67,7 +67,7 @@ export interface ProposerRequest {
   readonly regionTarget: string
   readonly timeoutMs: number
   readonly budgetUsd: string
-  readonly threadId?: string
+  readonly threadID?: string
 }
 
 /** RULE-047 — the streamed SDK events become ProgressEvent.ProposerEvent. */
@@ -75,7 +75,7 @@ export type ProposerEvent =
   | { readonly _tag: "CommandExecution"; readonly command: string }
   | { readonly _tag: "FileChange"; readonly path: string }
   | { readonly _tag: "AgentMessage"; readonly text: string }
-  | { readonly _tag: "TurnCompleted"; readonly usage?: ProposerUsage; readonly threadId?: string }
+  | { readonly _tag: "TurnCompleted"; readonly usage?: ProposerUsage; readonly threadID?: string }
   | { readonly _tag: "TurnFailed"; readonly error: string }
 
 export interface ProposerUsage {
@@ -102,8 +102,8 @@ export class Proposer extends Context.Tag("@codenuke/runtime/Proposer")<
  * Real implementation (selected by CN_CODEX_PROVIDER):
  *   import { Codex } from "@openai/codex-sdk"
  *   const codex = new Codex({ env: allowlistEnv(req.env) })
- *   const thread = req.threadId
- *     ? codex.resumeThread(req.threadId, opts)
+ *   const thread = req.threadID
+ *     ? codex.resumeThread(req.threadID, opts)
  *     : codex.startThread(opts)            // opts: workingDirectory=worktree,
  *                                          // sandboxMode, approvalPolicy, model
  *   const streamed = thread.runStreamed(req.prompt, { signal })
@@ -118,7 +118,7 @@ export class Proposer extends Context.Tag("@codenuke/runtime/Proposer")<
  * `Stream.filterMapEffect`: `Option.none()` drops; `Option.some(Effect)` keeps (and
  * may fail the turn for turn.failed/error).
  */
-const mapEvent = (ev: ThreadEvent, threadId?: string | null): Option.Option<Effect.Effect<ProposerEvent, ProposerError>> => {
+const mapEvent = (ev: ThreadEvent, threadID?: string | null): Option.Option<Effect.Effect<ProposerEvent, ProposerError>> => {
   switch (ev.type) {
     case "item.completed": {
       const item = ev.item
@@ -140,7 +140,7 @@ const mapEvent = (ev: ThreadEvent, threadId?: string | null): Option.Option<Effe
         Effect.succeed({
           _tag: "TurnCompleted",
           usage: ev.usage,
-          ...(threadId ? { threadId } : {}),
+          ...(threadID ? { threadID } : {}),
         } satisfies ProposerEvent),
       )
     case "turn.failed":
@@ -166,7 +166,7 @@ export const proposerEnv = (
  * thread in the worktree, streams the turn, maps events → ProposerEvent, and
  * aborts after `timeoutMs` (RULE-047). The agent edits files in `workingDirectory`
  * (= the worktree), which is what the loop measures. Thread continuity (RULE-057
- * persistence) is a follow-up; `req.threadId` is honored when supplied.
+ * persistence) is a follow-up; `req.threadID` is honored when supplied.
  */
 const classifyProposerError = (
   error: unknown,
@@ -194,7 +194,7 @@ export const makeCodexProposerLive = (opts: {
         Stream.unwrap(
           Effect.gen(function* () {
             const client = yield* makeCodex({ env: proposerEnv(opts.env, req) })
-            const thread = openThread(client, opts.config, req.worktree, req.threadId)
+            const thread = openThread(client, opts.config, req.worktree, req.threadID)
             const controller = new AbortController()
             let timedOut = false
             const timer = setTimeout(() => {
@@ -248,7 +248,7 @@ export interface FakeScript {
   readonly finalMessage?: string
   /** Usage reported on TurnCompleted. */
   readonly usage?: ProposerUsage
-  readonly threadId?: string
+  readonly threadID?: string
   /** If set, the turn fails with this message (failureClass "crash"). */
   readonly fail?: string
 }
@@ -275,7 +275,7 @@ export const fakeProposerStream = (
   if (script.finalMessage !== undefined) {
     events.push({ _tag: "AgentMessage", text: script.finalMessage })
   }
-  events.push({ _tag: "TurnCompleted", usage: script.usage, ...(script.threadId ? { threadId: script.threadId } : {}) })
+  events.push({ _tag: "TurnCompleted", usage: script.usage, ...(script.threadID ? { threadID: script.threadID } : {}) })
   return Stream.fromIterable(events)
 }
 
