@@ -433,6 +433,7 @@ export const ProposerThreadEntry = Schema.Struct({
   threadId: Schema.String,
   createdAt: Schema.String,
   lastUsedAt: Schema.String,
+  baselineSha: Schema.optional(Sha40),
 });
 export type ProposerThreadEntry = Schema.Schema.Type<typeof ProposerThreadEntry>;
 

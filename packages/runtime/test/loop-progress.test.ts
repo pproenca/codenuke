@@ -1,7 +1,7 @@
 import { FileSystem, Path } from "@effect/platform"
 import { NodeContext } from "@effect/platform-node"
 import { describe, expect, it } from "@effect/vitest"
-import { wilson } from "@codenuke/core"
+import { type Opportunity, wilson } from "@codenuke/core"
 import { Effect, Layer, Stream } from "effect"
 import { Git } from "../src/git/git.ts"
 import { buildReducePrompt, runReduceLoop } from "../src/loop/loop.ts"
@@ -145,6 +145,33 @@ describe("loop progress", () => {
     expect(prompt).toContain("under 80 inserted plus deleted lines")
     expect(prompt).toContain("Do not add, remove, rename, or change public exports.")
     expect(prompt).toContain("Attempt: 2/3")
+  })
+
+  it("adds selected opportunity context to reduce prompts", () => {
+    const opportunity: Opportunity = {
+      id: "local-simplification:abc123",
+      kind: "local-simplification",
+      region: "src",
+      files: ["src/index.ts"],
+      estimatedGain: 1,
+      evidence: { reason: "if-true" },
+      inputHash: "hash",
+    }
+    const prompt = buildReducePrompt({
+      region: "src",
+      target: `${opportunity.kind} ${opportunity.id}`,
+      probation: true,
+      maxFiles: 1,
+      maxDiffsize: 80,
+      attempt: 1,
+      totalAttempts: 3,
+      opportunity,
+    })
+    expect(prompt).toContain("Selected opportunity:")
+    expect(prompt).toContain("Id: local-simplification:abc123")
+    expect(prompt).toContain("Kind: local-simplification")
+    expect(prompt).toContain("Files: src/index.ts")
+    expect(prompt).toContain('"reason":"if-true"')
   })
 
   it.effect("emits compact run, phase, scoring, and decision events", () =>

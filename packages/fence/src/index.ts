@@ -58,6 +58,7 @@ export {
   fakeStatus,
   FakeMutationRunnerLive,
   MutationRunner,
+  ReplayPreconditionFailed,
   type AuditInput,
   type AuditRegionRequest,
   type RegionFile,

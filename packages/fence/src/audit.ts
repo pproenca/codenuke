@@ -23,10 +23,11 @@
  */
 import type { FenceArtifact, PlannedMutation, RegionRecord } from "@codenuke/core";
 import { wilson } from "@codenuke/core";
-import { Context, Effect, Layer } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 import { collectSites } from "./operators.ts";
+import { recomputeReplay } from "./replay.ts";
 import { samplePlanned } from "./sampling.ts";
-import { classify, type MutantStatus, tally } from "./survivor.ts";
+import { classify, isCaught, type MutantStatus, tally } from "./survivor.ts";
 
 /** A baseline source file in a region (repo-relative path + its text). */
 export interface RegionFile {
@@ -80,6 +81,11 @@ export class MutationRunner extends Context.Tag("@codenuke/fence/MutationRunner"
   }
 >() {}
 
+export class ReplayPreconditionFailed extends Data.TaggedError("ReplayPreconditionFailed")<{
+  readonly reason: "baseline-red" | "source-changed";
+  readonly rel?: string;
+}> {}
+
 /** Build a region's deterministic plan: files sorted by rel, sites ascending, then seeded-sampled. */
 const planRegion = (region: RegionInput, cap: number, seed: number): PlannedMutation[] => {
   const files = [...region.files].sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
@@ -119,7 +125,11 @@ export class Fence extends Context.Tag("@codenuke/fence/Fence")<
       readonly region: string;
       readonly worktree: string;
       readonly threshold: number;
-    }) => Effect.Effect<RegionRecord>;
+      readonly previous: RegionRecord;
+      readonly baselineGreen: boolean;
+      readonly baselineFiles: Readonly<Record<string, string>>;
+      readonly currentFiles: Readonly<Record<string, string>>;
+    }) => Effect.Effect<RegionRecord, ReplayPreconditionFailed>;
   }
 >() {}
 
@@ -171,8 +181,37 @@ export const FenceLive: Layer.Layer<Fence, never, MutationRunner> = Layer.effect
     return Fence.of({
       auditRegion,
       runAudit,
-      replayRegion: () =>
-        Effect.die("unimplemented: RULE-043/051 effectful replay (Slice 1 follow-up)"),
+      replayRegion: (req) =>
+        Effect.gen(function* () {
+          if (!req.baselineGreen) {
+            return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "baseline-red" }));
+          }
+          const outcomes: MutantStatus[] = [];
+          for (const mutation of req.previous.survivorSpecs) {
+            const before = req.baselineFiles[mutation.rel];
+            const now = req.currentFiles[mutation.rel];
+            if (before === undefined || now === undefined) {
+              outcomes.push("green");
+              continue;
+            }
+            if (before !== now) {
+              return yield* Effect.fail(new ReplayPreconditionFailed({ reason: "source-changed", rel: mutation.rel }));
+            }
+            outcomes.push(yield* runner.run({ worktree: req.worktree, mutation }));
+          }
+          const killed = outcomes.filter(isCaught).length;
+          const replayed = recomputeReplay(req.previous.caught, req.previous.total, killed, req.previous.lo);
+          const survivorSpecs = req.previous.survivorSpecs.filter((_, i) => !isCaught(outcomes[i]));
+          return {
+            caught: replayed.caught,
+            total: replayed.total,
+            p: replayed.interval.p,
+            lo: replayed.interval.lo,
+            hi: replayed.interval.hi,
+            admissible: replayed.interval.lo >= req.threshold,
+            survivorSpecs,
+          };
+        }),
     });
   }),
 );

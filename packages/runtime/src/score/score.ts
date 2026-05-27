@@ -54,29 +54,6 @@ export const scoreCurrentChange = (opts: {
 
     const shortStat = yield* git.diffShortStat(opts.repo, region)
     const diffsize = shortStat.insertions + shortStat.deletions
-    const testsPass = yield* runTestCommand(opts.repo, opts.testCommand)
-    const typeErrors = yield* runTypecheckCount(opts.repo, opts.typeCheckCommand)
-    const baselineTypeErrors =
-      opts.baselineTypeErrors ??
-      (opts.typeCheckCommand == null
-        ? 0
-        : yield* Effect.scoped(
-            Effect.gen(function* () {
-              const parent = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-score-baseline-" })
-              const worktree = path.join(parent, "tree")
-              yield* Effect.acquireRelease(git.worktreeAdd(opts.repo, worktree, baselineSha), () =>
-                git.worktreeRemove(opts.repo, worktree).pipe(Effect.ignore),
-              )
-              const repoNodeModules = path.join(opts.repo, "node_modules")
-              const worktreeNodeModules = path.join(worktree, "node_modules")
-              const hasNodeModules = yield* fs.exists(repoNodeModules).pipe(Effect.orElseSucceed(() => false))
-              if (hasNodeModules) {
-                yield* fs.symlink(repoNodeModules, worktreeNodeModules).pipe(Effect.ignore)
-              }
-              return yield* runTypecheckCount(worktree, opts.typeCheckCommand)
-            }).pipe(Effect.orElseSucceed(() => 0)),
-          ))
-
     const fenceRec = artifacts.fence?.regions[region]
     const fenceUsable = artifacts.readiness.fenceUsable && fenceRec !== undefined
     const touchedFidelities = changed.length > 0 && fenceRec ? [fenceRec.lo] : []
@@ -96,10 +73,39 @@ export const scoreCurrentChange = (opts: {
       beforeGraph: beforeChanged,
       afterGraph: afterChanged,
     })
+    const beforeMeasure = measureFiles(before)
+    const afterMeasure = measureFiles(after)
+    const shouldProve =
+      guardrailFailures.length === 0 &&
+      outOfSurface.length === 0 &&
+      !(changed.length > 0 && (!fenceUsable || fenceRec?.admissible !== true)) &&
+      beforeMeasure.L > afterMeasure.L
+    const baselineTypeErrors =
+      opts.baselineTypeErrors ??
+      (shouldProve && opts.typeCheckCommand != null
+        ? yield* Effect.scoped(
+            Effect.gen(function* () {
+              const parent = yield* fs.makeTempDirectoryScoped({ prefix: "codenuke-score-baseline-" })
+              const worktree = path.join(parent, "tree")
+              yield* Effect.acquireRelease(git.worktreeAdd(opts.repo, worktree, baselineSha), () =>
+                git.worktreeRemove(opts.repo, worktree).pipe(Effect.ignore),
+              )
+              const repoNodeModules = path.join(opts.repo, "node_modules")
+              const worktreeNodeModules = path.join(worktree, "node_modules")
+              const hasNodeModules = yield* fs.exists(repoNodeModules).pipe(Effect.orElseSucceed(() => false))
+              if (hasNodeModules) {
+                yield* fs.symlink(repoNodeModules, worktreeNodeModules).pipe(Effect.ignore)
+              }
+              return yield* runTypecheckCount(worktree, opts.typeCheckCommand)
+            }).pipe(Effect.orElseSucceed(() => 0)),
+          )
+        : 0)
+    const testsPass = shouldProve ? yield* runTestCommand(opts.repo, opts.testCommand) : true
+    const typeErrors = shouldProve ? yield* runTypecheckCount(opts.repo, opts.typeCheckCommand) : baselineTypeErrors
 
     return decideEnvelope({
-      before: measureFiles(before),
-      after: measureFiles(after),
+      before: beforeMeasure,
+      after: afterMeasure,
       gates: {
         testsPass,
         fenceUsable,

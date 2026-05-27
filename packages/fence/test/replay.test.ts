@@ -1,4 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
+import { Effect, Layer } from "effect";
+import { Fence, FenceLive, MutationRunner, type PlannedMutation } from "../src/index.ts";
 
 /**
  * RULE-043 — Monotonic fence replay (keep iff strictly-higher lower bound).
@@ -57,14 +59,111 @@ guarded("RULE-043 monotonic fence replay (pure comparison)", () => {
     expect(r.improved).toBe(false);
   });
 
-  // Effectful replay + RULE-051 precondition — deferred to the Fence service.
-  it.skip("RULE-043 effectful replay re-tests prior survivors over the worktree (Fence service)", () => {});
+  it.effect("RULE-043 effectful replay re-tests prior survivors over the worktree (Fence service)", () => {
+    const killed: PlannedMutation = { rel: "src/a.ts", start: 0, end: 1, repl: "b", op: "kill" };
+    const survivor: PlannedMutation = { rel: "src/a.ts", start: 2, end: 3, repl: "d", op: "live" };
+    const ReplayRunnerLive = Layer.succeed(
+      MutationRunner,
+      MutationRunner.of({
+        run: ({ mutation }) => Effect.succeed(mutation.op === "kill" ? "fail" : "green"),
+      }),
+    );
+    return Effect.gen(function* () {
+      const fence = yield* Fence;
+      const before = mod!.wilson(1, 3);
+      const replayed = yield* fence.replayRegion({
+        region: "src",
+        worktree: "/tmp/replay",
+        threshold: 0.9,
+        baselineGreen: true,
+        baselineFiles: { "src/a.ts": "abc" },
+        currentFiles: { "src/a.ts": "abc" },
+        previous: {
+          caught: 1,
+          total: 3,
+          p: before.p,
+          lo: before.lo,
+          hi: before.hi,
+          admissible: false,
+          survivorSpecs: [killed, survivor],
+        },
+      });
+      expect(replayed.caught).toBe(2);
+      expect(replayed.total).toBe(3);
+      expect(replayed.lo).toBeGreaterThan(before.lo);
+      expect(replayed.survivorSpecs).toEqual([survivor]);
+    }).pipe(Effect.provide(FenceLive.pipe(Layer.provide(ReplayRunnerLive))));
+  });
 });
 
 describe("RULE-051 replay precondition (sources unchanged + green)", () => {
-  // Effectful: reads worktree vs baseline + baseline test status. Stubbed.
-  it.skip("RULE-051 throws 'source changed before replay' when a survivor file differs from baseline", () => {});
-  it.skip("RULE-051 throws 'worktree baseline not green' when the baseline test status is red", () => {});
+  const mutation: PlannedMutation = { rel: "src/a.ts", start: 0, end: 1, repl: "b", op: "live" };
+  const ReplayRunnerLive = Layer.succeed(
+    MutationRunner,
+    MutationRunner.of({
+      run: () => Effect.succeed("green"),
+    }),
+  );
+
+  it.effect("RULE-051 throws 'source changed before replay' when a survivor file differs from baseline", () =>
+    Effect.gen(function* () {
+      const fence = yield* Fence;
+      const before = mod!.wilson(1, 2);
+      const exit = yield* fence
+        .replayRegion({
+          region: "src",
+          worktree: "/tmp/replay",
+          threshold: 0.9,
+          baselineGreen: true,
+          baselineFiles: { "src/a.ts": "before" },
+          currentFiles: { "src/a.ts": "after" },
+          previous: {
+            caught: 1,
+            total: 2,
+            p: before.p,
+            lo: before.lo,
+            hi: before.hi,
+            admissible: false,
+            survivorSpecs: [mutation],
+          },
+        })
+        .pipe(Effect.exit);
+      expect(exit._tag).toBe("Failure");
+      if (exit._tag === "Failure") {
+        expect(String(exit.cause)).toContain("ReplayPreconditionFailed");
+      }
+    }).pipe(Effect.provide(FenceLive.pipe(Layer.provide(ReplayRunnerLive)))),
+  );
+
+  it.effect("RULE-051 throws 'worktree baseline not green' when the baseline test status is red", () =>
+    Effect.gen(function* () {
+      const fence = yield* Fence;
+      const before = mod!.wilson(1, 2);
+      const exit = yield* fence
+        .replayRegion({
+          region: "src",
+          worktree: "/tmp/replay",
+          threshold: 0.9,
+          baselineGreen: false,
+          baselineFiles: { "src/a.ts": "before" },
+          currentFiles: { "src/a.ts": "before" },
+          previous: {
+            caught: 1,
+            total: 2,
+            p: before.p,
+            lo: before.lo,
+            hi: before.hi,
+            admissible: false,
+            survivorSpecs: [mutation],
+          },
+        })
+        .pipe(Effect.exit);
+      expect(exit._tag).toBe("Failure");
+      if (exit._tag === "Failure") {
+        expect(String(exit.cause)).toContain("ReplayPreconditionFailed");
+      }
+    }).pipe(Effect.provide(FenceLive.pipe(Layer.provide(ReplayRunnerLive)))),
+  );
 });
 
 describe("RULE-008 determinism property", () => {

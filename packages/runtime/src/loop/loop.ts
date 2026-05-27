@@ -15,7 +15,7 @@
  * v2 metric path used by `score` and `accept`.
  */
 import { FileSystem, Path } from "@effect/platform"
-import { type CommandSpec, isSourceFile, measureFiles, type ScoreEnvelope } from "@codenuke/core"
+import { type CommandSpec, discoverOpportunities, isSourceFile, measureFiles, type Opportunity, type ScoreEnvelope } from "@codenuke/core"
 import { Effect, Fiber, Stream } from "effect"
 import {
   readArtifactBundle,
@@ -29,6 +29,13 @@ import {
   shouldRequireValueProxyValidation,
 } from "../orchestrator/orchestrator.ts"
 import { Proposer, type ProposerRequest } from "../proposer/proposer.ts"
+import {
+  proposerThreadKey,
+  readProposerThreadState,
+  selectProposerThread,
+  upsertProposerThread,
+  writeProposerThreadState,
+} from "../proposer/thread-state.ts"
 import { ProgressBus, type LoopPhase } from "../progress/progress.ts"
 import { PROBATION_MAX_ITERATIONS, runTypecheckCount, scoreCurrentChange } from "../score/score.ts"
 import { resolveProposerLimits } from "../config/config.ts"
@@ -98,6 +105,7 @@ export interface ReducePromptInput {
   readonly maxDiffsize: number
   readonly attempt: number
   readonly totalAttempts: number
+  readonly opportunity?: Opportunity
 }
 
 export const buildReducePrompt = (input: ReducePromptInput): string => {
@@ -114,12 +122,25 @@ export const buildReducePrompt = (input: ReducePromptInput): string => {
         "- Avoid tests, generated files, package manifests, lockfiles, config, and docs unless explicitly required.",
       ]
 
+  const opportunity = input.opportunity
+    ? [
+        "",
+        "Selected opportunity:",
+        `Id: ${input.opportunity.id}`,
+        `Kind: ${input.opportunity.kind}`,
+        `Files: ${input.opportunity.files.join(", ")}`,
+        `Estimated gain: ${input.opportunity.estimatedGain}`,
+        `Evidence: ${JSON.stringify(input.opportunity.evidence).slice(0, 500)}`,
+      ]
+    : []
+
   return [
     "Reduce the selected code region while preserving behavior.",
     "",
     `Region: ${input.region}`,
     `Target: ${input.target}`,
     `Attempt: ${input.attempt}/${input.totalAttempts}`,
+    ...opportunity,
     "",
     "Candidate constraints:",
     ...probationRules,
@@ -194,6 +215,7 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
     }
     const probation = artifacts.confidence !== "validated"
     const totalIterations = probation ? Math.min(opts.iterations, PROBATION_MAX_ITERATIONS) : opts.iterations
+    let threads = yield* readProposerThreadState(opts.repo)
 
     yield* emit({ _tag: "RunStarted", iterations: totalIterations, baselineSha: startSha })
     yield* emit({ _tag: "RegionSelected", region: opts.region, mode: "reduce" })
@@ -225,23 +247,41 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
             )
             return measureFiles(Object.fromEntries(files)).L
           })
+        const readRegionFiles = (): Effect.Effect<Record<string, string>> =>
+          Effect.gen(function* () {
+            const rels = (
+              yield* git.lsTree(worktree, "HEAD", opts.region).pipe(Effect.orElseSucceed(() => [] as readonly string[]))
+            ).filter(isSourceFile)
+            const files = yield* Effect.forEach(rels, (rel) =>
+              fs
+                .readFileString(path.join(worktree, rel))
+                .pipe(Effect.map((c) => [rel, c] as const), Effect.orElseSucceed(() => [rel, ""] as const)),
+            )
+            return Object.fromEntries(files)
+          })
         const startL = yield* measureRegionNow()
+        const opportunities = discoverOpportunities(yield* readRegionFiles(), opts.region)
 
         for (let i = 0; i < totalIterations; i += 1) {
           const iter = i + 1
           yield* emit({ _tag: "IterationStarted", iter, total: totalIterations })
+          const opportunity = opportunities.length > 0 ? opportunities[i % opportunities.length] : undefined
+          const target = opportunity ? `${opportunity.kind} ${opportunity.id}` : opts.region
+          const threadKey = proposerThreadKey("reduce", opts.region)
+          const threadId = selectProposerThread(threads, threadKey, startSha)
 
           // propose (reduce) — edits the worktree; proposer failure ⇒ no change
           const req: ProposerRequest = {
             mode: "reduce",
             prompt: buildReducePrompt({
               region: opts.region,
-              target: opts.region,
+              target,
               probation,
               maxFiles: 1,
               maxDiffsize: 80,
               attempt: iter,
               totalAttempts: totalIterations,
+              opportunity,
             }),
             promptFile: "",
             repo: opts.repo,
@@ -250,13 +290,21 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
             regionTarget: opts.region,
             timeoutMs: proposerLimits.proposerTimeoutMs,
             budgetUsd: proposerLimits.proposerBudgetUsd,
+            ...(threadId ? { threadId } : {}),
           }
           let proposerFailureReason: string | null = null
+          let completedThreadId: string | null = null
           yield* timedPhase(
             iter,
             "proposer",
             Stream.runForEach(proposer.propose(req), (ev) =>
-              ev._tag === "AgentMessage" ? Effect.void : emit({ _tag: "ProposerEvent", ev }),
+              ev._tag === "AgentMessage"
+                ? Effect.void
+                : Effect.sync(() => {
+                    if (ev._tag === "TurnCompleted" && ev.threadId !== undefined) {
+                      completedThreadId = ev.threadId
+                    }
+                  }).pipe(Effect.zipRight(emit({ _tag: "ProposerEvent", ev }))),
             ),
           ).pipe(
             Effect.catchAll((error) =>
@@ -282,6 +330,16 @@ export const runReduceLoop = (opts: ReduceLoopOptions) =>
               ),
             ),
           )
+          if (proposerFailureReason === null && completedThreadId !== null) {
+            threads = upsertProposerThread({
+              state: threads,
+              key: threadKey,
+              threadId: completedThreadId,
+              baselineSha: startSha,
+              now: new Date().toISOString(),
+            })
+            yield* writeProposerThreadState(opts.repo, threads)
+          }
 
           const envelope = yield* timedPhase(
             iter,

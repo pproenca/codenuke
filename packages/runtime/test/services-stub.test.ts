@@ -1,4 +1,10 @@
-import { describe, it } from "@effect/vitest"
+import { describe, expect, it } from "@effect/vitest"
+import {
+  proposerThreadKey,
+  selectProposerThread,
+  upsertProposerThread,
+  type ThreadState,
+} from "../src/proposer/thread-state.ts"
 
 /**
  * Stubbed acceptance tests for the effectful services scaffolded in this wave.
@@ -15,9 +21,63 @@ describe("git service — worktree lifecycle (stubbed)", () => {
 describe("proposer service — subprocess / continuity / budget (stubbed)", () => {
   it.skip("RULE-047 proposer timeout ⇒ SIGTERM then SIGKILL after 1000ms ⇒ crash-timeout", () => {})
   it.skip("RULE-047 a 'maximum budget' output ⇒ failure class crash-budget; else crash", () => {})
-  it.skip("RULE-057 thread continuity: resume threadId for mode:regionTarget; fresh for a new key", () => {})
-  it.todo("RULE-057 (fix) a changed baseline SHA invalidates the resumed thread")
   it.skip("RULE-058 the proposer budget is passed to the provider; overrun classified crash-budget", () => {})
+})
+
+describe("proposer thread state — RULE-057", () => {
+  const state: ThreadState = {
+    schemaVersion: 1,
+    provider: "codex-sdk",
+    threads: {
+      "reduce:src": {
+        threadId: "thread-reduce-src",
+        createdAt: "2026-05-27T00:00:00.000Z",
+        lastUsedAt: "2026-05-27T00:00:00.000Z",
+        baselineSha: "a".repeat(40),
+      },
+    },
+  }
+
+  it("resumes a thread for the same mode, region target, and baseline", () => {
+    expect(proposerThreadKey("reduce", "src")).toBe("reduce:src")
+    expect(selectProposerThread(state, "reduce:src", "a".repeat(40))).toBe("thread-reduce-src")
+    expect(selectProposerThread(state, "raise-fence:src", "a".repeat(40))).toBeUndefined()
+  })
+
+  it("invalidates a stored thread when the baseline SHA changes", () => {
+    expect(selectProposerThread(state, "reduce:src", "b".repeat(40))).toBeUndefined()
+  })
+
+  it("does not resume legacy entries without baseline metadata", () => {
+    const legacy: ThreadState = {
+      schemaVersion: 1,
+      provider: "codex-sdk",
+      threads: {
+        "reduce:src": {
+          threadId: "legacy-thread",
+          createdAt: "2026-05-27T00:00:00.000Z",
+          lastUsedAt: "2026-05-27T00:00:00.000Z",
+        },
+      },
+    }
+    expect(selectProposerThread(legacy, "reduce:src", "a".repeat(40))).toBeUndefined()
+  })
+
+  it("upserts lastUsedAt while preserving createdAt", () => {
+    const next = upsertProposerThread({
+      state,
+      key: "reduce:src",
+      threadId: "thread-next",
+      baselineSha: "a".repeat(40),
+      now: "2026-05-27T01:00:00.000Z",
+    })
+    expect(next.threads["reduce:src"]).toEqual({
+      threadId: "thread-next",
+      createdAt: "2026-05-27T00:00:00.000Z",
+      lastUsedAt: "2026-05-27T01:00:00.000Z",
+      baselineSha: "a".repeat(40),
+    })
+  })
 })
 
 describe("periodic services — artifact IO (stubbed)", () => {

@@ -1,12 +1,20 @@
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { execFileSync } from "node:child_process"
+import { NodeContext } from "@effect/platform-node"
 import { describe, expect, it } from "@effect/vitest"
 import type { Measurement } from "@codenuke/core"
-import { decide } from "@codenuke/core"
+import { decide, wilson } from "@codenuke/core"
+import { Effect, Layer } from "effect"
+import { GitLive } from "../src/git/git.ts"
 import {
   assembleScoreInputs,
   decideEnvelope,
   type GateInputs,
   renderScoreHuman,
   SCORE_DEFAULT_WEIGHTS,
+  scoreCurrentChange,
 } from "../src/score/score.ts"
 
 /**
@@ -25,6 +33,48 @@ const gates = (diffsize: number): GateInputs => ({
   typeErrors: 0,
   baselineTypeErrors: 0,
 })
+const git = (cwd: string, args: readonly string[]): string =>
+  execFileSync("git", [...args], { cwd, encoding: "utf8" }).trim()
+
+const writeArtifacts = (repo: string, baselineSha: string): void => {
+  mkdirSync(join(repo, ".codenuke"), { recursive: true })
+  const w = wilson(60, 60)
+  writeFileSync(
+    join(repo, ".codenuke", "fence-fidelity.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      baseline: "HEAD",
+      baselineSha,
+      generatedAt: "2026-05-27T00:00:00.000Z",
+      method: "ast-aware",
+      threshold: 0.9,
+      capPerRegion: 60,
+      seed: 1337,
+      regions: {
+        src: {
+          caught: 60,
+          total: 60,
+          p: w.p,
+          lo: w.lo,
+          hi: w.hi,
+          admissible: w.lo >= 0.9,
+          survivorSpecs: [],
+        },
+      },
+    })}\n`,
+  )
+  writeFileSync(
+    join(repo, ".codenuke", "calibration.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      baseline: "HEAD",
+      baselineSha,
+      generatedAt: "2026-05-27T00:00:00.000Z",
+      commitsSampled: 3,
+      scales: { sL: 150, sCx: 15, sDup: 5 },
+    })}\n`,
+  )
+}
 
 describe("RULE-035 score assembly — assembleScoreInputs", () => {
   it("RULE-035 requires explicit gate inputs and passes through diffsize/weights", () => {
@@ -77,4 +127,50 @@ describe("RULE-035 score assembly — assembleScoreInputs", () => {
     expect(text).toContain("KEEP")
     expect(text).toContain("gates:")
   })
+})
+
+describe("scoreCurrentChange — early cheap vetoes", () => {
+  it.effect("rejects probation guardrails before running test or typecheck commands", () =>
+    Effect.gen(function* () {
+      const repo = mkdtempSync(join(tmpdir(), "codenuke-score-veto-"))
+      const testSentinel = join(repo, "test-ran")
+      const typeSentinel = join(repo, "type-ran")
+      try {
+        mkdirSync(join(repo, "src"), { recursive: true })
+        writeFileSync(join(repo, "src", "index.ts"), "export const value = 1\n")
+        git(repo, ["init"])
+        git(repo, ["config", "user.email", "test@codenuke.local"])
+        git(repo, ["config", "user.name", "codenuke test"])
+        git(repo, ["add", "."])
+        git(repo, ["commit", "-m", "initial"])
+        const baselineSha = git(repo, ["rev-parse", "HEAD"])
+        writeArtifacts(repo, baselineSha)
+        writeFileSync(join(repo, "src", "index.ts"), "export const renamed = 1\n")
+
+        const envelope = yield* scoreCurrentChange({
+          repo,
+          region: "src",
+          baselineSha,
+          threshold: 0.9,
+          testCommand: {
+            file: "node",
+            args: ["-e", "require('fs').writeFileSync(process.env.SENTINEL, 'test')"],
+            env: { SENTINEL: testSentinel },
+          },
+          typeCheckCommand: {
+            file: "node",
+            args: ["-e", "require('fs').writeFileSync(process.env.SENTINEL, 'type')"],
+            env: { SENTINEL: typeSentinel },
+          },
+        })
+
+        expect(envelope.status).toBe("rejected")
+        expect(envelope.guardrails.failures.map((f) => f.code)).toContain("public-api-change")
+        expect(existsSync(testSentinel)).toBe(false)
+        expect(existsSync(typeSentinel)).toBe(false)
+      } finally {
+        rmSync(repo, { recursive: true, force: true })
+      }
+    }).pipe(Effect.provide(Layer.mergeAll(NodeContext.layer, GitLive.pipe(Layer.provide(NodeContext.layer))))),
+  )
 })

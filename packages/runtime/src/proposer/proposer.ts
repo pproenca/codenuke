@@ -75,7 +75,7 @@ export type ProposerEvent =
   | { readonly _tag: "CommandExecution"; readonly command: string }
   | { readonly _tag: "FileChange"; readonly path: string }
   | { readonly _tag: "AgentMessage"; readonly text: string }
-  | { readonly _tag: "TurnCompleted"; readonly usage?: ProposerUsage }
+  | { readonly _tag: "TurnCompleted"; readonly usage?: ProposerUsage; readonly threadId?: string }
   | { readonly _tag: "TurnFailed"; readonly error: string }
 
 export interface ProposerUsage {
@@ -118,7 +118,7 @@ export class Proposer extends Context.Tag("@codenuke/runtime/Proposer")<
  * `Stream.filterMapEffect`: `Option.none()` drops; `Option.some(Effect)` keeps (and
  * may fail the turn for turn.failed/error).
  */
-const mapEvent = (ev: ThreadEvent): Option.Option<Effect.Effect<ProposerEvent, ProposerError>> => {
+const mapEvent = (ev: ThreadEvent, threadId?: string | null): Option.Option<Effect.Effect<ProposerEvent, ProposerError>> => {
   switch (ev.type) {
     case "item.completed": {
       const item = ev.item
@@ -136,7 +136,13 @@ const mapEvent = (ev: ThreadEvent): Option.Option<Effect.Effect<ProposerEvent, P
       return Option.none()
     }
     case "turn.completed":
-      return Option.some(Effect.succeed({ _tag: "TurnCompleted", usage: ev.usage } satisfies ProposerEvent))
+      return Option.some(
+        Effect.succeed({
+          _tag: "TurnCompleted",
+          usage: ev.usage,
+          ...(threadId ? { threadId } : {}),
+        } satisfies ProposerEvent),
+      )
     case "turn.failed":
       return Option.some(Effect.fail(new ProposerFailed({ message: ev.error.message, failureClass: "crash" })))
     case "error":
@@ -204,7 +210,7 @@ export const makeCodexProposerLive = (opts: {
               streamed.events,
               (e) => classifyProposerError(e, req, timedOut),
             ).pipe(
-              Stream.filterMapEffect(mapEvent),
+              Stream.filterMapEffect((ev) => mapEvent(ev, thread.id)),
               Stream.ensuring(Effect.sync(() => clearTimeout(timer))),
             )
           }),
@@ -242,6 +248,7 @@ export interface FakeScript {
   readonly finalMessage?: string
   /** Usage reported on TurnCompleted. */
   readonly usage?: ProposerUsage
+  readonly threadId?: string
   /** If set, the turn fails with this message (failureClass "crash"). */
   readonly fail?: string
 }
@@ -268,7 +275,7 @@ export const fakeProposerStream = (
   if (script.finalMessage !== undefined) {
     events.push({ _tag: "AgentMessage", text: script.finalMessage })
   }
-  events.push({ _tag: "TurnCompleted", usage: script.usage })
+  events.push({ _tag: "TurnCompleted", usage: script.usage, ...(script.threadId ? { threadId: script.threadId } : {}) })
   return Stream.fromIterable(events)
 }
 

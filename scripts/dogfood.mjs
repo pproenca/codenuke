@@ -8,9 +8,11 @@ const cli = join(repo, "apps/cli/dist/cli.cjs");
 const iterations = process.argv[2] ?? "1";
 const fenceCap = process.env.DOGFOOD_FENCE_CAP ?? "60";
 const fenceSeed = process.env.DOGFOOD_FENCE_SEED ?? "1337";
+const fast = process.env.DOGFOOD_FAST === "1";
 
 function usage() {
   console.log("usage: pnpm dogfood [iterations 1-5]");
+  console.log("       DOGFOOD_FAST=1 pnpm dogfood [iterations]");
 }
 
 const baseEnv = { ...process.env };
@@ -22,13 +24,19 @@ for (const key of ["CN_TEST", "CN_TYPECHECK", "CN_PROPOSER", "CN_IMPLEMENTER"]) 
 const env = {
   ...baseEnv,
   CN_REPO: process.env.CN_REPO ?? repo,
-  CN_SRC: process.env.CN_SRC ?? "packages",
-  CN_TARGET: process.env.CN_TARGET ?? "packages",
+  CN_SRC: process.env.CN_SRC ?? (fast ? "packages/core/src/discovery" : "packages"),
+  CN_TARGET: process.env.CN_TARGET ?? (fast ? "packages/core/src/discovery" : "packages"),
   CN_TEST_FILE: process.env.CN_TEST_FILE ?? "pnpm",
   CN_TEST_ARGS_JSON: process.env.CN_TEST_ARGS_JSON ?? '["test"]',
   CN_TYPECHECK_FILE: process.env.CN_TYPECHECK_FILE ?? "pnpm",
   CN_TYPECHECK_ARGS_JSON: process.env.CN_TYPECHECK_ARGS_JSON ?? '["typecheck"]',
 };
+if (fast && !process.env.CN_PROPOSER_TIMEOUT_MS) {
+  env.CN_PROPOSER_TIMEOUT_MS = "180000";
+}
+if (fast && !process.env.CN_REASONING_EFFORT) {
+  env.CN_REASONING_EFFORT = "medium";
+}
 if (process.env.CN_REGIONS) {
   env.CN_REGIONS = process.env.CN_REGIONS;
 }
@@ -64,9 +72,14 @@ if (!/^[1-5]$/.test(iterations)) {
 
 console.log("dogfood codenuke");
 console.log(`repo: ${repo}`);
+console.log(`preset: ${fast ? "fast" : "default"}`);
 console.log(`src: ${env.CN_SRC}`);
 console.log(`target: ${env.CN_TARGET}`);
 console.log(`regions: ${env.CN_REGIONS ?? "(auto)"}`);
+console.log(`proposer: ${env.CN_PROPOSER_PROVIDER ?? "codex"}`);
+console.log(`model: ${env.CN_MODEL ?? "(default)"}`);
+console.log(`reasoning: ${env.CN_REASONING_EFFORT ?? "(default)"}`);
+console.log(`timeout: ${env.CN_PROPOSER_TIMEOUT_MS ?? "(default)"}`);
 console.log(`test: ${env.CN_TEST_FILE} ${env.CN_TEST_ARGS_JSON}`);
 console.log(`typecheck: ${env.CN_TYPECHECK_FILE} ${env.CN_TYPECHECK_ARGS_JSON}`);
 
